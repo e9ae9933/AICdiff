@@ -1,0 +1,28 @@
+﻿using System;
+
+namespace XX
+{
+	public enum BLEND
+	{
+		NORMAL,
+		ADD,
+		MUL,
+		SUB,
+		ADDP,
+		MULP,
+		NORMALZT,
+		NORMALZW,
+		ADDZT,
+		NORMALBORDER8,
+		NORMALST,
+		NORMALBORDER8ST,
+		GDT_NORMALGLOW,
+		GDT_NORMALBLUR,
+		GDT_ADDGLOW,
+		MASK,
+		MASK_TRANSPARENT,
+		NORMALP2,
+		NORMALP3,
+		_MAX
+	}
+}

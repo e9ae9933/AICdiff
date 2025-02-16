@@ -1,0 +1,636 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3B51FC64-79A9-4C2A-B9DE-ED8B5A284214}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>Assembly-CSharp</RootNamespace>
+    <AssemblyName>Assembly-CSharp</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="better">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\better.dll</HintPath>
+    </Reference>
+    <Reference Include="criware">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\criware.dll</HintPath>
+    </Reference>
+    <Reference Include="netstandard">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\netstandard.dll</HintPath>
+    </Reference>
+    <Reference Include="pixelliner">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\pixelliner.dll</HintPath>
+    </Reference>
+    <Reference Include="spine-unity">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\spine-unity.dll</HintPath>
+    </Reference>
+    <Reference Include="ttr">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\ttr.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\Unity.InputSystem.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.Physics2DModule">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.Physics2DModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
+    <Reference Include="unsafeAssem">
+      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\unsafeAssem.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <AppDesigner Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="HPZ\HoleInfo.cs" />
+    <Compile Include="HPZ\LMOVE.cs" />
+    <Compile Include="HPZ\LPTSKIN.cs" />
+    <Compile Include="HPZ\LSHAPE.cs" />
+    <Compile Include="HPZ\PuzzleLitOption.cs" />
+    <Compile Include="HPZ\PuzzleOption.cs" />
+    <Compile Include="HPZ\ZLit.cs" />
+    <Compile Include="Microsoft\CodeAnalysis\EmbeddedAttribute.cs" />
+    <Compile Include="nel\AbsorbManager.cs" />
+    <Compile Include="nel\AbsorbManagerContainer.cs" />
+    <Compile Include="nel\aBtnBoxEar.cs" />
+    <Compile Include="nel\aBtnFDRow.cs" />
+    <Compile Include="nel\aBtnItemRow.cs" />
+    <Compile Include="nel\aBtnMagSel.cs" />
+    <Compile Include="nel\aBtnMeterNel.cs" />
+    <Compile Include="nel\aBtnNel.cs" />
+    <Compile Include="nel\aBtnNelArrowOvr.cs" />
+    <Compile Include="nel\aBtnNelMapArea.cs" />
+    <Compile Include="nel\aBtnNelPopper.cs" />
+    <Compile Include="nel\aBtnNelRowSkill.cs" />
+    <Compile Include="nel\aBtnNumCounterNel.cs" />
+    <Compile Include="nel\aBtnSvd.cs" />
+    <Compile Include="nel\aBtnUItemSel.cs" />
+    <Compile Include="nel\ActiveSelector.cs" />
+    <Compile Include="nel\AlmaPVV105.cs" />
+    <Compile Include="nel\AnimateCutin.cs" />
+    <Compile Include="nel\AnimateSyncCutin.cs" />
+    <Compile Include="nel\BetobetoManager.cs" />
+    <Compile Include="nel\BetoInfo.cs" />
+    <Compile Include="nel\BonfireEffector.cs" />
+    <Compile Include="nel\BurstSelector.cs" />
+    <Compile Include="nel\ButtonSkinAlchemyEntryRow.cs" />
+    <Compile Include="nel\ButtonSkinAlchemyIngredientRow.cs" />
+    <Compile Include="nel\ButtonSkinAlchemyIngredientTrmRow.cs" />
+    <Compile Include="nel\ButtonSkinBoxEar.cs" />
+    <Compile Include="nel\ButtonSkinCheckBoxNel.cs" />
+    <Compile Include="nel\ButtonSkinCheckBoxNelDark.cs" />
+    <Compile Include="nel\ButtonSkinEnhancerRow.cs" />
+    <Compile Include="nel\ButtonSkinFDItemRow.cs" />
+    <Compile Include="nel\ButtonSkinForLabelNel.cs" />
+    <Compile Include="nel\ButtonSkinItemGrade.cs" />
+    <Compile Include="nel\ButtonSkinItemLunchTimeRow.cs" />
+    <Compile Include="nel\ButtonSkinItemRow.cs" />
+    <Compile Include="nel\ButtonSKinKadomaruIconNel.cs" />
+    <Compile Include="nel\ButtonSKinKadomaruMapMarker.cs" />
+    <Compile Include="nel\ButtonSkinKeyConIconMenuNel.cs" />
+    <Compile Include="nel\ButtonSkinKeyConIconNel.cs" />
+    <Compile Include="nel\ButtonSkinKeyConInputNel.cs" />
+    <Compile Include="nel\ButtonSkinKeyConLabelNel.cs" />
+    <Compile Include="nel\ButtonSkinMagSel.cs" />
+    <Compile Include="nel\ButtonSkinMeterAsCheckBoxNel.cs" />
+    <Compile Include="nel\ButtonSkinMeterNel.cs" />
+    <Compile Include="nel\ButtonSkinMiniNel.cs" />
+    <Compile Include="nel\ButtonSkinMiniNelDark.cs" />
+    <Compile Include="nel\ButtonSkinMiniSortNel.cs" />
+    <Compile Include="nel\ButtonSkinNelAlbumThumb.cs" />
+    <Compile Include="nel\ButtonSkinNelChapter.cs" />
+    <Compile Include="nel\ButtonSkinNelFieldGuide.cs" />
+    <Compile Include="nel\ButtonSkinNelPopper.cs" />
+    <Compile Include="nel\ButtonSkinNelQuestPin.cs" />
+    <Compile Include="nel\ButtonSkinNelReelInfo.cs" />
+    <Compile Include="nel\ButtonSkinNelReelPict.cs" />
+    <Compile Include="nel\ButtonSkinNelRowSkill.cs" />
+    <Compile Include="nel\ButtonSkinNelTab.cs" />
+    <Compile Include="nel\ButtonSkinNelUi.cs" />
+    <Compile Include="nel\ButtonSkinNormalNel.cs" />
+    <Compile Include="nel\ButtonSkinNormalNelDark.cs" />
+    <Compile Include="nel\ButtonSkinNumCounterNel.cs" />
+    <Compile Include="nel\ButtonSkinRadioNel.cs" />
+    <Compile Include="nel\ButtonSkinRecipeRow.cs" />
+    <Compile Include="nel\ButtonSkinRecipeRowTrm.cs" />
+    <Compile Include="nel\ButtonSkinRowLangNel.cs" />
+    <Compile Include="nel\ButtonSkinRowNelBlackWindow.cs" />
+    <Compile Include="nel\ButtonSkinRowNelDark.cs" />
+    <Compile Include="nel\ButtonSkinStoreItemRow.cs" />
+    <Compile Include="nel\ButtonSkinSvdRow.cs" />
+    <Compile Include="nel\ButtonSkinTrmIngItemRow.cs" />
+    <Compile Include="nel\ButtonSkinUItemSel.cs" />
+    <Compile Include="nel\ButtonSkinWholeMapArea.cs" />
+    <Compile Include="nel\CameraRenderBinderGachaItem.cs" />
+    <Compile Include="nel\CameraRenderBinderWaterSurface.cs" />
+    <Compile Include="nel\CarrierRailBlock.cs" />
+    <Compile Include="nel\CFG.cs" />
+    <Compile Include="nel\CoinStorage.cs" />
+    <Compile Include="nel\ColumnRowNel.cs" />
+    <Compile Include="nel\ConfuseDrawer.cs" />
+    <Compile Include="nel\COOK.cs" />
+    <Compile Include="nel\CoolCirculation.cs" />
+    <Compile Include="nel\DangerGageDrawer.cs" />
+    <Compile Include="nel\DarkSpotEffect.cs" />
+    <Compile Include="nel\DIFF.cs" />
+    <Compile Include="nel\Dim4DDrawer.cs" />
+    <Compile Include="nel\DirtManager.cs" />
+    <Compile Include="nel\EffectHandlerPE.cs" />
+    <Compile Include="nel\EffectItemNel.cs" />
+    <Compile Include="nel\EffectNel.cs" />
+    <Compile Include="nel\EffectNelMapChip.cs" />
+    <Compile Include="nel\EfSpellRegisteration.cs" />
+    <Compile Include="nel\EnemyAnimator.cs" />
+    <Compile Include="nel\EnemyAnimatorBase.cs" />
+    <Compile Include="nel\EnemyAnimatorGolemToy.cs" />
+    <Compile Include="nel\EnemyAnimatorMultiMech.cs" />
+    <Compile Include="nel\EnemyAnimatorSpine.cs" />
+    <Compile Include="nel\EnemyData.cs" />
+    <Compile Include="nel\EnemyFrameDataBasic.cs" />
+    <Compile Include="nel\ENEMYID.cs" />
+    <Compile Include="nel\ENEMYKIND.cs" />
+    <Compile Include="nel\EnemyMeshDrawer.cs" />
+    <Compile Include="nel\EnemyMeshDrawerMagicCane.cs" />
+    <Compile Include="nel\EnemySummoner.cs" />
+    <Compile Include="nel\EnhancerManager.cs" />
+    <Compile Include="nel\EpAtk.cs" />
+    <Compile Include="nel\EPCATEG.cs" />
+    <Compile Include="nel\EPCATEG_BITS.cs" />
+    <Compile Include="nel\EpManager.cs" />
+    <Compile Include="nel\EpOrgasmCutin.cs" />
+    <Compile Include="nel\EpSituation.cs" />
+    <Compile Include="nel\EpSuppressor.cs" />
+    <Compile Include="nel\FallenCutin.cs" />
+    <Compile Include="nel\fatal\FatalShower.cs" />
+    <Compile Include="nel\fatal\FtEffect.cs" />
+    <Compile Include="nel\fatal\FtLayer.cs" />
+    <Compile Include="nel\fatal\FtMosaic.cs" />
+    <Compile Include="nel\fatal\FtParticle.cs" />
+    <Compile Include="nel\fatal\FtSpecialDrawer.cs" />
+    <Compile Include="nel\fatal\FtSpecialDrawerBiteTransition.cs" />
+    <Compile Include="nel\fatal\FtSpecialDrawerFill.cs" />
+    <Compile Include="nel\fatal\FtSpecialDrawerPicture.cs" />
+    <Compile Include="nel\fatal\FtSpecialDrawerPopPoly.cs" />
+    <Compile Include="nel\fatal\PIC.cs" />
+    <Compile Include="nel\fatal\SPMOVE.cs" />
+    <Compile Include="nel\fatal\SpvLoader.cs" />
+    <Compile Include="nel\fatal\TRANSITION.cs" />
+    <Compile Include="nel\fatal\TRSL.cs" />
+    <Compile Include="nel\FDSummonerInfo.cs" />
+    <Compile Include="nel\FnGetItemColor.cs" />
+    <Compile Include="nel\FnGetItemDetail.cs" />
+    <Compile Include="nel\FnItemCheck.cs" />
+    <Compile Include="nel\FnUiBoxBindings.cs" />
+    <Compile Include="nel\gm\CATEG.cs" />
+    <Compile Include="nel\gm\GMC_RES.cs" />
+    <Compile Include="nel\gm\UiBenchMenu.cs" />
+    <Compile Include="nel\gm\UiGameMenu.cs" />
+    <Compile Include="nel\gm\UiGameMenuTopTab.cs" />
+    <Compile Include="nel\gm\UiGMC.cs" />
+    <Compile Include="nel\gm\UiGMCBench.cs" />
+    <Compile Include="nel\gm\UiGMCCfg.cs" />
+    <Compile Include="nel\gm\UiGMCEnhancer.cs" />
+    <Compile Include="nel\gm\UiGMCItem.cs" />
+    <Compile Include="nel\gm\UiGMCMagic.cs" />
+    <Compile Include="nel\gm\UiGMCMap.cs" />
+    <Compile Include="nel\gm\UiGMCScenario.cs" />
+    <Compile Include="nel\gm\UiGMCSkill.cs" />
+    <Compile Include="nel\gm\UiGMCStat.cs" />
+    <Compile Include="nel\gm\UiGMCSvd.cs" />
+    <Compile Include="nel\gm\UiWmSkinController.cs" />
+    <Compile Include="nel\HpzSimulator.cs" />
+    <Compile Include="nel\ICheckPointListener.cs" />
+    <Compile Include="nel\IGachaListener.cs" />
+    <Compile Include="nel\IIrisOutListener.cs" />
+    <Compile Include="nel\IItemSupplier.cs" />
+    <Compile Include="nel\ILinerReceiver.cs" />
+    <Compile Include="nel\IM2WeedManager.cs" />
+    <Compile Include="nel\IMgBombListener.cs" />
+    <Compile Include="nel\IMosaicDescriptor.cs" />
+    <Compile Include="nel\INelMSG.cs" />
+    <Compile Include="nel\IPuzzActivationListener.cs" />
+    <Compile Include="nel\IPuzzRevertable.cs" />
+    <Compile Include="nel\IPuzzSwitchListener.cs" />
+    <Compile Include="nel\IrisOutManager.cs" />
+    <Compile Include="nel\ItemDescBox.cs" />
+    <Compile Include="nel\ItemStorage.cs" />
+    <Compile Include="nel\ITrmListener.cs" />
+    <Compile Include="nel\IWindApplyable.cs" />
+    <Compile Include="nel\IxiaPVV102.cs" />
+    <Compile Include="nel\IxiaPVV104.cs" />
+    <Compile Include="nel\KeyConDesignerNel.cs" />
+    <Compile Include="nel\LabeledInputFieldNel.cs" />
+    <Compile Include="nel\M2AreaTitle.cs" />
+    <Compile Include="nel\M2AttackableEventManipulatable.cs" />
+    <Compile Include="nel\M2BoxMover.cs" />
+    <Compile Include="nel\M2BreakableWallMover.cs" />
+    <Compile Include="nel\M2CastableEventBase.cs" />
+    <Compile Include="nel\M2CastableEventOther.cs" />
+    <Compile Include="nel\M2CImgDrawerAlchemyPot.cs" />
+    <Compile Include="nel\M2CImgDrawerAlomaDiffuser.cs" />
+    <Compile Include="nel\M2CImgDrawerBarrierLit.cs" />
+    <Compile Include="nel\M2CImgDrawerBench.cs" />
+    <Compile Include="nel\M2CImgDrawerBrainVat.cs" />
+    <Compile Include="nel\M2CImgDrawerCheckBonfire.cs" />
+    <Compile Include="nel\M2CImgDrawerCheckGlacier.cs" />
+    <Compile Include="nel\M2CImgDrawerCoin.cs" />
+    <Compile Include="nel\M2CImgDrawerDoor.cs" />
+    <Compile Include="nel\M2CImgDrawerDoorTrm.cs" />
+    <Compile Include="nel\M2CImgDrawerFirePlace.cs" />
+    <Compile Include="nel\M2CImgDrawerFootBell.cs" />
+    <Compile Include="nel\M2CImgDrawerItemSupply.cs" />
+    <Compile Include="nel\M2CImgDrawerManaWeed.cs" />
+    <Compile Include="nel\M2CImgDrawerPentachoron4D.cs" />
+    <Compile Include="nel\M2CImgDrawerPlantAura.cs" />
+    <Compile Include="nel\M2CImgDrawerPuzzleExtender.cs" />
+    <Compile Include="nel\M2CImgDrawerPuzzleRailStart.cs" />
+    <Compile Include="nel\M2CImgDrawerTimer.cs" />
+    <Compile Include="nel\M2CImgDrawerTrmBed.cs" />
+    <Compile Include="nel\M2CImgDrawerWormArea.cs" />
+    <Compile Include="nel\M2CImgDrawerWormBg.cs" />
+    <Compile Include="nel\M2EventItem_ItemSupply.cs" />
+    <Compile Include="nel\M2LabelPointCheck.cs" />
+    <Compile Include="nel\M2LabelPointSwitchContainer.cs" />
+    <Compile Include="nel\M2LabelPointThunder.cs" />
+    <Compile Include="nel\M2LpActivator.cs" />
+    <Compile Include="nel\M2LpBreakable.cs" />
+    <Compile Include="nel\M2LpCheckDecline.cs" />
+    <Compile Include="nel\M2LpDrawBridgeContainer.cs" />
+    <Compile Include="nel\M2LpDrawer.cs" />
+    <Compile Include="nel\M2LpEffector.cs" />
+    <Compile Include="nel\M2LpEvent.cs" />
+    <Compile Include="nel\M2LpHamehame.cs" />
+    <Compile Include="nel\M2LpItemSupplier.cs" />
+    <Compile Include="nel\M2LpMapTransfer.cs" />
+    <Compile Include="nel\M2LpMapTransferBase.cs" />
+    <Compile Include="nel\M2LpMapTransferDoor.cs" />
+    <Compile Include="nel\M2LpMapTransferWarp.cs" />
+    <Compile Include="nel\M2LpMatoate.cs" />
+    <Compile Include="nel\M2LpMuseum.cs" />
+    <Compile Include="nel\M2LpMuseumEvacuator.cs" />
+    <Compile Include="nel\M2LpParticleDrawer.cs" />
+    <Compile Include="nel\M2LpPuzzCarrier.cs" />
+    <Compile Include="nel\M2LpPuzzExtender.cs" />
+    <Compile Include="nel\M2LpPuzzManageArea.cs" />
+    <Compile Include="nel\M2LpPuzzTreasure.cs" />
+    <Compile Include="nel\M2LpSacredMistEffector.cs" />
+    <Compile Include="nel\M2LpSummon.cs" />
+    <Compile Include="nel\M2LpTimer.cs" />
+    <Compile Include="nel\M2LpTreasureHunt.cs" />
+    <Compile Include="nel\M2LpWater.cs" />
+    <Compile Include="nel\M2LpWaterSlicer.cs" />
+    <Compile Include="nel\M2LpWind.cs" />
+    <Compile Include="nel\M2MagicCaster.cs" />
+    <Compile Include="nel\M2Mana.cs" />
+    <Compile Include="nel\M2ManaContainer.cs" />
+    <Compile Include="nel\M2ManaWeed.cs" />
+    <Compile Include="nel\M2MapTitle.cs" />
+    <Compile Include="nel\M2MatoateTarget.cs" />
+    <Compile Include="nel\M2MvColliderCreatorEn.cs" />
+    <Compile Include="nel\M2MvColliderCreatorEnNest.cs" />
+    <Compile Include="nel\M2MvColliderCreatorNoelCane.cs" />
+    <Compile Include="nel\M2NoelCane.cs" />
+    <Compile Include="nel\M2NoelDropCloth.cs" />
+    <Compile Include="nel\M2NoelHat.cs" />
+    <Compile Include="nel\M2PhysPr.cs" />
+    <Compile Include="nel\M2PlayerStateHistory.cs" />
+    <Compile Include="nel\M2PrAssistant.cs" />
+    <Compile Include="nel\M2PrGachaEventHandler.cs" />
+    <Compile Include="nel\M2PrMasturbate.cs" />
+    <Compile Include="nel\M2PrMistApplier.cs" />
+    <Compile Include="nel\M2PrOverChargeSlot.cs" />
+    <Compile Include="nel\M2PrSkill.cs" />
+    <Compile Include="nel\M2PuzzCarrierMover.cs" />
+    <Compile Include="nel\M2PuzzleGimmick.cs" />
+    <Compile Include="nel\M2PuzzleSwitch.cs" />
+    <Compile Include="nel\M2Ser.cs" />
+    <Compile Include="nel\M2SerItem.cs" />
+    <Compile Include="nel\M2Shield.cs" />
+    <Compile Include="nel\M2ShieldHitable.cs" />
+    <Compile Include="nel\M2SlimeDecoy.cs" />
+    <Compile Include="nel\M2WaterEffect.cs" />
+    <Compile Include="nel\M2WaterWatcher.cs" />
+    <Compile Include="nel\M2WormTrap.cs" />
+    <Compile Include="nel\MagicItem.cs" />
+    <Compile Include="nel\MagicItemHandler.cs" />
+    <Compile Include="nel\MagicItemHandlerS.cs" />
+    <Compile Include="nel\MagicNotifiear.cs" />
+    <Compile Include="nel\MagicNotifiearData.cs" />
+    <Compile Include="nel\MagicSelector.cs" />
+    <Compile Include="nel\MANA_HIT.cs" />
+    <Compile Include="nel\MapPosition.cs" />
+    <Compile Include="nel\MatoateReader.cs" />
+    <Compile Include="nel\MDAT.cs" />
+    <Compile Include="nel\MgBurst.cs" />
+    <Compile Include="nel\MGContainer.cs" />
+    <Compile Include="nel\MgDropBomb.cs" />
+    <Compile Include="nel\MgFDHolder.cs" />
+    <Compile Include="nel\MgFDHolderWithMemoryClass.cs" />
+    <Compile Include="nel\MgFireBall.cs" />
+    <Compile Include="nel\MGHIT.cs" />
+    <Compile Include="nel\MgItemBomb.cs" />
+    <Compile Include="nel\MgItemBombFlashBang.cs" />
+    <Compile Include="nel\MgItemBombMagic.cs" />
+    <Compile Include="nel\MgItemBombNormal.cs" />
+    <Compile Include="nel\MGKIND.cs" />
+    <Compile Include="nel\mgm\dojo\aBtnDJ.cs" />
+    <Compile Include="nel\mgm\dojo\ButtonSkinDJRow.cs" />
+    <Compile Include="nel\mgm\dojo\DjCutin.cs" />
+    <Compile Include="nel\mgm\dojo\DjFigure.cs" />
+    <Compile Include="nel\mgm\dojo\DjGM.cs" />
+    <Compile Include="nel\mgm\dojo\DjHkds.cs" />
+    <Compile Include="nel\mgm\dojo\DjHkdsGenerator.cs" />
+    <Compile Include="nel\mgm\dojo\DjIndicator.cs" />
+    <Compile Include="nel\mgm\dojo\DjLife.cs" />
+    <Compile Include="nel\mgm\dojo\DjRPC.cs" />
+    <Compile Include="nel\mgm\dojo\DjSaveData.cs" />
+    <Compile Include="nel\mgm\dojo\DjUI.cs" />
+    <Compile Include="nel\mgm\dojo\MgmDojo.cs" />
+    <Compile Include="nel\mgm\farm\M2LpMgmFarm.cs" />
+    <Compile Include="nel\mgm\farm\NelNMgmFarmCow.cs" />
+    <Compile Include="nel\mgm\farm\UiMgmFarmSuck.cs" />
+    <Compile Include="nel\mgm\MgmEggRemove.cs" />
+    <Compile Include="nel\mgm\MGMSCORE.cs" />
+    <Compile Include="nel\mgm\MgmScoreHolder.cs" />
+    <Compile Include="nel\mgm\mgm_ttr\NelTTRBase.cs" />
+    <Compile Include="nel\mgm\UiMgmScore.cs" />
+    <Compile Include="nel\mgm\UiMgmTimer.cs" />
+    <Compile Include="nel\mgm\UiMgmTimerBehaviour.cs" />
+    <Compile Include="nel\MgNCandleShot.cs" />
+    <Compile Include="nel\MgNCeilDrop.cs" />
+    <Compile Include="nel\MgNGroundShockwave.cs" />
+    <Compile Include="nel\MgNIceShot.cs" />
+    <Compile Include="nel\MgPowerBomb.cs" />
+    <Compile Include="nel\MgThunderbolt.cs" />
+    <Compile Include="nel\MGV.cs" />
+    <Compile Include="nel\MgWhiteArrow.cs" />
+    <Compile Include="nel\MistAttackInfo.cs" />
+    <Compile Include="nel\MistDrawer.cs" />
+    <Compile Include="nel\MistManager.cs" />
+    <Compile Include="nel\MosaicShower.cs" />
+    <Compile Include="nel\MpGaugeBreaker.cs" />
+    <Compile Include="nel\MTR.cs" />
+    <Compile Include="nel\MuseumViewer.cs" />
+    <Compile Include="nel\MvEvtMuseumOwl.cs" />
+    <Compile Include="nel\MvNelNNEAListener.cs" />
+    <Compile Include="nel\MvNightingale.cs" />
+    <Compile Include="nel\NAI.cs" />
+    <Compile Include="nel\NASAboveChecker.cs" />
+    <Compile Include="nel\NASAirChaser.cs" />
+    <Compile Include="nel\NASDangerChecker.cs" />
+    <Compile Include="nel\NASGroundClimber.cs" />
+    <Compile Include="nel\NASJumper.cs" />
+    <Compile Include="nel\NASStasisChecker.cs" />
+    <Compile Include="nel\NaTicket.cs" />
+    <Compile Include="nel\NEL.cs" />
+    <Compile Include="nel\NelActiveDebugger.cs" />
+    <Compile Include="nel\NelAttackInfo.cs" />
+    <Compile Include="nel\NelAttackInfoBase.cs" />
+    <Compile Include="nel\NelBookDrawer.cs" />
+    <Compile Include="nel\NelChip.cs" />
+    <Compile Include="nel\NelChipBarrierLit.cs" />
+    <Compile Include="nel\NelChipBench.cs" />
+    <Compile Include="nel\NelChipCarrierRail.cs" />
+    <Compile Include="nel\NelChipCheckPoint.cs" />
+    <Compile Include="nel\NelChipDrawBridge.cs" />
+    <Compile Include="nel\NelChipDrawBridgePiece.cs" />
+    <Compile Include="nel\NelChipEvent.cs" />
+    <Compile Include="nel\NelChipFootSwitch.cs" />
+    <Compile Include="nel\NelChipHamehame.cs" />
+    <Compile Include="nel\NelChipJumperBoard.cs" />
+    <Compile Include="nel\NelChipLadder.cs" />
+    <Compile Include="nel\NelChipManaWeed.cs" />
+    <Compile Include="nel\NelChipPuzzleBox.cs" />
+    <Compile Include="nel\NelChipPuzzleConnector.cs" />
+    <Compile Include="nel\NelChipPuzzleRail.cs" />
+    <Compile Include="nel\NelChipPuzzleRailStart.cs" />
+    <Compile Include="nel\NelChipPuzzleSaisenSwitch.cs" />
+    <Compile Include="nel\NelChipPuzzleSwitch.cs" />
+    <Compile Include="nel\NelChipSlimeDecoy.cs" />
+    <Compile Include="nel\NelChipThunderShooter.cs" />
+    <Compile Include="nel\NelChipUkiwa.cs" />
+    <Compile Include="nel\NelChipWanderNpcSpot.cs" />
+    <Compile Include="nel\NelChipWanderPuppet.cs" />
+    <Compile Include="nel\NelChipWanderTilde.cs" />
+    <Compile Include="nel\NelChipWarp.cs" />
+    <Compile Include="nel\NelChipWater.cs" />
+    <Compile Include="nel\NelChipWaterShooter.cs" />
+    <Compile Include="nel\NelChipWithEffect.cs" />
+    <Compile Include="nel\NelChipWormHead.cs" />
+    <Compile Include="nel\NelDsn.cs" />
+    <Compile Include="nel\NelEnemy.cs" />
+    <Compile Include="nel\NelEnemyAssist.cs" />
+    <Compile Include="nel\NelEnemyBoss.cs" />
+    <Compile Include="nel\NelEnemyMagicable.cs" />
+    <Compile Include="nel\NelEnemyNested.cs" />
+    <Compile Include="nel\NelEvDebugListener.cs" />
+    <Compile Include="nel\NelEvTextLog.cs" />
+    <Compile Include="nel\NelEvTextRenderer.cs" />
+    <Compile Include="nel\NelItem.cs" />
+    <Compile Include="nel\NelItemEntry.cs" />
+    <Compile Include="nel\NelItemManager.cs" />
+    <Compile Include="nel\NelLp.cs" />
+    <Compile Include="nel\NelLpRunner.cs" />
+    <Compile Include="nel\NelLpRunnerEf.cs" />
+    <Compile Include="nel\NelM2Attacker.cs" />
+    <Compile Include="nel\NelM2DBase.cs" />
+    <Compile Include="nel\NelMBoxDrawer.cs" />
+    <Compile Include="nel\NelMokubaDrawer.cs" />
+    <Compile Include="nel\NelMSG.cs" />
+    <Compile Include="nel\NelMSGContainer.cs" />
+    <Compile Include="nel\NelMSGResource.cs" />
+    <Compile Include="nel\NelNBoss_Nusi.cs" />
+    <Compile Include="nel\NelNEvBarten.cs" />
+    <Compile Include="nel\NelNFox.cs" />
+    <Compile Include="nel\NelNFrog.cs" />
+    <Compile Include="nel\NelNGecko.cs" />
+    <Compile Include="nel\NelNGolem.cs" />
+    <Compile Include="nel\NelNGolemToy.cs" />
+    <Compile Include="nel\NelNGolemToyBow.cs" />
+    <Compile Include="nel\NelNGolemToyMisPod.cs" />
+    <Compile Include="nel\NelNGolemToyMkb.cs" />
+    <Compile Include="nel\NelNGolemToyRainMaker.cs" />
+    <Compile Include="nel\NelNMage.cs" />
+    <Compile Include="nel\NelNMechGolem.cs" />
+    <Compile Include="nel\NelNMush.cs" />
+    <Compile Include="nel\NelNNpcPuppet.cs" />
+    <Compile Include="nel\NelNNusiCage.cs" />
+    <Compile Include="nel\NelNNusiTentacle.cs" />
+    <Compile Include="nel\NelNPuppy.cs" />
+    <Compile Include="nel\NelNSlime.cs" />
+    <Compile Include="nel\NelNSnake.cs" />
+    <Compile Include="nel\NelNSponge.cs" />
+    <Compile Include="nel\NelNUni.cs" />
+    <Compile Include="nel\NelPlayerCursor.cs" />
+    <Compile Include="nel\NelTreasureBoxDrawer.cs" />
+    <Compile Include="nel\NightController.cs" />
+    <Compile Include="nel\NOD.cs" />
+    <Compile Include="nel\NoelAnimator.cs" />
+    <Compile Include="nel\NPointSearcher.cs" />
+    <Compile Include="nel\OverDriveManager.cs" />
+    <Compile Include="nel\Pentachoron4D2Drawer.cs" />
+    <Compile Include="nel\Pentachoron4DDrawer.cs" />
+    <Compile Include="nel\PlayerCheckPoint.cs" />
+    <Compile Include="nel\POSE_TYPE.cs" />
+    <Compile Include="nel\PostEffect.cs" />
+    <Compile Include="nel\PostEffectItem.cs" />
+    <Compile Include="nel\POSTM.cs" />
+    <Compile Include="nel\PR.cs" />
+    <Compile Include="nel\PrEggManager.cs" />
+    <Compile Include="nel\PrGachaItem.cs" />
+    <Compile Include="nel\PrGaugeSaver.cs" />
+    <Compile Include="nel\PrimulaPVV11.cs" />
+    <Compile Include="nel\PRNoel.cs" />
+    <Compile Include="nel\PrSkill.cs" />
+    <Compile Include="nel\PuppetRevenge.cs" />
+    <Compile Include="nel\PUZ.cs" />
+    <Compile Include="nel\PuzzLiner.cs" />
+    <Compile Include="nel\PuzzSnapShot.cs" />
+    <Compile Include="nel\QuestTracker.cs" />
+    <Compile Include="nel\RainEffector.cs" />
+    <Compile Include="nel\RecipeManager.cs" />
+    <Compile Include="nel\ReelExecuter.cs" />
+    <Compile Include="nel\ReelManager.cs" />
+    <Compile Include="nel\ReelMBoxDrawer.cs" />
+    <Compile Include="nel\ReelOutlineDrawer.cs" />
+    <Compile Include="nel\SandBgm.cs" />
+    <Compile Include="nel\SandCharCheck.cs" />
+    <Compile Include="nel\SandDrawCheck.cs" />
+    <Compile Include="nel\SandEvent.cs" />
+    <Compile Include="nel\SandFatal.cs" />
+    <Compile Include="nel\SandGM.cs" />
+    <Compile Include="nel\SandHinge.cs" />
+    <Compile Include="nel\SandINBE.cs" />
+    <Compile Include="nel\SandMBox.cs" />
+    <Compile Include="nel\SandPopPolyCreator.cs" />
+    <Compile Include="nel\SandSlider.cs" />
+    <Compile Include="nel\SandSound.cs" />
+    <Compile Include="nel\SandText.cs" />
+    <Compile Include="nel\ScapecatSelector.cs" />
+    <Compile Include="nel\SceneGame.cs" />
+    <Compile Include="nel\SceneTitleTemp.cs" />
+    <Compile Include="nel\SCN.cs" />
+    <Compile Include="nel\ShotCalcurater.cs" />
+    <Compile Include="nel\SkillManager.cs" />
+    <Compile Include="nel\SpineViewerNel.cs" />
+    <Compile Include="nel\StainItem.cs" />
+    <Compile Include="nel\StainManager.cs" />
+    <Compile Include="nel\Stomach.cs" />
+    <Compile Include="nel\StoreManager.cs" />
+    <Compile Include="nel\SupplyManager.cs" />
+    <Compile Include="nel\SVD.cs" />
+    <Compile Include="nel\TesseractDrawer.cs" />
+    <Compile Include="nel\TimeDeclineArea.cs" />
+    <Compile Include="nel\TimeDeclineAreaContainer.cs" />
+    <Compile Include="nel\TreasureBoxDrawer.cs" />
+    <Compile Include="nel\TRMManager.cs" />
+    <Compile Include="nel\UiAlbum.cs" />
+    <Compile Include="nel\UiAlchemy.cs" />
+    <Compile Include="nel\UiAlchemyCoffeeMaker.cs" />
+    <Compile Include="nel\UiAlchemyRecipeBook.cs" />
+    <Compile Include="nel\UiAlchemyTRM.cs" />
+    <Compile Include="nel\UiAlchemyWorkBench.cs" />
+    <Compile Include="nel\UIBase.cs" />
+    <Compile Include="nel\UiBox.cs" />
+    <Compile Include="nel\UiBoxDesigner.cs" />
+    <Compile Include="nel\UiBoxDesignerFamily.cs" />
+    <Compile Include="nel\UiBoxDesignerFamilyEvent.cs" />
+    <Compile Include="nel\UiBoxDesignerHelp.cs" />
+    <Compile Include="nel\UiBoxMoney.cs" />
+    <Compile Include="nel\UiCraftBase.cs" />
+    <Compile Include="nel\UiDangerLevelInitBox.cs" />
+    <Compile Include="nel\UIEMOT.cs" />
+    <Compile Include="nel\UiEnemyDex.cs" />
+    <Compile Include="nel\UiEvtDesignerBox.cs" />
+    <Compile Include="nel\UiEvtNumCounter.cs" />
+    <Compile Include="nel\UiFieldGuide.cs" />
+    <Compile Include="nel\UiGmMapMarker.cs" />
+    <Compile Include="nel\UiGO.cs" />
+    <Compile Include="nel\UiItemManageBox.cs" />
+    <Compile Include="nel\UiItemManageBoxSlider.cs" />
+    <Compile Include="nel\UiItemStore.cs" />
+    <Compile Include="nel\UiItemStoreBarUnder.cs" />
+    <Compile Include="nel\UiItemStorePuppetCrafts.cs" />
+    <Compile Include="nel\UiItemStoreWithHelp.cs" />
+    <Compile Include="nel\UiItemWholeSelector.cs" />
+    <Compile Include="nel\UILog.cs" />
+    <Compile Include="nel\UILogRow.cs" />
+    <Compile Include="nel\UiLunchStore.cs" />
+    <Compile Include="nel\UiLunchTime.cs" />
+    <Compile Include="nel\UiLunchTimeBase.cs" />
+    <Compile Include="nel\UIPicture.cs" />
+    <Compile Include="nel\UIPictureBase.cs" />
+    <Compile Include="nel\UIPictureBodyData.cs" />
+    <Compile Include="nel\UIPictureBodySpine.cs" />
+    <Compile Include="nel\UIPictureFader.cs" />
+    <Compile Include="nel\UiQuestCard.cs" />
+    <Compile Include="nel\UiQuestTracker.cs" />
+    <Compile Include="nel\UiQuestTrackerRow.cs" />
+    <Compile Include="nel\UiReelManager.cs" />
+    <Compile Include="nel\UiRestRoom.cs" />
+    <Compile Include="nel\UiSkillManageBox.cs" />
+    <Compile Include="nel\UISpecialGage.cs" />
+    <Compile Include="nel\UIStatus.cs" />
+    <Compile Include="nel\UiSummonerAnnounce.cs" />
+    <Compile Include="nel\UiTitleDifficultyConfirm.cs" />
+    <Compile Include="nel\UiWarpConfirm.cs" />
+    <Compile Include="nel\UseItemSelector.cs" />
+    <Compile Include="nel\WAManager.cs" />
+    <Compile Include="nel\WanderingManager.cs" />
+    <Compile Include="nel\WanderingNPC.cs" />
+    <Compile Include="nel\WaterEffectItem.cs" />
+    <Compile Include="nel\WeatherItem.cs" />
+    <Compile Include="nel\WholeMapItem.cs" />
+    <Compile Include="nel\WholeMapManager.cs" />
+    <Compile Include="nel\WindHandlerItem.cs" />
+    <Compile Include="nel\WindItem.cs" />
+    <Compile Include="nel\WindManager.cs" />
+    <Compile Include="nel\WmDeperture.cs" />
+    <Compile Include="nel\WMIcon.cs" />
+    <Compile Include="nel\WMIconCreator.cs" />
+    <Compile Include="nel\WMIconDescription.cs" />
+    <Compile Include="nel\WMIconHiddenDeperture.cs" />
+    <Compile Include="nel\WMIconPosition.cs" />
+    <Compile Include="nel\WmPosition.cs" />
+    <Compile Include="nel\YdrgManager.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SandBenchMark.cs" />
+    <Compile Include="SandDsn.cs" />
+    <Compile Include="SandMsg.cs" />
+    <Compile Include="SandTF.cs" />
+    <Compile Include="System\Runtime\CompilerServices\IsReadOnlyAttribute.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

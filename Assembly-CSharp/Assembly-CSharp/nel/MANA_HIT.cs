@@ -1,0 +1,26 @@
+﻿using System;
+
+namespace nel
+{
+	public enum MANA_HIT
+	{
+		NOUSE,
+		PR,
+		EN,
+		ALL,
+		CHECK_BIT = 1027,
+		FROM_DAMAGE_SPLIT = 4,
+		FALL = 8,
+		FALL_PR = 16,
+		FALL_EN = 32,
+		CRYSTAL = 64,
+		NO_FARE\uFF3FHIT = 128,
+		TARGET_PR = 256,
+		TARGET_EN = 512,
+		IMMEDIATE_COLLECTABLE = 1024,
+		FROM_GAGE_SPLIT = 2048,
+		SPECIAL = 4096,
+		FROM_SUPPLIER = 8192,
+		OC_ADDABLE = 16384
+	}
+}

@@ -1,0 +1,21 @@
+﻿using System;
+
+namespace m2d
+{
+	public enum DROP_TYPE
+	{
+		_NONE = -1,
+		NO_OPTION,
+		KILL_IF_STOP,
+		KILL_IF_BOUNCE,
+		GROUND_STOP_X = 4,
+		WATER_BOUNCE = 24,
+		WATER_BOUNCE_X = 8,
+		WATER_FLOAT = 16,
+		REMOVE_MANUAL = 32,
+		KILLED = 64,
+		CHECK_OTHER_BCC = 128,
+		CHECK_LIFT = 256,
+		ALLOC_FOREVER = 512
+	}
+}

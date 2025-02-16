@@ -1,0 +1,23 @@
+﻿using System;
+
+namespace m2d
+{
+	public enum NDMG : uint
+	{
+		NORMAL,
+		MAPDAMAGE,
+		MAPDAMAGE_LAVA,
+		MAPDAMAGE_THUNDER,
+		MAPDAMAGE_THUNDER_A,
+		SER_PARALYSIS,
+		PRESSDAMAGE,
+		MISTDAMAGE,
+		GRAB,
+		GRAB_PENETRATE,
+		GAMEOVER,
+		EVADE_PREVENT,
+		DEFAULT,
+		_ALL,
+		_BURST_PREVENT
+	}
+}
