@@ -22,6 +22,7 @@ namespace nel
 		BURST,
 		SHOTGUN,
 		MAGICSELECT,
+		STONEOVER,
 		GO_CLOSE_EYE,
 		TS_SLOW,
 		ZOOM2,

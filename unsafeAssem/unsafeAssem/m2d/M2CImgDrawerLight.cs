@@ -142,7 +142,7 @@ namespace m2d
 					this.light_apply_level = X.Mn(base.Meta.GetNm("light_effect_level", 1f, 1), 1f);
 				}
 			}
-			base.Mp.addLight((this.Lg = new M2LightFn(base.Mp, new M2LightFn.FnDrawLight(this.fnDrawLight), null, null)).Pos(this.Cp.mapcx, this.Cp.mapcy));
+			base.Mp.addLight((this.Lg = new M2LightFn(base.Mp, new M2LightFn.FnDrawLight(this.fnDrawLight), null, null)).Pos(this.Cp.mapcx, this.Cp.mapcy), -1);
 			this.Lg.showing_delay = 50;
 			string s = base.Meta.GetS("ptcst");
 			if (TX.valid(s))

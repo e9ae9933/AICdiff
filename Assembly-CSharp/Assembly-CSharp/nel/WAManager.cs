@@ -32,7 +32,7 @@ namespace nel
 								warecord.finalize();
 							}
 							string text = TX.slice(layer.name, 7);
-							warecord = global::XX.X.Get<string, WAManager.WARecord>(WAManager.ORec, text);
+							warecord = X.Get<string, WAManager.WARecord>(WAManager.ORec, text);
 							if (warecord == null)
 							{
 								warecord = (WAManager.ORec[text] = new WAManager.WARecord(text));
@@ -53,7 +53,7 @@ namespace nel
 
 		public static void linkWA(string whole_key, StringHolder Sth)
 		{
-			WAManager.WARecord warecord = global::XX.X.Get<string, WAManager.WARecord>(WAManager.ORec, whole_key);
+			WAManager.WARecord warecord = X.Get<string, WAManager.WARecord>(WAManager.ORec, whole_key);
 			if (warecord != null)
 			{
 				warecord.linkWA(Sth);
@@ -62,8 +62,8 @@ namespace nel
 
 		public void depertAssign(string whole_a, string map_a, string whole_b, string map_b)
 		{
-			WAManager.WARecord warecord = global::XX.X.Get<string, WAManager.WARecord>(WAManager.ORec, whole_a);
-			WAManager.WARecord warecord2 = global::XX.X.Get<string, WAManager.WARecord>(WAManager.ORec, whole_b);
+			WAManager.WARecord warecord = X.Get<string, WAManager.WARecord>(WAManager.ORec, whole_a);
+			WAManager.WARecord warecord2 = X.Get<string, WAManager.WARecord>(WAManager.ORec, whole_b);
 			if (warecord == null || warecord2 == null)
 			{
 				return;
@@ -74,7 +74,7 @@ namespace nel
 
 		public bool copyDepert(NelM2DBase M2D, WholeMapItem WmFrom, List<string> Adest, string connected_to_wm)
 		{
-			WAManager.WARecord warecord = global::XX.X.Get<string, WAManager.WARecord>(WAManager.ORec, WmFrom.text_key);
+			WAManager.WARecord warecord = X.Get<string, WAManager.WARecord>(WAManager.ORec, WmFrom.text_key);
 			if (warecord == null)
 			{
 				return false;
@@ -117,10 +117,10 @@ namespace nel
 
 		public static WAManager.WARecord GetWa(string whole_key, bool no_error = false)
 		{
-			WAManager.WARecord warecord = global::XX.X.Get<string, WAManager.WARecord>(WAManager.ORec, whole_key);
+			WAManager.WARecord warecord = X.Get<string, WAManager.WARecord>(WAManager.ORec, whole_key);
 			if (warecord == null && !no_error)
 			{
-				global::XX.X.de("不明なWARecord: " + whole_key, null);
+				X.de("不明なWARecord: " + whole_key, null);
 			}
 			return warecord;
 		}
@@ -155,14 +155,14 @@ namespace nel
 			return wa != null && wa.isActivated();
 		}
 
-		public void readBinaryFrom(ByteArray Ba)
+		public void readBinaryFrom(ByteReader Ba)
 		{
 			int num = Ba.readByte();
 			int num2 = Ba.readByte();
 			for (int i = 0; i < num2; i++)
 			{
 				string text = Ba.readPascalString("utf-8", false);
-				WAManager.WARecord.readBinaryFrom(Ba, num, global::XX.X.Get<string, WAManager.WARecord>(WAManager.ORec, text));
+				WAManager.WARecord.readBinaryFrom(Ba, num, X.Get<string, WAManager.WARecord>(WAManager.ORec, text));
 			}
 		}
 
@@ -222,7 +222,7 @@ namespace nel
 			}
 			if (!flag)
 			{
-				WAManager.WARecord warecord = global::XX.X.Get<string, WAManager.WARecord>(WAManager.ORec, wm_from);
+				WAManager.WARecord warecord = X.Get<string, WAManager.WARecord>(WAManager.ORec, wm_from);
 				if (warecord == null)
 				{
 					return false;
@@ -291,7 +291,7 @@ namespace nel
 				{
 					if (!flag2)
 					{
-						float num4 = (0.6f + global::XX.X.Abs(0.4f * global::XX.X.COSIT(50f))) * alpha_;
+						float num4 = (0.6f + X.Abs(0.4f * X.COSIT(50f))) * alpha_;
 						WAManager.MaTemp.Set(false).setAlpha1(num4, false);
 						WAManager.MaTempF.Set(false).setAlpha1(num4, false);
 						if (num2 >= 0)
@@ -322,7 +322,7 @@ namespace nel
 			{
 				return;
 			}
-			float num = (0.2f + global::XX.X.Abs(0.8f * global::XX.X.COSIT(140f))) * alpha_;
+			float num = (0.2f + X.Abs(0.8f * X.COSIT(140f))) * alpha_;
 			WAManager.MaTemp.clear(Md).SetWhole(true).SetLastVerAndTriIndex(startVerIndex + 4, 6);
 			Ma.setAlpha1(num, false);
 			WAManager.MaTemp.SwapLastIndex().SetLastVerAndTriIndex(startVerIndex + 20, 30);
@@ -520,7 +520,7 @@ namespace nel
 
 			public void linkWA(StringHolder Sth)
 			{
-				WAManager.WARLayer warlayer = global::XX.X.Get<string, WAManager.WARLayer>(this.OImgLay, Sth._1);
+				WAManager.WARLayer warlayer = X.Get<string, WAManager.WARLayer>(this.OImgLay, Sth._1);
 				if (warlayer == null)
 				{
 					Sth.tError("WARecord " + this.key + ".linkWA :: 不明なソースレイヤー " + Sth._1);
@@ -564,7 +564,7 @@ namespace nel
 
 			public void Touch(string l_key, bool strong = false, bool special = false)
 			{
-				WAManager.WARLayer warlayer = global::XX.X.Get<string, WAManager.WARLayer>(this.OImgLay, l_key);
+				WAManager.WARLayer warlayer = X.Get<string, WAManager.WARLayer>(this.OImgLay, l_key);
 				if (warlayer != null && (warlayer.Touch(strong) && special) && special && this.Aspecial_record.IndexOf(l_key) == -1)
 				{
 					this.Aspecial_record.Add(l_key);
@@ -652,7 +652,7 @@ namespace nel
 				return depertTarget;
 			}
 
-			public static void readBinaryFrom(ByteArray Ba, int vers, WAManager.WARecord Target)
+			public static void readBinaryFrom(ByteReader Ba, int vers, WAManager.WARecord Target)
 			{
 				int num = Ba.readByte();
 				for (int i = 0; i < num; i++)
@@ -821,7 +821,7 @@ namespace nel
 						{
 							DrawBounds.Expand(value2.left, value2.top, value2.width, value2.height, false);
 						}
-						if (!focused && global::XX.X.isContaining(value2.left, value2.left + value2.width, cx, cx, 20f) && global::XX.X.isContaining(value2.top, value2.top + value2.height, cy, cy, 20f))
+						if (!focused && X.isContaining(value2.left, value2.left + value2.width, cx, cx, 20f) && X.isContaining(value2.top, value2.top + value2.height, cy, cy, 20f))
 						{
 							focused = true;
 						}

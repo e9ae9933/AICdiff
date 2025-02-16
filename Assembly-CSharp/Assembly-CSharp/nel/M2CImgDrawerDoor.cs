@@ -15,6 +15,7 @@ namespace nel
 			METACImg meta = this.Cp.Img.Meta;
 			this.auto_open = meta.GetI("door", 0, meta_key_i + 2) != 0;
 			this.default_door_1 = meta.GetI("door", 0, meta_key_i + 1) != 0;
+			this.slide_door = (float)meta.GetI("slide_door", 0, 0);
 			this.Dr = new DoorDrawer();
 			this.Dr.open_to_behind = meta.GetI("door", 0, meta_key_i + 3) != 0;
 			this.Dr.do_not_draw_behind_handle = meta.GetI("door", 0, meta_key_i + 4) != 0;
@@ -200,7 +201,12 @@ namespace nel
 		{
 			Color32 col = Md.Col;
 			Md.Col = MTRX.ColWhite;
-			this.Dr.drawTo(Md, this.draw_meshx, this.draw_meshy, this.getDoorOpenLevel(), 1.01f, 1.01f, this.Cp.draw_rotR, this.Cp.flip);
+			float num = this.draw_meshx;
+			if (this.slide_door != 0f)
+			{
+				num += (float)X.MPF(!this.Cp.flip) * this.slide_door * this.getDoorOpenLevel();
+			}
+			this.Dr.drawTo(Md, num, this.draw_meshy, (this.slide_door != 0f) ? 0f : this.getDoorOpenLevel(), 1.01f, 1.01f, this.Cp.draw_rotR, this.Cp.flip);
 			Md.Col = col;
 		}
 
@@ -353,7 +359,7 @@ namespace nel
 					if (this.LigInner == null)
 					{
 						this.LigInner = new M2LightFn(base.Mp, new M2LightFn.FnDrawLight(this.fnDrawInnerLight), null, (float _vx, float _vy) => this.Cp.isinCamera(80f));
-						base.Mp.addLight(this.LigInner);
+						base.Mp.addLight(this.LigInner, -1);
 					}
 					this.LigInner.Pos(this.Cp.mapcx, this.Cp.mapcy);
 				}
@@ -467,6 +473,8 @@ namespace nel
 		protected M2LightFn LigInner;
 
 		protected M2GradationRect GrdCov;
+
+		public float slide_door;
 
 		public float door_inner_light_alpha;
 

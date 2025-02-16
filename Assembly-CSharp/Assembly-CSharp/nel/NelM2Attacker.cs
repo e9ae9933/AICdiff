@@ -7,7 +7,7 @@ namespace nel
 	{
 		int applyDamage(NelAttackInfo Atk, bool force);
 
-		void applyGasDamage(MistAttackInfo Atk);
+		void applyGasDamage(MistManager.MistKind K, MistAttackInfo Atk);
 
 		float getMpDesireRatio(int add_mp);
 

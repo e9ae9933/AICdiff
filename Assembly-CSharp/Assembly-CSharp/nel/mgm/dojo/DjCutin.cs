@@ -14,9 +14,9 @@ namespace nel.mgm.dojo
 			this.APto_dojo_rotate_eye = new EfParticleOnce[3];
 			for (int i = 0; i < 3; i++)
 			{
-				this.APto_dojo_rotate_eye[i] = new EfParticleOnce("dojo_rotate_eye" + i.ToString(), EFCON_TYPE.UI);
+				this.APto_dojo_rotate_eye[i] = new EfParticleOnce("dojo_rotate_eye" + i.ToString(), EFCON_TYPE.FIXED);
 			}
-			this.Pto_dojo_loseg_piece = new EfParticleOnce("dojo_loseg_piece", EFCON_TYPE.UI);
+			this.Pto_dojo_loseg_piece = new EfParticleOnce("dojo_loseg_piece", EFCON_TYPE.FIXED);
 			this.DrRad = new RadiationDrawer
 			{
 				fine_intv = 0,
@@ -42,12 +42,12 @@ namespace nel.mgm.dojo
 		{
 			if (this.MtrBeam != null)
 			{
-				Object.Destroy(this.MtrGrdMap);
-				Object.Destroy(this.MtrBeam);
+				global::UnityEngine.Object.Destroy(this.MtrGrdMap);
+				global::UnityEngine.Object.Destroy(this.MtrBeam);
 			}
 			if (this.MtrLoseB != null)
 			{
-				Object.Destroy(this.MtrLoseB);
+				global::UnityEngine.Object.Destroy(this.MtrLoseB);
 			}
 			BLIT.nDispose(this.RBake);
 			this.RBake = null;

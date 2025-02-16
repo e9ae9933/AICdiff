@@ -253,7 +253,7 @@ namespace m2d
 			}
 			if (this.MdOutSide == null)
 			{
-				Mp.get_MMRD().CreateMesh(ref this.MdOutSide, "-Bright-OutSide", 340.01f, MTRX.MtrMeshMul, base.LAY("Chips"), false, false, true, false);
+				Mp.get_MMRD().CreateMesh(ref this.MdOutSide, "-Bright-OutSide", 410.01f, MTRX.MtrMeshMul, base.LAY("Chips"), false, false, true, false);
 			}
 			MdMap mdOutSide = this.MdOutSide;
 			mdOutSide.Col = this.OutGradationColor;
@@ -309,7 +309,7 @@ namespace m2d
 				this.MtrBackRendered.name = "MtrBackRendered";
 			}
 			RenderTexture renderTexture2 = Cam.initBufferScreen(this.DCBack, 1f, null, RenderTextureFormat.ARGB32, false);
-			Cam.createMeshDrawer(null, "-BackRender", renderTexture2, this.MtrBackRendered, this.dcbackrend_lay, uint.MaxValue, 1f, true);
+			Cam.createMeshDrawer(null, "-BackRender", renderTexture2, this.MtrBackRendered, this.dcbackrend_lay, uint.MaxValue, 1f, true, 440f);
 			float blur_texture_scale = this.blur_texture_scale;
 			RenderTexture renderTexture3 = Cam.initBufferScreen(null, blur_texture_scale, null, RenderTextureFormat.ARGB4444, false);
 			if (this.MainBlured == null)
@@ -331,7 +331,7 @@ namespace m2d
 			RenderTexture renderTexture4 = Cam.initBufferScreen(this.DCMover, 1f, null, RenderTextureFormat.ARGB32, false);
 			this.DCBorder = Cam.createCamera("border", true, true);
 			this.DCBorder.cullingMask = base.LAYB("ChipsForBorder");
-			this.EffectCamera_ = (this.DCMainRendered = Cam.initBufferScreenCamera("main_rendered", base.MtrImageWithLight, this.effect_layer_top, this.DCMain, 1f, uint.MaxValue, true, false));
+			this.EffectCamera_ = (this.DCMainRendered = Cam.initBufferScreenCamera("main_rendered", base.MtrImageWithLight, this.effect_layer_top, this.DCMain, 1f, uint.MaxValue, true, false, 385f));
 			this.DCMainRendered.cullingMask |= base.LAYB("Water") | base.LAYB("Default") | base.LAYB("Enemy") | base.LAYB("ChipsUCol");
 			base.defineFinalCamera(this.DCMainRendered);
 			base.MtrImageWithLight.SetTexture("_LightTex", renderTexture);
@@ -344,7 +344,7 @@ namespace m2d
 			RenderTexture renderTexture5 = Cam.initBufferScreen(this.DCBorder, 0.5f, null, RenderTextureFormat.ARGB32, false);
 			this.MtrBorder.SetTexture("_MainTex", renderTexture5);
 			this.MtrBorder.SetTexture("_LightTex", renderTexture);
-			Cam.createMeshDrawer(null, "-Border", renderTexture5, this.MtrBorder, this.layer_final, 4278190080U, 1f, true);
+			Cam.createMeshDrawer(null, "-Border", renderTexture5, this.MtrBorder, this.layer_final, 4278190080U, 1f, true, 384.75f);
 			this.fineMaterialColor();
 			return this;
 		}
@@ -435,7 +435,7 @@ namespace m2d
 			return !is_grd && layer != 3;
 		}
 
-		public override void getTextureForUiBg(ref RenderTexture TxB, ref RenderTexture TxG)
+		public override void getTextureForUiBg(out RenderTexture TxB, out RenderTexture TxG)
 		{
 			TxB = this.DCBack.targetTexture;
 			TxG = this.DCBorder.targetTexture;

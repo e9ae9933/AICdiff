@@ -425,6 +425,21 @@ namespace XX
 			return this;
 		}
 
+		public C32 blend3(uint c0, uint c1, uint c2, float level0, float level1, float level2)
+		{
+			float num = level0 + level1 + level2;
+			if (num == 0f)
+			{
+				return this;
+			}
+			num = 1f / num;
+			this.C.r = (byte)X.MMX(0f, (((c0 >> 16) & 255U) * level0 + ((c1 >> 16) & 255U) * level1 + ((c2 >> 16) & 255U) * level2) * num, 255f);
+			this.C.g = (byte)X.MMX(0f, (((c0 >> 8) & 255U) * level0 + ((c1 >> 8) & 255U) * level1 + ((c2 >> 8) & 255U) * level2) * num, 255f);
+			this.C.b = (byte)X.MMX(0f, ((c0 & 255U) * level0 + (c1 & 255U) * level1 + (c2 & 255U) * level2) * num, 255f);
+			this.C.a = (byte)X.MMX(0f, (((c0 >> 24) & 255U) * level0 + ((c1 >> 24) & 255U) * level1 + ((c2 >> 24) & 255U) * level2) * num, 255f);
+			return this;
+		}
+
 		public Color32 calcAddGray(Color32 C, bool alpha_multiply = true)
 		{
 			C.r = (byte)X.MMX(0, (int)(C.r + this.r - 127), 255);
@@ -492,6 +507,36 @@ namespace XX
 			return this.Set(num * 255f, num2 * 255f, num3 * 255f, (float)this.a);
 		}
 
+		public Vector3 ToHSV()
+		{
+			float num = (float)this.r * 0.003921569f;
+			float num2 = (float)this.g * 0.003921569f;
+			float num3 = (float)this.b * 0.003921569f;
+			float num4 = ((num > num2) ? num : num2);
+			num4 = ((num4 > num3) ? num4 : num3);
+			float num5 = ((num < num2) ? num : num2);
+			num5 = ((num5 < num3) ? num5 : num3);
+			float num6 = num4 - num5;
+			if (num6 > 0f)
+			{
+				if (num4 == num)
+				{
+					num6 = (num2 - num3) / num6;
+					num6 = ((num6 < 0f) ? (num6 + 6f) : num6);
+				}
+				else if (num4 == num2)
+				{
+					num6 = 2f + (num3 - num) / num6;
+				}
+				else
+				{
+					num6 = 4f + (num - num2) / num6;
+				}
+			}
+			float num7 = (num4 - num5) / ((num4 > 0f) ? num4 : 1f);
+			return new Vector3(num6 * 60f, num7, num4);
+		}
+
 		public C32 colorShift255(int imr, int img, int imb, int ima, float pr, float pg, float pb, float pa)
 		{
 			return this.Set2((float)((int)this.C.r * imr) / 255f + pr, (float)((int)this.C.g * img) / 255f + pg, (float)((int)this.C.b * imb) / 255f + pb, (float)((int)this.C.a * ima) / 255f + pa);
@@ -525,21 +570,21 @@ namespace XX
 
 		public C32 multiply255(float r, float g, float b, float a = 255f)
 		{
-			this.C.r = (byte)X.MMX(0f, (float)this.C.r * r / 255f, 255f);
-			this.C.g = (byte)X.MMX(0f, (float)this.C.g * g / 255f, 255f);
-			this.C.b = (byte)X.MMX(0f, (float)this.C.b * b / 255f, 255f);
-			this.C.a = (byte)X.MMX(0f, (float)this.C.a * a / 255f, 255f);
+			this.C.r = (byte)X.MMX(0f, (float)this.C.r * r * 0.003921569f, 255f);
+			this.C.g = (byte)X.MMX(0f, (float)this.C.g * g * 0.003921569f, 255f);
+			this.C.b = (byte)X.MMX(0f, (float)this.C.b * b * 0.003921569f, 255f);
+			this.C.a = (byte)X.MMX(0f, (float)this.C.a * a * 0.003921569f, 255f);
 			return this;
 		}
 
 		public C32 multiply(Color32 s, bool apply_to_alpha = true)
 		{
-			this.C.r = (byte)X.MMX(0f, (float)(this.C.r * s.r) / 255f, 255f);
-			this.C.g = (byte)X.MMX(0f, (float)(this.C.g * s.g) / 255f, 255f);
-			this.C.b = (byte)X.MMX(0f, (float)(this.C.b * s.b) / 255f, 255f);
+			this.C.r = (byte)X.MMX(0f, (float)(this.C.r * s.r) * 0.003921569f, 255f);
+			this.C.g = (byte)X.MMX(0f, (float)(this.C.g * s.g) * 0.003921569f, 255f);
+			this.C.b = (byte)X.MMX(0f, (float)(this.C.b * s.b) * 0.003921569f, 255f);
 			if (apply_to_alpha)
 			{
-				this.C.a = (byte)X.MMX(0f, (float)(this.C.a * s.a) / 255f, 255f);
+				this.C.a = (byte)X.MMX(0f, (float)(this.C.a * s.a) * 0.003921569f, 255f);
 			}
 			return this;
 		}
@@ -602,6 +647,12 @@ namespace XX
 			this.C.r = (byte)(255f * X.Scr((float)this.C.r / 255f, alpha));
 			this.C.g = (byte)(255f * X.Scr((float)this.C.g / 255f, alpha));
 			this.C.b = (byte)(255f * X.Scr((float)this.C.b / 255f, alpha));
+			return this;
+		}
+
+		public C32 ScrA(float alpha)
+		{
+			this.C.a = (byte)(255f * X.Scr((float)this.C.a * 0.003921569f, alpha));
 			return this;
 		}
 

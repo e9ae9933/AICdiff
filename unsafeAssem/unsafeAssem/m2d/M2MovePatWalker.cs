@@ -3,12 +3,20 @@ using XX;
 
 namespace m2d
 {
-	internal abstract class M2MovePatWalker : M2MovePat
+	public abstract class M2MovePatWalker : M2MovePat
 	{
 		public M2MovePatWalker(M2EventItem _Mv, M2EventItem.MOV_PAT _type)
 			: base(_Mv, _type)
 		{
 			this.Mv.gameObject.isStatic = false;
+		}
+
+		public bool event_stop_waiting
+		{
+			get
+			{
+				return this.movtf <= -1000f;
+			}
 		}
 
 		public override bool run(float fcnt)
@@ -19,14 +27,14 @@ namespace m2d
 			}
 			if (this.movtf <= -1000f)
 			{
-				if (base.Mp.TalkTarget == this.Mv)
+				if (this.event_stop_continue || this.reactivate_move_delay < 0f)
 				{
 					this.movtf = -1000f;
 				}
 				else
 				{
 					this.movtf -= fcnt;
-					if (this.movtf <= -1070f)
+					if (this.movtf <= -1000f - this.reactivate_move_delay)
 					{
 						this.movtf = -30f;
 					}
@@ -36,7 +44,11 @@ namespace m2d
 			bool flag = false;
 			if (this.movtf < 0f)
 			{
-				base.SpSetPose("stand", -1, null, false);
+				this.setVelocityX(0f);
+				if (this.movtf < -1f)
+				{
+					this.SpSetPose(this.dep_stand_pose, -1, null, false);
+				}
 				this.movtf += fcnt;
 				if (this.movtf >= 0f)
 				{
@@ -44,20 +56,27 @@ namespace m2d
 					this.walkInit();
 				}
 			}
+			else if (!this.walkInner(fcnt, ref flag, ref this.dep_walk_pose))
+			{
+				if (this.movtf >= 0f)
+				{
+					this.movtf = X.Mn(-1f, -X.NIXP(this.wait_time_min, this.wait_time_max));
+				}
+				this.setVelocityX(0f);
+			}
 			else
 			{
-				string text = "walk";
-				if (!this.walkInner(fcnt, ref flag, ref text))
-				{
-					this.movtf = -X.NIXP(130f, 190f);
-					this.setVelocityX(0f);
-				}
-				else
-				{
-					base.SpSetPose(text, -1, null, false);
-				}
+				this.SpSetPose(flag ? this.dep_walk_pose : this.dep_stand_pose, -1, null, false);
 			}
 			return flag;
+		}
+
+		protected virtual bool event_stop_continue
+		{
+			get
+			{
+				return this.Mp.TalkTarget == this.Mv;
+			}
 		}
 
 		protected abstract void walkInit();
@@ -80,16 +99,19 @@ namespace m2d
 			}
 		}
 
-		public override void assignMoveScript()
+		public override void assignMoveScript(bool soft_touch)
 		{
-			base.assignMoveScript();
-			this.mvsc_assigned = true;
-			if (M2EventCommand.Ev0 == this.Mv)
+			base.assignMoveScript(soft_touch);
+			if (!soft_touch)
 			{
-				this.movtf = -1000f;
+				this.mvsc_assigned = true;
+				if (M2EventCommand.Ev0 == this.Mv)
+				{
+					this.movtf = -1000f;
+				}
+				this.setVelocityX(0f);
+				this.SpSetPose(this.dep_stand_pose, -1, null, false);
 			}
-			this.setVelocityX(0f);
-			base.SpSetPose("stand", -1, null, false);
 		}
 
 		public override void evQuit()
@@ -108,5 +130,15 @@ namespace m2d
 		protected float movtf;
 
 		protected bool mvsc_assigned;
+
+		protected float wait_time_min = 130f;
+
+		protected float wait_time_max = 190f;
+
+		protected string dep_stand_pose = "stand";
+
+		protected string dep_walk_pose = "walk";
+
+		protected float reactivate_move_delay = 70f;
 	}
 }

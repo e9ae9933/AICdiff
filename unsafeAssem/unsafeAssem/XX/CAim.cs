@@ -1,5 +1,5 @@
 ﻿using System;
-using PixelLiner.PixelLinerLib;
+using PixelLiner.PixelLinerCore;
 using UnityEngine;
 
 namespace XX

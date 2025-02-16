@@ -134,6 +134,10 @@ namespace nel
 				Stb.Add("#MS_ % '>[ ", (int)(base.mapcx * base.CLEN), " ,+=0 :").Add(13).Add(" ] '")
 					.Ret("\n");
 			}
+			if (CurWmi.safe_area && !DepWM.safe_area)
+			{
+				Stb.ARd("@___city_guild/__FLUSH_SAFE_AREA ", " ", CurWmi.text_key, DepWM.text_key, "0", null);
+			}
 			base.event_script_transfer_body(Stb, "-2", TX.valid(jump_key) ? jump_key : this.key, false);
 			using (STB stb = TX.PopBld(null, 0))
 			{
@@ -174,6 +178,10 @@ namespace nel
 					Stb.AR("MV_CURE 0 0 1");
 				}
 				Stb.AR("WAIT_FN REELMNG");
+				if (!CurWmi.safe_area && DepWM.safe_area)
+				{
+					Stb.ARd("@___city_guild/__FLUSH_SAFE_AREA ", " ", CurWmi.text_key, DepWM.text_key, "1", null);
+				}
 			}
 			if (autosave)
 			{

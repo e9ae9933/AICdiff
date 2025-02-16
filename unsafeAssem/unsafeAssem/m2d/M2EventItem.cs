@@ -58,6 +58,16 @@ namespace m2d
 			return this.Phy;
 		}
 
+		public M2Phys removePhysics()
+		{
+			if (this.Phy != null)
+			{
+				this.Phy.destruct();
+				this.Phy = null;
+			}
+			return null;
+		}
+
 		public override IFootable canFootOn(IFootable F)
 		{
 			if (this.MPat != null)
@@ -334,6 +344,17 @@ namespace m2d
 			return this;
 		}
 
+		public override M2Mover setTo(float _x, float _y)
+		{
+			base.setTo(_x, _y);
+			if (this.Lig != null)
+			{
+				this.Lig.mapx = _x;
+				this.Lig.mapy = _y;
+			}
+			return this;
+		}
+
 		public M2Light setLight(uint col, float base_radius = -1f)
 		{
 			if ((col & 4278190080U) > 0U)
@@ -342,7 +363,7 @@ namespace m2d
 				{
 					this.Lig = new M2Light(this.Mp, this);
 					this.Lig.follow_speed = 0.4f;
-					this.Mp.addLight(this.Lig);
+					this.Mp.addLight(this.Lig, -1);
 				}
 				this.Lig.Col.Set(col);
 				if (base_radius >= 0f)
@@ -402,7 +423,7 @@ namespace m2d
 				{
 					if (this.Anm != null)
 					{
-						MImage mi = MTRX.getMI(this.Anm.getCurrentCharacter());
+						MImage mi = MTRX.getMI(this.Anm.getCurrentCharacter(), false);
 						if (mi != null)
 						{
 							this.Anm.setRendererMaterial(mi.getMtr(BLEND.NORMALP3, -1));
@@ -448,7 +469,7 @@ namespace m2d
 			{
 				if (this.Anm != null)
 				{
-					MImage mimage = ((this.Anm != null) ? MTRX.getMI(this.Anm.getCurrentCharacter()) : null);
+					MImage mimage = ((this.Anm != null) ? MTRX.getMI(this.Anm.getCurrentCharacter(), false) : null);
 					if (mimage == null)
 					{
 						return;
@@ -473,7 +494,7 @@ namespace m2d
 			if (this.Anm != null)
 			{
 				Material rendererMaterial = this.Anm.getRendererMaterial();
-				MImage mi = MTRX.getMI(this.Anm.getCurrentCharacter());
+				MImage mi = MTRX.getMI(this.Anm.getCurrentCharacter(), false);
 				if (mi != null)
 				{
 					this.Mp.Dgn.setBorderMask(ref rendererMaterial, mi, true, null);
@@ -484,7 +505,7 @@ namespace m2d
 			if (this.Mobg != null)
 			{
 				Material rendererMaterial2 = this.Mobg.getRendererMaterial();
-				MImage mi2 = MTRX.getMI(this.Anm.getCurrentCharacter());
+				MImage mi2 = MTRX.getMI(this.Anm.getCurrentCharacter(), false);
 				if (mi2 != null)
 				{
 					this.Mp.Dgn.setBorderMask(ref rendererMaterial2, mi2, true, null);
@@ -651,6 +672,16 @@ namespace m2d
 			return this;
 		}
 
+		public M2EventItem setMovePattern(M2MovePat ReplaceMPat)
+		{
+			if (ReplaceMPat != this.MPat)
+			{
+				this.destructMovePat();
+				this.MPat = ReplaceMPat;
+			}
+			return this;
+		}
+
 		public void runMoveFollow()
 		{
 		}
@@ -663,7 +694,7 @@ namespace m2d
 			}
 			if (this.MPat != null)
 			{
-				this.MPat.assignMoveScript();
+				this.MPat.assignMoveScript(soft_touch);
 			}
 			return base.assignMoveScript(str, soft_touch);
 		}
@@ -812,7 +843,7 @@ namespace m2d
 			}
 			base.gameObject.isStatic = false;
 			this.first_anm_frame = -1;
-			this.Mp.M2D.loadMaterialPxl(s, file_with_dir + ".pxls", true, true);
+			this.Mp.M2D.loadMaterialPxl(s, file_with_dir + ".pxls", true, true, false);
 			this.Anm = this.Mp.M2D.createBasicPxlAnimatorForRenderTicket(this, s, pose_name, true, M2Mover.DRAW_ORDER.PR0);
 			this.Anm.TeCon = this.initAnimTeCon(this.Anm, this.Anm, null);
 			this.Anm.auto_assign_tecon = false;
@@ -845,7 +876,7 @@ namespace m2d
 			return this.TeCon;
 		}
 
-		public M2MobGAnimator setMobgChara(string s, string pose_name = "stand")
+		public M2MobGAnimator setMobgChara(string s, string pose_name = "stand", string _colvari_key = "_")
 		{
 			if (TX.noe(s))
 			{
@@ -855,12 +886,16 @@ namespace m2d
 			{
 				base.gameObject.isStatic = false;
 				this.first_anm_frame = -1;
-				this.Mobg = new M2MobGAnimator(this, s);
+				this.Mobg = new M2MobGAnimator(this, s, _colvari_key);
 				this.initAnimTeCon(this.Mobg, this.Mobg, this.Mobg);
 			}
 			else
 			{
 				this.Mobg.sklt_name = s;
+				if (TX.valid(_colvari_key))
+				{
+					this.Mobg.colvari_key = _colvari_key;
+				}
 			}
 			if (TX.valid(pose_name))
 			{
@@ -868,6 +903,15 @@ namespace m2d
 			}
 			this.Mobg.setAim(this.aim, 1);
 			return this.Mobg;
+		}
+
+		public void setMobgAtlasWH(int w, int h)
+		{
+			if (this.Mobg != null)
+			{
+				this.Mobg.replace_size_w = w;
+				this.Mobg.replace_size_h = h;
+			}
 		}
 
 		public bool setDod(M2Mover.DRAW_ORDER dod)
@@ -1254,13 +1298,15 @@ namespace m2d
 			_MAX
 		}
 
-		internal enum MOV_PAT
+		public enum MOV_PAT
 		{
 			NONE,
 			SEE,
 			SEE_AROUND,
 			WALKAROUND_LR,
 			WALKAROUND_MAP,
+			CRAWLAROUND_LR,
+			_OTHER,
 			_MOVPAT_TYPE_ALL = 1048575,
 			_NO_PLAY_FOOTSND = 16777216,
 			_RIGHT = 33554432,

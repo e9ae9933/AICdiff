@@ -32,7 +32,7 @@ namespace nel.gm
 			this.BxR.margin_in_lr = 14f;
 			this.BxR.scrolling_margin_in_lr = 2f;
 			this.BxR.item_margin_x_px = 2f;
-			this.EditCfg = new CFG(this.BxR, this.BxDesc, null, true, true, delegate(Designer Ds, string key)
+			this.EditCfg = new UiCFG(this.BxR, this.BxDesc, null, true, true, delegate(Designer Ds, string key)
 			{
 				if (key == "MAIN")
 				{
@@ -126,7 +126,7 @@ namespace nel.gm
 					}
 				}
 			}
-			else if (this.EditCfg.ui_state == CFG.STATE.KEYCON)
+			else if (this.EditCfg.ui_state == UiCFG.STATE.KEYCON)
 			{
 				if (this.Btn2Title.isActive())
 				{
@@ -200,7 +200,7 @@ namespace nel.gm
 
 		public bool initGameQuiting(aBtn B)
 		{
-			if (!this.GM.general_button_handleable || this.EditCfg.ui_state == CFG.STATE.KEYCON)
+			if (!this.GM.general_button_handleable || this.EditCfg.ui_state == UiCFG.STATE.KEYCON)
 			{
 				return false;
 			}
@@ -245,7 +245,7 @@ namespace nel.gm
 			this.GM.FlgStatusHide.Add("CFG");
 			this.BxCmd.Focusable(false, true, null);
 			this.BxCmd.Focus();
-			btnContainer.Get(0).Select(false);
+			btnContainer.Get(0).Select(true);
 			return true;
 		}
 
@@ -283,10 +283,10 @@ namespace nel.gm
 			this.GM.FlgStatusHide.Rem("CFG");
 			this.BxR.Focus();
 			this.Btn2Title.SetChecked(false, true);
-			this.Btn2Title.Select(false);
+			this.Btn2Title.Select(true);
 		}
 
-		private CFG EditCfg;
+		private UiCFG EditCfg;
 
 		private KeyConDesignerNel KC;
 

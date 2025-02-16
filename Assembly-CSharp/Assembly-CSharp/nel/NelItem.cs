@@ -66,7 +66,7 @@ namespace nel
 				}
 				else
 				{
-					num = RecipeManager.getDefaultIcon(this);
+					num = RCP.getDefaultIcon(this);
 				}
 			}
 			else if ((this.category & NelItem.CATEG.TOOL) != NelItem.CATEG.OTHER)
@@ -241,18 +241,18 @@ namespace nel
 			NelItem.ValMemoS[] array = NelItem.BufSet(this, gradeVariation, true);
 			if (this.is_food)
 			{
-				global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+				X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
 			}
 			if (this.has(NelItem.CATEG.CURE_HP) && !this.has(NelItem.CATEG.CURE_MP_CRACK))
 			{
-				NelItem.ValMemoS valMemoS = global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+				NelItem.ValMemoS valMemoS = X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
 				if (categ == NelItem.CATEG.CURE_HP)
 				{
 					return valMemoS.getMinValue();
 				}
 				if (this.has(NelItem.CATEG.CURE_MP))
 				{
-					valMemoS = global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+					valMemoS = X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
 					if (categ == NelItem.CATEG.CURE_MP)
 					{
 						return valMemoS.getMinValue();
@@ -263,7 +263,7 @@ namespace nel
 			{
 				if (this.has(NelItem.CATEG.CURE_HP))
 				{
-					NelItem.ValMemoS valMemoS = global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+					NelItem.ValMemoS valMemoS = X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
 					if (categ == NelItem.CATEG.CURE_HP)
 					{
 						return valMemoS.getMinValue();
@@ -271,7 +271,7 @@ namespace nel
 				}
 				if (this.has(NelItem.CATEG.CURE_MP_CRACK))
 				{
-					NelItem.ValMemoS valMemoS = global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+					NelItem.ValMemoS valMemoS = X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
 					if (categ == NelItem.CATEG.CURE_MP_CRACK)
 					{
 						return valMemoS.getMinValue();
@@ -279,7 +279,7 @@ namespace nel
 				}
 				if (this.has(NelItem.CATEG.CURE_MP))
 				{
-					NelItem.ValMemoS valMemoS = global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+					NelItem.ValMemoS valMemoS = X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
 					if (categ == NelItem.CATEG.CURE_MP)
 					{
 						return valMemoS.getMinValue();
@@ -288,7 +288,7 @@ namespace nel
 			}
 			if (this.has(NelItem.CATEG.CURE_EP))
 			{
-				NelItem.ValMemoS valMemoS = global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+				NelItem.ValMemoS valMemoS = X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
 				if (categ == NelItem.CATEG.CURE_EP)
 				{
 					return valMemoS.getMinValue();
@@ -296,150 +296,150 @@ namespace nel
 			}
 			if (this.has(NelItem.CATEG.SER_CURE))
 			{
-				NelItem.ValMemoS valMemoS = global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+				NelItem.ValMemoS valMemoS = X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
 				if (categ == NelItem.CATEG.SER_CURE)
 				{
-					return global::XX.X.IntR(valMemoS.v_origin);
+					return X.IntR(valMemoS.v_origin);
 				}
 			}
 			if (this.has(NelItem.CATEG.SER_APPLY))
 			{
-				NelItem.ValMemoS valMemoS = global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+				NelItem.ValMemoS valMemoS = X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
 				if (categ == NelItem.CATEG.SER_APPLY)
 				{
-					return global::XX.X.IntR(valMemoS.v_origin);
+					return X.IntR(valMemoS.v_origin);
 				}
 			}
 			return 0;
 		}
 
-		public string getDetail(ItemStorage Storage, int grade = -1, ItemStorage.ObtainInfo Obt = null, bool detail_main_item_effect = true, bool detail_stock = true, bool detail_recipe = true)
+		public void getDetail(STB StbDest, ItemStorage Storage, int grade = -1, ItemStorage.ObtainInfo Obt = null, bool detail_main_item_effect = true, bool detail_stock = true, bool detail_recipe = true)
 		{
-			STB stb = TX.PopBld(null, 0);
-			NelItem.GrdVariation grdVariation = default(NelItem.GrdVariation);
-			if (detail_main_item_effect)
+			using (STB stb = TX.PopBld(null, 0))
 			{
-				if (!this.is_precious && detail_stock)
+				NelItem.GrdVariation grdVariation = default(NelItem.GrdVariation);
+				if (detail_main_item_effect)
 				{
-					stb.AddTxA("Item_dbox_stock", false).TxRpl(this.stock);
-				}
-				if (this.value != 0f || this.value2 != 0f || this.value3 != 0f || (this.RecipeInfo != null && this.RecipeInfo.Oeffect100.Count != 0))
-				{
-					grdVariation = this.getGradeVariation(grade, Obt);
-				}
-				NelItem.ValMemoS[] array = NelItem.BufSet(this, grdVariation, true);
-				if (this.is_food)
-				{
-					global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
-				}
-				if (this.has(NelItem.CATEG.CURE_HP) && !this.has(NelItem.CATEG.CURE_MP_CRACK))
-				{
-					global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1).detailAppendTxA(stb, "Item_detail_cure_hp", "\n");
-					if (this.has(NelItem.CATEG.CURE_MP))
+					if (!this.is_precious && detail_stock)
 					{
-						global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1).detailAppendTxA(stb, "Item_detail_cure_mp", "  /  ");
+						stb.AddTxA("Item_dbox_stock", false).TxRpl(this.stock);
+					}
+					if (this.value != 0f || this.value2 != 0f || this.value3 != 0f || (this.RecipeInfo != null && this.RecipeInfo.Oeffect100.Count != 0))
+					{
+						grdVariation = this.getGradeVariation(grade, Obt);
+					}
+					NelItem.ValMemoS[] array = NelItem.BufSet(this, grdVariation, true);
+					if (this.is_food)
+					{
+						X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+					}
+					if (this.has(NelItem.CATEG.CURE_HP) && !this.has(NelItem.CATEG.CURE_MP_CRACK))
+					{
+						X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1).detailAppendTxA(stb, "Item_detail_cure_hp", "\n");
+						if (this.has(NelItem.CATEG.CURE_MP))
+						{
+							X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1).detailAppendTxA(stb, "Item_detail_cure_mp", "  /  ");
+						}
+					}
+					else
+					{
+						if (this.has(NelItem.CATEG.CURE_HP))
+						{
+							X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1).detailAppendTxA(stb, "Item_detail_cure_hp", "\n");
+						}
+						if (this.has(NelItem.CATEG.CURE_MP_CRACK))
+						{
+							X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1).detailAppendTxA(stb, "Item_detail_cure_mp_crack", "\n");
+						}
+						if (this.has(NelItem.CATEG.CURE_MP))
+						{
+							X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1).detailAppendTxA(stb, "Item_detail_cure_mp", "\n");
+						}
+					}
+					if (this.has(NelItem.CATEG.CURE_EP))
+					{
+						NelItem.ValMemoS valMemoS = X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+						if (valMemoS.v_origin != 0f)
+						{
+							STB stb2 = TX.PopBld(null, 0);
+							valMemoS.getDetailTo(stb2);
+							if (valMemoS.v_origin > 0f)
+							{
+								stb.AppendTxA("Item_detail_cure_ep", "\n").TxRpl(stb2);
+							}
+							else
+							{
+								stb2.RemoveChar('-', 0, -1);
+								stb.AppendTxA("Item_detail_dmg_ep", "\n").TxRpl(stb2);
+							}
+							TX.ReleaseBld(stb2);
+						}
+					}
+					if (this.has(NelItem.CATEG.SER_CURE))
+					{
+						X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+						ulong num;
+						if (NelItem.getSerCureBits(this.key, out num))
+						{
+							using (STB stb3 = TX.PopBld(null, 0))
+							{
+								stb3.Clear();
+								M2Ser.listupAllTitle(num, stb3);
+								if (stb3.Length != 0)
+								{
+									stb.AppendTxA("Item_detail_cure_ser", "\n").TxRpl(stb3);
+								}
+							}
+						}
+					}
+					if (this.has(NelItem.CATEG.SER_APPLY))
+					{
+						X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
+						ulong num2;
+						if (NelItem.getSerApplyBits(this.key, out num2))
+						{
+							using (STB stb4 = TX.PopBld(null, 0))
+							{
+								stb4.Clear();
+								M2Ser.listupAllTitle(num2, stb4);
+								if (stb4.Length != 0)
+								{
+									stb.AppendTxA("Item_detail_dmg_ser", "\n").TxRpl(stb4);
+								}
+							}
+						}
+					}
+					if (!this.nest_multiple)
+					{
+						if (stb.Length != 0)
+						{
+							stb.Add("\n");
+						}
+						stb.Add(NEL.error_tag, TX.Get("Item_detail_cannot_nest_multiple", ""), NEL.error_tag_close);
+					}
+					if (this.has(NelItem.CATEG.WATER) && Storage != null && !Storage.water_stockable)
+					{
+						stb.AppendTxA("Item_detail_filled_bottle", "\n");
 					}
 				}
 				else
 				{
-					if (this.has(NelItem.CATEG.CURE_HP))
-					{
-						global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1).detailAppendTxA(stb, "Item_detail_cure_hp", "\n");
-					}
-					if (this.has(NelItem.CATEG.CURE_MP_CRACK))
-					{
-						global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1).detailAppendTxA(stb, "Item_detail_cure_mp_crack", "\n");
-					}
-					if (this.has(NelItem.CATEG.CURE_MP))
-					{
-						global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1).detailAppendTxA(stb, "Item_detail_cure_mp", "\n");
-					}
+					grdVariation = this.getGradeVariation(grade, Obt);
 				}
-				if (this.has(NelItem.CATEG.CURE_EP))
-				{
-					NelItem.ValMemoS valMemoS = global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
-					if (valMemoS.v_origin != 0f)
-					{
-						STB stb2 = TX.PopBld(null, 0);
-						valMemoS.getDetailTo(stb2);
-						if (valMemoS.v_origin > 0f)
-						{
-							stb.AppendTxA("Item_detail_cure_ep", "\n").TxRpl(stb2);
-						}
-						else
-						{
-							stb2.RemoveChar('-', 0, -1);
-							stb.AppendTxA("Item_detail_dmg_ep", "\n").TxRpl(stb2);
-						}
-						TX.ReleaseBld(stb2);
-					}
-				}
-				if (this.has(NelItem.CATEG.SER_CURE))
-				{
-					global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
-					ulong num;
-					if (NelItem.getSerCureBits(this.key, out num))
-					{
-						using (STB stb3 = TX.PopBld(null, 0))
-						{
-							stb3.Clear();
-							M2Ser.listupAllTitle(num, stb3);
-							if (stb3.Length != 0)
-							{
-								stb.AppendTxA("Item_detail_cure_ser", "\n").TxRpl(stb3);
-							}
-						}
-					}
-				}
-				if (this.has(NelItem.CATEG.SER_APPLY))
-				{
-					global::XX.X.shiftNotInput<NelItem.ValMemoS>(array, 1, 0, -1);
-					ulong num2;
-					if (NelItem.getSerApplyBits(this.key, out num2))
-					{
-						using (STB stb4 = TX.PopBld(null, 0))
-						{
-							stb4.Clear();
-							M2Ser.listupAllTitle(num2, stb4);
-							if (stb4.Length != 0)
-							{
-								stb.AppendTxA("Item_detail_dmg_ser", "\n").TxRpl(stb4);
-							}
-						}
-					}
-				}
-				if (!this.nest_multiple)
+				if (this.RecipeInfo != null && detail_recipe)
 				{
 					if (stb.Length != 0)
 					{
 						stb.Add("\n");
 					}
-					stb.Add(NEL.error_tag, TX.Get("Item_detail_cannot_nest_multiple", ""), NEL.error_tag_close);
+					this.RecipeInfo.getDetailTo(stb, this, grdVariation);
 				}
-				if (this.has(NelItem.CATEG.WATER) && Storage != null && !Storage.water_stockable)
+				if (this.FnGetDetail != null)
 				{
-					stb.AppendTxA("Item_detail_filled_bottle", "\n");
+					this.FnGetDetail(stb, this, (Storage != null) ? Storage.getTopGrade(this) : 0);
 				}
+				StbDest.Add(stb);
 			}
-			else
-			{
-				grdVariation = this.getGradeVariation(grade, Obt);
-			}
-			if (this.RecipeInfo != null && detail_recipe)
-			{
-				if (stb.Length != 0)
-				{
-					stb.Add("\n");
-				}
-				this.RecipeInfo.getDetailTo(stb, this, grdVariation);
-			}
-			string text = stb.ToString();
-			TX.ReleaseBld(stb);
-			if (this.FnGetDetail != null)
-			{
-				text = this.FnGetDetail(this, (Storage != null) ? Storage.getTopGrade(this) : 0, text);
-			}
-			return text;
 		}
 
 		public int Use(PR Pr, ItemStorage Storage, int grade, NelItem.IItemUser Usr = null)
@@ -452,11 +452,11 @@ namespace nel
 			string text = null;
 			if (this.is_food)
 			{
-				global::XX.X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1);
+				X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1);
 			}
 			if (this.has(NelItem.CATEG.CURE_HP))
 			{
-				int v_int = global::XX.X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_int;
+				int v_int = X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_int;
 				if (Pr == null || Pr.NelItemUseableInt(this, NelItem.CATEG.CURE_HP, grade, v_int))
 				{
 					flag3 = (flag = true);
@@ -469,7 +469,7 @@ namespace nel
 			flag3 = false;
 			if (this.has(NelItem.CATEG.CURE_MP_CRACK))
 			{
-				int v_int2 = global::XX.X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_int;
+				int v_int2 = X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_int;
 				if (Pr == null || Pr.NelItemUseableInt(this, NelItem.CATEG.CURE_MP_CRACK, grade, v_int2))
 				{
 					flag3 = (flag = true);
@@ -482,7 +482,7 @@ namespace nel
 			flag3 = false;
 			if (this.has(NelItem.CATEG.CURE_MP))
 			{
-				int v_int3 = global::XX.X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_int;
+				int v_int3 = X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_int;
 				if (Pr == null || Pr.NelItemUseableInt(this, NelItem.CATEG.CURE_MP, grade, v_int3))
 				{
 					flag3 = (flag = true);
@@ -495,7 +495,7 @@ namespace nel
 			flag3 = false;
 			if (this.has(NelItem.CATEG.CURE_EP))
 			{
-				int v_int4 = global::XX.X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_int;
+				int v_int4 = X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_int;
 				if (Pr == null || Pr.NelItemUseableInt(this, NelItem.CATEG.CURE_EP, grade, v_int4))
 				{
 					flag3 = (flag = true);
@@ -508,7 +508,7 @@ namespace nel
 			flag3 = false;
 			if (this.has(NelItem.CATEG.SER_CURE))
 			{
-				int num2 = (int)global::XX.X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_origin;
+				int num2 = (int)X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_origin;
 				ulong num3;
 				if (NelItem.getSerCureBits(this.key, out num3))
 				{
@@ -525,7 +525,7 @@ namespace nel
 			flag3 = false;
 			if (this.has(NelItem.CATEG.SER_APPLY))
 			{
-				int num4 = (int)global::XX.X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_origin;
+				int num4 = (int)X.shiftNotInput<NelItem.ValMemo>(array, 1, 0, -1).v_origin;
 				ulong num5;
 				if (NelItem.getSerApplyBits(this.key, out num5))
 				{
@@ -590,7 +590,7 @@ namespace nel
 					{
 						if (Obt.getCount(k) != 0)
 						{
-							if (global::XX.X.shiftNotInput<NelItem.ValMemo>(aavalFixGrade[k], 1, 0, -1).v_int > num5)
+							if (X.shiftNotInput<NelItem.ValMemo>(aavalFixGrade[k], 1, 0, -1).v_int > num5)
 							{
 								num4 = k;
 								break;
@@ -601,11 +601,11 @@ namespace nel
 				}
 				if (num3 >= 0)
 				{
-					num = ((num == -1) ? num3 : global::XX.X.Mn(num3, num));
+					num = ((num == -1) ? num3 : X.Mn(num3, num));
 				}
 				if (num4 >= 0)
 				{
-					num2 = ((num2 == -1) ? num4 : global::XX.X.Mn(num4, num2));
+					num2 = ((num2 == -1) ? num4 : X.Mn(num4, num2));
 				}
 			}
 			if ((this.category & NelItem.CATEG.CURE_MP) != NelItem.CATEG.OTHER)
@@ -619,7 +619,7 @@ namespace nel
 					{
 						if (Obt.getCount(l) != 0)
 						{
-							if (global::XX.X.shiftNotInput<NelItem.ValMemo>(aavalFixGrade[l], 1, 0, -1).v_int > num8)
+							if (X.shiftNotInput<NelItem.ValMemo>(aavalFixGrade[l], 1, 0, -1).v_int > num8)
 							{
 								num7 = l;
 								break;
@@ -630,11 +630,11 @@ namespace nel
 				}
 				if (num6 >= 0)
 				{
-					num = ((num == -1) ? num6 : global::XX.X.Mn(num6, num));
+					num = ((num == -1) ? num6 : X.Mn(num6, num));
 				}
 				if (num7 >= 0)
 				{
-					num2 = ((num2 == -1) ? num7 : global::XX.X.Mn(num7, num2));
+					num2 = ((num2 == -1) ? num7 : X.Mn(num7, num2));
 				}
 			}
 			if ((this.category & NelItem.CATEG.CURE_EP) != NelItem.CATEG.OTHER)
@@ -648,7 +648,7 @@ namespace nel
 					{
 						if (Obt.getCount(m) != 0)
 						{
-							if (global::XX.X.shiftNotInput<NelItem.ValMemo>(aavalFixGrade[m], 1, 0, -1).v_int > num11)
+							if (X.shiftNotInput<NelItem.ValMemo>(aavalFixGrade[m], 1, 0, -1).v_int > num11)
 							{
 								num10 = m;
 								break;
@@ -659,11 +659,11 @@ namespace nel
 				}
 				if (num9 >= 0)
 				{
-					num = ((num == -1) ? num9 : global::XX.X.Mn(num9, num));
+					num = ((num == -1) ? num9 : X.Mn(num9, num));
 				}
 				if (num10 >= 0)
 				{
-					num2 = ((num2 == -1) ? num10 : global::XX.X.Mn(num10, num2));
+					num2 = ((num2 == -1) ? num10 : X.Mn(num10, num2));
 				}
 			}
 			if (num >= 0)
@@ -736,7 +736,7 @@ namespace nel
 							{
 								num = i;
 							}
-							num2 = global::XX.X.Mx(num2, i);
+							num2 = X.Mx(num2, i);
 						}
 					}
 					if (num == -1)
@@ -873,7 +873,7 @@ namespace nel
 		{
 			get
 			{
-				return this.is_water && this.RecipeInfo != null && (this.RecipeInfo.categ & RecipeManager.RPI_CATEG.FROMNOEL) != (RecipeManager.RPI_CATEG)0;
+				return this.is_water && this.RecipeInfo != null && (this.RecipeInfo.categ & RCP.RPI_CATEG.FROMNOEL) != (RCP.RPI_CATEG)0;
 			}
 		}
 
@@ -899,6 +899,15 @@ namespace nel
 			{
 				return !this.is_precious;
 			}
+		}
+
+		public bool Is(string t)
+		{
+			if (TX.isStart(t, "@", 0))
+			{
+				return t != null && t == "@REEL" && this.is_reelmbox;
+			}
+			return this.key == t;
 		}
 
 		public static NelItem.CATEG calcCateg(string _categ_str)
@@ -939,46 +948,64 @@ namespace nel
 			return this.name_localized_;
 		}
 
-		public string getLocalizedName(int grade, ItemStorage Storage = null)
+		public string getLocalizedName(int grade)
 		{
-			string text;
 			if (this.FnGetName != null)
 			{
-				text = this.FnGetName(this, grade, this.name_localized_);
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					this.getLocalizedName(stb, grade);
+					return stb.ToString();
+				}
 			}
-			else
-			{
-				text = this.name_localized_;
-			}
-			return text;
+			return this.name_localized_;
 		}
 
-		public string getDescLocalized(ItemStorage Storage, int grade)
+		public STB getLocalizedName(STB Stb, int grade)
 		{
-			TX tx = TX.getTX("_NelItem_desc_" + this.key, true, true, null);
-			string text = ((tx != null) ? tx.text : "???");
-			if ((this.category & NelItem.CATEG.WATER) != NelItem.CATEG.OTHER)
+			if (this.FnGetName != null)
 			{
-				if (Storage == null || Storage.water_stockable)
+				using (STB stb = TX.PopBld(this.name_localized_, 0))
 				{
-					text = TX.add(text, TX.Get("Item_desc_suffix_water_needs_empty_bottle", ""), "\n");
-				}
-				else
-				{
-					text = TX.add(text, TX.Get("Item_desc_suffix_bottled_water", ""), "\n");
+					this.FnGetName(stb, this, grade);
+					Stb.Add(stb);
+					return Stb;
 				}
 			}
-			if (this.FnGetDesc != null)
+			Stb.Add(this.name_localized_);
+			return Stb;
+		}
+
+		public STB getDescLocalized(STB StbDest, ItemStorage Storage, int grade)
+		{
+			using (STB stb = TX.PopBld(null, 0))
 			{
-				text = this.FnGetDesc(this, grade, text);
+				TX tx = TX.getTX("_NelItem_desc_" + this.key, true, true, null);
+				stb.Add((tx != null) ? tx.text : "???");
+				if ((this.category & NelItem.CATEG.WATER) != NelItem.CATEG.OTHER)
+				{
+					if (Storage == null || Storage.water_stockable)
+					{
+						stb.AppendTxA("Item_desc_suffix_water_needs_empty_bottle", "\n");
+					}
+					else
+					{
+						stb.AppendTxA("Item_desc_suffix_bottled_water", "\n");
+					}
+				}
+				if (this.FnGetDesc != null)
+				{
+					this.FnGetDesc(stb, this, grade);
+				}
+				StbDest.Add(stb);
 			}
-			return text;
+			return StbDest;
 		}
 
 		public static STB getGradeMeshTxTo(STB Stb, int grade, int id = 0, int width = 34)
 		{
 			Stb.Add("<img mesh=\"nel_item_grade.", grade + id * 5, "\" width=\"");
-			Stb.Add("", width, "\" tx_color />");
+			Stb.Add("", width, (id == 4) ? "\" />" : "\" tx_color />");
 			return Stb;
 		}
 
@@ -1017,7 +1044,7 @@ namespace nel
 			}
 			else
 			{
-				Md.RectDashed(x, y, 30f * scale, 30f * scale, 0.5f, global::XX.X.IntR(60f), 1f, false, false);
+				Md.RectDashed(x, y, 30f * scale, 30f * scale, 0.5f, X.IntR(60f), 1f, false, false);
 			}
 			if (submesh_icon != -1 && submesh_line != submesh_icon)
 			{
@@ -1026,7 +1053,7 @@ namespace nel
 			bool flag = Storage != null && Storage.isMngEffectConfusion();
 			if (this.is_reelmbox && !flag)
 			{
-				ReelManager.ItemReelContainer ir = ReelManager.GetIR(this);
+				ReelManager.ItemReelContainer ir = ReelManager.GetIR(this, false, true);
 				if (ir != null)
 				{
 					ir.drawSmallIcon(Md, x, y, alpha, scale, false);
@@ -1051,14 +1078,14 @@ namespace nel
 		{
 			if (!this.individual_grade)
 			{
-				return global::XX.X.NI(1f, this.max_grade_enpower, global::XX.X.ZLINE((float)grade, 4f));
+				return X.NI(1f, this.max_grade_enpower, X.ZLINE((float)grade, 4f));
 			}
 			return this.max_grade_enpower;
 		}
 
 		public float getGradePriceMultiply(int grade)
 		{
-			return global::XX.X.NI(1f, (this.max_price_enpower <= 0f) ? global::XX.X.NI(this.max_grade_enpower, this.max_grade_enpower * this.max_grade_enpower, 0.66f) : this.max_price_enpower, global::XX.X.ZLINE((float)grade, 4f));
+			return X.NI(1f, (this.max_price_enpower <= 0f) ? X.NI(this.max_grade_enpower, this.max_grade_enpower * this.max_grade_enpower, 0.66f) : this.max_price_enpower, X.ZLINE((float)grade, 4f));
 		}
 
 		public float getPrice(int grade)
@@ -1110,7 +1137,7 @@ namespace nel
 			{
 				this.obtain_count &= 128;
 			}
-			this.obtain_count = (byte)((int)(this.obtain_count & 128) | global::XX.X.Mn(100, (int)(this.obtain_count & 127) + v));
+			this.obtain_count = (byte)((int)(this.obtain_count & 128) | X.Mn(100, (int)(this.obtain_count & 127) + v));
 			return this;
 		}
 
@@ -1165,7 +1192,7 @@ namespace nel
 
 		public static void readItemScript(string txt)
 		{
-			NelItem.OData = new NDic<NelItem>("NelItem", 0);
+			NelItem.OData = new NDic<NelItem>("NelItem", 0, 100);
 			NelItem.Oser_cure = new BDic<string, ulong>();
 			NelItem.Oser_apply = new BDic<string, ulong>();
 			BDic<string, int> bdic = new BDic<string, int>();
@@ -1211,7 +1238,7 @@ namespace nel
 				}
 				else if (csvReader.cmd == "%ID")
 				{
-					num = (ushort)global::XX.X.NmI(csvReader._1, (int)num, true, false);
+					num = (ushort)X.NmI(csvReader._1, (int)num, true, false);
 				}
 				else if (nelItem == null && REG.match(csvReader.slice_join(0, " ", ""), NelItem.RegItemHeader))
 				{
@@ -1220,9 +1247,9 @@ namespace nel
 					{
 						bdic[r] = csvReader.get_cur_line();
 					}
-					int num2 = global::XX.X.NmI(REG.R3, 0, false, false);
-					int num3 = global::XX.X.NmI(REG.R4, 0, false, false);
-					int num4 = global::XX.X.Mx(1, global::XX.X.NmI(REG.R5, 0, false, false));
+					int num2 = X.NmI(REG.R3, 0, false, false);
+					int num3 = X.NmI(REG.R4, 0, false, false);
+					int num4 = X.Mx(1, X.NmI(REG.R5, 0, false, false));
 					string text = r;
 					NelItem nelItem2 = new NelItem(r, num2, num3, num4);
 					ushort num5 = num;
@@ -1238,7 +1265,11 @@ namespace nel
 			NelItem.Unknown.id = ushort.MaxValue;
 			NelItem.Unknown.specific_icon_id = -2;
 			NelItem.Unknown.SpecificColor = MTRX.ColTrnsp;
-			NelItem.Unknown.FnGetName = (NelItem Itm, int grade, string def) => TX.Get("Talker_Unknown", "");
+			NelItem.Unknown.FnGetName = delegate(STB Stb, NelItem Itm, int grade)
+			{
+				TX.Get("Talker_Unknown", "");
+			};
+			NelItem.OData.scriptFinalize();
 		}
 
 		private static void readItemData(NelItem CurItm, CsvReader CR, Type TypeItem, BDic<string, int> Oitem_line)
@@ -1514,9 +1545,9 @@ namespace nel
 						}
 						if (CurItm.RecipeInfo == null)
 						{
-							CurItm.RecipeInfo = new RecipeManager.RecipeItemInfo(CurItm, CR._1, CR.Int(2, 1), CR._3, CR._4);
+							CurItm.RecipeInfo = new RCP.RecipeItemInfo(CurItm, CR._1, CR.Int(2, 1), CR._3, CR._4);
 						}
-						if (CurItm.RecipeInfo.categ == (RecipeManager.RPI_CATEG)0)
+						if (CurItm.RecipeInfo.categ == (RCP.RPI_CATEG)0)
 						{
 							CR.tError("レシピカテゴリエラー: " + CR._1);
 							return true;
@@ -1571,7 +1602,7 @@ namespace nel
 						{
 							return false;
 						}
-						goto IL_06A4;
+						goto IL_067D;
 					}
 				}
 				else
@@ -1585,12 +1616,7 @@ namespace nel
 				}
 				try
 				{
-					MethodInfo method = TypeItem.GetMethod(CR._1);
-					if (!(method != null))
-					{
-						throw new Exception("No Specific Method: " + CR._1);
-					}
-					FnGetItemDetail fnGetItemDetail = (FnGetItemDetail)Delegate.CreateDelegate(typeof(FnGetItemDetail), method);
+					FnGetItemDetail fnGetItemDetail = (FnGetItemDetail)typeof(NelItem).GetField(CR._1, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic).GetValue(null);
 					if (fnGetItemDetail == null)
 					{
 						throw new Exception("No Available Method: " + CR._1);
@@ -1614,15 +1640,15 @@ namespace nel
 					CR.tError(ex.ToString());
 					return true;
 				}
-				IL_06A4:
+				IL_067D:
 				try
 				{
-					MethodInfo method2 = TypeItem.GetMethod(CR._1);
-					if (!(method2 != null))
+					MethodInfo method = TypeItem.GetMethod(CR._1);
+					if (!(method != null))
 					{
 						throw new Exception("No Specific Method: " + CR._1);
 					}
-					FnGetItemColor fnGetItemColor = (FnGetItemColor)Delegate.CreateDelegate(typeof(FnGetItemColor), method2);
+					FnGetItemColor fnGetItemColor = (FnGetItemColor)Delegate.CreateDelegate(typeof(FnGetItemColor), method);
 					if (fnGetItemColor == null)
 					{
 						throw new Exception("No Available Method: " + CR._1);
@@ -1656,13 +1682,13 @@ namespace nel
 			{
 				return NelItem.OData[key];
 			}
-			global::XX.X.de("アイテム名の重複: " + key, null);
+			X.de("アイテム名の重複: " + key, null);
 			return null;
 		}
 
-		public static void flush(NelItem Itm)
+		public static void flush(NelItem Itm, bool force = false)
 		{
-			if (Itm.is_cache_item)
+			if (Itm.is_cache_item || force)
 			{
 				NelItem.OData.Remove(Itm.key);
 				if (NelItem.cache_item_count > 0)
@@ -1707,7 +1733,7 @@ namespace nel
 				return;
 			}
 			NelItem.localized_tx_key = TX.getCurrentFamilyName();
-			RecipeManager.fineNameLocalizedWhole();
+			RCP.fineNameLocalizedWhole();
 			NelItem.tx_item_get = TX.Get("Item_get", "");
 			foreach (KeyValuePair<string, NelItem> keyValuePair in NelItem.OData)
 			{
@@ -1728,7 +1754,7 @@ namespace nel
 			}
 			if (!no_error)
 			{
-				global::XX.X.de("不明なアイテム キー:" + item_key, null);
+				X.de("不明なアイテム キー:" + item_key, null);
 			}
 			return null;
 		}
@@ -1744,7 +1770,7 @@ namespace nel
 			}
 			if (!no_error)
 			{
-				global::XX.X.de("不明なアイテム UID:" + uid.ToString(), null);
+				X.de("不明なアイテム UID:" + uid.ToString(), null);
 			}
 			return null;
 		}
@@ -1779,45 +1805,22 @@ namespace nel
 			return NelItem.OData;
 		}
 
-		public static string fnGetNameNoelJuice(NelItem Itm, int grade, string def)
+		private static void TxARpl(string tx_key, STB StbDef)
 		{
-			return TX.GetA("noel_juice_grade" + grade.ToString(), def);
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				stb.AddTxA(tx_key, false).TxRpl(StbDef);
+				StbDef.Clear().Add(stb);
+			}
 		}
 
-		public static string fnGetNameNoelCloth(NelItem Itm, int grade, string def)
+		private static void TxARpl(string tx_key, string v1, STB StbDef)
 		{
-			if (grade >= 3)
+			using (STB stb = TX.PopBld(null, 0))
 			{
-				return def;
+				stb.AddTxA(tx_key, false).TxRpl(v1).TxRpl(StbDef);
+				StbDef.Clear().Add(stb);
 			}
-			string text = "";
-			if ((grade & 1) == 0)
-			{
-				text = TX.Get("prefix_item_splashed", "");
-			}
-			if ((grade & 2) == 0)
-			{
-				text = ((text == "") ? TX.Get("prefix_item_broken", "") : TX.GetA("__adding", text, TX.Get("prefix_item_broken", "")));
-				def = TX.Get("item_abb_noel_cloth", "");
-			}
-			return TX.GetA("__adding", text, def);
-		}
-
-		public static string fnGetDescNoelCloth(NelItem Itm, int grade, string def)
-		{
-			if (grade >= 3)
-			{
-				return def + "\n" + TX.Get("desc_noel_cloth_0", "");
-			}
-			if ((grade & 1) == 0)
-			{
-				def = def + "\n" + TX.Get("desc_noel_cloth_1", "");
-			}
-			if ((grade & 2) == 0)
-			{
-				def = def + "\n" + TX.Get("desc_noel_cloth_2", "");
-			}
-			return def;
 		}
 
 		public static Color32 fnGetColorNoelCloth(NelItem Itm, ItemStorage Str, int grade, Color32 C)
@@ -1829,231 +1832,9 @@ namespace nel
 			return C32.d2c(4288833383U);
 		}
 
-		public static string fnGetDetailNoelCloth(NelItem Itm, int grade, string def)
-		{
-			if (grade >= 3)
-			{
-				return TX.Get("detail_noel_cloth_0", "");
-			}
-			return TX.Get("detail_noel_cloth_1", "");
-		}
-
-		public static string fnGetDetailCoffeeMakerTicket(NelItem Itm, int grade, string def)
-		{
-			return TX.Get("detail_coffeemaker_ticket", "");
-		}
-
-		public static string fnGetDetailScapecat(NelItem Itm, int grade, string def)
-		{
-			string text;
-			using (STB stb = TX.PopBld(null, 0))
-			{
-				stb.AddTxA("detail_scapecat", false);
-				int num;
-				int num2;
-				float num3;
-				int num4;
-				MDAT.getScapecatReversalHpMp(grade, null, out num, out num2, out num3, out num4);
-				stb.TxRpl(num).TxRpl(num2).TxRpl(num4);
-				text = stb.ToString();
-			}
-			return text;
-		}
-
-		public static string fnGetNameNoelShorts(NelItem Itm, int grade, string def)
-		{
-			if (grade >= 3)
-			{
-				return def;
-			}
-			return TX.Get("name_noel_shorts_1", "");
-		}
-
-		public static string fnGetDescNoelShorts(NelItem Itm, int grade, string def)
-		{
-			if (grade >= 3)
-			{
-				return def + "\n" + TX.Get("desc_noel_shorts_0", "");
-			}
-			if ((grade & 1) == 0)
-			{
-				def = def + "\n" + TX.Get("desc_noel_shorts_1", "");
-			}
-			if ((grade & 2) == 0)
-			{
-				def = def + "\n" + TX.Get("desc_noel_shorts_2", "");
-			}
-			return def;
-		}
-
-		public static string fnGetNameSkillBook(NelItem Itm, int grade, string def)
-		{
-			PrSkill prSkill = SkillManager.Get(TX.slice(Itm.key, 10));
-			if (prSkill != null && prSkill.is_sp_map)
-			{
-				return prSkill.title;
-			}
-			return TX.GetA("name_skill_book", (prSkill != null) ? prSkill.title : "???");
-		}
-
-		public static string fnGetDescSkillBook(NelItem Itm, int grade, string def)
-		{
-			PrSkill prSkill = SkillManager.Get(TX.slice(Itm.key, 10));
-			if (prSkill != null && prSkill.is_sp_map)
-			{
-				return prSkill.descript;
-			}
-			return TX.GetA("desc_skill_book", (prSkill != null) ? prSkill.title : "???");
-		}
-
-		public static string fnGetDetailSkillBook(NelItem Itm, int grade, string def)
-		{
-			string text = TX.slice(Itm.key, 10);
-			PrSkill prSkill = SkillManager.Get(text);
-			if (prSkill == null)
-			{
-				return "<ERROR> No Specfic Skill:\n" + text;
-			}
-			if (!prSkill.is_sp_map)
-			{
-				return prSkill.descript;
-			}
-			return "";
-		}
-
-		public static string fnGetNameEnhancer(NelItem Itm, int grade, string def)
-		{
-			EnhancerManager.Enhancer enhancer = EnhancerManager.Get(TX.slice(Itm.key, "Enhancer_".Length));
-			return TX.GetA("name_enhancer_device", (enhancer != null) ? enhancer.title : "???");
-		}
-
-		public static string fnGetDescEnhancer(NelItem Itm, int grade, string def)
-		{
-			EnhancerManager.Enhancer enhancer = EnhancerManager.Get(TX.slice(Itm.key, "Enhancer_".Length));
-			return TX.GetA("desc_enhancer_device", (enhancer != null) ? enhancer.title : "???");
-		}
-
-		public static string fnGetDetailEnhancer(NelItem Itm, int grade, string def)
-		{
-			string text = TX.slice(Itm.key, "Enhancer_".Length);
-			EnhancerManager.Enhancer enhancer = EnhancerManager.Get(text);
-			if (enhancer != null)
-			{
-				return TX.GetA("enhancer_cost", EnhancerManager.getCostString(enhancer.cost, "")) + "\n" + enhancer.descript;
-			}
-			return "<ERROR> No Specfic Enhancer:\n" + text;
-		}
-
-		public static string fnGetNameRecipe(NelItem Itm, int grade, string def)
-		{
-			RecipeManager.Recipe recipe = RecipeManager.Get(TX.slice(Itm.key, "Recipe_".Length));
-			if (recipe == null)
-			{
-				return "???";
-			}
-			return TX.GetA("name_recipe_" + recipe.categ.ToString().ToLower(), recipe.title);
-		}
-
-		public static string fnGetDescRecipe(NelItem Itm, int grade, string def)
-		{
-			RecipeManager.Recipe recipe = RecipeManager.Get(TX.slice(Itm.key, "Recipe_".Length));
-			if (recipe == null)
-			{
-				return "???";
-			}
-			string text;
-			using (STB stb = TX.PopBld(null, 0))
-			{
-				stb.AddTxA((recipe.categ == RecipeManager.RP_CATEG.ALCHEMY || recipe.categ == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH) ? "desc_recipe_alchemy" : "desc_recipe_cook", false).TxRpl(recipe.title + ((recipe.create_count > 1) ? (" x" + recipe.create_count.ToString()) : ""));
-				if (recipe.is_water)
-				{
-					stb.Add("\n").AddTxA("Item_desc_suffix_water_needs_empty_bottle", false);
-				}
-				text = stb.ToString();
-			}
-			return text;
-		}
-
-		public static string fnGetDetailRecipe(NelItem Itm, int grade, string def)
-		{
-			string text = TX.slice(Itm.key, "Recipe_".Length);
-			RecipeManager.Recipe recipe = RecipeManager.Get(text);
-			if (recipe != null)
-			{
-				return recipe.listupIngredients("／", false, false);
-			}
-			return "<ERROR> No Specfic Recipe:\n" + text;
-		}
-
-		public static string fnGetNameFood(NelItem Itm, int grade, string def)
-		{
-			if (Itm.RecipeInfo != null && Itm.RecipeInfo.DishInfo != null)
-			{
-				return Itm.RecipeInfo.DishInfo.title;
-			}
-			return TX.Get("Food_unknown", "");
-		}
-
-		public static string fnGetDescFood(NelItem Itm, int grade, string def)
-		{
-			if (Itm.RecipeInfo != null && Itm.RecipeInfo.DishInfo != null)
-			{
-				return Itm.RecipeInfo.DishInfo.descript;
-			}
-			return TX.Get("Food_unknown_desc", "");
-		}
-
-		public static string fnGetDetailInventoryEnlarge(NelItem Itm, int grade, string def)
-		{
-			return TX.GetA("Item_detail_inventory_increase2", Itm.value.ToString(), 24.ToString());
-		}
-
-		public static string fnGetDetailDangerousMeter(NelItem Itm, int grade, string def)
-		{
-			return TX.Get("desc_dangerous_meter", "");
-		}
-
-		public static string fnGetNameItemReel(NelItem Itm, int grade, string def)
-		{
-			string text = TX.slice(Itm.key, "itemreelC_".Length);
-			if (ReelManager.GetIR(text, false) == null)
-			{
-				return "???";
-			}
-			string text2 = "";
-			if (grade > 0)
-			{
-				if (TX.isStart(Itm.key, "itemreelC_", 0))
-				{
-					text2 = text2 + "+" + grade.ToString();
-				}
-				else
-				{
-					text2 = text2 + "+<img mesh=\"nel_item_grade." + (10 + (grade - 1)).ToString() + "\" width=\"34\" tx_color/>";
-				}
-			}
-			return TX.GetA("ItemReel_Name_Base", TX.Get("_ItemReel_name_" + text, ""), text2);
-		}
-
-		public static string fnGetDescItemReel(NelItem Itm, int grade, string def)
-		{
-			return TX.Get("ItemReel_Desc_Base", "");
-		}
-
-		public static string fnGetDetailItemReel(NelItem Itm, int grade, string def)
-		{
-			string text = TX.slice(Itm.key, "itemreelC_".Length);
-			ReelManager.ItemReelContainer ir = ReelManager.GetIR(text, false);
-			if (ir != null)
-			{
-				return ir.listupItems("／", false);
-			}
-			return "<ERROR> No Specfic ItemReel:\n" + text;
-		}
-
 		public static Color32 fnGetColorItemReel(NelItem Itm, ItemStorage Str, int grade, Color32 C)
 		{
-			ReelManager.ItemReelContainer ir = ReelManager.GetIR(TX.slice(Itm.key, "itemreelC_".Length), false);
+			ReelManager.ItemReelContainer ir = ReelManager.GetIR(TX.slice(Itm.key, "itemreelC_".Length), false, true);
 			if (ir != null)
 			{
 				return C32.d2c(ir.ColSet.top);
@@ -2061,62 +1842,12 @@ namespace nel
 			return C32.d2c(4294639477U);
 		}
 
-		public static string fnGetNameMapMarker(NelItem Itm, int grade, string def)
+		public static bool isRawFoodItem(NelItem Itm)
 		{
-			string text = TX.slice(Itm.key, "mapmarker_".Length);
-			string text2;
-			using (STB stb = TX.PopBld(null, 0))
-			{
-				stb.AddTxA("mapmarker_name_suffix", false).TxRpl(TX.Get("mapmarker_name_" + text, ""));
-				text2 = stb.ToString();
-			}
-			return text2;
+			return Itm.is_food && !Itm.RecipeInfo.DishInfo.Rcp.is_water && !Itm.RecipeInfo.do_not_rotting;
 		}
 
-		public static string fnGetDescMapMarker(NelItem Itm, int grade, string def)
-		{
-			return TX.Get("mapmarker_Desc", "");
-		}
-
-		public static string fnGetNameSiphon(NelItem Itm, int grade, string def)
-		{
-			if (grade == 4)
-			{
-				return TX.Get("Item_name_siphon_by_ticket", "");
-			}
-			return def;
-		}
-
-		public static string fnGetDescSiphon(NelItem Itm, int grade, string def)
-		{
-			if (grade == 4)
-			{
-				return TX.Get("Item_desc_siphon_by_ticket", "");
-			}
-			return def;
-		}
-
-		public static string fnGetNameSpConfig(NelItem Itm, int grade, string def)
-		{
-			return (TX.Get("Config_" + Itm.key, "") ?? "").Replace("\n", "");
-		}
-
-		public static string fnGetDescSpConfig(NelItem Itm, int grade, string def)
-		{
-			string text;
-			if (TX.isStart(Itm.key, "spconfig_ep_boost_", out text, 0))
-			{
-				return TX.GetA("Config_desc_spconfig_ep_boost", TX.Get("EP_Targ_" + text, ""));
-			}
-			return TX.Get("Config_desc_" + Itm.key, "");
-		}
-
-		public static string fnGetDetailSpConfig(NelItem Itm, int grade, string def)
-		{
-			return TX.Get("Item_special_config_detail", "");
-		}
-
-		public static void readBinaryFrom(ByteArray Ba, bool old_ver, bool fix_ver024 = false)
+		public static void readBinaryFrom(ByteReader Ba, bool old_ver, bool fix_ver024 = false)
 		{
 			ushort num = Ba.readUShort();
 			for (int i = 0; i < (int)num; i++)
@@ -2126,7 +1857,7 @@ namespace nel
 				int num2 = (int)Ba.readUByte();
 				if (nelItem != null)
 				{
-					nelItem.obtain_count = (byte)(old_ver ? global::XX.X.Mn(global::XX.X.Mx(num2, (int)nelItem.obtain_count), 100) : num2);
+					nelItem.obtain_count = (byte)(old_ver ? X.Mn(X.Mx(num2, (int)nelItem.obtain_count), 100) : num2);
 				}
 			}
 		}
@@ -2155,7 +1886,7 @@ namespace nel
 			return Ba;
 		}
 
-		public static void readBinaryGetKey(ByteArray Ba, out NelItem Kind, bool no_error = false, bool fix_ver024 = false)
+		public static void readBinaryGetKey(ByteReader Ba, out NelItem Kind, bool no_error = false, bool fix_ver024 = false)
 		{
 			ushort num = Ba.readUShort();
 			if (num == 0)
@@ -2168,7 +1899,7 @@ namespace nel
 				Kind = NelItem.GetById(Ba.readPascalString("utf-8", false), no_error);
 				return;
 			}
-			if (fix_ver024 && global::XX.X.BTW(61613f, (float)num, 61700f))
+			if (fix_ver024 && X.BTW(61613f, (float)num, 61700f))
 			{
 				num += 8;
 			}
@@ -2281,7 +2012,7 @@ namespace nel
 
 		public FnGetItemColor FnGetColor;
 
-		public RecipeManager.RecipeItemInfo RecipeInfo;
+		public RCP.RecipeItemInfo RecipeInfo;
 
 		public const int IDTOP_REEL = 60000;
 
@@ -2294,6 +2025,8 @@ namespace nel
 		public const int IDTOP_TRM_ITEM = 62000;
 
 		public const int IDTOP_MARKER = 62200;
+
+		public const int IDTOP_GUILDQ = 62400;
 
 		public const int ID_CACHEITEM = 65535;
 
@@ -2321,7 +2054,334 @@ namespace nel
 
 		public static string tx_item_get;
 
-		public static ItemStorage.FnCheckItemDataAndInfo isRawFood = (ItemStorage.IRow IRow) => IRow.Data.is_food && !IRow.has_wlink;
+		public static FnGetItemDetail fnGetNameNoelJuice = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			NelItem.TxARpl("noel_juice_grade" + grade.ToString(), Stb);
+		};
+
+		public static FnGetItemDetail fnGetNameNoelCloth = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			if (grade >= 3)
+			{
+				return;
+			}
+			string text = "";
+			if ((grade & 1) == 0)
+			{
+				text = TX.Get("prefix_item_splashed", "");
+			}
+			if ((grade & 2) == 0)
+			{
+				text = ((text == "") ? TX.Get("prefix_item_broken", "") : TX.GetA("__adding", text, TX.Get("prefix_item_broken", "")));
+				Stb.Set(TX.Get("item_abb_noel_cloth", ""));
+			}
+			NelItem.TxARpl("__adding", text, Stb);
+		};
+
+		public static FnGetItemDetail fnGetDescNoelCloth = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			if (grade >= 3)
+			{
+				Stb.Ret("\n").AddTxA("desc_noel_cloth_0", false);
+				return;
+			}
+			if ((grade & 1) == 0)
+			{
+				Stb.Ret("\n").AddTxA("desc_noel_cloth_1", false);
+			}
+			if ((grade & 2) == 0)
+			{
+				Stb.Ret("\n").AddTxA("desc_noel_cloth_2", false);
+			}
+		};
+
+		public static FnGetItemDetail fnGetDetailNoelCloth = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			if (grade >= 3)
+			{
+				Stb.Clear().AddTxA("detail_noel_cloth_0", false);
+				return;
+			}
+			Stb.Clear().AddTxA("detail_noel_cloth_1", false);
+		};
+
+		public static FnGetItemDetail fnGetDetailCoffeeMakerTicket = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			Stb.Clear().AddTxA("detail_coffeemaker_ticket", false);
+		};
+
+		public static FnGetItemDetail fnGetDetailScapecat = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			Stb.Clear().AddTxA("detail_scapecat", false);
+			int num;
+			int num2;
+			float num3;
+			int num4;
+			MDAT.getScapecatReversalHpMp(grade, null, out num, out num2, out num3, out num4);
+			Stb.TxRpl(num).TxRpl(num2).TxRpl(num4);
+		};
+
+		public static FnGetItemDetail fnGetNameNoelShorts = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			if (grade >= 3)
+			{
+				return;
+			}
+			Stb.Clear().AddTxA("name_noel_shorts_1", false);
+		};
+
+		public static FnGetItemDetail fnGetDescNoelShorts = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			if (grade >= 3)
+			{
+				Stb.Ret("\n").AddTxA("desc_noel_shorts_0", false);
+				return;
+			}
+			if ((grade & 1) == 0)
+			{
+				Stb.Ret("\n").AddTxA("desc_noel_shorts_1", false);
+			}
+			if ((grade & 2) == 0)
+			{
+				Stb.Ret("\n").AddTxA("desc_noel_shorts_2", false);
+			}
+		};
+
+		public static FnGetItemDetail fnGetNameSkillBook = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			PrSkill prSkill = SkillManager.Get(TX.slice(Itm.key, 10));
+			if (prSkill != null && prSkill.is_sp_map)
+			{
+				Stb.Set(prSkill.title);
+				return;
+			}
+			Stb.Clear().AddTxA("name_skill_book", false).TxRpl((prSkill != null) ? prSkill.title : "???");
+		};
+
+		public static FnGetItemDetail fnGetDescSkillBook = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			PrSkill prSkill2 = SkillManager.Get(TX.slice(Itm.key, 10));
+			if (prSkill2 != null && prSkill2.is_sp_map)
+			{
+				Stb.Set(prSkill2.descript);
+				return;
+			}
+			Stb.Clear().AddTxA("desc_skill_book", false).TxRpl((prSkill2 != null) ? prSkill2.title : "???");
+		};
+
+		public static FnGetItemDetail fnGetDetailSkillBook = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			string text2 = TX.slice(Itm.key, 10);
+			PrSkill prSkill3 = SkillManager.Get(text2);
+			if (prSkill3 != null)
+			{
+				Stb.Set(prSkill3.is_sp_map ? "" : prSkill3.descript);
+				return;
+			}
+			Stb.Set("<ERROR> No Specfic Skill:\n" + text2);
+		};
+
+		public static FnGetItemDetail fnGetNameEnhancer = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			ENHA.Enhancer enhancer = ENHA.Get(TX.slice(Itm.key, "Enhancer_".Length));
+			Stb.Clear().AddTxA("name_enhancer_device", false).TxRpl((enhancer != null) ? enhancer.title : "???");
+		};
+
+		public static FnGetItemDetail fnGetDescEnhancer = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			ENHA.Enhancer enhancer2 = ENHA.Get(TX.slice(Itm.key, "Enhancer_".Length));
+			Stb.Clear().AddTxA("desc_enhancer_device", false).TxRpl((enhancer2 != null) ? enhancer2.title : "???");
+		};
+
+		public static FnGetItemDetail fnGetDetailEnhancer = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			string text3 = TX.slice(Itm.key, "Enhancer_".Length);
+			ENHA.Enhancer enhancer3 = ENHA.Get(text3);
+			if (enhancer3 != null)
+			{
+				Stb.Clear().AddTxA("enhancer_cost", false).TxRpl(ENHA.getCostString(enhancer3.cost, ""));
+				Stb.Ret("\n").Add(enhancer3.descript);
+				return;
+			}
+			Stb.Set("<ERROR> No Specfic Enhancer:\n" + text3);
+		};
+
+		public static FnGetItemDetail fnGetNameRecipe = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			RCP.Recipe recipe = RCP.Get(TX.slice(Itm.key, "Recipe_".Length));
+			if (recipe == null)
+			{
+				Stb.Set("???");
+				return;
+			}
+			Stb.Clear().AddTxA("name_recipe_" + recipe.categ.ToString().ToLower(), true).TxRpl(recipe.title);
+		};
+
+		public static FnGetItemDetail fnGetDescRecipe = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			Stb.Clear();
+			RCP.Recipe recipe2 = RCP.Get(TX.slice(Itm.key, "Recipe_".Length));
+			if (recipe2 == null)
+			{
+				Stb.Set("???");
+				return;
+			}
+			Stb.AddTxA((recipe2.categ == RCP.RP_CATEG.ALCHEMY || recipe2.categ == RCP.RP_CATEG.ALCHEMY_WORKBENCH) ? "desc_recipe_alchemy" : "desc_recipe_cook", false).TxRpl(recipe2.title + ((recipe2.create_count > 1) ? (" x" + recipe2.create_count.ToString()) : ""));
+			if (recipe2.is_water)
+			{
+				Stb.Add("\n").AddTxA("Item_desc_suffix_water_needs_empty_bottle", false);
+			}
+		};
+
+		public static FnGetItemDetail fnGetDetailRecipe = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			string text4 = TX.slice(Itm.key, "Recipe_".Length);
+			RCP.Recipe recipe3 = RCP.Get(text4);
+			if (recipe3 != null)
+			{
+				recipe3.listupIngredientsTo(Stb.Clear(), "／", false, false);
+				return;
+			}
+			Stb.Set("<ERROR> No Specfic Recipe:\n" + text4);
+		};
+
+		public static FnGetItemDetail fnGetNameFood = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			if (Itm.RecipeInfo != null && Itm.RecipeInfo.DishInfo != null)
+			{
+				string title = Itm.RecipeInfo.DishInfo.title;
+				Stb.Set(title);
+				return;
+			}
+			Stb.Clear().AddTxA("Food_unknown", false);
+		};
+
+		public static FnGetItemDetail fnGetDescFood = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			if (Itm.RecipeInfo != null && Itm.RecipeInfo.DishInfo != null)
+			{
+				Stb.Set(Itm.RecipeInfo.DishInfo.descript);
+				return;
+			}
+			Stb.Clear().AddTxA("Food_unknown_desc", false);
+		};
+
+		public static FnGetItemDetail fnGetDetailInventoryEnlarge = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			Stb.Clear().AddTxA("Item_detail_inventory_increase2", false).TxRpl(Itm.value)
+				.TxRpl(24);
+		};
+
+		public static FnGetItemDetail fnGetDetailDangerousMeter = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			Stb.Clear().AddTxA("desc_dangerous_meter", false);
+		};
+
+		public static FnGetItemDetail fnGetNameItemReel = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			ReelManager.ItemReelContainer ir = ReelManager.GetIR(TX.slice(Itm.key, "itemreelC_".Length), false, true);
+			if (ir == null)
+			{
+				Stb.Set("???");
+				return;
+			}
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				if (grade > 0)
+				{
+					if (TX.isStart(Itm.key, "itemreelC_", 0))
+					{
+						stb.Add("+", grade, "");
+					}
+					else
+					{
+						stb.Add("+<img mesh=\"nel_item_grade.", 10 + (grade - 1), "\" width=\"34\" tx_color/>");
+					}
+				}
+				Stb.Clear();
+				Stb.AddTxA("ItemReel_Name_Base", false).TxRpl(TX.ReplaceTX(ir.tx_key, false)).TxRpl(stb);
+			}
+		};
+
+		public static FnGetItemDetail fnGetDescItemReel = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			Stb.Clear().AddTxA("ItemReel_Desc_Base", false);
+		};
+
+		public static FnGetItemDetail fnGetDetailItemReel = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			string text5 = TX.slice(Itm.key, "itemreelC_".Length);
+			ReelManager.ItemReelContainer ir2 = ReelManager.GetIR(text5, false, true);
+			if (ir2 != null)
+			{
+				ir2.listupItemsTo(Stb.Clear(), "／", false);
+				return;
+			}
+			Stb.Set("<ERROR> No Specfic ItemReel:\n" + text5);
+		};
+
+		public static FnGetItemDetail fnGetNameMapMarker = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			string text6 = TX.slice(Itm.key, "mapmarker_".Length);
+			Stb.Clear().AddTxA("mapmarker_name_suffix", false).TxRpl(TX.Get("mapmarker_name_" + text6, ""));
+		};
+
+		public static FnGetItemDetail fnGetDescMapMarker = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			Stb.Clear().AddTxA("mapmarker_Desc", false);
+		};
+
+		public static FnGetItemDetail fnGetNameSiphon = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			if (grade == 4)
+			{
+				Stb.Clear().AddTxA("Item_name_siphon_by_ticket", false);
+			}
+		};
+
+		public static FnGetItemDetail fnGetDescSiphon = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			if (grade == 4)
+			{
+				Stb.Clear().AddTxA("Item_desc_siphon_by_ticket", false);
+			}
+		};
+
+		public static FnGetItemDetail fnGetNameSpConfig = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			Stb.Clear().AddTxA("Config_" + Itm.key, false).RemoveChar('\n', 0, -1);
+		};
+
+		public static FnGetItemDetail fnGetDescSpConfig = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			string text7;
+			if (TX.isStart(Itm.key, "spconfig_ep_boost_", out text7, 0))
+			{
+				Stb.Clear().AddTxA("Config_desc_spconfig_ep_boost", false).TxRpl(TX.Get("EP_Targ_" + text7, ""));
+				return;
+			}
+			Stb.Clear().AddTxA("Config_desc_" + Itm.key, false);
+		};
+
+		public static FnGetItemDetail fnGetDetailSpConfig = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			Stb.Clear().AddTxA("Item_special_config_detail", false);
+		};
+
+		public static FnGetItemDetail fnGetDetailGuildCard = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			NelM2DBase nelM2DBase = M2DBase.Instance as NelM2DBase;
+			if (nelM2DBase == null)
+			{
+				return;
+			}
+			Stb.Clear().AddTxA("Guild_rank", false).Ret("\n")
+				.Add("<font size=\"40\"><img mesh=\"nel_item_grade.", 20 + nelM2DBase.GUILD.current_grank, "\" width=\"154\" height=\"40\" scale=\"2\"/></font>");
+			Stb.Ret("\n").Ret("\n");
+			Stb.AddTxA("Guild_current_gp", false).TxRpl(nelM2DBase.GUILD.gq_point);
+		};
+
+		public static ItemStorage.FnCheckItemDataAndInfo isRawFood = (ItemStorage.IRow IRow) => NelItem.isRawFoodItem(IRow.Data) && !IRow.has_wlink;
 
 		public static ItemStorage.FnCheckItemDataAndInfo isTreasureBox = (ItemStorage.IRow IRow) => IRow.Data.is_reelmbox;
 

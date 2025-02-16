@@ -22,7 +22,7 @@ namespace XX
 			this.OImg[c] = new BMListChars.ChrImageL(Lay);
 			if (this.MI == null)
 			{
-				this.MI = MTRX.getMI(Lay.pChar);
+				this.MI = MTRX.getMI(Lay.pChar, false);
 			}
 			if (this.cw == 0f)
 			{
@@ -79,7 +79,7 @@ namespace XX
 		{
 			if (this.MI == null)
 			{
-				this.MI = MTRX.getMI(Sq.pChar);
+				this.MI = MTRX.getMI(Sq.pChar, false);
 			}
 			if (this.cw == 0f)
 			{

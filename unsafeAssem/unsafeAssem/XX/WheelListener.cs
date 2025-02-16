@@ -366,7 +366,7 @@ namespace XX
 						flag = true;
 					}
 				}
-				if (this.grab_enabled && IN.isMousePushDown() && IN.Click.get_CurrentHover() == null && this.B == null)
+				if (this.grab_enabled && IN.isMousePushDown(1) && IN.Click.get_CurrentHover() == null && this.B == null)
 				{
 					this.initGrab();
 					flag = true;

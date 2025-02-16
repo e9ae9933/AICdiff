@@ -99,6 +99,17 @@ namespace nel
 			this.setTitle(this.index.ToString());
 			if (this.Svd == null || !this.Svd.header_prepared)
 			{
+				if (this.ATx != null)
+				{
+					for (int i = this.ATx.Length - 1; i >= 0; i--)
+					{
+						this.ATx[i].gameObject.SetActive(false);
+					}
+				}
+				if (this.MdIco != null)
+				{
+					this.MdIco.clear(false, false);
+				}
 				return;
 			}
 			if (this.Svd != null)
@@ -110,9 +121,9 @@ namespace nel
 					this.ATx[1] = IN.CreateGob(this.Gob, "-TR").AddComponent<TextRenderer>();
 					this.ATx[2] = IN.CreateGob(this.Gob, "-BL").AddComponent<TextRenderer>();
 					this.ATx[3] = IN.CreateGob(this.Gob, "-RB").AddComponent<TextRenderer>();
-					for (int i = 0; i < 4; i++)
+					for (int j = 0; j < 4; j++)
 					{
-						this.ATx[i].CopyFrom(this.Tx, false);
+						this.ATx[j].CopyFrom(this.Tx, false);
 					}
 					this.ATx[0].aligny = ALIGNY.MIDDLE;
 					this.ATx[0].html_mode = true;
@@ -126,6 +137,10 @@ namespace nel
 					this.ATx[3].size = (float)(X.ENG_MODE ? 14 : 18);
 					this.ATx[2].auto_condense = true;
 					this.ATx[2].max_swidth_px = this.w * 64f - 75f - this.shift_left_px - 210f;
+				}
+				for (int k = this.ATx.Length - 1; k >= 0; k--)
+				{
+					this.ATx[k].gameObject.SetActive(true);
 				}
 				if (this.index == 0)
 				{
@@ -193,13 +208,13 @@ namespace nel
 
 		public void fineStr()
 		{
-			if (this.ATx == null)
+			if (this.Svd == null || this.ATx == null)
 			{
 				return;
 			}
 			using (STB stb = TX.PopBld(null, 0))
 			{
-				if (SVD.show_explore_timer)
+				if (UiSVD.show_explore_timer)
 				{
 					if (this.Svd.explore_timer == 0U)
 					{
@@ -226,7 +241,7 @@ namespace nel
 		public override ButtonSkin Fine()
 		{
 			base.Fine();
-			if (this.ATx != null)
+			if (this.ATx != null && this.Svd != null)
 			{
 				int num = this.ATx.Length;
 				for (int i = 0; i < num; i++)
@@ -296,7 +311,7 @@ namespace nel
 			}
 			this.Md.Col = this.Md.ColGrd.Set(4290689711U).mulA(this.alpha_).C;
 			this.Md.Line(-num, -num2, num, -num2, 1f, false, 0f, 0f);
-			if (this.MdIco != null)
+			if (this.MdIco != null && this.Svd != null)
 			{
 				this.MdIco.Col = C32.MulA(uint.MaxValue, this.alpha_);
 				this.MdIco.RotaPF(num3 - 26f, num4, 2f, 2f, 0f, MTRX.getPF("IconNoel0"), false, false, false, uint.MaxValue, false, 0);
@@ -332,7 +347,7 @@ namespace nel
 				if (this.alpha_ != value)
 				{
 					base.alpha = value;
-					if (this.ATx != null)
+					if (this.ATx != null && this.Svd == null)
 					{
 						this.reposit(true);
 					}

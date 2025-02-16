@@ -16,8 +16,7 @@ namespace evt
 			if (P is TalkDrawer)
 			{
 				TalkDrawer talkDrawer = P as TalkDrawer;
-				this.Person = talkDrawer.get_Person();
-				this.Pose = this.Person.get_CurPose();
+				this.Pose = talkDrawer.get_CurPose();
 				if (this.Pose == null)
 				{
 					return false;

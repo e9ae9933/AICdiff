@@ -257,9 +257,10 @@ namespace XX
 			BGM.CurPl.GotoBlock(c, true);
 		}
 
-		public static void setOverrideKey(string _key = "")
+		public static void setOverrideKey(string _key = "", bool to_another = false)
 		{
-			BgmKind kind = BGM.CurPl.getKind();
+			BGM.BgmPlayer bgmPlayer = (to_another ? BGM.OthPl : BGM.CurPl);
+			BgmKind kind = bgmPlayer.getKind();
 			if (kind == null)
 			{
 				return;
@@ -268,7 +269,7 @@ namespace XX
 			{
 				if (TX.valid(_key))
 				{
-					X.de(BGM.CurPl.current_cue + "の オーバーライド情報が定義されていません", null);
+					X.de(bgmPlayer.current_cue + "の オーバーライド情報が定義されていません", null);
 				}
 				return;
 			}
@@ -281,15 +282,15 @@ namespace XX
 				BgmBlockOverride bgmBlockOverride = kind.ABlkOvr[i];
 				if (bgmBlockOverride.key == _key)
 				{
-					if (BGM.CurPl.OverrideBlock != bgmBlockOverride)
+					if (bgmPlayer.OverrideBlock != bgmBlockOverride)
 					{
 						BGM.fine_fade = true;
-						BGM.CurPl.OverrideBlock = bgmBlockOverride;
+						bgmPlayer.OverrideBlock = bgmBlockOverride;
 					}
 					return;
 				}
 			}
-			X.de(BGM.CurPl.current_cue + "の オーバーライドキー" + _key + " が定義されていません", null);
+			X.de(bgmPlayer.current_cue + "の オーバーライドキー" + _key + " が定義されていません", null);
 		}
 
 		public static void fineVolume()
@@ -531,7 +532,12 @@ namespace XX
 							{
 								return false;
 							}
-							BGM.setOverrideKey(rER._1);
+							bool flag = false;
+							if (TX.valid(rER._2))
+							{
+								flag = BGM.CurPl.sheet_key != rER._2;
+							}
+							BGM.setOverrideKey(rER._1, flag);
 						}
 						else if (!(cmd == "LOAD_SND_TIMING"))
 						{
@@ -850,19 +856,23 @@ namespace XX
 					return;
 				}
 				base.SetCue(acb, name, Info);
+				this.CurCueInfoA = Info;
 				this.ExpB.SetEnvelopeReleaseTime(0f);
 				this.Exp.SetEnvelopeReleaseTime(0f);
 				this.MyAcb = acb;
 				this.expb_stop = 0;
-				if (this.current_cue == this.Kind.default_que && this.Kind.battle_que != null)
+				CriAtomEx.CueInfo cueInfo;
+				if (this.current_cue == this.Kind.default_que && this.Kind.battle_que != null && acb.GetCueInfo(this.Kind.battle_que, out cueInfo))
 				{
 					this.trs_maxt = -1f;
-					this.ExpB.SetCue(acb, this.Kind.battle_que);
+					this.CurCueInfoB = cueInfo;
+					this.ExpB.SetCue(acb, cueInfo.id);
 					this.ExpB.SetVoicePriority(base.voice_priority);
 					this.que_a = BgmKind.QUE_KIND.NORMAL;
 					this.que_b = BgmKind.QUE_KIND.BATTLE;
 					return;
 				}
+				this.CurCueInfoB = default(CriAtomEx.CueInfo);
 				this.que_a = (this.que_b = BgmKind.QUE_KIND.NORMAL);
 				this.ExpB.StopWithoutReleaseTime();
 				this.trs_maxt = -2f;
@@ -976,6 +986,8 @@ namespace XX
 				}
 				this.OverrideBlock = null;
 				this.MyAcb = null;
+				this.CurCueInfoA = default(CriAtomEx.CueInfo);
+				this.CurCueInfoB = default(CriAtomEx.CueInfo);
 				this.current_cue = null;
 				this.fadespeed = 0f;
 				this.Kind = null;
@@ -1150,7 +1162,7 @@ namespace XX
 
 			public void initBattleTransition(BgmKind.QUE_KIND kind_type)
 			{
-				if (this.trs_maxt == -2f || !this.isPlaying() || this.Kind == null || this.Kind.OTrans == null || X.DEBUGNOSND)
+				if (this.trs_maxt == -2f || !this.isPlaying() || this.CurCueInfoB.name == null || this.Kind == null || this.Kind.OTrans == null || X.DEBUGNOSND)
 				{
 					return;
 				}
@@ -1158,8 +1170,13 @@ namespace XX
 				{
 					return;
 				}
-				int num = this.PlbA.GetCurrentBlockIndex();
-				num = (num + 1) % (this.Kind.block_max + 1);
+				int currentBlockIndex = this.PlbA.GetCurrentBlockIndex();
+				int num = -1;
+				int numBlocks = (int)this.CurCueInfoA.numBlocks;
+				if (this.OverrideBlock == null || !this.OverrideBlock.Osrc.TryGetValue(currentBlockIndex, out num))
+				{
+					num = (currentBlockIndex + 1) % numBlocks;
+				}
 				BgmTransitionPoint bgmTransitionPoint = X.Get<string, BgmTransitionPoint>(this.Kind.OTrans, this.Kind.battle_que);
 				BgmTransitionPoint bgmTransitionPoint2 = X.Get<string, BgmTransitionPoint>(this.Kind.OTrans, this.Kind.default_que);
 				if (bgmTransitionPoint == null || bgmTransitionPoint2 == null)
@@ -1227,15 +1244,22 @@ namespace XX
 					this.trs_maxt = (float)(num4 * 60 / 1000);
 					this.PlbB = this.ExpB.Prepare();
 				}
+				CriAtomExPlayer expB = this.ExpB;
 				CriAtomExPlayer exp = this.Exp;
-				this.Exp = this.ExpB;
+				this.Exp = expB;
 				this.ExpB = exp;
-				BgmKind.QUE_KIND que_KIND = this.que_a;
-				this.que_a = this.que_b;
-				this.que_b = que_KIND;
+				BgmKind.QUE_KIND que_KIND = this.que_b;
+				BgmKind.QUE_KIND que_KIND2 = this.que_a;
+				this.que_a = que_KIND;
+				this.que_b = que_KIND2;
+				CriAtomExPlayback plbB = this.PlbB;
 				CriAtomExPlayback plbA = this.PlbA;
-				this.PlbA = this.PlbB;
+				this.PlbA = plbB;
 				this.PlbB = plbA;
+				CriAtomEx.CueInfo curCueInfoB = this.CurCueInfoB;
+				CriAtomEx.CueInfo curCueInfoA = this.CurCueInfoA;
+				this.CurCueInfoA = curCueInfoB;
+				this.CurCueInfoB = curCueInfoA;
 				BGM.BusChn.fine_flag = true;
 				this.trs_t = 0f;
 				BGM.fine_fade = true;
@@ -1307,7 +1331,7 @@ namespace XX
 				{
 					try
 					{
-						return (char)(this.PlbA.GetCurrentBlockIndex() - 65);
+						return (char)(this.PlbA.GetCurrentBlockIndex() + 65);
 					}
 					catch
 					{
@@ -1341,6 +1365,10 @@ namespace XX
 			private CriAtomExPlayer ExpB;
 
 			private CriAtomExAcb MyAcb;
+
+			private CriAtomEx.CueInfo CurCueInfoA;
+
+			private CriAtomEx.CueInfo CurCueInfoB;
 
 			private float trs_t;
 

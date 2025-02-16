@@ -106,11 +106,21 @@ namespace m2d
 			return ptcthread;
 		}
 
-		public void changeCurrentBufferFollow(PTCThread.StFollow follow)
+		public void changeCurrentBufferFollow(PTCThread.StFollow follow, PTCThread Thread)
 		{
 			if (PtcHolder.PtcBuf != null)
 			{
 				PtcHolder.PtcBuf.follow_for_sound = follow;
+				return;
+			}
+			for (int i = this.LEN - 1; i >= 0; i--)
+			{
+				PtcHolderMem ptcHolderMem = this.AItems[i];
+				if (ptcHolderMem.isActiveSt(Thread))
+				{
+					ptcHolderMem.follow_for_sound = follow;
+					return;
+				}
 			}
 		}
 

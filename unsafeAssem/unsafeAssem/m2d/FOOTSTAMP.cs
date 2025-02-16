@@ -9,6 +9,7 @@ namespace m2d
 		SHOES,
 		BIG,
 		OVERDRIVE,
-		BAREFOOT
+		BAREFOOT,
+		HEEL
 	}
 }

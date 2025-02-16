@@ -21,7 +21,7 @@ namespace nel
 				this.Lig.follow_speed = 1f;
 				this.Lig.Col.Set(2859760228U);
 				this.Lig.radius = 40f;
-				this.Mp.addLight(this.Lig);
+				this.Mp.addLight(this.Lig, -1);
 			}
 			this.FirstPos = base.transform.localPosition;
 			if (this.LpSummon != null && this.LpSummon.destructed)
@@ -140,6 +140,7 @@ namespace nel
 			{
 				return 0;
 			}
+			MANA_HIT mana_HIT = MANA_HIT.ALL;
 			if (nelAttackInfo.Caster is M2MoverPr)
 			{
 				if (nelAttackInfo.PublishMagic.projectile_power >= 0 || !nelAttackInfo.PublishMagic.is_normal_attack)
@@ -147,9 +148,16 @@ namespace nel
 					return 0;
 				}
 			}
-			else if (!(nelAttackInfo.Caster is NelEnemy))
+			else
 			{
-				return 0;
+				if (!(nelAttackInfo.Caster is NelEnemy))
+				{
+					return 0;
+				}
+				if ((nelAttackInfo.Caster as NelEnemy).nattr_mp_stable)
+				{
+					mana_HIT = MANA_HIT.EN | MANA_HIT.FROM_SUPPLIER;
+				}
 			}
 			Vector3 localPosition = base.transform.localPosition;
 			float num = this.Mp.uxToMapx(localPosition.x);
@@ -158,12 +166,11 @@ namespace nel
 			{
 				return 0;
 			}
-			MANA_HIT mana_HIT = MANA_HIT.ALL;
+			this.SplashManaInit(mana_HIT, num, num2, nelAttackInfo.center_x, nelAttackInfo.center_y, nelAttackInfo.hit_x, nelAttackInfo.hit_y, true);
 			if (this.LpSummon != null)
 			{
 				mana_HIT = this.LpSummon.deassignActiveWeed(this, _Atk);
 			}
-			this.SplashManaInit(mana_HIT, num, num2, nelAttackInfo.center_x, nelAttackInfo.center_y, nelAttackInfo.hit_x, nelAttackInfo.hit_y, true);
 			return 1;
 		}
 
@@ -179,11 +186,11 @@ namespace nel
 			this.SplashManaInit(mana_hit, num, num2, hit_x, hit_y, hit_x, hit_y, play_snd);
 		}
 
-		public void SplashManaInit(MANA_HIT mana_hit, float cx, float cy, float center_x, float center_y, float hit_x, float hit_y, bool play_snd = true)
+		private void SplashManaInit(MANA_HIT mana_hit, float cx, float cy, float center_x, float center_y, float hit_x, float hit_y, bool play_snd = true)
 		{
 			if (mana_hit != MANA_HIT.NOUSE)
 			{
-				this.M2D.Mana.AddMulti(cx, cy, (20f + (float)X.xors(11)) * this.M2D.NightCon.ManaWeedRatio(), mana_hit);
+				this.M2D.Mana.AddMulti(cx, cy, (20f + (float)X.xors(11)) * this.M2D.NightCon.ManaWeedRatio(), mana_hit, 1f);
 			}
 			this.time = (this.safe_after_battle_ ? 6000f : X.NIXP(this.charge_time_min, this.charge_time_max));
 			this.Mp.PtcSTsetVar("x", (double)center_x).PtcSTsetVar("y", (double)center_y).PtcSTsetVar("hit_x", (double)hit_x)
@@ -217,6 +224,11 @@ namespace nel
 		public HITTYPE getHitType(M2Ray Ray)
 		{
 			return HITTYPE.OTHER;
+		}
+
+		public float auto_target_priority(M2Mover CalcFrom)
+		{
+			return 0f;
 		}
 
 		public bool isActive()

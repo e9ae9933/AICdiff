@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Better;
 using m2d;
-using PixelLiner;
 using PixelLiner.PixelLinerLib;
 using UnityEngine;
 using XX;
@@ -12,19 +11,19 @@ namespace nel
 {
 	public sealed class WholeMapItem : IBgmManageArea
 	{
-		public static string getTransferRectKey(global::XX.AIM aim, string jump_key)
+		public static string getTransferRectKey(AIM aim, string jump_key)
 		{
-			return "Exit" + global::XX.CAim.parseInt(aim) + "_" + jump_key;
+			return "Exit" + CAim.parseInt(aim) + "_" + jump_key;
 		}
 
-		public static string getTransferOppositRectKey(global::XX.AIM aim, string jump_key)
+		public static string getTransferOppositRectKey(AIM aim, string jump_key)
 		{
-			return "Exit" + global::XX.CAim.parseInt(global::XX.CAim.get_opposite(aim)) + "_" + jump_key;
+			return "Exit" + CAim.parseInt(CAim.get_opposite(aim)) + "_" + jump_key;
 		}
 
-		public static string getWorpOppositRectKey(global::XX.AIM aim, string jump_key)
+		public static string getWorpOppositRectKey(AIM aim, string jump_key)
 		{
-			return "ExitW" + global::XX.CAim.parseInt(global::XX.CAim.get_opposite(aim)) + "_" + jump_key;
+			return "ExitW" + CAim.parseInt(CAim.get_opposite(aim)) + "_" + jump_key;
 		}
 
 		public WholeMapItem(WholeMapManager _Con, Map2d _Mp)
@@ -38,7 +37,7 @@ namespace nel
 			this.AReg = new List<WholeMapItem.WMRegex>();
 			this.OMarker = new BDic<uint, byte>();
 			this.OANoticedIcon = new BDic<Map2d, List<WMIcon>>();
-			this.OASpecialIcon = new BDic<Map2d, List<WholeMapItem.WMSpecialIcon>>();
+			this.OASpecialIcon = new BDic<Map2d, List<WMSpecialIcon>>();
 			this.OIconHiddenDeperture = new BDic<string, WMIconHiddenDeperture>();
 			this.ATreasure = new List<WholeMapItem.WMTreasureBoxCache>();
 			if (WholeMapItem.Tri == null)
@@ -69,7 +68,7 @@ namespace nel
 
 		private static BorderDrawer<bool> createBD()
 		{
-			return new BorderDrawer<bool>(new Func<int, int, bool[,], bool>(global::XX.X.isExistBoolean), null);
+			return new BorderDrawer<bool>(new Func<int, int, bool[,], bool>(X.isExistBoolean), null);
 		}
 
 		public void remake(bool force = false)
@@ -119,7 +118,7 @@ namespace nel
 				}
 				else
 				{
-					wmitem.SpecialPos = default(WholeMapItem.WMSpecialIcon);
+					wmitem.SpecialPos = default(WMSpecialIcon);
 				}
 				if (!wmitem.SpecialPos.valid)
 				{
@@ -135,7 +134,7 @@ namespace nel
 		public void initS(Map2d Mp, WholeMapItem.WMRegex MatchWr)
 		{
 			this.CurMap = Mp;
-			this.CurPosition = default(WholeMapItem.WMSpecialIcon);
+			this.CurPosition = default(WMSpecialIcon);
 			WholeMapItem.WMItem wmi = this.GetWmi(Mp, null);
 			if (wmi != null)
 			{
@@ -155,7 +154,7 @@ namespace nel
 			string s = Mp.Meta.GetS("wholemap_pos");
 			if (TX.noe(s))
 			{
-				global::XX.X.de("WM レイヤーを指定しない場合、 Map側Metaに wholemap_pos で WMSpecialIcon を指定しなければなりません", null);
+				X.de("WM レイヤーを指定しない場合、 Map側Metaに wholemap_pos で WMSpecialIcon を指定しなければなりません", null);
 				return;
 			}
 			this.CurPosition = this.getSpecialPosition(s);
@@ -166,41 +165,41 @@ namespace nel
 			}
 		}
 
-		public WholeMapItem.WMSpecialIcon getSpecialPosition(string wmkey)
+		public WMSpecialIcon getSpecialPosition(string wmkey)
 		{
 			if (TX.noe(wmkey))
 			{
-				return default(WholeMapItem.WMSpecialIcon);
+				return default(WMSpecialIcon);
 			}
 			int num = wmkey.IndexOf("..");
 			if (num == -1)
 			{
-				global::XX.X.de("wholemap_pos " + wmkey + " の書式が不正 (Map..LP_name) ", null);
-				return default(WholeMapItem.WMSpecialIcon);
+				X.de("wholemap_pos " + wmkey + " の書式が不正 (Map..LP_name) ", null);
+				return default(WMSpecialIcon);
 			}
 			STB stb = TX.PopBld(wmkey, 0);
 			stb.Splice(0, num + 2);
-			WholeMapItem.WMSpecialIcon specialPosition = this.getSpecialPosition(TX.slice(wmkey, 0, num), stb, false);
+			WMSpecialIcon specialPosition = this.getSpecialPosition(TX.slice(wmkey, 0, num), stb, false);
 			TX.ReleaseBld(stb);
 			return specialPosition;
 		}
 
-		public WholeMapItem.WMSpecialIcon getSpecialPosition(string map_key, STB lpkey, bool no_error = false)
+		public WMSpecialIcon getSpecialPosition(string map_key, STB lpkey, bool no_error = false)
 		{
 			Map2d map2d = this.M2D.Get(map_key, false);
-			List<WholeMapItem.WMSpecialIcon> list;
+			List<WMSpecialIcon> list;
 			if (map2d == null || !this.OASpecialIcon.TryGetValue(map2d, out list))
 			{
 				if (!no_error)
 				{
-					global::XX.X.de("wholemap_pos " + map_key + " に対応するマップが見つかりません", null);
+					X.de("wholemap_pos " + map_key + " に対応するマップが見つかりません", null);
 				}
-				return default(WholeMapItem.WMSpecialIcon);
+				return default(WMSpecialIcon);
 			}
-			WholeMapItem.WMSpecialIcon wmspecialIcon = default(WholeMapItem.WMSpecialIcon);
+			WMSpecialIcon wmspecialIcon = default(WMSpecialIcon);
 			for (int i = list.Count - 1; i >= 0; i--)
 			{
-				WholeMapItem.WMSpecialIcon wmspecialIcon2 = list[i];
+				WMSpecialIcon wmspecialIcon2 = list[i];
 				if (lpkey.Equals(wmspecialIcon2.key))
 				{
 					wmspecialIcon = wmspecialIcon2;
@@ -211,16 +210,16 @@ namespace nel
 			{
 				lpkey.Insert(0, "wholemap_pos ");
 				lpkey += " が見つかりません";
-				global::XX.X.de(lpkey.ToString(), null);
-				return default(WholeMapItem.WMSpecialIcon);
+				X.de(lpkey.ToString(), null);
+				return default(WMSpecialIcon);
 			}
 			return wmspecialIcon;
 		}
 
-		public List<WholeMapItem.WMSpecialIcon> getSpecialPositionList(string map_key)
+		public List<WMSpecialIcon> getSpecialPositionList(string map_key)
 		{
 			Map2d map2d = this.M2D.Get(map_key, false);
-			List<WholeMapItem.WMSpecialIcon> list;
+			List<WMSpecialIcon> list;
 			if (map2d == null || !this.OASpecialIcon.TryGetValue(map2d, out list))
 			{
 				return null;
@@ -230,8 +229,8 @@ namespace nel
 
 		public void drawTo(MeshDrawer MdFill, MeshDrawer MdLine, MeshDrawer MdMask, MeshDrawer MdIco, float center_mapx, float center_mapy, float width, float height, float cell_size, float alpha = 1f, float icon_alpha = 1f, DRect DrawBounds = null)
 		{
-			float num = (float)global::XX.X.IntC(width / cell_size);
-			float num2 = (float)global::XX.X.IntC(height / cell_size);
+			float num = (float)X.IntC(width / cell_size);
+			float num2 = (float)X.IntC(height / cell_size);
 			float num3 = center_mapx - num / 2f;
 			float num4 = center_mapx + num / 2f;
 			float num5 = center_mapy - num2 / 2f;
@@ -250,7 +249,7 @@ namespace nel
 						{
 							if (this.item_revealed == WholeMapItem.REVEALED.NONE)
 							{
-								goto IL_0832;
+								goto IL_0779;
 							}
 							num8 = (((this.item_revealed & WholeMapItem.REVEALED.MAP) == WholeMapItem.REVEALED.NONE) ? 0U : 4286159221U);
 						}
@@ -267,20 +266,22 @@ namespace nel
 					{
 						DrawBounds.ExpandRc(wmitem.Rc, false);
 					}
-					if (wmitem.Rc.isCoveringXy(num3, num5, num4, num6, 1f, -1000f))
+					bool flag = wmitem.visitted || wmitem.show_icon_always;
+					List<WMSpecialIcon> list = (flag ? X.Get<Map2d, List<WMSpecialIcon>>(this.OASpecialIcon, wmitem.SrcMap) : null);
+					List<WMIcon> list2 = null;
+					MdLine.Col = MdLine.ColGrd.White().mulA(alpha).C;
+					bool flag2 = wmitem.Rc.isCoveringXy(num3, num5, num4, num6, 1f, -1000f);
+					if (flag2)
 					{
-						bool flag = wmitem.visitted || wmitem.show_icon_always;
-						List<WMIcon> list = (flag ? global::XX.X.Get<Map2d, List<WMIcon>>(this.OANoticedIcon, wmitem.SrcMap) : null);
-						List<WholeMapItem.WMSpecialIcon> list2 = (flag ? global::XX.X.Get<Map2d, List<WholeMapItem.WMSpecialIcon>>(this.OASpecialIcon, wmitem.SrcMap) : null);
+						list2 = (flag ? X.Get<Map2d, List<WMIcon>>(this.OANoticedIcon, wmitem.SrcMap) : null);
 						MdFill.Col = MdFill.ColGrd.Set(num8).mulA(alpha).C;
-						MdLine.Col = MdLine.ColGrd.White().mulA(alpha).C;
 						MdIco.Col = C32.WMulA(alpha);
-						if (wmitem.AAmap_outline_pos == null)
+						if (wmitem.AAmap_outline_pos == null || wmitem.AAtri == null)
 						{
-							float num9 = this.map2meshx((float)((int)wmitem.Rc.x), center_mapx, cell_size);
-							float num10 = this.map2meshy((float)((int)wmitem.Rc.bottom), center_mapy, cell_size);
-							float num11 = this.map2meshx((float)((int)wmitem.Rc.right), center_mapx, cell_size);
-							float num12 = this.map2meshy((float)((int)wmitem.Rc.y), center_mapy, cell_size);
+							float num9 = WholeMapItem.map2meshx((float)((int)wmitem.Rc.x), center_mapx, cell_size);
+							float num10 = WholeMapItem.map2meshy((float)((int)wmitem.Rc.bottom), center_mapy, cell_size);
+							float num11 = WholeMapItem.map2meshx((float)((int)wmitem.Rc.right), center_mapx, cell_size);
+							float num12 = WholeMapItem.map2meshy((float)((int)wmitem.Rc.y), center_mapy, cell_size);
 							MdFill.RectBL(num9, num10, num11 - num9, num12 - num10, false);
 							if (wmitem.visitted)
 							{
@@ -304,13 +305,13 @@ namespace nel
 								}
 								int num14 = array.Length;
 								Vector2 vector2 = array[num14 - 1] + vector;
-								vector2.x = this.map2meshx(vector2.x, center_mapx, cell_size);
-								vector2.y = this.map2meshy(vector2.y, center_mapy, cell_size);
+								vector2.x = WholeMapItem.map2meshx(vector2.x, center_mapx, cell_size);
+								vector2.y = WholeMapItem.map2meshy(vector2.y, center_mapy, cell_size);
 								for (int l = 0; l < num14; l++)
 								{
 									Vector2 vector3 = array[l] + vector;
-									vector3.x = this.map2meshx(vector3.x, center_mapx, cell_size);
-									vector3.y = this.map2meshy(vector3.y, center_mapy, cell_size);
+									vector3.x = WholeMapItem.map2meshx(vector3.x, center_mapx, cell_size);
+									vector3.y = WholeMapItem.map2meshy(vector3.y, center_mapy, cell_size);
 									MdFill.PosD(vector3.x, vector3.y, null);
 									if (wmitem.visitted)
 									{
@@ -320,35 +321,25 @@ namespace nel
 								}
 							}
 						}
+					}
+					if (list != null)
+					{
+						int count2 = list.Count;
+						for (int m = 0; m < count2; m++)
+						{
+							list[m].drawTo(MdFill, MdLine, MdIco, center_mapx, center_mapy, cell_size, alpha, num3, num5, num4, num6);
+						}
+					}
+					if (flag2)
+					{
 						if (list2 != null)
 						{
-							int count2 = list2.Count;
-							for (int m = 0; m < count2; m++)
-							{
-								WholeMapItem.WMSpecialIcon wmspecialIcon = list2[m];
-								if (wmspecialIcon.PF != null)
-								{
-									float num15 = this.map2meshx(wmspecialIcon.SrcLP.mapfocx, center_mapx, cell_size);
-									float num16 = this.map2meshy(wmspecialIcon.SrcLP.mapfocy, center_mapy, cell_size);
-									MdIco.RotaPF(num15, num16, 1f, 1f, 0f, wmspecialIcon.PF, false, false, false, uint.MaxValue, false, 0);
-								}
-								else if (wmspecialIcon.arrow >= 0)
-								{
-									float num17 = this.map2meshx(wmspecialIcon.SrcLP.mapfocx, center_mapx, cell_size);
-									float num18 = this.map2meshy(wmspecialIcon.SrcLP.mapfocy, center_mapy, cell_size);
-									float num19 = (cell_size - 2f) / 2f;
-									MdLine.Arrow(num17, num18, num19, global::XX.CAim.get_agR((global::XX.AIM)wmspecialIcon.arrow, 0f), 2f, false);
-								}
-							}
-						}
-						if (list != null)
-						{
-							int count3 = list.Count;
-							float num20 = this.map2meshx(wmitem.Rc.x, center_mapx, cell_size);
-							float num21 = this.map2meshy(wmitem.Rc.y, center_mapy, cell_size);
+							int count3 = list2.Count;
+							float num15 = WholeMapItem.map2meshx(wmitem.Rc.x, center_mapx, cell_size);
+							float num16 = WholeMapItem.map2meshy(wmitem.Rc.y, center_mapy, cell_size);
 							for (int n = 0; n < count3; n++)
 							{
-								list[n].drawTo(MdIco, wmitem, num20, num21, cell_size, icon_alpha);
+								list2[n].drawTo(MdIco, wmitem, num15, num16, cell_size, icon_alpha);
 							}
 						}
 						if (wmitem.visitted)
@@ -358,51 +349,51 @@ namespace nel
 							while (lplWM.next())
 							{
 								int rectLength = lplWM.cur.getRectLength();
-								for (int num22 = 0; num22 < rectLength; num22++)
+								for (int num17 = 0; num17 < rectLength; num17++)
 								{
-									WholeMapItem.WMTransferPoint.WMRectItem rect = lplWM.cur.getRect(num22);
+									WholeMapItem.WMTransferPoint.WMRectItem rect = lplWM.cur.getRect(num17);
 									if (((this.item_revealed & WholeMapItem.REVEALED.MAP) != WholeMapItem.REVEALED.NONE || !(rect.sf_key != "") || COOK.getSF(rect.sf_key) != 0) && !rect.no_exit_wm)
 									{
 										if (rect.index >= 0)
 										{
-											float num23 = wmitem.Rc.x + rect.x;
-											float num24 = wmitem.Rc.y + rect.y;
-											float num25 = wmitem.Rc.x + rect.w + rect.x;
-											float num26 = wmitem.Rc.y + rect.h + rect.y;
+											float num18 = wmitem.Rc.x + rect.x;
+											float num19 = wmitem.Rc.y + rect.y;
+											float num20 = wmitem.Rc.x + rect.w + rect.x;
+											float num21 = wmitem.Rc.y + rect.h + rect.y;
 											int index = rect.index;
 											if (index == 0)
 											{
-												num23 = (float)((int)num23) - 0.3f;
-												num25 -= 0.3f;
+												num18 = (float)((int)num18) - 0.3f;
+												num20 -= 0.3f;
 											}
 											if (index == 1)
 											{
-												num24 = (float)((int)num24) - 0.3f;
-												num26 -= 0.3f;
+												num19 = (float)((int)num19) - 0.3f;
+												num21 -= 0.3f;
 											}
 											if (index == 2)
 											{
-												num25 = (float)((int)(num25 + 0.9f)) + 0.3f;
-												num23 += 0.3f;
+												num20 = (float)((int)(num20 + 0.9f)) + 0.3f;
+												num18 += 0.3f;
 											}
 											if (index == 3)
 											{
-												num26 = (float)((int)(num26 + 0.9f)) + 0.3f;
-												num24 += 0.3f;
+												num21 = (float)((int)(num21 + 0.9f)) + 0.3f;
+												num19 += 0.3f;
 											}
-											float num27 = this.map2meshx(num23, center_mapx, cell_size);
-											float num28 = this.map2meshy(num26, center_mapy, cell_size);
-											MdMask.RectBL(num27, num28, this.map2meshx(num25, center_mapx, cell_size) - num27 - 1f, this.map2meshy(num24, center_mapy, cell_size) - num28 - 1f, false);
+											float num22 = WholeMapItem.map2meshx(num18, center_mapx, cell_size);
+											float num23 = WholeMapItem.map2meshy(num21, center_mapy, cell_size);
+											MdMask.RectBL(num22, num23, WholeMapItem.map2meshx(num20, center_mapx, cell_size) - num22 - 1f, WholeMapItem.map2meshy(num19, center_mapy, cell_size) - num23 - 1f, false);
 										}
 										else
 										{
-											global::XX.AIM aim = rect.getAim();
-											float num29 = wmitem.Rc.x + rect.cx + (float)global::XX.CAim._XD(aim, 1);
-											float num30 = wmitem.Rc.y + rect.cy - (float)global::XX.CAim._YD(aim, 1);
-											float num31 = (cell_size - 2f) / 2f;
-											float num32 = this.map2meshx(num29, center_mapx, cell_size);
-											float num33 = this.map2meshy(num30, center_mapy, cell_size);
-											MdLine.Arrow(num32, num33, num31, global::XX.CAim.get_agR(aim, 0f), 2f, false);
+											AIM aim = rect.getAim();
+											float num24 = wmitem.Rc.x + rect.cx + (float)CAim._XD(aim, 1);
+											float num25 = wmitem.Rc.y + rect.cy - (float)CAim._YD(aim, 1);
+											float num26 = (cell_size - 2f) / 2f;
+											float num27 = WholeMapItem.map2meshx(num24, center_mapx, cell_size);
+											float num28 = WholeMapItem.map2meshy(num25, center_mapy, cell_size);
+											MdLine.Arrow(num27, num28, num26, CAim.get_agR(aim, 0f), 2f, false);
 										}
 									}
 								}
@@ -410,14 +401,14 @@ namespace nel
 						}
 					}
 				}
-				IL_0832:;
+				IL_0779:;
 			}
 		}
 
 		public bool drawMarker(MeshDrawer MdIco, MeshDrawer MdFill, float center_mapx, float center_mapy, float width, float height, float cell_size, float alpha = 1f)
 		{
-			float num = (float)global::XX.X.IntC(width / cell_size);
-			float num2 = (float)global::XX.X.IntC(height / cell_size);
+			float num = (float)X.IntC(width / cell_size);
+			float num2 = (float)X.IntC(height / cell_size);
 			float num3 = center_mapx - num / 2f;
 			float num4 = center_mapx + num / 2f;
 			float num5 = center_mapy - num2 / 2f;
@@ -428,15 +419,15 @@ namespace nel
 			{
 				uint num7 = this.key2posx(keyValuePair.Key);
 				uint num8 = this.key2posy(keyValuePair.Key);
-				if (global::XX.X.BTWW(num3, num7, num4) && global::XX.X.BTWW(num5, num8, num6))
+				if (X.BTWW(num3, num7, num4) && X.BTWW(num5, num8, num6))
 				{
-					float num9 = this.map2meshx(num7 + 0.5f, center_mapx, cell_size);
-					float num10 = this.map2meshy(num8 + 0.5f, center_mapy, cell_size);
+					float num9 = WholeMapItem.map2meshx(num7 + 0.5f, center_mapx, cell_size);
+					float num10 = WholeMapItem.map2meshy(num8 + 0.5f, center_mapy, cell_size);
 					bool flag2 = this.ef_totalframe > 0 && num7 == (uint)this.MarkerEf.x && num8 == (uint)this.MarkerEf.y;
 					if (flag2)
 					{
 						int num11 = IN.totalframe - this.ef_totalframe;
-						float num12 = global::XX.X.ZLINE((float)num11, 24f);
+						float num12 = X.ZLINE((float)num11, 24f);
 						if (num12 < 1f)
 						{
 							flag = true;
@@ -495,12 +486,12 @@ namespace nel
 			return true;
 		}
 
-		public float map2meshx(float mappos_x, float center_mapx, float size)
+		public static float map2meshx(float mappos_x, float center_mapx, float size)
 		{
 			return (mappos_x - center_mapx) * size;
 		}
 
-		public float map2meshy(float mappos_y, float center_mapy, float size)
+		public static float map2meshy(float mappos_y, float center_mapy, float size)
 		{
 			return -(mappos_y - center_mapy) * size;
 		}
@@ -512,7 +503,7 @@ namespace nel
 				return false;
 			}
 			WholeMapItem.WMItem wmitem = this.GetWmi(Pr.Mp, null);
-			WholeMapItem.WMSpecialIcon wmspecialIcon = default(WholeMapItem.WMSpecialIcon);
+			WMSpecialIcon wmspecialIcon = default(WMSpecialIcon);
 			if (wmitem == null)
 			{
 				wmspecialIcon = this.CurPosition;
@@ -599,8 +590,10 @@ namespace nel
 			for (int j = list.Count - 1; j >= 0; j--)
 			{
 				WMIcon wmicon2 = list[j];
-				if (global::XX.X.LENGTHXYN((float)x, (float)y, (float)wmicon2.x, (float)wmicon2.y) <= (float)margin && wmicon2.type == type)
+				if (X.LENGTHXYN((float)x, (float)y, (float)wmicon2.x, (float)wmicon2.y) <= (float)margin && wmicon2.type == type)
 				{
+					wmicon2.x = (ushort)x;
+					wmicon2.y = (ushort)y;
 					return wmicon2;
 				}
 			}
@@ -609,12 +602,12 @@ namespace nel
 
 		public List<WMIcon> GetIconVectorFor(Map2d _Mp)
 		{
-			return global::XX.X.Get<Map2d, List<WMIcon>>(this.OANoticedIcon, _Mp);
+			return X.Get<Map2d, List<WMIcon>>(this.OANoticedIcon, _Mp);
 		}
 
 		public WMIcon assignIcon(Map2d _Mp, WMIcon Ico)
 		{
-			List<WMIcon> list = global::XX.X.Get<Map2d, List<WMIcon>>(this.OANoticedIcon, _Mp);
+			List<WMIcon> list = X.Get<Map2d, List<WMIcon>>(this.OANoticedIcon, _Mp);
 			if (list == null)
 			{
 				list = new List<WMIcon>(1) { Ico };
@@ -631,7 +624,7 @@ namespace nel
 		public void treasureBoxOpened(Map2d curMap)
 		{
 			this.treasure_box_opened_ratio = -1f;
-			List<WMIcon> list = global::XX.X.Get<Map2d, List<WMIcon>>(this.OANoticedIcon, curMap);
+			List<WMIcon> list = X.Get<Map2d, List<WMIcon>>(this.OANoticedIcon, curMap);
 			if (list != null)
 			{
 				list.Sort((WMIcon a, WMIcon b) => WholeMapItem.fnSortIconList(a, b));
@@ -677,30 +670,30 @@ namespace nel
 		{
 			if (_Mp == null)
 			{
-				return null;
+				WMIconHiddenDeperture wmiconHiddenDeperture = default(WMIconHiddenDeperture);
+				return wmiconHiddenDeperture;
 			}
 			string text = sppos_key + "__" + type.ToString();
-			WMIconHiddenDeperture wmiconHiddenDeperture;
-			if (this.OIconHiddenDeperture.TryGetValue(text, out wmiconHiddenDeperture))
+			WMIconHiddenDeperture wmiconHiddenDeperture2;
+			if (!this.OIconHiddenDeperture.TryGetValue(text, out wmiconHiddenDeperture2) || (int)wmiconHiddenDeperture2.x != x || (int)wmiconHiddenDeperture2.y != y)
 			{
-				wmiconHiddenDeperture.x = (ushort)x;
-				wmiconHiddenDeperture.y = (ushort)y;
+				Dictionary<string, WMIconHiddenDeperture> oiconHiddenDeperture = this.OIconHiddenDeperture;
+				string text2 = text;
+				WMIconHiddenDeperture wmiconHiddenDeperture = new WMIconHiddenDeperture(_Mp, x, y);
+				oiconHiddenDeperture[text2] = wmiconHiddenDeperture;
+				wmiconHiddenDeperture2 = wmiconHiddenDeperture;
 			}
-			else
-			{
-				wmiconHiddenDeperture = (this.OIconHiddenDeperture[text] = new WMIconHiddenDeperture(_Mp, x, y));
-			}
-			return wmiconHiddenDeperture;
+			return wmiconHiddenDeperture2;
 		}
 
 		public WMIconHiddenDeperture getHiddenIconDeperture(string sppos_key, WMIcon.TYPE type)
 		{
 			if (sppos_key == null)
 			{
-				return null;
+				return default(WMIconHiddenDeperture);
 			}
 			string text = sppos_key + "__" + type.ToString();
-			return global::XX.X.Get<string, WMIconHiddenDeperture>(this.OIconHiddenDeperture, text);
+			return X.Get<string, WMIconHiddenDeperture>(this.OIconHiddenDeperture, text);
 		}
 
 		public List<WMIconPosition> getNoticedIconList(WMIcon.TYPE type = WMIcon.TYPE.BENCH)
@@ -768,20 +761,25 @@ namespace nel
 
 		private void checkSpecialIconPos(WholeMapItem.WMItem Wmi, bool remove_already_in_this_layer = false, bool check_other_pos_refine = false)
 		{
-			List<WholeMapItem.WMSpecialIcon> list = global::XX.X.Get<Map2d, List<WholeMapItem.WMSpecialIcon>>(this.OASpecialIcon, Wmi.SrcMap);
+			List<WMSpecialIcon> list = X.Get<Map2d, List<WMSpecialIcon>>(this.OASpecialIcon, Wmi.SrcMap);
 			int num = ((list != null) ? list.Count : 0);
-			List<WholeMapItem.WMSpecialIcon> list2 = new List<WholeMapItem.WMSpecialIcon>();
-			LabelPointListener<M2LabelPoint> labelPointListener = new LabelPointListener<M2LabelPoint>();
-			Wmi.Lay.LP.beginAll(labelPointListener);
-			while (labelPointListener.next())
+			List<WMSpecialIcon> list2 = null;
+			int length = Wmi.Lay.LP.Length;
+			for (int i = 0; i < length; i++)
 			{
-				if (!TX.isStart(labelPointListener.cur.key, "TransferCache_", 0))
+				M2LabelPoint m2LabelPoint = Wmi.Lay.LP.Get(i);
+				if (!TX.isStart(m2LabelPoint.key, "TransferCache_", 0))
 				{
-					WholeMapItem.WMSpecialIcon wmspecialIcon = new WholeMapItem.WMSpecialIcon(labelPointListener.cur, Wmi);
+					WMSpecialIcon wmspecialIcon = new WMSpecialIcon(m2LabelPoint, Wmi);
+					if (list2 == null)
+					{
+						list2 = new List<WMSpecialIcon>(1);
+					}
 					list2.Add(wmspecialIcon);
 				}
 			}
-			if (list2.Count > 0)
+			bool flag = list2 != null && list2.Count > 0;
+			if (flag)
 			{
 				this.OASpecialIcon[Wmi.SrcMap] = list2;
 			}
@@ -789,7 +787,7 @@ namespace nel
 			{
 				this.OASpecialIcon.Remove(Wmi.SrcMap);
 			}
-			if (check_other_pos_refine && (num > 0 || list2.Count > 0 || Wmi.Lay.comment.IndexOf("wholemap_pos") >= 0))
+			if (check_other_pos_refine && (num > 0 || flag || Wmi.Lay.comment.IndexOf("wholemap_pos") >= 0))
 			{
 				this.fineSpecialIconPosWhole();
 			}
@@ -871,9 +869,9 @@ namespace nel
 				{
 					WholeMapItem.WMTransferPoint.WMRectItem rect = labelPointListener.cur.getRect(i);
 					M2MapLayer layer = this.Mp.getLayer(rect.Mp.key);
-					if (layer != null && global::XX.X.isinC<M2MapLayer>(ALay, layer, ARMX) == -1)
+					if (layer != null && X.isinC<M2MapLayer>(ALay, layer, ARMX) == -1)
 					{
-						global::XX.X.pushToEmptyS<M2MapLayer>(ref ALay, layer, ref ARMX, 16);
+						X.pushToEmptyS<M2MapLayer>(ref ALay, layer, ref ARMX, 16);
 					}
 				}
 			}
@@ -881,7 +879,7 @@ namespace nel
 
 		public WholeMapItem.WMItem getAppeardWmi(int mapx, int mapy)
 		{
-			if (!global::XX.X.BTW(0f, (float)mapx, (float)this.Mp.clms) || !global::XX.X.BTW(0f, (float)mapy, (float)this.Mp.rows))
+			if (!X.BTW(0f, (float)mapx, (float)this.Mp.clms) || !X.BTW(0f, (float)mapy, (float)this.Mp.rows))
 			{
 				return null;
 			}
@@ -958,7 +956,7 @@ namespace nel
 
 		public int getMarkerAt(int mapx, int mapy)
 		{
-			if (!global::XX.X.BTW(0f, (float)mapx, (float)this.Mp.clms) || !global::XX.X.BTW(0f, (float)mapy, (float)this.Mp.rows))
+			if (!X.BTW(0f, (float)mapx, (float)this.Mp.clms) || !X.BTW(0f, (float)mapy, (float)this.Mp.rows))
 			{
 				return -2;
 			}
@@ -977,7 +975,7 @@ namespace nel
 
 		public int getMarkerAt(int mapx, int mapy, WholeMapItem.WMItem WmiAppeared)
 		{
-			if (!global::XX.X.BTW(0f, (float)mapx, (float)this.Mp.clms) || !global::XX.X.BTW(0f, (float)mapy, (float)this.Mp.rows))
+			if (!X.BTW(0f, (float)mapx, (float)this.Mp.clms) || !X.BTW(0f, (float)mapy, (float)this.Mp.rows))
 			{
 				return -2;
 			}
@@ -996,7 +994,7 @@ namespace nel
 
 		public bool setMarkerAt(Vector2 Pos, int c, bool set_effect = false)
 		{
-			if (!global::XX.X.BTW(0f, Pos.x, (float)this.Mp.clms) || !global::XX.X.BTW(0f, Pos.y, (float)this.Mp.rows))
+			if (!X.BTW(0f, Pos.x, (float)this.Mp.clms) || !X.BTW(0f, Pos.y, (float)this.Mp.rows))
 			{
 				return false;
 			}
@@ -1137,10 +1135,10 @@ namespace nel
 		{
 			if (this.Aload_material == null)
 			{
-				this.Aload_material = global::XX.X.concat<string>(Astr, null, -1, -1);
+				this.Aload_material = X.concat<string>(Astr, null, -1, -1);
 				return;
 			}
-			this.Aload_material = global::XX.X.concat<string>(this.Aload_material, Astr, -1, -1);
+			this.Aload_material = X.concat<string>(this.Aload_material, Astr, -1, -1);
 		}
 
 		public void initWmLoadMaterial()
@@ -1155,7 +1153,7 @@ namespace nel
 				string text = this.Aload_material[i];
 				if (text.IndexOf("pxl.") == 0)
 				{
-					this.M2D.loadMaterialPxl(TX.slice(text, 4), "", true, true);
+					this.M2D.loadMaterialPxl(TX.slice(text, 4), "", true, true, false);
 				}
 				else if (text.IndexOf("snd.") == 0)
 				{
@@ -1191,6 +1189,16 @@ namespace nel
 			return Mp != null && this.Avisitted.Contains(Mp);
 		}
 
+		public bool isAppeared(Map2d Mp, bool ignore_item_revealed = false)
+		{
+			if (!ignore_item_revealed && this.item_revealed != WholeMapItem.REVEALED.NONE)
+			{
+				return true;
+			}
+			WholeMapItem.WMItem wmi = this.GetWmi(Mp, null);
+			return wmi != null && wmi.appeared;
+		}
+
 		public string text_key_areatitle
 		{
 			get
@@ -1207,7 +1215,7 @@ namespace nel
 			}
 		}
 
-		public void GetWMItem(string wmi_key, ref WholeMapItem.WMItem Wmi, ref WholeMapItem.WMSpecialIcon WmSpIco)
+		public void GetWMItem(string wmi_key, ref WholeMapItem.WMItem Wmi, ref WMSpecialIcon WmSpIco)
 		{
 			if (TX.isStart(wmi_key, "@", 0))
 			{
@@ -1231,7 +1239,7 @@ namespace nel
 			this.prepared_all = 0;
 		}
 
-		public void readBinaryFrom(ByteArray Ba, int sf_version)
+		public void readBinaryFrom(ByteReader Ba, int sf_version)
 		{
 			int num = Ba.readByte();
 			int num2 = (int)Ba.readUShort();
@@ -1259,130 +1267,132 @@ namespace nel
 					this.OIconHiddenDeperture[text2] = new WMIconHiddenDeperture(Ba, this.M2D);
 				}
 			}
-			ByteArray byteArray = Ba.readExtractBytes(4);
-			num2 = (int)byteArray.readUShort();
-			for (int l = 0; l < num2; l++)
+			using (ByteReader byteReader = Ba.readExtractBytes(4))
 			{
-				string text3 = byteArray.readString("utf-8", false);
-				int num4 = byteArray.readByte();
-				List<WMIcon> list = new List<WMIcon>(num4);
-				int num5 = 0;
-				for (int m = 0; m < num4; m++)
+				num2 = (int)byteReader.readUShort();
+				for (int l = 0; l < num2; l++)
 				{
-					WMIcon wmicon = new WMIcon(byteArray, num);
-					if (num > 1 || wmicon.type != WMIcon.TYPE.ENEMY)
+					string text3 = byteReader.readString("utf-8", false);
+					int num4 = byteReader.readByte();
+					List<WMIcon> list = new List<WMIcon>(num4);
+					int num5 = 0;
+					for (int m = 0; m < num4; m++)
 					{
-						if (text3 != null)
+						WMIcon wmicon = new WMIcon(byteReader, num);
+						if (num > 1 || wmicon.type != WMIcon.TYPE.ENEMY)
 						{
-							uint num6 = <PrivateImplementationDetails>.ComputeStringHash(text3);
-							if (num6 <= 2857614877U)
+							if (text3 != null)
 							{
-								if (num6 <= 2082146567U)
+								uint num6 = <PrivateImplementationDetails>.ComputeStringHash(text3);
+								if (num6 <= 2857614877U)
 								{
-									if (num6 != 933167440U)
+									if (num6 <= 2082146567U)
 									{
-										if (num6 == 2082146567U)
+										if (num6 != 933167440U)
 										{
-											if (text3 == "forest_puzzle_burnivy")
+											if (num6 == 2082146567U)
 											{
-												if (wmicon.type == WMIcon.TYPE.TREASURE)
+												if (text3 == "forest_puzzle_burnivy")
+												{
+													if (wmicon.type == WMIcon.TYPE.TREASURE)
+													{
+														goto IL_03CD;
+													}
+												}
+											}
+										}
+										else if (text3 == "forest_secret_glacier_0")
+										{
+											if (wmicon.type == WMIcon.TYPE.TREASURE && sf_version < 33)
+											{
+												goto IL_03CD;
+											}
+										}
+									}
+									else if (num6 != 2845325890U)
+									{
+										if (num6 == 2857614877U)
+										{
+											if (text3 == "forest_senzyo")
+											{
+												if (num <= 5 && wmicon.type == WMIcon.TYPE.TREASURE)
 												{
 													goto IL_03CD;
 												}
 											}
 										}
 									}
-									else if (text3 == "forest_secret_glacier_0")
+									else if (text3 == "forest_wood_nightlake")
 									{
-										if (wmicon.type == WMIcon.TYPE.TREASURE && sf_version < 33)
+										if (wmicon.type == WMIcon.TYPE.BENCH && num <= 5 && wmicon.type == WMIcon.TYPE.BENCH)
+										{
+											if (num5++ >= 1)
+											{
+												goto IL_03CD;
+											}
+											wmicon.sppos_key = "SPI_Layer_bench";
+											this.assignHiddenIconDeperture(wmicon.sppos_key, wmicon.type, this.M2D.Get(text3, true), (int)wmicon.x, (int)wmicon.y, null);
+											wmicon.x = 16;
+											wmicon.y = 15;
+										}
+									}
+								}
+								else if (num6 <= 3662074009U)
+								{
+									if (num6 != 3458569092U)
+									{
+										if (num6 == 3662074009U)
+										{
+											if (text3 == "forest_puzzle_ct")
+											{
+												if (wmicon.type == WMIcon.TYPE.TREASURE && wmicon.x == 26 && wmicon.y == 25)
+												{
+													goto IL_03CD;
+												}
+											}
+										}
+									}
+									else if (text3 == "forest_entrance_grazia")
+									{
+										if (wmicon.type == WMIcon.TYPE.TREASURE && wmicon.x == 57 && wmicon.y == 14)
 										{
 											goto IL_03CD;
 										}
 									}
 								}
-								else if (num6 != 2845325890U)
+								else if (num6 != 3850538442U)
 								{
-									if (num6 == 2857614877U)
+									if (num6 == 4083262388U)
 									{
-										if (text3 == "forest_senzyo")
+										if (text3 == "forest_hiroba")
 										{
-											if (num <= 5 && wmicon.type == WMIcon.TYPE.TREASURE)
+											if (wmicon.type == WMIcon.TYPE.TREASURE && wmicon.x == 20 && wmicon.y == 29)
 											{
 												goto IL_03CD;
 											}
 										}
 									}
 								}
-								else if (text3 == "forest_wood_nightlake")
+								else if (text3 == "forest_c")
 								{
-									if (wmicon.type == WMIcon.TYPE.BENCH && num <= 5 && wmicon.type == WMIcon.TYPE.BENCH)
-									{
-										if (num5++ >= 1)
-										{
-											goto IL_03CD;
-										}
-										wmicon.sppos_key = "SPI_Layer_bench";
-										this.assignHiddenIconDeperture(wmicon.sppos_key, wmicon.type, this.M2D.Get(text3, true), (int)wmicon.x, (int)wmicon.y, null);
-										wmicon.x = 16;
-										wmicon.y = 15;
-									}
-								}
-							}
-							else if (num6 <= 3662074009U)
-							{
-								if (num6 != 3458569092U)
-								{
-									if (num6 == 3662074009U)
-									{
-										if (text3 == "forest_puzzle_ct")
-										{
-											if (wmicon.type == WMIcon.TYPE.TREASURE && wmicon.x == 26 && wmicon.y == 25)
-											{
-												goto IL_03CD;
-											}
-										}
-									}
-								}
-								else if (text3 == "forest_entrance_grazia")
-								{
-									if (wmicon.type == WMIcon.TYPE.TREASURE && wmicon.x == 57 && wmicon.y == 14)
+									if (wmicon.type == WMIcon.TYPE.BENCH && wmicon.x == 32 && wmicon.y == 23)
 									{
 										goto IL_03CD;
 									}
 								}
 							}
-							else if (num6 != 3850538442U)
-							{
-								if (num6 == 4083262388U)
-								{
-									if (text3 == "forest_hiroba")
-									{
-										if (wmicon.type == WMIcon.TYPE.TREASURE && wmicon.x == 20 && wmicon.y == 29)
-										{
-											goto IL_03CD;
-										}
-									}
-								}
-							}
-							else if (text3 == "forest_c")
-							{
-								if (wmicon.type == WMIcon.TYPE.BENCH && wmicon.x == 32 && wmicon.y == 23)
-								{
-									goto IL_03CD;
-								}
-							}
+							list.Add(wmicon);
 						}
-						list.Add(wmicon);
+						IL_03CD:;
 					}
-					IL_03CD:;
-				}
-				Map2d map2d2 = this.M2D.Get(text3, true);
-				if (map2d2 != null)
-				{
-					this.OANoticedIcon[map2d2] = list;
-					if (num <= 6)
+					Map2d map2d2 = this.M2D.Get(text3, true);
+					if (map2d2 != null)
 					{
-						list.Sort((WMIcon a, WMIcon b) => WholeMapItem.fnSortIconList(a, b));
+						this.OANoticedIcon[map2d2] = list;
+						if (num <= 6)
+						{
+							list.Sort((WMIcon a, WMIcon b) => WholeMapItem.fnSortIconList(a, b));
+						}
 					}
 				}
 			}
@@ -1468,7 +1478,7 @@ namespace nel
 
 		private readonly BDic<Map2d, List<WMIcon>> OANoticedIcon;
 
-		private readonly BDic<Map2d, List<WholeMapItem.WMSpecialIcon>> OASpecialIcon;
+		private readonly BDic<Map2d, List<WMSpecialIcon>> OASpecialIcon;
 
 		private readonly BDic<string, WMIconHiddenDeperture> OIconHiddenDeperture;
 
@@ -1491,6 +1501,8 @@ namespace nel
 		private float treasure_box_opened_ratio_;
 
 		private int prepared_all;
+
+		public string enable_gq_type;
 
 		public readonly Map2d Mp;
 
@@ -1544,7 +1556,7 @@ namespace nel
 
 		public Map2d CurMap;
 
-		public WholeMapItem.WMSpecialIcon CurPosition;
+		public WMSpecialIcon CurPosition;
 
 		public List<WholeMapItem.WMRegex> AReg;
 
@@ -1592,7 +1604,7 @@ namespace nel
 			public WholeMapItem.WMTransferPoint PosFine(M2LabelPoint _Lp)
 			{
 				this.Lp = _Lp;
-				base.Set(this.Lp.x / this.SrcMp.CLEN, this.Lp.y / this.SrcMp.CLEN, (float)global::XX.X.IntC(this.Lp.w / this.SrcMp.CLEN), (float)global::XX.X.IntC(this.Lp.h / this.SrcMp.CLEN));
+				base.Set(this.Lp.x / this.SrcMp.CLEN, this.Lp.y / this.SrcMp.CLEN, (float)X.IntC(this.Lp.w / this.SrcMp.CLEN), (float)X.IntC(this.Lp.h / this.SrcMp.CLEN));
 				return this;
 			}
 
@@ -1610,16 +1622,16 @@ namespace nel
 						Map2d map2d = M2D.Get(array[1], false);
 						if (map2d != null)
 						{
-							int num = global::XX.CAim.parseString(array[2], global::XX.X.NmI(array[2], 0, false, false));
+							int num = CAim.parseString(array[2], X.NmI(array[2], 0, false, false));
 							WholeMapItem.WMTransferPoint.WMRectItem wmrectItem = new WholeMapItem.WMTransferPoint.WMRectItem(array[0], num, map2d);
-							wmrectItem.Set(global::XX.X.Nm(array[3], 0f, false), global::XX.X.Nm(array[4], 0f, false), global::XX.X.Nm(array[5], 0f, false), global::XX.X.Nm(array[6], 0f, false));
+							wmrectItem.Set(X.Nm(array[3], 0f, false), X.Nm(array[4], 0f, false), X.Nm(array[5], 0f, false), X.Nm(array[6], 0f, false));
 							if (array.Length > 7)
 							{
 								wmrectItem.another_key_for_worp = array[7];
 							}
 							if (array.Length > 8)
 							{
-								wmrectItem.flags = (byte)global::XX.X.NmI(array[8], 0, false, false);
+								wmrectItem.flags = (byte)X.NmI(array[8], 0, false, false);
 							}
 							this.AAimRect.Add(wmrectItem);
 							string s = meta.GetS("whole_map_transfer_need_sf_key" + j.ToString());
@@ -1728,30 +1740,30 @@ namespace nel
 					}
 				}
 
-				public global::XX.AIM getAim()
+				public AIM getAim()
 				{
 					if (this.index >= 0)
 					{
-						return (global::XX.AIM)this.index;
+						return (AIM)this.index;
 					}
 					if (this.cache_aim != 255)
 					{
-						return (global::XX.AIM)this.cache_aim;
+						return (AIM)this.cache_aim;
 					}
 					if (REG.match(this.key, M2LpMapTransfer.RegForAimCalc))
 					{
-						this.cache_aim = (byte)global::XX.CAim.parseString(REG.R1, 0);
-						return (global::XX.AIM)this.cache_aim;
+						this.cache_aim = (byte)CAim.parseString(REG.R1, 0);
+						return (AIM)this.cache_aim;
 					}
 					this.cache_aim = 3;
-					return (global::XX.AIM)this.cache_aim;
+					return (AIM)this.cache_aim;
 				}
 
 				public string getAnotherLabelPointKey()
 				{
 					if (this.index >= 0)
 					{
-						return WholeMapItem.getTransferOppositRectKey((global::XX.AIM)this.index, this.key);
+						return WholeMapItem.getTransferOppositRectKey((AIM)this.index, this.key);
 					}
 					return this.another_key_for_worp;
 				}
@@ -1762,7 +1774,7 @@ namespace nel
 					int num2;
 					if ((num2 = hash.IndexOf("@")) >= 0)
 					{
-						num = global::XX.CAim.parseString(TX.slice(hash, num2 + 1), -1);
+						num = CAim.parseString(TX.slice(hash, num2 + 1), -1);
 						hash = TX.slice(hash, 0, num2);
 					}
 					return new WholeMapItem.WMTransferPoint.WMRectItem(hash, num, SrcMp);
@@ -1905,14 +1917,14 @@ namespace nel
 				int z2 = C.z;
 				bool flag = (NextC.z & 2) > 0;
 				bool flag2 = (NextC.z & 4) > 0;
-				float num = (float)(global::XX.X.IntR(NextC.x) - (flag ? 1 : 0));
-				int num2 = global::XX.X.IntR(NextC.y) - (flag2 ? 1 : 0);
-				global::XX.AIM aim = (global::XX.AIM)NextC.aim;
+				float num = (float)(X.IntR(NextC.x) - (flag ? 1 : 0));
+				int num2 = X.IntR(NextC.y) - (flag2 ? 1 : 0);
+				AIM aim = (AIM)NextC.aim;
 				int num3 = bx + (int)this.Rc.x;
 				int num4 = by + (int)this.Rc.y;
-				int num5 = global::XX.CAim._XD(aim, 1);
-				int num6 = -global::XX.CAim._YD(aim, 1);
-				int num7 = (int)global::XX.X.LENGTHXYS(num, (float)num2, (float)bx, (float)by) + (((NextC.z & 8) == 0) ? 1 : 0);
+				int num5 = CAim._XD(aim, 1);
+				int num6 = -CAim._YD(aim, 1);
+				int num7 = (int)X.LENGTHXYS(num, (float)num2, (float)bx, (float)by) + (((NextC.z & 8) == 0) ? 1 : 0);
 				int i = 0;
 				if ((C.z & 8) != 0)
 				{
@@ -1941,19 +1953,19 @@ namespace nel
 										int num9 = num4 - (int)this.Rc.y;
 										switch (aim)
 										{
-										case global::XX.AIM.L:
+										case AIM.L:
 											ABuf.Add(new BDVector((float)(num8 + 1), (float)(num9 + 1)));
 											ABuf.Add(new BDVector((float)num8, (float)(num9 + 1)));
 											goto IL_024E;
-										case global::XX.AIM.T:
+										case AIM.T:
 											ABuf.Add(new BDVector((float)num8, (float)(num9 + 1)));
 											ABuf.Add(new BDVector((float)num8, (float)num9));
 											goto IL_024E;
-										case global::XX.AIM.R:
+										case AIM.R:
 											ABuf.Add(new BDVector((float)num8, (float)num9));
 											ABuf.Add(new BDVector((float)(num8 + 1), (float)num9));
 											goto IL_024E;
-										case global::XX.AIM.B:
+										case AIM.B:
 											ABuf.Add(new BDVector((float)(num8 + 1), (float)num9));
 											ABuf.Add(new BDVector((float)(num8 + 1), (float)(num9 + 1)));
 											goto IL_024E;
@@ -1971,10 +1983,10 @@ namespace nel
 						IL_024E:
 						if (m2Chip != null)
 						{
-							Vector2[] array = METACImg.pointsRotate(m2Chip, "whole_map_points_", (global::XX.AIM)C.aim, (float)m2Chip.clms * this.Lay.Mp.CLEN * 0.5f, (float)m2Chip.rows * this.Lay.Mp.CLEN * 0.5f);
+							Vector2[] array = METACImg.pointsRotate(m2Chip, "whole_map_points_", (AIM)C.aim, (float)m2Chip.clms * this.Lay.Mp.CLEN * 0.5f, (float)m2Chip.rows * this.Lay.Mp.CLEN * 0.5f);
 							if (array == null)
 							{
-								global::XX.X.dl(string.Concat(new string[]
+								X.dl(string.Concat(new string[]
 								{
 									"whole_map_fill == 1 のチップは whole_map_points_<AIM> を設定すること (pos: ",
 									num3.ToString(),
@@ -2151,15 +2163,15 @@ namespace nel
 							{
 								if (vector.x == vector2.x)
 								{
-									if (vector.x > num && global::XX.X.BTWRV(vector.y, num2, vector2.y))
+									if (vector.x > num && X.BTWRV(vector.y, num2, vector2.y))
 									{
 										num4++;
 									}
 								}
 								else
 								{
-									Vector3 vector3 = global::XX.X.crosspoint(vector.x, vector.y, vector2.x, vector2.y, num, num2, num + 1f, num2);
-									if (vector3.z != 0f && vector3.x > num && global::XX.X.BTWRV(vector.x, vector3.x, vector2.x) && global::XX.X.BTWRV(vector.y, vector3.y, vector2.y))
+									Vector3 vector3 = X.crosspoint(vector.x, vector.y, vector2.x, vector2.y, num, num2, num + 1f, num2);
+									if (vector3.z != 0f && vector3.x > num && X.BTWRV(vector.x, vector3.x, vector2.x) && X.BTWRV(vector.y, vector3.y, vector2.y))
 									{
 										num4++;
 									}
@@ -2230,7 +2242,7 @@ namespace nel
 									{
 										float num4 = (float)i + 0.5f;
 										float num5 = (float)j + 0.5f;
-										float num6 = global::XX.X.LENGTHXYS(num4, num5, mapWmLevel.x, mapWmLevel.y);
+										float num6 = X.LENGTHXYS(num4, num5, mapWmLevel.x, mapWmLevel.y);
 										if (num3 < 0f || num3 > num6)
 										{
 											num3 = num6;
@@ -2261,7 +2273,7 @@ namespace nel
 
 			public LabelPointContainer<WholeMapItem.WMTransferPoint> WpCon;
 
-			public WholeMapItem.WMSpecialIcon SpecialPos;
+			public WMSpecialIcon SpecialPos;
 
 			public bool show_icon_always;
 
@@ -2292,60 +2304,6 @@ namespace nel
 			public Regex Reg;
 
 			public Dungeon Dgn;
-		}
-
-		public struct WMSpecialIcon
-		{
-			public readonly string key
-			{
-				get
-				{
-					return this.SrcLP.key;
-				}
-			}
-
-			public WMSpecialIcon(M2LabelPoint LP, WholeMapItem.WMItem _Wmi)
-			{
-				this.Wmi = _Wmi;
-				this.SrcLP = LP;
-				this.arrow = -1;
-				this.PF = null;
-				this.go_other_wm = null;
-				if (TX.valid(LP.comment))
-				{
-					META meta = new META(LP.comment);
-					this.arrow = meta.getDirsI("arrow", 0, false, 0, -1);
-					this.go_other_wm = meta.GetSi(0, "go_other_wm");
-					if (this.arrow < 0)
-					{
-						string s = meta.GetS("icon");
-						this.PF = (TX.valid(s) ? MTRX.getPF(s) : null);
-					}
-				}
-			}
-
-			public bool valid
-			{
-				get
-				{
-					return this.Wmi != null;
-				}
-			}
-
-			public bool Equals(WholeMapItem.WMSpecialIcon Ico)
-			{
-				return this.SrcLP == Ico.SrcLP;
-			}
-
-			public readonly PxlFrame PF;
-
-			public readonly WholeMapItem.WMItem Wmi;
-
-			public readonly M2LabelPoint SrcLP;
-
-			public readonly string go_other_wm;
-
-			public readonly int arrow;
 		}
 
 		public sealed class WMTreasureBoxCache

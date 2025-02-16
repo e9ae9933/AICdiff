@@ -134,7 +134,7 @@ namespace nel
 			}
 			this.Gob = new GameObject(this.name);
 			GameObject gameObject = this.MtiBook.Load<GameObject>("Book_HistoryOfArt");
-			this.GobBook = Object.Instantiate<GameObject>(gameObject, Vector3.zero, Quaternion.identity);
+			this.GobBook = global::UnityEngine.Object.Instantiate<GameObject>(gameObject, Vector3.zero, Quaternion.identity);
 			this.GobBook.transform.SetParent(this.Gob.transform, false);
 			if (GobBase != null)
 			{

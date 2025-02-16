@@ -32,6 +32,7 @@ namespace nel
 			base.initAction(normal_map);
 			this.walk_aim = this.Meta.getDirsI("walk_aim", 0, false, 0, -1);
 			this.screen_top_layer = this.Meta.GetB("screen_top_layer", false);
+			this.start_from_focus = this.Meta.GetB("start_from_focus", false);
 			Map2d mp = this.Lay.Mp;
 			Map2d map2d = this.M2D.Get(this.Meta.GetS("goto") ?? "", false);
 			if (map2d == null || map2d == mp)
@@ -134,6 +135,11 @@ namespace nel
 							this.Ev.check_desc_name = text5;
 						}
 						this.Ev.assign("CHECK", stb.ToString(), true);
+						string si = this.Meta.GetSi(0, "useable");
+						if (si != null && TX.eval(si, "") == 0.0)
+						{
+							this.Ev.setExecutableAll(false);
+						}
 					}
 					else
 					{
@@ -147,5 +153,7 @@ namespace nel
 		private bool wm_change;
 
 		public int walk_aim = -1;
+
+		public bool start_from_focus;
 	}
 }

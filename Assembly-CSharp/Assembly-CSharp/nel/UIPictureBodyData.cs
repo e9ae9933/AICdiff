@@ -49,9 +49,9 @@ namespace nel
 					{
 						text = REG.leftContext + REG.R1;
 					}
-					UIPictureBase.EMSTATE_ADD emstate_ADD = UIPictureBase.EMSTATE_ADD.EMPTY;
+					UIPictureBase.EMSTATE_ADD emstate_ADD = UIPictureBase.EMSTATE_ADD.NORMAL;
 					FEnum<UIPictureBase.EMSTATE_ADD>.TryParse(text.ToUpper(), out emstate_ADD, true);
-					if (emstate_ADD != UIPictureBase.EMSTATE_ADD.EMPTY)
+					if (emstate_ADD != UIPictureBase.EMSTATE_ADD.NORMAL)
 					{
 						if (this.Alay_attr == null)
 						{
@@ -129,9 +129,9 @@ namespace nel
 					if (this.Alay_attr != null)
 					{
 						UIPictureBase.EMSTATE_ADD emstate_ADD = this.Alay_attr[i];
-						if (emstate_ADD != UIPictureBase.EMSTATE_ADD.EMPTY)
+						if (emstate_ADD != UIPictureBase.EMSTATE_ADD.NORMAL)
 						{
-							if ((emstate_ADD & this.current_sta) == UIPictureBase.EMSTATE_ADD.EMPTY)
+							if ((emstate_ADD & this.current_sta) == UIPictureBase.EMSTATE_ADD.NORMAL)
 							{
 								goto IL_0254;
 							}
@@ -831,7 +831,7 @@ namespace nel
 
 		public struct MosaicPos
 		{
-			public MosaicPos(string bone_key, UIPictureBase.EMSTATE state = UIPictureBase.EMSTATE.NORMAL, UIPictureBase.EMSTATE_ADD state_add = UIPictureBase.EMSTATE_ADD.EMPTY, bool only_sensitive_mode = false, bool use_outmesh = false)
+			public MosaicPos(string bone_key, UIPictureBase.EMSTATE state = UIPictureBase.EMSTATE.NORMAL, UIPictureBase.EMSTATE_ADD state_add = UIPictureBase.EMSTATE_ADD.NORMAL, bool only_sensitive_mode = false, bool use_outmesh = false)
 			{
 				this.bone_key = bone_key;
 				this.state = state;

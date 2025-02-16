@@ -61,36 +61,43 @@ namespace nel
 							{
 								if (num <= 826051549U)
 								{
-									if (num != 380752755U)
+									if (num != 283691298U)
 									{
-										if (num == 826051549U)
+										if (num != 380752755U)
 										{
-											if (cmd == "%CLONE")
+											if (num == 826051549U)
 											{
-												WeatherItem.WEATHER weather2;
-												WeatherItem.WeatherDescription weatherDescription2;
-												if (FEnum<WeatherItem.WEATHER>.TryParse(csvReader._1.ToUpper(), out weather2, true))
+												if (cmd == "%CLONE")
 												{
-													weatherDescription2 = WeatherItem.ADesc[(int)weather2];
-												}
-												else
-												{
-													weatherDescription2 = global::XX.X.Get<string, WeatherItem.WeatherDescription>(WeatherItem.ODescSp, csvReader._1);
-												}
-												if (weatherDescription2 == null)
-												{
-													csvReader.tError("不明な type : " + csvReader._1);
-												}
-												else
-												{
-													weatherDescription.copyFrom(weatherDescription2);
+													WeatherItem.WEATHER weather2;
+													WeatherItem.WeatherDescription weatherDescription2;
+													if (FEnum<WeatherItem.WEATHER>.TryParse(csvReader._1.ToUpper(), out weather2, true))
+													{
+														weatherDescription2 = WeatherItem.ADesc[(int)weather2];
+													}
+													else
+													{
+														weatherDescription2 = X.Get<string, WeatherItem.WeatherDescription>(WeatherItem.ODescSp, csvReader._1);
+													}
+													if (weatherDescription2 == null)
+													{
+														csvReader.tError("不明な type : " + csvReader._1);
+													}
+													else
+													{
+														weatherDescription.copyFrom(weatherDescription2);
+													}
 												}
 											}
 										}
+										else if (cmd == "init")
+										{
+											weatherDescription.init_chance = csvReader.slice_join(1, "|", "");
+										}
 									}
-									else if (cmd == "init")
+									else if (cmd == "enemydrop_ratio")
 									{
-										weatherDescription.init_chance = csvReader.slice_join(1, "|", "");
+										weatherDescription.enemydrop_ratio100 = (byte)X.IntR(csvReader.Nm(1, (float)weatherDescription.enemydrop_ratio100 * 0.01f) * 100f);
 									}
 								}
 								else if (num != 1200064310U)
@@ -246,7 +253,7 @@ namespace nel
 			Ba.writePascalString(this.Desc.sp_key, "utf-8");
 		}
 
-		public static WeatherItem readFrom(ByteArray Ba, int vers)
+		public static WeatherItem readFrom(ByteReader Ba, int vers)
 		{
 			try
 			{
@@ -258,7 +265,7 @@ namespace nel
 					string text = Ba.readPascalString("utf-8", false);
 					if (TX.valid(text))
 					{
-						weatherDescription = global::XX.X.Get<string, WeatherItem.WeatherDescription>(WeatherItem.ODescSp, text);
+						weatherDescription = X.Get<string, WeatherItem.WeatherDescription>(WeatherItem.ODescSp, text);
 					}
 				}
 				return new WeatherItem(weather, num, weatherDescription)
@@ -288,12 +295,12 @@ namespace nel
 				this.St.kill(false);
 				this.St = null;
 			}
-			this.next_set_floort = global::XX.X.NIXP(30f, 80f);
+			this.next_set_floort = X.NIXP(30f, 80f);
 			if (this.weather == WeatherItem.WEATHER.THUNDER)
 			{
 				(M2DBase.Instance as NelM2DBase).FlagRain.Add("WEATHER_THUNDER");
 			}
-			if (this.SndLoop == null && this.Desc.snd_key != null && !global::XX.X.DEBUGNOSND)
+			if (this.SndLoop == null && this.Desc.snd_key != null && !X.DEBUGNOSND)
 			{
 				SND.loadSheets(this.Desc.snd_key, this.weather.ToString());
 				this.SndLoop = new SndPlayer(this.weather.ToString(), SndPlayer.SNDTYPE.SND);
@@ -338,7 +345,7 @@ namespace nel
 				if (this.next_set_floort < 0f || flag)
 				{
 					this.St = null;
-					this.next_set_floort = global::XX.X.NIXP((float)this.Desc.effect_min_intv, (float)this.Desc.effect_max_intv);
+					this.next_set_floort = X.NIXP((float)this.Desc.effect_min_intv, (float)this.Desc.effect_max_intv);
 					if (this.Desc.ptcst != "")
 					{
 						this.St = Mp.PtcSTF(this.Desc.ptcst, this, true, this.Desc.ptc_top);
@@ -384,8 +391,8 @@ namespace nel
 			}
 			else
 			{
-				this.x = global::XX.X.VALWALK(this.x, drawx * curMap.rCLEN, this.Desc.follow_spd * fcnt);
-				this.y = global::XX.X.VALWALK(this.y, drawy * curMap.rCLEN, this.Desc.follow_spd * fcnt);
+				this.x = X.VALWALK(this.x, drawx * curMap.rCLEN, this.Desc.follow_spd * fcnt);
+				this.y = X.VALWALK(this.y, drawy * curMap.rCLEN, this.Desc.follow_spd * fcnt);
 			}
 			V = new Vector2(this.x, this.y);
 			return true;
@@ -429,12 +436,12 @@ namespace nel
 		{
 			if (this.weather == WeatherItem.WEATHER.THUNDER)
 			{
-				return global::XX.X.Mx((int)(Con.getDangerLevel() + 0.4f), 1);
+				return X.Mx((int)(Con.getDangerLevel() + 0.4f), 1);
 			}
 			return 0;
 		}
 
-		public int summoner_max_addition(EnemySummoner Smn)
+		public int summoner_max_addition()
 		{
 			WeatherItem.WEATHER weather = this.weather;
 			if (weather == WeatherItem.WEATHER.WIND)
@@ -448,15 +455,15 @@ namespace nel
 			return 0;
 		}
 
-		public static bool getEH(EnhancerManager.EH ehbit)
+		public static bool getEH(ENHA.EH ehbit)
 		{
-			return (EnhancerManager.enhancer_bits & ehbit) > (EnhancerManager.EH)0U;
+			return (ENHA.enhancer_bits & ehbit) > (ENHA.EH)0U;
 		}
 
 		public static void weatherShuffle(List<WeatherItem> AList, int dlevel, int pre_cweather)
 		{
 			float num = (float)dlevel / 16f;
-			WeatherItem.WeatherDescription weatherDescription = (WeatherItem.getEH(EnhancerManager.EH.raincaller) ? global::XX.X.Get<string, WeatherItem.WeatherDescription>(WeatherItem.ODescSp, "_eh_raincaller") : null);
+			WeatherItem.WeatherDescription weatherDescription = (WeatherItem.getEH(ENHA.EH.raincaller) ? X.Get<string, WeatherItem.WeatherDescription>(WeatherItem.ODescSp, "_eh_raincaller") : null);
 			string text = null;
 			if (weatherDescription != null)
 			{
@@ -530,14 +537,35 @@ namespace nel
 			return M2DBase.Instance.readPtcScript(St);
 		}
 
+		public static WeatherItem.WeatherDescription getDescription(WeatherItem.WEATHER wt)
+		{
+			if (WeatherItem.ADesc == null)
+			{
+				WeatherItem.initWeather();
+			}
+			return WeatherItem.ADesc[(int)wt];
+		}
+
+		public float enemydrop_ratio
+		{
+			get
+			{
+				if (this.Desc.enemydrop_ratio100 != 100)
+				{
+					return (float)this.Desc.enemydrop_ratio100 * 0.01f;
+				}
+				return 1f;
+			}
+		}
+
 		public static int getMaxCount(int dlevel, string fn_key)
 		{
-			EfParticleFuncCalc efParticleFuncCalc = ((fn_key != null) ? global::XX.X.Get<string, EfParticleFuncCalc>(WeatherItem.OCalcMax, fn_key) : null);
+			EfParticleFuncCalc efParticleFuncCalc = ((fn_key != null) ? X.Get<string, EfParticleFuncCalc>(WeatherItem.OCalcMax, fn_key) : null);
 			if (efParticleFuncCalc == null)
 			{
 				efParticleFuncCalc = WeatherItem.OCalcMax["_"];
 			}
-			return (int)efParticleFuncCalc.Get(null, (float)dlevel / 16f);
+			return (int)efParticleFuncCalc.Get(-1f, (float)dlevel / 16f, false);
 		}
 
 		public bool isSoundActive(SndPlayer S)
@@ -564,8 +592,10 @@ namespace nel
 		private static float Calc(string s, float v, float max_val)
 		{
 			WeatherItem.CalcItem.Remake(s, "Z0", max_val);
-			return WeatherItem.CalcItem.Get(null, v);
+			return WeatherItem.CalcItem.Get(-1f, v, false);
 		}
+
+		public const string PF_header = "weather.";
 
 		private static WeatherItem.WeatherDescription[] ADesc;
 
@@ -579,7 +609,7 @@ namespace nel
 
 		public readonly WeatherItem.WEATHER weather;
 
-		private WeatherItem.WeatherDescription Desc;
+		private readonly WeatherItem.WeatherDescription Desc;
 
 		private SndPlayer SndLoop;
 
@@ -613,7 +643,7 @@ namespace nel
 			_MAX
 		}
 
-		private sealed class WeatherDescription
+		public sealed class WeatherDescription
 		{
 			public WeatherDescription(WeatherItem.WEATHER _wt, string _sp_key = null)
 			{
@@ -631,6 +661,7 @@ namespace nel
 				this.ptcst = Src.ptcst;
 				this.snd_key = Src.snd_key;
 				this.follow_spd = Src.follow_spd;
+				this.enemydrop_ratio100 = Src.enemydrop_ratio100;
 				this.ptc_top = Src.ptc_top;
 				if (this.sp_key != null)
 				{
@@ -659,6 +690,8 @@ namespace nel
 			public string snd_key;
 
 			public float follow_spd = 0.03125f;
+
+			public byte enemydrop_ratio100 = 100;
 
 			public string sp_key;
 		}

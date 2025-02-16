@@ -5,7 +5,7 @@ using XX;
 
 namespace nel.gm
 {
-	internal class UiGMCStat : UiGMC
+	public class UiGMCStat : UiGMC
 	{
 		internal UiGMCStat(UiGameMenu _GM)
 			: base(_GM, CATEG.STAT, true, 0, 0, 0, 0, 1f, 1f)
@@ -65,6 +65,28 @@ namespace nel.gm
 				}
 				this.BxR.Hr(0.6f, 10f, 14f, 1f);
 				this.RTabBar = ColumnRowNel.NCreateT<aBtnNel>(this.BxR.Br(), "ctg_tab", "row_tab", (int)UiGMCStat.status_tab, FEnum<UiGMCStat.STATUS_CTG>.ToStrListUp(4, "&&Status_Tab_", true), new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnStatusTabChanged), use_w, 0f, false, false);
+				if (this.GM.AStatDangerListener.Count > 0)
+				{
+					int count = this.GM.AStatDangerListener.Count;
+					using (STB stb = TX.PopBld(null, 0))
+					{
+						ButtonSkinRow buttonSkinRow = this.RTabBar.Get(3).get_Skin() as ButtonSkinRow;
+						if (buttonSkinRow != null)
+						{
+							for (int i = 0; i < count; i++)
+							{
+								uint num;
+								string tabIconKey = this.GM.AStatDangerListener[i].getTabIconKey(this, out num);
+								if (TX.valid(tabIconKey))
+								{
+									stb.AddIconHtml(tabIconKey, num, num == 0U);
+								}
+							}
+							stb.Add(buttonSkinRow.title);
+							buttonSkinRow.setTitleTextS(stb);
+						}
+					}
+				}
 				this.Tab = this.BxR.addTab("status_area", this.BxR.use_w, this.BxR.use_h - 10f, this.BxR.use_w, this.BxR.use_h - 10f, true);
 				this.Tab.use_scroll = true;
 				this.BxR.endTab(false);
@@ -95,7 +117,7 @@ namespace nel.gm
 		{
 			this.Tab.Clear();
 			Stomach stmNoel = base.M2D.IMNG.StmNoel;
-			this.Tab.use_scroll = UiGMCStat.status_tab != UiGMCStat.STATUS_CTG.FOOD || !stmNoel.eaten_anything;
+			this.Tab.use_scroll = true;
 			this.Tab.scroll_area_selectable = this.GM.isEditState();
 			this.Tab.init();
 			if (this.Tab.use_scroll)
@@ -126,13 +148,13 @@ namespace nel.gm
 					}
 					else
 					{
-						int num = this.Pr.Ser.Length;
+						int length = this.Pr.Ser.Length;
 						bool flag = false;
-						if (num > 0)
+						if (length > 0)
 						{
 							using (STB stb = TX.PopBld(null, 0))
 							{
-								for (int i = 0; i < num; i++)
+								for (int i = 0; i < length; i++)
 								{
 									M2SerItem m2SerItem = this.Pr.Ser.Get(i);
 									if (m2SerItem.isActive() && !TX.noe(m2SerItem.getTitle(false, false)))
@@ -189,13 +211,13 @@ namespace nel.gm
 					this.Tab.Br();
 					Color32 color = C32.d2c(4283780170U);
 					Stomach.DishInStomach[] eatenDishArray = stmNoel.getEatenDishArray();
-					int num2 = eatenDishArray.Length;
-					if (num2 > 0)
+					int num = eatenDishArray.Length;
+					if (num > 0)
 					{
-						Designer designer = this.Tab.addTab("scroll_inner", this.Tab.use_w, this.Tab.use_h, this.Tab.use_w, this.Tab.use_h, true);
+						Designer designer = this.Tab.addTab("scroll_inner", this.Tab.use_w, this.Tab.use_h - 12f, this.Tab.use_w, this.Tab.use_h - 12f, true);
 						designer.scroll_area_selectable = true;
 						designer.init();
-						for (int j = 0; j < num2; j++)
+						for (int j = 0; j < num; j++)
 						{
 							Stomach.DishInStomach dishInStomach = eatenDishArray[j];
 							string text = dishInStomach.Dh.title + "\n" + TX.GetA("Stat_food_time_left", X.spr_after((float)X.IntC(dishInStomach.cost * 100f) / 100f, 2));
@@ -217,7 +239,7 @@ namespace nel.gm
 							}, false);
 							designer.addP(new DsnDataP("", false)
 							{
-								text = RecipeManager.getEffectListup(dishInStomach.Dh, dishInStomach.lvl01, "\n", "Item_for_food_no_effect"),
+								text = RCP.getEffectListup(dishInStomach.Dh, dishInStomach.lvl01, "\n", "Item_for_food_no_effect"),
 								alignx = ALIGN.LEFT,
 								swidth = designer.use_w - 10f,
 								html = true,
@@ -238,47 +260,14 @@ namespace nel.gm
 				case UiGMCStat.STATUS_CTG.SEXUAL:
 					this.Pr.EpCon.addGMConditionDescript(this.Tab);
 					break;
-				case UiGMCStat.STATUS_CTG.DANGEROUSNESS:
+				case UiGMCStat.STATUS_CTG.BATTLEAREA:
 				{
-					if (this.DangerousMeter == null)
-					{
-						this.DangerousMeter = new DangerGageDrawer(null, null, false);
-					}
-					if (base.M2D.WM.CurWM != null && !base.M2D.WM.CurWM.safe_area)
-					{
-						UiBoxDesigner.addPTo(this.Tab, TX.GetA("Explore_timer", ((int)(COOK.calced_timer / 3600f)).ToString(), X.spr0((int)(COOK.calced_timer / 60f) % 60, 2, '0')), ALIGN.LEFT, 0f, true, 0f, "", -1);
-						this.Tab.Br();
-					}
-					this.Tab.addImg(new DsnDataImg
-					{
-						name = "magnity",
-						swidth = this.Tab.use_w - 4f,
-						sheight = 160f,
-						FnDraw = new MeshDrawer.FnGeneralDraw(this.fnDrawDangerousness)
-					}).use_valotile = true;
-					this.Tab.Br();
-					UiBoxDesigner.addPTo(this.Tab, TX.GetA("Dangerousness_text", base.M2D.NightCon.getDangerMeterVal(false).ToString() ?? ""), ALIGN.LEFT, 0f, false, 0f, "", -1);
-					this.Tab.Br();
-					WeatherItem[] weatherArray = base.M2D.NightCon.getWeatherArray();
-					int num = weatherArray.Length;
-					Color32 color = C32.d2c(base.effect_confusion ? 4289571750U : 4283780170U);
-					for (int i = ((num == 0) ? (-1) : 0); i < num; i++)
-					{
-						WeatherItem weatherItem = ((i < 0) ? null : weatherArray[i]);
-						WeatherItem.WEATHER weather = ((weatherItem == null) ? WeatherItem.WEATHER.NORMAL : weatherItem.weather);
-						UiBoxDesigner.addPTo(this.Tab, "<img mesh=\"weather." + ((int)((i == -1) ? WeatherItem.WEATHER.NORMAL : weatherItem.weather)).ToString() + "\" />" + TX.Get("Weather_" + weather.ToString().ToLower(), ""), ALIGN.CENTER, 120f, true, 0f, "", -1);
-						this.Tab.addP(new DsnDataP("", false)
-						{
-							text = TX.Get("Weather_desc_" + weather.ToString().ToLower(), ""),
-							alignx = ALIGN.LEFT,
-							swidth = this.Tab.use_w - 10f,
-							html = true,
-							size = 14f,
-							text_auto_wrap = true,
-							Col = color
-						}, false);
-						this.Tab.Br();
-					}
+					Designer designer2 = this.Tab.addTab("scroll_inner", this.Tab.use_w, this.Tab.use_h, this.Tab.use_w, this.Tab.use_h, false);
+					designer2.Smallest();
+					designer2.item_margin_x_px = this.Tab.item_margin_x_px;
+					designer2.item_margin_y_px = this.Tab.item_margin_y_px;
+					this.createDangerousnessTab(designer2);
+					this.Tab.endTab(true);
 					break;
 				}
 				}
@@ -315,30 +304,19 @@ namespace nel.gm
 			{
 				return;
 			}
-			scrollBox.Select();
+			if (UiGMCStat.status_tab == UiGMCStat.STATUS_CTG.BATTLEAREA && this.DgnFirstBtn != null)
+			{
+				this.Tab.scroll_area_selectable = false;
+				this.DgnFirstBtn.Select(true);
+				return;
+			}
 			this.Tab.scroll_area_selectable = this.GM.isEditState();
+			scrollBox.Select();
 		}
 
-		private bool fnDrawDangerousness(MeshDrawer Md, float alpha)
+		internal void switchTab(UiGMCStat.STATUS_CTG tab)
 		{
-			if (!Md.hasMultipleTriangle())
-			{
-				FillImageBlock fillImageBlock = this.Tab.Get("magnity", false) as FillImageBlock;
-				if (fillImageBlock == null)
-				{
-					return false;
-				}
-				this.DangerousMeter.initMesh(Md, fillImageBlock.getMeshRenderer(), true, 1f);
-				this.DangerousMeter.speed_ratio = 0.7f;
-				int dangerMeterVal = base.M2D.NightCon.getDangerMeterVal(false);
-				this.DangerousMeter.val = dangerMeterVal;
-				this.DangerousMeter.already_show = dangerMeterVal;
-			}
-			Md.clear(false, false);
-			this.DangerousMeter.Redraw(Md, 4000f, true, alpha);
-			Md.chooseSubMesh(0, false, false);
-			Md.updateForMeshRenderer(true);
-			return true;
+			this.fnStatusTabChanged(null, (int)UiGMCStat.status_tab, (int)tab);
 		}
 
 		private bool fnStatusTabChanged(BtnContainerRadio<aBtn> _B, int pre_value, int cur_value)
@@ -359,6 +337,11 @@ namespace nel.gm
 				this.releaseEvac(ref this.AEvCon[i]);
 			}
 			base.releaseEvac();
+			if (this.DangerousMeter != null)
+			{
+				this.DangerousMeter.destruct();
+				this.DangerousMeter = null;
+			}
 			this.RTabBar = null;
 		}
 
@@ -387,6 +370,145 @@ namespace nel.gm
 			return false;
 		}
 
+		private void createDangerousnessTab(Designer Tab)
+		{
+			int num = this.GM.AStatDangerListener.Count;
+			aBtn aBtn = null;
+			aBtn aBtn2 = null;
+			for (int i = 0; i < num; i++)
+			{
+				aBtn aBtn3;
+				aBtn aBtn4;
+				if (this.GM.AStatDangerListener[i].createGMDesc(this, Tab, out aBtn3, out aBtn4))
+				{
+					if (aBtn2 != null && aBtn3 != null)
+					{
+						aBtn2.setNaviB(aBtn3, true, false);
+					}
+					if (aBtn4 != null)
+					{
+						aBtn2 = aBtn4;
+					}
+					if (aBtn == null)
+					{
+						aBtn = aBtn3;
+					}
+					Tab.addHr(new DsnDataHr
+					{
+						Col = C32.d2c(2857717320U),
+						margin_t = 14f,
+						margin_b = 14f,
+						draw_width_rate = 0.78f
+					});
+				}
+			}
+			if (this.DangerousMeter == null)
+			{
+				this.DangerousMeter = new DangerGageDrawer(null, null, false);
+			}
+			if (base.M2D.WM.CurWM != null && !base.M2D.WM.CurWM.safe_area)
+			{
+				UiBoxDesigner.addPTo(Tab, TX.GetA("Explore_timer", ((int)(COOK.calced_timer / 3600f)).ToString(), X.spr0((int)(COOK.calced_timer / 60f) % 60, 2, '0')), ALIGN.LEFT, 0f, true, 0f, "", -1);
+				Tab.Br();
+			}
+			this.Tab.addImg(new DsnDataImg
+			{
+				name = "magnity",
+				swidth = Tab.use_w - 4f,
+				sheight = 160f,
+				FnDrawInFIB = new FillImageBlock.FnDrawInFIB(this.fnDrawDangerousness)
+			}).use_valotile = true;
+			Tab.Br();
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				stb.AddTxA("Dangerousness_text", false).TxRpl(base.M2D.NightCon.getDangerMeterVal(false, false));
+				stb.Add("\n");
+				stb.AddTxA("Dangerousness_weather", false);
+				UiBoxDesigner.addPTo(Tab, stb.ToString(), ALIGN.LEFT, 0f, false, 0f, "", -1);
+			}
+			Tab.Br();
+			WeatherItem[] weatherArray = base.M2D.NightCon.getWeatherArray();
+			num = weatherArray.Length;
+			Color32 color = C32.d2c(base.effect_confusion ? 4289571750U : 4283780170U);
+			for (int i = ((num == 0) ? (-1) : 0); i < num; i++)
+			{
+				WeatherItem weatherItem = ((i < 0) ? null : weatherArray[i]);
+				WeatherItem.WEATHER weather = ((weatherItem == null) ? WeatherItem.WEATHER.NORMAL : weatherItem.weather);
+				UiBoxDesigner.addPTo(Tab, "<img mesh=\"weather." + ((int)((i == -1) ? WeatherItem.WEATHER.NORMAL : weatherItem.weather)).ToString() + "\" />" + TX.Get("Weather_" + weather.ToString().ToLower(), ""), ALIGN.CENTER, 120f, true, 0f, "", -1);
+				Tab.addP(new DsnDataP("", false)
+				{
+					text = TX.Get("Weather_desc_" + weather.ToString().ToLower(), ""),
+					alignx = ALIGN.LEFT,
+					swidth = Tab.use_w - 10f,
+					html = true,
+					size = 14f,
+					text_auto_wrap = true,
+					Col = color
+				}, false);
+				Tab.Br();
+			}
+			DsnDataButton dsnDataButton = new DsnDataButton();
+			dsnDataButton.unselectable = 1;
+			dsnDataButton.name = "danger_last";
+			dsnDataButton.title = "danger_last";
+			dsnDataButton.skin = "transparent";
+			dsnDataButton.skin_title = "";
+			dsnDataButton.w = Tab.use_w;
+			dsnDataButton.h = 2f;
+			dsnDataButton.fnClick = (aBtn B) => false;
+			aBtn aBtn5 = Tab.addButton(dsnDataButton);
+			aBtn5.click_snd = null;
+			if (aBtn != null)
+			{
+				aBtn.setNaviT(aBtn5, true, true);
+				this.DgnFirstBtn = aBtn;
+			}
+			if (aBtn2 != null)
+			{
+				aBtn2.setNaviB(aBtn5, true, true);
+			}
+		}
+
+		private bool fnDrawDangerousness(MeshDrawer Md, FillImageBlock FI, float alpha, ref bool update_meshdrawer)
+		{
+			if (this.DangerousMeter == null)
+			{
+				return false;
+			}
+			if (!Md.hasMultipleTriangle())
+			{
+				if (this.Tab.Get("magnity", false) == null)
+				{
+					return false;
+				}
+				this.DangerousMeter.initMesh(Md, FI.getMeshRenderer(), true, 1f, this.Tab.stencil_ref);
+				this.DangerousMeter.speed_ratio = 0.7f;
+				int dangerMeterVal = base.M2D.NightCon.getDangerMeterVal(false, false);
+				this.DangerousMeter.val = dangerMeterVal;
+				this.DangerousMeter.already_show = dangerMeterVal;
+			}
+			update_meshdrawer = false;
+			Md.clear(false, false);
+			this.DangerousMeter.Redraw(Md, 4000f, true, alpha);
+			Md.chooseSubMesh(0, false, false);
+			Md.updateForMeshRenderer(true);
+			return true;
+		}
+
+		internal override GMC_RES runEdit(float fcnt, bool handle)
+		{
+			GMC_RES gmc_RES = base.runEdit(fcnt, handle);
+			if (gmc_RES != GMC_RES.CONTINUE)
+			{
+				return gmc_RES;
+			}
+			if (base.M2D.IMNG.has_recipe_collection && base.M2D.isRbkPD() && aBtn.PreSelected != null && aBtn.PreSelected is UiFieldGuide.IFieldGuideOpenable && this.GM.initRecipeBook(UiGMCStat.STATUS_CTG.BATTLEAREA, aBtn.PreSelected))
+			{
+				return GMC_RES.QUIT_GM;
+			}
+			return gmc_RES;
+		}
+
 		internal static UiGMCStat.STATUS_CTG status_tab;
 
 		private ColumnRowNel RTabBar;
@@ -413,6 +535,8 @@ namespace nel.gm
 
 		private UiGMCStat.StatMem StatusMem;
 
+		private aBtn DgnFirstBtn;
+
 		private const int ui_confuse_level = 1;
 
 		protected Designer.EvacuateContainer[] AEvCon;
@@ -422,7 +546,7 @@ namespace nel.gm
 			CONDITION,
 			FOOD,
 			SEXUAL,
-			DANGEROUSNESS,
+			BATTLEAREA,
 			_MAX
 		}
 

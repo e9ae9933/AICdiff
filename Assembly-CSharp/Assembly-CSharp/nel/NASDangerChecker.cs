@@ -47,7 +47,7 @@ namespace nel
 					}
 				}
 			}
-			this.Ray.hittype = (this.Ray.hittype | HITTYPE.TARGET_CHECKER) & (HITTYPE)(-12582945);
+			this.Ray.hittype = (this.Ray.hittype | HITTYPE.TARGET_CHECKER) & ~(HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED);
 			this.Ray.PosMap(base.x, base.y);
 			this.t_danger.Update(fcnt);
 			return true;

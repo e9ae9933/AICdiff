@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using evt;
 using m2d;
+using nel.gm;
 using UnityEngine;
 using XX;
 
@@ -9,8 +10,25 @@ namespace nel
 {
 	public sealed class UiWarpConfirm : UiBoxDesignerFamily, IEventWaitListener
 	{
-		public static UiWarpConfirm.CTYPE checkUseConfirm(WholeMapItem CurWM, WholeMapItem NextWM)
+		public bool isAlreadyChecked(UiWarpConfirm.CTYPE type)
 		{
+			return (this.already_checked & (1U << (int)type)) > 0U;
+		}
+
+		public static bool isAlreadyChecked(UiWarpConfirm ContinueChecking, UiWarpConfirm.CTYPE type)
+		{
+			return ContinueChecking != null && ContinueChecking.isAlreadyChecked(type);
+		}
+
+		public static bool need_recheck_ctype(UiWarpConfirm.CTYPE type)
+		{
+			return type == UiWarpConfirm.CTYPE.FOODLOST || type == UiWarpConfirm.CTYPE.GOHOME_GQ;
+		}
+
+		public static UiWarpConfirm.CTYPE checkUseConfirm(WholeMapItem CurWM, WholeMapItem NextWM, out object Target, UiWarpConfirm ContinueChecking = null)
+		{
+			Target = null;
+			ContinueChecking == null;
 			if (CurWM == NextWM)
 			{
 				return UiWarpConfirm.CTYPE.OFFLINE;
@@ -27,12 +45,46 @@ namespace nel
 			}
 			if (NextWM.safe_area)
 			{
-				return UiWarpConfirm.CTYPE.TREASUREBOX;
+				Vector2Int vector2Int;
+				if (!UiWarpConfirm.isAlreadyChecked(ContinueChecking, UiWarpConfirm.CTYPE.GOHOME_GQ) && UiWarpConfirm.M2D.GUILD.checkDepertTargetNotFinished(CurWM, out vector2Int, true))
+				{
+					Target = vector2Int;
+					return UiWarpConfirm.CTYPE.GOHOME_GQ;
+				}
+				if (!UiWarpConfirm.isAlreadyChecked(ContinueChecking, UiWarpConfirm.CTYPE.TREASUREBOX))
+				{
+					List<ItemStorage.IRow> list = new List<ItemStorage.IRow>();
+					UiWarpConfirm.M2D.IMNG.getInventory().getItemCountFn((ItemStorage.IRow IRow) => IRow.Data.is_reelmbox, list);
+					if (list.Count != 0)
+					{
+						Target = list;
+						return UiWarpConfirm.CTYPE.TREASUREBOX;
+					}
+				}
 			}
-			UiWarpConfirm.AFoodRow = new List<ItemStorage.IRow>(4);
-			if (UiWarpConfirm.M2D.IMNG.getInventory().getItemCountFn(NelItem.isRawFood, UiWarpConfirm.AFoodRow) > 0)
+			else
 			{
-				return UiWarpConfirm.CTYPE.FOODLOST;
+				WholeMapItem wholeMapItem;
+				if (!NextWM.safe_area && !UiWarpConfirm.isAlreadyChecked(ContinueChecking, UiWarpConfirm.CTYPE.GOOUT_GQ) && UiWarpConfirm.M2D.GUILD.hasAnotherDepertTarget(NextWM, out wholeMapItem))
+				{
+					Target = wholeMapItem;
+					return UiWarpConfirm.CTYPE.GOOUT_GQ;
+				}
+				if (!UiWarpConfirm.isAlreadyChecked(ContinueChecking, UiWarpConfirm.CTYPE.FOODLOST))
+				{
+					if (UiWarpConfirm.AFoodRow == null)
+					{
+						UiWarpConfirm.AFoodRow = new List<ItemStorage.IRow>(4);
+					}
+					else
+					{
+						UiWarpConfirm.AFoodRow.Clear();
+					}
+					if (UiWarpConfirm.M2D.IMNG.getInventory().getItemCountFn(NelItem.isRawFood, UiWarpConfirm.AFoodRow) > 0)
+					{
+						return UiWarpConfirm.CTYPE.FOODLOST;
+					}
+				}
 			}
 			return UiWarpConfirm.CTYPE.OFFLINE;
 		}
@@ -61,13 +113,8 @@ namespace nel
 			this.BxC.anim_time(22);
 			this.BxC.use_scroll = false;
 			this.BxC.Focusable(false, false, null);
-			this.BxC.margin_in_lr = 50f;
-			this.BxC.btn_height = 30f;
-			this.BxC.item_margin_y_px = 4f;
-			this.BxC.selectable_loop |= 2;
 			this.BxC.getBox().frametype = UiBox.FRAMETYPE.MAIN;
 			this.BxC.animate_maxt = 0;
-			this.BxC.alignx = ALIGN.CENTER;
 			this.deactivate(true);
 		}
 
@@ -102,12 +149,21 @@ namespace nel
 			return this;
 		}
 
-		public UiWarpConfirm Init(UiWarpConfirm.CTYPE _type, object OTarget = null, WholeMapItem NextWM = null)
+		public UiWarpConfirm Init(UiWarpConfirm.CTYPE _type, object OTarget = null, WholeMapItem _NextWM = null)
 		{
+			SND.Ui.play("paper", false);
 			this.type = _type;
+			this.NextWM = _NextWM;
+			this.already_checked |= 1U << (int)_type;
 			this.activate();
 			this.BxC.Clear();
-			if (NextWM != null)
+			this.BxC.alignx = ALIGN.CENTER;
+			this.BxC.btn_height = 30f;
+			this.BxC.margin_in_lr = 50f;
+			this.BxC.item_margin_y_px = 4f;
+			this.BxC.selectable_loop |= 2;
+			this.BxC.init();
+			if (this.NextWM != null)
 			{
 				this.BxC.margin_in_tb = 20f;
 				this.BxC.addImg(new DsnDataImg
@@ -119,7 +175,7 @@ namespace nel
 					swidth = this.BxC.use_w * 0.6f,
 					sheight = 52f,
 					size = 20f,
-					text = NextWM.localized_name_areatitle,
+					text = this.NextWM.localized_name_areatitle,
 					FnDrawInFIB = new FillImageBlock.FnDrawInFIB(this.fnDrawInFIBWarpTo)
 				});
 				this.BxC.Br();
@@ -139,15 +195,17 @@ namespace nel
 				swidth = this.BxC.use_w,
 				size = 18f
 			};
+			this.cancel_key = null;
 			this.ATreasure = null;
+			int num = 0;
 			switch (this.type)
 			{
 			case UiWarpConfirm.CTYPE.TREASUREBOX:
 			{
-				this.ATreasure = new List<ItemStorage.IRow>();
-				this.BxC.add(dsnDataP.Text(TX.GetA("current_dangerous", UiWarpConfirm.M2D.NightCon.getDangerMeterVal(false).ToString()))).Br();
+				this.ATreasure = OTarget as List<ItemStorage.IRow>;
+				this.BxC.add(dsnDataP.Text(TX.GetA("current_dangerous", UiWarpConfirm.M2D.NightCon.getDangerMeterVal(false, false).ToString()))).Br();
 				string text = "&&Submit_gohome";
-				if (UiWarpConfirm.M2D.IMNG.getInventory().getItemCountFn((ItemStorage.IRow IRow) => IRow.Data.is_reelmbox, this.ATreasure) > 0)
+				if (this.ATreasure.Count > 0)
 				{
 					int count = this.ATreasure.Count;
 					for (int i = 0; i < count; i++)
@@ -235,6 +293,34 @@ namespace nel
 				list.Add("&&Submit_discard");
 				break;
 			}
+			case UiWarpConfirm.CTYPE.GOOUT_GQ:
+			{
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					WholeMapItem wholeMapItem = OTarget as WholeMapItem;
+					stb.AddTxA("Guild_alert_goout_another_area", false).TxRpl(wholeMapItem.localized_name).TxRpl(this.NextWM.localized_name);
+					this.BxC.add(dsnDataP.Text(stb)).Br();
+					list.Add("&&Submit_goout");
+					list.Add("&&Guild_Btn_open_quest_tab");
+				}
+				num = 2;
+				this.cancel_key = "&&Store_desc_cancel";
+				break;
+			}
+			case UiWarpConfirm.CTYPE.GOHOME_GQ:
+			{
+				using (STB stb2 = TX.PopBld(null, 0))
+				{
+					Vector2Int vector2Int = (Vector2Int)OTarget;
+					stb2.AddTxA("Guild_alert_backhome_without_clear", false).TxRpl(vector2Int.y).TxRpl(vector2Int.x);
+					this.BxC.add(dsnDataP.Text(stb2)).Br();
+					list.Add("&&Submit_gohome_abort_quest");
+					list.Add("&&Guild_Btn_open_quest_tab");
+				}
+				num = 2;
+				this.cancel_key = "&&Store_desc_cancel";
+				break;
+			}
 			}
 			this.BxC.addHr(new DsnDataHr
 			{
@@ -242,7 +328,10 @@ namespace nel
 				margin_t = 50f,
 				margin_b = 0f
 			});
-			this.cancel_key = ((list.Count == 0) ? "&&Submit" : "&&Cancel");
+			if (this.cancel_key == null)
+			{
+				this.cancel_key = ((list.Count == 0) ? "&&Submit" : "&&Cancel");
+			}
 			list.Add(this.cancel_key);
 			Designer bxC = this.BxC;
 			DsnDataButtonMulti dsnDataButtonMulti = new DsnDataButtonMulti();
@@ -263,7 +352,7 @@ namespace nel
 				}
 				return true;
 			};
-			(this.BCon = bxC.addButtonMultiT<aBtnNel>(dsnDataButtonMulti)).Get(0).Select(false);
+			(this.BCon = bxC.addButtonMultiT<aBtnNel>(dsnDataButtonMulti)).Get(num).Select(true);
 			this.BxC.positionD(X.Mx(0f, (!UiWarpConfirm.M2D.GM.isActive()) ? UiWarpConfirm.M2D.ui_shift_x : 0f), 0f, 1, 30f);
 			IN.clearPushDown(true);
 			return this;
@@ -287,7 +376,7 @@ namespace nel
 				}
 				else
 				{
-					aBtn.Select(false);
+					aBtn.Select(true);
 				}
 			}
 			return true;
@@ -302,117 +391,162 @@ namespace nel
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(title);
 				if (num <= 1221219917U)
 				{
-					if (num <= 1109359485U)
+					if (num <= 186111811U)
 					{
-						if (num != 186111811U)
+						if (num != 183237725U)
 						{
-							if (num != 1109359485U)
+							if (num != 186111811U)
 							{
-								goto IL_028A;
+								goto IL_030C;
 							}
-							if (!(title == "&&Submit_deposit_goout"))
+							if (!(title == "&&Cancel"))
 							{
-								goto IL_028A;
+								goto IL_030C;
 							}
-							int num2 = 0;
-							int i = 0;
-							int count = UiWarpConfirm.AFoodRow.Count;
-							while (i < count)
-							{
-								ItemStorage.IRow row = UiWarpConfirm.AFoodRow[i];
-								if (row.Data.RecipeInfo != null && row.Data.RecipeInfo.DishInfo != null)
-								{
-									NelItem data = row.Data;
-									int calced_grade = row.Data.RecipeInfo.DishInfo.calced_grade;
-									int num3 = X.Mn(row.total, UiWarpConfirm.M2D.IMNG.getInventory().getCount(row.Data, calced_grade));
-									if (num3 > 0)
-									{
-										UiWarpConfirm.M2D.IMNG.getInventory().Reduce(data, num3, calced_grade, false);
-										UiWarpConfirm.M2D.IMNG.getHouseInventory().Add(data, num3, calced_grade, true, true);
-										num2 += num3;
-									}
-								}
-								i++;
-							}
-							if (num2 > 0)
-							{
-								UiWarpConfirm.M2D.IMNG.getInventory().fineRows(false);
-							}
-							UILog.Instance.AddAlert(TX.GetA("Alert_depositted_food", num2.ToString()), UILogRow.TYPE.ALERT);
-							text = "1";
-							goto IL_028A;
 						}
-						else if (!(title == "&&Cancel"))
+						else if (!(title == "&&Store_desc_cancel"))
 						{
-							goto IL_028A;
+							goto IL_030C;
 						}
 					}
-					else if (num != 1170277763U)
+					else if (num != 1109359485U)
 					{
-						if (num != 1221219917U)
+						if (num != 1170277763U)
 						{
-							goto IL_028A;
+							if (num != 1221219917U)
+							{
+								goto IL_030C;
+							}
+							if (!(title == "&&Submit"))
+							{
+								goto IL_030C;
+							}
 						}
-						if (!(title == "&&Submit"))
+						else
 						{
-							goto IL_028A;
+							if (!(title == "&&Submit_gohome"))
+							{
+								goto IL_030C;
+							}
+							goto IL_0306;
 						}
 					}
 					else
 					{
-						if (!(title == "&&Submit_gohome"))
+						if (!(title == "&&Submit_deposit_goout"))
 						{
-							goto IL_028A;
+							goto IL_030C;
 						}
-						goto IL_0284;
+						int num2 = 0;
+						int i = 0;
+						int count = UiWarpConfirm.AFoodRow.Count;
+						while (i < count)
+						{
+							ItemStorage.IRow row = UiWarpConfirm.AFoodRow[i];
+							if (row.Data.RecipeInfo != null && row.Data.RecipeInfo.DishInfo != null)
+							{
+								NelItem data = row.Data;
+								int calced_grade = row.Data.RecipeInfo.DishInfo.calced_grade;
+								int num3 = X.Mn(row.total, UiWarpConfirm.M2D.IMNG.getInventory().getCount(row.Data, calced_grade));
+								if (num3 > 0)
+								{
+									UiWarpConfirm.M2D.IMNG.getInventory().Reduce(data, num3, calced_grade, false);
+									UiWarpConfirm.M2D.IMNG.getHouseInventory().Add(data, num3, calced_grade, true, true);
+									num2 += num3;
+								}
+							}
+							i++;
+						}
+						if (num2 > 0)
+						{
+							UiWarpConfirm.M2D.IMNG.getInventory().fineRows(false);
+						}
+						UILog.Instance.AddAlert(TX.GetA("Alert_depositted_food", num2.ToString()), UILogRow.TYPE.ALERT);
+						text = "1";
+						goto IL_030C;
 					}
 					text = "0";
-					goto IL_028A;
+					goto IL_030C;
 				}
 				if (num <= 3575607824U)
 				{
-					if (num != 2259569736U)
+					if (num != 1235684477U)
 					{
-						if (num != 3575607824U)
+						if (num != 2259569736U)
 						{
-							goto IL_028A;
+							if (num != 3575607824U)
+							{
+								goto IL_030C;
+							}
+							if (!(title == "&&Submit_discard"))
+							{
+								goto IL_030C;
+							}
+							goto IL_0306;
 						}
-						if (!(title == "&&Submit_discard"))
+						else if (!(title == "&&Submit_goout"))
 						{
-							goto IL_028A;
+							goto IL_030C;
 						}
 					}
 					else
 					{
-						if (!(title == "&&Submit_goout"))
+						if (!(title == "&&Guild_Btn_open_quest_tab"))
 						{
-							goto IL_028A;
+							goto IL_030C;
 						}
-						text = "1";
-						goto IL_028A;
+						text = "0";
+						UiWarpConfirm.M2D.GM.activateScenario(UiGameMenu.SCENARIO_CTG.SUB_QUEST);
+						goto IL_030C;
 					}
 				}
-				else if (num != 4031996910U)
+				else if (num != 3675670019U)
 				{
-					if (num != 4109424027U)
+					if (num != 4031996910U)
 					{
-						goto IL_028A;
+						if (num != 4109424027U)
+						{
+							goto IL_030C;
+						}
+						if (!(title == "&&Submit_wait"))
+						{
+							goto IL_030C;
+						}
+						goto IL_0306;
 					}
-					if (!(title == "&&Submit_wait"))
+					else
 					{
-						goto IL_028A;
+						if (!(title == "&&Submit_gohome_opening_box"))
+						{
+							goto IL_030C;
+						}
+						goto IL_0306;
 					}
 				}
-				else if (!(title == "&&Submit_gohome_opening_box"))
+				else if (!(title == "&&Submit_gohome_abort_quest"))
 				{
-					goto IL_028A;
+					goto IL_030C;
 				}
-				IL_0284:
+				text = "1";
+				goto IL_030C;
+				IL_0306:
 				text = "1";
 			}
-			IL_028A:
+			IL_030C:
 			if (text != null)
 			{
+				if (text == "1" && this.NextWM != null)
+				{
+					object obj;
+					UiWarpConfirm.CTYPE ctype = UiWarpConfirm.checkUseConfirm(UiWarpConfirm.M2D.WM.CurWM, this.NextWM, out obj, this);
+					if (ctype != UiWarpConfirm.CTYPE.OFFLINE)
+					{
+						this.BxC.WHanim(this.main_w, this.main_h, true, true);
+						this.BxC.wh_animZero(true, true);
+						this.Init(ctype, obj, this.NextWM);
+						return true;
+					}
+				}
 				this.prompt_result = text;
 				UiWarpConfirm.AFoodRow = null;
 				this.deactivate(false);
@@ -448,34 +582,53 @@ namespace nel
 
 		private bool fnDrawReel(MeshDrawer Md, float alpha)
 		{
-			alpha *= this.BxC.animating_alpha;
-			if (alpha <= 0f)
+			bool flag = true;
+			try
 			{
-				Md.clearSimple();
-				return false;
+				alpha *= this.BxC.animating_alpha;
+				if (alpha <= 0f)
+				{
+					Md.clearSimple();
+					return false;
+				}
+				if (this.ATreasure == null)
+				{
+					return true;
+				}
+				int num = X.NmI(Md.activation_key, 0, false, false);
+				ItemStorage.IRow row = (X.BTW(0f, (float)num, (float)this.ATreasure.Count) ? this.ATreasure[num] : null);
+				if (row == null)
+				{
+					return true;
+				}
+				ItemStorage.ObtainInfo info = row.Info;
+				ReelManager.ItemReelContainer ir = ReelManager.GetIR(row.Data);
+				flag = this.BxC.animating_alpha == 1f;
+				ir.drawSmallIcon(Md, (info.total > 1) ? (-8f) : 0f, 0f, alpha, 2f, false);
+				if (info.total > 1)
+				{
+					Md.Col = C32.MulA(4283780170U, alpha);
+					STB stb = TX.PopBld(null, 0);
+					stb += "x";
+					stb += info.total;
+					MTRX.ChrM.DrawScaleStringTo(Md, stb, 38f, -21f, 2f, 2f, ALIGN.RIGHT, ALIGNY.BOTTOM, false, 0f, 0f, null);
+					TX.ReleaseBld(stb);
+				}
+				Md.updateForMeshRenderer(false);
 			}
-			int num = X.NmI(Md.activation_key, 0, false, false);
-			ItemStorage.IRow row = this.ATreasure[num];
-			ItemStorage.ObtainInfo info = row.Info;
-			ReelManager.ItemReelContainer ir = ReelManager.GetIR(row.Data);
-			bool flag = this.BxC.animating_alpha == 1f;
-			ir.drawSmallIcon(Md, (info.total > 1) ? (-8f) : 0f, 0f, alpha, 2f, false);
-			if (info.total > 1)
+			catch
 			{
-				Md.Col = C32.MulA(4283780170U, alpha);
-				STB stb = TX.PopBld(null, 0);
-				stb += "x";
-				stb += info.total;
-				MTRX.ChrM.DrawScaleStringTo(Md, stb, 38f, -21f, 2f, 2f, ALIGN.RIGHT, ALIGNY.BOTTOM, false, 0f, 0f, null);
-				TX.ReleaseBld(stb);
+				Md.updateForMeshRenderer(false);
+				return true;
 			}
-			Md.updateForMeshRenderer(false);
 			return flag;
 		}
 
 		private static NelM2DBase M2D;
 
 		private static List<ItemStorage.IRow> AFoodRow;
+
+		public uint already_checked;
 
 		private UiBoxDesigner BxC;
 
@@ -499,6 +652,8 @@ namespace nel
 
 		private BtnContainer<aBtn> BCon;
 
+		private WholeMapItem NextWM;
+
 		private List<ItemStorage.IRow> ATreasure;
 
 		public bool input_to_varcon = true;
@@ -511,7 +666,9 @@ namespace nel
 			TREASUREBOX,
 			FOODLOST,
 			WAIT_NIGHTINGALE,
-			REEL_DISCARD
+			REEL_DISCARD,
+			GOOUT_GQ,
+			GOHOME_GQ
 		}
 	}
 }

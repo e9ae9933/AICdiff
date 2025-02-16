@@ -415,25 +415,31 @@ namespace m2d
 					}
 					return 520f;
 				case 0:
+				case 6:
+				case 7:
+				case 8:
+				case 9:
+				case 10:
+				case 11:
 					break;
 				case 1:
 					if (mode != MAPMODE.NORMAL && !Map2d.isTempMode(mode))
 					{
 						return 0.05f;
 					}
-					return 400f;
+					return 385f;
 				case 2:
 					if (mode != MAPMODE.NORMAL && !Map2d.isTempMode(mode))
 					{
 						return 0.04f;
 					}
-					return 340f;
+					return 410f;
 				case 3:
 					if (mode != MAPMODE.NORMAL && !Map2d.isTempMode(mode))
 					{
 						return 0.039f;
 					}
-					return 320f;
+					return 405f;
 				case 4:
 					if (mode != MAPMODE.NORMAL && !Map2d.isTempMode(mode))
 					{
@@ -444,29 +450,39 @@ namespace m2d
 						return 310f;
 					}
 					return 130f;
+				case 5:
+					if (mode != MAPMODE.NORMAL && !Map2d.isTempMode(mode))
+					{
+						return -50.5f;
+					}
+					if (!this.draw_TT_over_mv)
+					{
+						return 305f;
+					}
+					return 125f;
+				case 12:
+					if (mode == MAPMODE.SUBMAP)
+					{
+						return -2f;
+					}
+					return 387.5f;
+				case 13:
+					if (mode == MAPMODE.SUBMAP)
+					{
+						return -1f;
+					}
+					return 383.5f;
 				default:
 					switch (layer)
 					{
-					case 12:
-						if (mode == MAPMODE.SUBMAP)
-						{
-							return -2f;
-						}
-						return 402.5f;
-					case 13:
-						if (mode == MAPMODE.SUBMAP)
-						{
-							return -1f;
-						}
-						return 398.5f;
 					case 19:
 						return ((mode == MAPMODE.NORMAL || Map2d.isTempMode(mode)) ? 520f : 0.07f) - 1.5f;
 					case 20:
 						return ((mode == MAPMODE.NORMAL || Map2d.isTempMode(mode)) ? 500f : 0.06f) - 1.5f;
 					case 21:
-						return ((mode == MAPMODE.NORMAL || Map2d.isTempMode(mode)) ? 400f : 0.05f) - 1.5f;
+						return ((mode == MAPMODE.NORMAL || Map2d.isTempMode(mode)) ? 385f : 0.05f) - 1.5f;
 					case 22:
-						return ((mode == MAPMODE.NORMAL || Map2d.isTempMode(mode)) ? (this.draw_TT_over_mv ? 118f : 340f) : 0.04f) - 1.5f;
+						return ((mode == MAPMODE.NORMAL || Map2d.isTempMode(mode)) ? (this.draw_TT_over_mv ? 118f : 410f) : 0.04f) - 1.5f;
 					}
 					break;
 				}
@@ -484,9 +500,9 @@ namespace m2d
 				}
 				if (layer != -11)
 				{
-					return 370f;
+					return 425f;
 				}
-				return 370f;
+				return 425f;
 			}
 		}
 
@@ -676,8 +692,11 @@ namespace m2d
 			return false;
 		}
 
-		public virtual void getTextureForUiBg(ref RenderTexture TxB, ref RenderTexture TxG)
+		public virtual void getTextureForUiBg(out RenderTexture TxB, out RenderTexture TxG)
 		{
+			RenderTexture renderTexture;
+			TxG = (renderTexture = null);
+			TxB = renderTexture;
 		}
 
 		public M2DBase M2D

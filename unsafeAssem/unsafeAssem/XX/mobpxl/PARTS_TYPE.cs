@@ -2,7 +2,7 @@
 
 namespace XX.mobpxl
 {
-	internal enum PARTS_TYPE
+	public enum PARTS_TYPE
 	{
 		_OTHER = -1,
 		LARM2,

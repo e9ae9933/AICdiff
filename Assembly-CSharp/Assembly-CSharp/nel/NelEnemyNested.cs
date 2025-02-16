@@ -1,5 +1,6 @@
 ﻿using System;
 using m2d;
+using nel.smnp;
 using XX;
 
 namespace nel
@@ -8,12 +9,13 @@ namespace nel
 	{
 		public static NelEnemyNested CreateNest(NelEnemy _Parent, string enemykindkey, float mp_ratio, int array_create_capacity = 4)
 		{
-			EnemySummoner summoner = _Parent.Summoner;
-			EnemySummoner.SmnEnemyKind smnEnemyKind = new EnemySummoner.SmnEnemyKind(enemykindkey, 1, -1, mp_ratio, mp_ratio, "", 0f, 0f)
+			SummonerPlayer summoner = _Parent.Summoner;
+			SmnEnemyKind smnEnemyKind = new SmnEnemyKind(enemykindkey, 1, -1, mp_ratio, mp_ratio, "", 0f, 0f, ENATTR.NORMAL)
 			{
-				temporary_adding_count = true
+				temporary_adding_count = true,
+				nattr = _Parent.nattr
 			};
-			EnemySummoner.SmnPoint smnPoint = new EnemySummoner.SmnPoint(null, _Parent.x, _Parent.y, 1f, null)
+			SmnPoint smnPoint = new SmnPoint(summoner, _Parent.x, _Parent.y, 1f, null)
 			{
 				sudden_appear = true
 			};
@@ -29,8 +31,10 @@ namespace nel
 		{
 			this.Parent = _Parent;
 			this.do_not_shuffle_on_cheat = true;
+			this.ringoutable = false;
 			this.Parent.addNestedChild(this, array_create_capacity);
 			this.Parent.getAnimator().checkframe_on_drawing = false;
+			base.disappearing = this.Parent.disappearing;
 			this.Nai.AimPr = this.Parent.AimPr;
 			this.Nai.fnSearchPlayer = delegate(float fix)
 			{
@@ -166,6 +170,62 @@ namespace nel
 			base.addHpWithAbsorbing(val);
 		}
 
+		public override bool Useable(NOD.MpConsume _Mcs, float ratio = 1f, float add = 0f)
+		{
+			if (this.mana_absorb_to_parent)
+			{
+				return this.Parent.Useable(_Mcs, ratio, add);
+			}
+			return base.Useable(_Mcs, ratio, add);
+		}
+
+		public override void MpConsume(float x, float y, NOD.MpConsume _Mcs, MagicItem Mg = null, float ratio = 1f, float release_ratio = 1f)
+		{
+			if (this.mana_absorb_to_parent)
+			{
+				this.Parent.MpConsume(x, y, _Mcs, Mg, ratio, release_ratio);
+				return;
+			}
+			base.MpConsume(x, y, _Mcs, Mg, ratio, release_ratio);
+		}
+
+		public override void cureMp(int val)
+		{
+			if (this.mana_absorb_to_parent)
+			{
+				this.Parent.cureMp(val);
+				return;
+			}
+			base.cureMp(val);
+		}
+
+		public override float getEnlargeLevel()
+		{
+			if (this.mana_absorb_to_parent)
+			{
+				return this.Parent.getEnlargeLevel();
+			}
+			return base.getEnlargeLevel();
+		}
+
+		public override bool runDamageSmall()
+		{
+			if (this.t <= 0f && this.sync_damagestate)
+			{
+				this.Parent.changeStateDamageFromNest();
+			}
+			return base.runDamageSmall();
+		}
+
+		public override bool runDamageHuttobi()
+		{
+			if (this.t <= 0f && this.sync_damagestate)
+			{
+				this.Parent.changeStateDamageHuttobiFromNest();
+			}
+			return base.runDamageHuttobi();
+		}
+
 		public override bool cannotHitTo(M2Mover Mv)
 		{
 			return Mv == this.Parent || base.cannotHitTo(Mv);
@@ -216,7 +276,12 @@ namespace nel
 
 		public override void prepareHpMpBarMesh()
 		{
-			if (this.damage_parry > 0f)
+			if (this.sync_damagestate && base.hasF(NelEnemy.FLAG.FINE_HPMP_BAR_CREATE))
+			{
+				this.Parent.addF((NelEnemy.FLAG)768);
+				this.Parent.prepareHpMpBarMesh();
+			}
+			else if (this.damage_parry > 0f)
 			{
 				this.Parent.prepareHpMpBarMesh();
 			}
@@ -264,6 +329,10 @@ namespace nel
 
 		public override int applyMpDamage(int val, bool force = false, AttackInfo Atk = null)
 		{
+			if (this.mana_absorb_to_parent)
+			{
+				return this.Parent.applyMpDamage(val, force, Atk);
+			}
 			int num = 0;
 			if (this.damage_parry > 0f)
 			{
@@ -289,7 +358,7 @@ namespace nel
 			{
 				return RAYHIT.NONE;
 			}
-			if ((Ray.hittype & (HITTYPE)16777280) == HITTYPE.AUTO_TARGET && this.no_auto_target)
+			if ((Ray.hittype & (HITTYPE.AUTO_TARGET | HITTYPE.TARGET_CHECKER)) == HITTYPE.AUTO_TARGET && this.no_auto_target)
 			{
 				return RAYHIT.NONE;
 			}
@@ -322,6 +391,18 @@ namespace nel
 			return X.NI(base.getHpDamagePublishRatio(Mg), this.Parent.getHpDamagePublishRatio(Mg), this.publishdmg_calc_parent);
 		}
 
+		public override float invisible_cosi
+		{
+			get
+			{
+				if (this.damage_parry > 0f)
+				{
+					return this.Parent.invisible_cosi;
+				}
+				return base.invisible_cosi;
+			}
+		}
+
 		public NelEnemy Parent;
 
 		public float damage_parry = 1f;
@@ -331,6 +412,12 @@ namespace nel
 		public float publishdmg_calc_parent = 1f;
 
 		public bool hp0_remove;
+
+		public bool sync_disappear;
+
+		public bool sync_damagestate;
+
+		public bool sync_aim_from_parent;
 
 		public float base_applydmg_hp_ratio = 1f;
 

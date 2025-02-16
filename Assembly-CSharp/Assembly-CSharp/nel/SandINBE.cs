@@ -26,6 +26,7 @@ namespace nel
 			}
 			if (this.t == 1 && PxlsLoader.isLoadCompletedAll())
 			{
+				MTR.prepareShaderInstance();
 				BetobetoManager.initBetobetoManager();
 				this.t = 2;
 				GameObject gameObject = IN.CreateGob(base.gameObject, "-Container");
@@ -53,7 +54,7 @@ namespace nel
 				this.Ds.margin_in_tb = 10f;
 				this.Ds.bgcol = C32.d2c(4283650899U);
 				this.Ds.init();
-				int num = 44;
+				int num = 50;
 				string[] array = (this.Aemot_titles = new string[num]);
 				for (int i = 0; i < num; i++)
 				{
@@ -71,11 +72,11 @@ namespace nel
 					fnDown = new FnBtnBindings(this.fnShowEmotPopup)
 				});
 				List<string> list = new List<string>();
-				for (int j = 0; j < 31; j++)
+				for (uint num3 = 1U; num3 < 1073741825U; num3 <<= 1)
 				{
 					try
 					{
-						UIPictureBase.EMSTATE emstate = (UIPictureBase.EMSTATE)(1 << j);
+						UIPictureBase.EMSTATE emstate = (UIPictureBase.EMSTATE)num3;
 						if (emstate != UIPictureBase.EMSTATE.NORMAL)
 						{
 							string text = emstate.ToString().ToLower();
@@ -89,18 +90,49 @@ namespace nel
 					{
 					}
 				}
-				array = list.ToArray();
 				this.Ds.Br().addChecks(new DsnDataChecks
 				{
 					name = "emstate",
-					keys = array,
+					keysL = list,
 					w = 150f,
-					h = 30f,
-					clms = 3,
+					h = 20f,
+					clms = 4,
 					margin_w = 4,
 					margin_h = 1,
 					scale = 1f,
 					fnClick = new FnBtnBindings(this.fnClickEmState)
+				});
+				this.Ds.Br();
+				List<string> list2 = new List<string>();
+				for (uint num4 = 1U; num4 < 32U; num4 <<= 1)
+				{
+					try
+					{
+						UIPictureBase.EMSTATE_ADD emstate_ADD = (UIPictureBase.EMSTATE_ADD)num4;
+						if (emstate_ADD != UIPictureBase.EMSTATE_ADD.NORMAL)
+						{
+							string text2 = emstate_ADD.ToString().ToLower();
+							if (!REG.match(text2, REG.RegAllNumber))
+							{
+								list2.Add(text2);
+							}
+						}
+					}
+					catch
+					{
+					}
+				}
+				this.Ds.addChecks(new DsnDataChecks
+				{
+					name = "emstateadd",
+					keysL = list2,
+					w = 150f,
+					h = 20f,
+					clms = 4,
+					margin_w = 4,
+					margin_h = 1,
+					scale = 1f,
+					fnClick = new FnBtnBindings(this.fnClickEmStateAdd)
 				});
 				this.Ds.Br();
 				this.Ds.Br().addP(new DsnDataP("Fill ", false), false);
@@ -150,15 +182,15 @@ namespace nel
 					maxval = 200
 				});
 				this.Ds.Br();
-				List<string> list2 = new List<string>(4);
-				for (int k = 0; k < 5; k++)
+				List<string> list3 = new List<string>(4);
+				for (int j = 0; j < 7; j++)
 				{
-					list2.Add(((BetoInfo.TYPE)k).ToString().ToLower());
+					list3.Add(((BetoInfo.TYPE)j).ToString().ToLower());
 				}
 				this.Ds.Br().addRadio(new DsnDataRadio
 				{
 					name = "betotype",
-					keys = list2.ToArray(),
+					keys = list3.ToArray(),
 					w = 150f,
 					h = 22f,
 					clms = 3,
@@ -224,7 +256,7 @@ namespace nel
 			}
 			if (this.t >= 2)
 			{
-				this.UiP.run(1f, false);
+				this.UiP.run(1f, 1f, false);
 				SpineViewerNel.updateTexture();
 				if (IN.getKD(Key.F9, 1))
 				{
@@ -248,6 +280,7 @@ namespace nel
 			if (this.EdMenu == null)
 			{
 				this.EdMenu = new BtnMenu<aBtn>("m2de_menu", 300f, 20f, 0);
+				this.EdMenu.clms = 3;
 				int num = this.Aemot_titles.Length;
 				for (int i = 0; i < num; i++)
 				{
@@ -301,6 +334,22 @@ namespace nel
 			return true;
 		}
 
+		private bool fnClickEmStateAdd(aBtn B)
+		{
+			UIPictureBase.EMSTATE_ADD emstate_ADD;
+			FEnum<UIPictureBase.EMSTATE_ADD>.TryParse(B.title.ToUpper(), out emstate_ADD, true);
+			if (B.isChecked())
+			{
+				this.cur_statea |= emstate_ADD;
+			}
+			else
+			{
+				this.cur_statea &= ~emstate_ADD;
+			}
+			this.fineEmo1(false);
+			return true;
+		}
+
 		private bool fnClickPaintBtn(aBtn B)
 		{
 			string title = B.title;
@@ -323,7 +372,8 @@ namespace nel
 					float value2 = this.MeterScale.getValue();
 					if (value > 0f)
 					{
-						this.BetoMng.Check(new BetoInfo(1000f, c, c2, value, (BetoInfo.TYPE)X.NmI(this.Ds.getValue("betotype"), 0, false, false), value2 / 100f, 0, this.MeterJump.getValue() / 100f), true, true);
+						BetoInfo betoInfo = new BetoInfo(1000f, c, c2, value, (BetoInfo.TYPE)X.NmI(this.Ds.getValue("betotype"), 0, false, false), value2 / 100f, 0, this.MeterJump.getValue() / 100f);
+						this.BetoMng.Check(betoInfo, true, true);
 						this.dirty_level += value;
 					}
 					X.dl(string.Concat(new string[]
@@ -387,6 +437,8 @@ namespace nel
 
 		private UIPictureBase.EMSTATE cur_state;
 
+		private UIPictureBase.EMSTATE_ADD cur_statea;
+
 		private aBtnMeter MeterFill;
 
 		private aBtnMeter MeterJump;
@@ -427,14 +479,14 @@ namespace nel
 			public override UIPictureBase.EMSTATE_ADD getAdditionalState(bool force_fine = false)
 			{
 				UIPictureBase.EMSTATE_ADD pre_sta = this.pre_sta;
-				this.pre_sta = UIPictureBase.EMSTATE_ADD.EMPTY;
+				this.pre_sta = UIPictureBase.EMSTATE_ADD.NORMAL;
 				if (X.SENSITIVE)
 				{
 					this.pre_sta |= UIPictureBase.EMSTATE_ADD.SENSITIVE;
 				}
 				else
 				{
-					this.pre_sta &= (UIPictureBase.EMSTATE_ADD)(-5);
+					this.pre_sta &= ~UIPictureBase.EMSTATE_ADD.SENSITIVE;
 				}
 				if (X.sensitive_level >= 2)
 				{
@@ -442,9 +494,9 @@ namespace nel
 				}
 				else
 				{
-					this.pre_sta &= (UIPictureBase.EMSTATE_ADD)(-9);
+					this.pre_sta &= ~UIPictureBase.EMSTATE_ADD.SP_SENSITIVE;
 				}
-				return this.pre_sta;
+				return this.pre_sta | this.Container.cur_statea;
 			}
 
 			protected override void changeEmotFinalize(Material _Mtr, UIEMOT cemot, UIPictureBase.EMSTATE st, UIPictureFader.UIP_RES res)

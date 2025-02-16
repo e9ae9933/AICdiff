@@ -55,7 +55,7 @@ namespace nel
 			return this.StRecipeTopic;
 		}
 
-		public override void changeTopicTab(RecipeManager.RP_CATEG categ)
+		public override void changeTopicTab(RCP.RP_CATEG categ)
 		{
 			UiCraftBase.changeTopicTabS(this, categ, this.rcp_use_bits);
 		}
@@ -80,14 +80,14 @@ namespace nel
 
 		protected override void fnRecipeTopicRowsPrepare(UiItemManageBox IMng, List<ItemStorage.IRow> ASource, List<ItemStorage.IRow> ADest)
 		{
-			RecipeManager.RP_CATEG rp_CATEG = (RecipeManager.RP_CATEG)X.bit_on_index(this.rcp_use_bits, this.tptab_index);
-			if (rp_CATEG == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+			RCP.RP_CATEG rp_CATEG = (RCP.RP_CATEG)X.bit_on_index(this.rcp_use_bits, this.tptab_index);
+			if (rp_CATEG == RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 			{
 				int count = ASource.Count;
 				for (int i = 0; i < count; i++)
 				{
 					ItemStorage.IRow row = ASource[i];
-					RecipeManager.Recipe recipeS = UiAlchemyWorkBench.getRecipeS(row.Data);
+					RCP.Recipe recipeS = UiAlchemyWorkBench.getRecipeS(row.Data);
 					if (recipeS != null && recipeS.categ == rp_CATEG)
 					{
 						ADest.Add(row);
@@ -98,14 +98,14 @@ namespace nel
 			base.fnRecipeTopicRowsPrepareS(ASource, ADest, rp_CATEG);
 		}
 
-		public override RecipeManager.Recipe getRecipe(NelItem Itm)
+		public override RCP.Recipe getRecipe(NelItem Itm)
 		{
-			RecipeManager.RP_CATEG rp_CATEG = (RecipeManager.RP_CATEG)X.bit_on_index(this.rcp_use_bits, this.tptab_index);
-			if (rp_CATEG == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+			RCP.RP_CATEG rp_CATEG = (RCP.RP_CATEG)X.bit_on_index(this.rcp_use_bits, this.tptab_index);
+			if (rp_CATEG == RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 			{
 				return UiAlchemyWorkBench.getRecipeS(Itm);
 			}
-			if (rp_CATEG == RecipeManager.RP_CATEG.ALOMA)
+			if (rp_CATEG == RCP.RP_CATEG.ALOMA)
 			{
 				return UiAlchemyTRM.getRecipeS(Itm);
 			}
@@ -114,16 +114,16 @@ namespace nel
 
 		protected override string fnRecipeTopicDescAddition(NelItem Itm, UiItemManageBox.DESC_ROW row, string def_string, int grade, ItemStorage.ObtainInfo Obt, int count)
 		{
-			RecipeManager.Recipe recipe = this.getRecipe(Itm);
+			RCP.Recipe recipe = this.getRecipe(Itm);
 			if (recipe == null)
 			{
 				return def_string;
 			}
-			if (recipe.categ == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+			if (recipe.categ == RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 			{
 				return UiAlchemyWorkBench.fnRecipeTopicDescAdditionSForWBench(Itm, row, def_string, grade, Obt, count);
 			}
-			if (recipe.categ == RecipeManager.RP_CATEG.ALOMA)
+			if (recipe.categ == RCP.RP_CATEG.ALOMA)
 			{
 				return UiAlchemyTRM.fnRecipeTopicDescAdditionSForTrm(Itm, row, def_string, grade, Obt, count);
 			}
@@ -144,12 +144,12 @@ namespace nel
 				{
 					return base.topic_row_skin;
 				}
-				RecipeManager.RP_CATEG rp_CATEG = (RecipeManager.RP_CATEG)X.bit_on_index(this.rcp_use_bits, this.tptab_index);
-				if (rp_CATEG == RecipeManager.RP_CATEG.ALOMA)
+				RCP.RP_CATEG rp_CATEG = (RCP.RP_CATEG)X.bit_on_index(this.rcp_use_bits, this.tptab_index);
+				if (rp_CATEG == RCP.RP_CATEG.ALOMA)
 				{
 					return "recipe_trm";
 				}
-				if (rp_CATEG != RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+				if (rp_CATEG != RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 				{
 					return base.topic_row_skin;
 				}
@@ -157,13 +157,13 @@ namespace nel
 			}
 		}
 
-		protected override void prepareRecipe(RecipeManager.Recipe Rcp, NelItem Itm, List<List<UiCraftBase.IngEntryRow>> AAPre = null)
+		protected override void prepareRecipe(RCP.Recipe Rcp, NelItem Itm, List<List<UiCraftBase.IngEntryRow>> AAPre = null)
 		{
-			if (Rcp.categ == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+			if (Rcp.categ == RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 			{
 				UiAlchemyWorkBench.prepareRecipeIngredientS(Rcp, this, AAPre);
 			}
-			if (Rcp.categ == RecipeManager.RP_CATEG.ALOMA)
+			if (Rcp.categ == RCP.RP_CATEG.ALOMA)
 			{
 				this.TargetTrm = UiAlchemyTRM.GetTrmFromItem(Itm.key);
 				if (this.TargetTrm == null || !this.TargetTrm.is_active)
@@ -192,19 +192,14 @@ namespace nel
 			return TX.GetA("aloma_ingredient_title", this.TargetTrm.getNameLocalized());
 		}
 
-		protected override string getCompletionDetail()
+		protected override void getCompletionDetail(STB Stb)
 		{
-			if (this.TargetRcp.categ == RecipeManager.RP_CATEG.ALOMA && this.TargetTrm != null)
+			if (this.TargetRcp.categ == RCP.RP_CATEG.ALOMA && this.TargetTrm != null)
 			{
-				using (STB stb = TX.PopBld(null, 0))
-				{
-					stb.AddTxA("TrmUi_recommend_aloma_making", false).TxRpl(this.TargetTrm.getLocalizedRecommendedItem());
-					stb.Add("\n  -----  \n");
-					stb.Add(this.TargetRcpItm.getDescLocalized(null, 0));
-					return stb.ToString();
-				}
+				Stb.AddTxA("TrmUi_recommend_aloma_making", false).TxRpl(this.TargetTrm.getLocalizedRecommendedItem());
+				Stb.Add("\n  -----  \n");
+				this.TargetRcpItm.getDescLocalized(Stb, null, 0);
 			}
-			return "";
 		}
 
 		public void RevealInBook(object Target)
@@ -215,7 +210,7 @@ namespace nel
 				if (Target is NelItem)
 				{
 					NelItem nelItem = Target as NelItem;
-					RecipeManager.Recipe recipe = RecipeManager.Get(nelItem);
+					RCP.Recipe recipe = RCP.Get(nelItem);
 					if (recipe != null)
 					{
 						Target = recipe;
@@ -226,7 +221,7 @@ namespace nel
 					}
 					else
 					{
-						recipe = RecipeManager.GetForCompletion(nelItem);
+						recipe = RCP.GetForCompletion(nelItem);
 						if (recipe != null)
 						{
 							Target = recipe;
@@ -241,19 +236,19 @@ namespace nel
 						}
 					}
 				}
-				if (Target is RecipeManager.Recipe)
+				if (Target is RCP.Recipe)
 				{
-					RecipeManager.Recipe recipe2 = Target as RecipeManager.Recipe;
+					RCP.Recipe recipe2 = Target as RCP.Recipe;
 					this.changeTopicTab(recipe2.categ);
 					if (this.ItemMng != null)
 					{
-						if (recipe2.categ == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+						if (recipe2.categ == RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 						{
 							using (BList<aBtnItemRow> blist = this.ItemMng.Inventory.PopGetItemRowBtnsFor(recipe2.Completion))
 							{
 								if (blist.Count > 0)
 								{
-									blist[0].Select(false);
+									blist[0].Select(true);
 								}
 								return;
 							}
@@ -265,7 +260,7 @@ namespace nel
 							{
 								if (blist2.Count > 0)
 								{
-									blist2[0].Select(false);
+									blist2[0].Select(true);
 								}
 							}
 						}

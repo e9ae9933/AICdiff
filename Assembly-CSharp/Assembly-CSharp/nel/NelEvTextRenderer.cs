@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using evt;
+using PixelLiner;
 using UnityEngine;
 using XX;
 
@@ -65,6 +66,10 @@ namespace nel
 			}
 			this.Container.FixTextContent(TargetStb);
 			this.Container.progressReserved();
+			if (this.Amtl_index != null)
+			{
+				this.Amtl_index.Clear();
+			}
 			base.Txt(TargetStb);
 			this.us_cp_i = (this.us_char_i = 0);
 			this.t = 1f;
@@ -89,7 +94,7 @@ namespace nel
 		{
 			if (this.t < 0f)
 			{
-				this.t += fcnt;
+				this.t += fcnt * ((this.container_TS - 1f) * 3f + 1f);
 				if (this.t >= 0f || skipping || this.use_noise > 0)
 				{
 					this.t = 0f;
@@ -107,67 +112,12 @@ namespace nel
 			}
 			if (this.t >= 1f)
 			{
-				if (this.us_char_i < this.chr_use_i)
-				{
-					bool flag = false;
-					NelEvTextRenderer.EvChar[] achr = this.AChr;
-					int num = this.us_char_i;
-					float num2 = -1f;
-					bool flag2 = false;
-					while (this.next_progress_t >= 0f && this.t >= this.next_progress_t && !flag2)
-					{
-						for (;;)
-						{
-							if (num2 == -1f)
-							{
-								num2 = this.text_hiding_alpha;
-							}
-							if (!this.showOneChar(this.us_char_i, ref this.AChr[this.us_char_i], num2, -1))
-							{
-								goto Block_9;
-							}
-							this.next_progress_t += this.AChangePos[this.us_cp_i].char_timescale * 1.5f;
-							if (this.byte_talk <= 1)
-							{
-								SND.Ui.play(this.Container.talker_snd, false);
-								this.byte_talk = 4;
-							}
-							flag = true;
-							int num3 = this.us_char_i + 1;
-							this.us_char_i = num3;
-							if (num3 >= this.chr_use_i)
-							{
-								goto Block_11;
-							}
-						}
-						IL_016B:
-						if (this.next_progress_t >= 0f)
-						{
-							continue;
-						}
-						break;
-						Block_9:
-						flag2 = true;
-						goto IL_016B;
-						Block_11:
-						this.allCharShown(false, false, false);
-						flag2 = true;
-						goto IL_016B;
-					}
-					if (flag)
-					{
-					}
-				}
-				else if (!this.Container.all_char_shown)
-				{
-					this.allCharShown(false, false, false);
-				}
-				this.t += fcnt;
+				this.mainUpdateRun(fcnt);
 			}
 			if (this.byte_talk > 1)
 			{
-				int num3 = this.byte_talk - 1;
-				this.byte_talk = num3;
+				int num = this.byte_talk - 1;
+				this.byte_talk = num;
 			}
 			if (this.need_color_update)
 			{
@@ -180,19 +130,19 @@ namespace nel
 				{
 					this.need_character_pos_check = false;
 				}
-				float num4 = X.ZLINE(-this.t, (float)this.DELAY_CONTINUE);
-				float num5 = ((this.t > 0f) ? 0f : ((1f - num4) * 30f * 0.015625f));
+				float num2 = X.ZLINE(-this.t, (float)this.DELAY_CONTINUE);
+				float num3 = ((this.t > 0f) ? 0f : ((1f - num2) * 30f * 0.015625f));
 				this.Md.getColorArray();
 				MeshDrawer md = this.Md;
-				int num6 = X.Mn(this.AChangePos.Count - 1, this.us_cp_i + 1);
-				for (int i = 1; i <= num6; i++)
+				int num4 = X.Mn(this.AChangePos.Count - 1, this.us_cp_i + 1);
+				for (int i = 1; i <= num4; i++)
 				{
 					NelEvTextRenderer.ColorChangePos colorChangePos2 = this.AChangePos[i];
-					int num7 = X.Mn(colorChangePos2.index, this.us_char_i);
-					for (int j = colorChangePos.index; j < num7; j++)
+					int num5 = X.Mn(colorChangePos2.index, this.us_char_i);
+					for (int j = colorChangePos.index; j < num5; j++)
 					{
 						NelEvTextRenderer.EvChar evChar = this.AChr[j];
-						evChar.reposit(this, (this.next_progress_t <= -2f) ? 65535f : this.t, this.Md, j, this.need_pos_update, colorChangePos, num5, EMOT.NORMAL);
+						evChar.reposit(this, (this.next_progress_t <= -2f) ? 65535f : this.t, this.Md, j, this.need_pos_update, colorChangePos, num3, EMOT.NORMAL);
 					}
 					colorChangePos = colorChangePos2;
 				}
@@ -209,6 +159,66 @@ namespace nel
 					this.FnMeshUpdated(this);
 				}
 			}
+		}
+
+		protected virtual void mainUpdateRun(float fcnt)
+		{
+			if (this.us_char_i < this.chr_use_i)
+			{
+				bool flag = false;
+				NelEvTextRenderer.EvChar[] achr = this.AChr;
+				int num = this.us_char_i;
+				float num2 = -1f;
+				bool flag2 = false;
+				while (this.next_progress_t >= 0f && this.t >= this.next_progress_t && !flag2)
+				{
+					for (;;)
+					{
+						if (num2 == -1f)
+						{
+							num2 = this.text_hiding_alpha;
+						}
+						if (!this.showOneChar(this.us_char_i, ref this.AChr[this.us_char_i], num2, -1))
+						{
+							goto Block_3;
+						}
+						this.next_progress_t += this.AChangePos[this.us_cp_i].char_timescale * 1.5f;
+						if (this.byte_talk <= 1)
+						{
+							SND.Ui.play(this.Container.talker_snd, false);
+							this.byte_talk = 4;
+						}
+						flag = true;
+						int num3 = this.us_char_i + 1;
+						this.us_char_i = num3;
+						if (num3 >= this.chr_use_i)
+						{
+							goto Block_5;
+						}
+					}
+					IL_00DF:
+					if (this.next_progress_t >= 0f)
+					{
+						continue;
+					}
+					break;
+					Block_3:
+					flag2 = true;
+					goto IL_00DF;
+					Block_5:
+					this.allCharShown(false, false, false);
+					flag2 = true;
+					goto IL_00DF;
+				}
+				if (flag)
+				{
+				}
+			}
+			else if (!this.Container.all_char_shown)
+			{
+				this.allCharShown(false, false, false);
+			}
+			this.t += fcnt;
 		}
 
 		public void showImmediate(bool show_only_first_char = false, bool play_snd = false)
@@ -271,7 +281,11 @@ namespace nel
 			this.Container.all_char_shown = true;
 			if (!this.hasReservedContent())
 			{
-				this.Container.executeRestMsgCmd();
+				this.Container.executeRestMsgCmd(-1);
+				if (this.Amtl_index != null)
+				{
+					this.Amtl_index.Clear();
+				}
 			}
 		}
 
@@ -334,6 +348,15 @@ namespace nel
 				else
 				{
 					colorArray[j] = color;
+				}
+			}
+			if (this.Amtl_index != null)
+			{
+				while (this.Amtl_index.Count > 0 && this.Amtl_index[0].char_index <= C.char_index)
+				{
+					int count = (int)this.Amtl_index[0].count;
+					this.Container.executeRestMsgCmd((count == 255) ? (-1) : count);
+					this.Amtl_index.RemoveAt(0);
 				}
 			}
 			if (this.use_noise > 0 && !C.noise_attached)
@@ -410,6 +433,10 @@ namespace nel
 				}
 				return NelEvTextRenderer.MtrNoise;
 			}
+			if (mtype == TextRenderer.MESH_TYPE.SPECIAL1)
+			{
+				return NelDwarfCharManager.getMI().getMtr(base.stencil_ref);
+			}
 			return base.SubMeshMtr(mtype);
 		}
 
@@ -468,6 +495,7 @@ namespace nel
 			{
 				this.can_create_big_size_texture = true;
 			}
+			this.container_TS = 1f;
 			this.chr_use_i = 0;
 			this.entry_char_index = 0;
 			this.AChangePos.Clear();
@@ -479,6 +507,7 @@ namespace nel
 				this.next_progress_t = -3f;
 				flag = true;
 			}
+			this.is_dwarf = false;
 			this.insertChangePos(null, null);
 			this.AChangePos[0].startt = 1;
 			if (this.AChr.Length < this.Stb.Length)
@@ -549,6 +578,32 @@ namespace nel
 			return true;
 		}
 
+		public void replaceTxInjection(List<string> A)
+		{
+			if (this.Areserved_text == null)
+			{
+				return;
+			}
+			NelMSGResource.replaceTxInjection(this.Areserved_text, A);
+		}
+
+		protected override TextRenderer.CHAR_INFO_RES GetCharacterInfo(char chr, int index, out CharacterInfo Ch, ref PxlFrame PFReplace, ref float scale, int ext_size_request, float size)
+		{
+			if (!this.is_dwarf)
+			{
+				return base.GetCharacterInfo(chr, index, out Ch, ref PFReplace, ref scale, ext_size_request, size);
+			}
+			Ch = default(CharacterInfo);
+			float num;
+			if (NelDwarfCharManager.getCharacter(this.Stb, index, out PFReplace, out num))
+			{
+				scale = num;
+				base.initMeshSub(TextRenderer.MESH_TYPE.SPECIAL1);
+				return TextRenderer.CHAR_INFO_RES.MESH_REPLACED;
+			}
+			return TextRenderer.CHAR_INFO_RES.CONTINUE;
+		}
+
 		protected override void InputCharacterOnMesh(MeshDrawer Md, char chr, int pre_ver_i, int pre_tri_i, int n_ver_i, int n_tri_i, ref float line_max_scale)
 		{
 			NelEvTextRenderer.EvChar evChar = new NelEvTextRenderer.EvChar(this, pre_ver_i, n_ver_i, this.entry_char_index, this.wait_char_time, Md);
@@ -581,6 +636,8 @@ namespace nel
 			{
 				this.wait_char_time = 0;
 				NelEvTextRenderer.entry_emotion = this.default_emot;
+				this.is_dwarf = false;
+				this.container_TS = 1f;
 				NelEvTextRenderer.entry_timescale = 1f;
 			}
 			else if (Tg != null)
@@ -636,9 +693,19 @@ namespace nel
 					uint num = (uint)TX.text2id(this.Stb, 16777215);
 					NelEvTextRenderer.XorsNoise.init(false, num, 0U, 0U, 0U);
 				}
+				else if (Tg.TagNameIs("dwarf"))
+				{
+					this.is_dwarf = true;
+					NowStyle.letterSpacing *= 0.8f;
+				}
+				else if (Tg.TagNameIs("tigrina"))
+				{
+					this.container_TS = 2f;
+					NelEvTextRenderer.entry_timescale = 0.33f;
+				}
 				else if (!Tg.TagNameIs("I"))
 				{
-					float num2;
+					float num3;
 					if (Tg.TagNameIs("m"))
 					{
 						NelEvTextRenderer.entry_emotion = this.default_emot;
@@ -724,51 +791,88 @@ namespace nel
 					{
 						NowStyle.size = 12f;
 					}
-					else if (Tg.TagNameIsHeadAndNum("W", out num2, false))
+					else if (Tg.TagNameIs("MT"))
 					{
-						this.wait_char_time += 10 * (int)num2;
+						if (this.Amtl_index == null)
+						{
+							this.Amtl_index = new List<NelEvTextRenderer.MTExecuter>(1);
+						}
+						int num2 = 1;
+						using (STB stb2 = TX.PopBld(null, 0))
+						{
+							if (Tg.getVarContent("l", stb2))
+							{
+								num2 = stb2.NmI(0, -1, 0);
+							}
+						}
+						bool flag = false;
+						NelEvTextRenderer.MTExecuter mtexecuter = new NelEvTextRenderer.MTExecuter
+						{
+							tag_index = Tg.tagname_si,
+							char_index = this.entry_char_index,
+							count = (byte)((num2 < 0) ? 255 : num2)
+						};
+						NelEvTextRenderer.MTExecuter mtexecuter2 = mtexecuter;
+						int count = this.Amtl_index.Count;
+						for (int i = 0; i < count; i++)
+						{
+							mtexecuter = this.Amtl_index[i];
+							if (mtexecuter.Equals(mtexecuter2))
+							{
+								flag = true;
+								break;
+							}
+						}
+						if (!flag)
+						{
+							this.Amtl_index.Add(mtexecuter2);
+						}
 					}
-					else if (Tg.TagNameIsHeadAndNum("w", out num2, false))
+					else if (Tg.TagNameIsHeadAndNum("W", out num3, false))
 					{
-						this.wait_char_time += (int)num2;
+						this.wait_char_time += 10 * (int)num3;
 					}
-					else if (Tg.TagNameIsHeadAndNum("s", out num2, false))
+					else if (Tg.TagNameIsHeadAndNum("w", out num3, false))
 					{
-						NelEvTextRenderer.entry_timescale = num2;
+						this.wait_char_time += (int)num3;
 					}
-					else if (Tg.TagNameIsHeadAndNum("S", out num2, false))
+					else if (Tg.TagNameIsHeadAndNum("s", out num3, false))
 					{
-						NelEvTextRenderer.entry_timescale = ((num2 == 0f) ? 0f : (1f / num2));
+						NelEvTextRenderer.entry_timescale = num3;
 					}
-					else if (Tg.TagNameIsHeadAndNum("m", out num2, true))
+					else if (Tg.TagNameIsHeadAndNum("S", out num3, false))
 					{
-						NelEvTextRenderer.entry_emotion = (EMOT)num2;
+						NelEvTextRenderer.entry_timescale = ((num3 == 0f) ? 0f : (1f / num3));
+					}
+					else if (Tg.TagNameIsHeadAndNum("m", out num3, true))
+					{
+						NelEvTextRenderer.entry_emotion = (EMOT)num3;
 					}
 					else
 					{
-						if (!Tg.TagNameIsHeadAndNum("c", out num2, true))
+						if (!Tg.TagNameIsHeadAndNum("c", out num3, true))
 						{
 							return false;
 						}
-						NowStyle.MyCol = (X.BTW(0f, num2, (float)MSG.AmsgColors.Length) ? MSG.AmsgColors[(int)num2] : MSG.AmsgColors[0]);
+						NowStyle.MyCol = (X.BTW(0f, num3, (float)MSG.AmsgColors.Length) ? MSG.AmsgColors[(int)num3] : MSG.AmsgColors[0]);
 						NowStyle.MyCol.a = byte.MaxValue;
 					}
 				}
 			}
 			else
 			{
-				bool flag = false;
+				bool flag2 = false;
 				NelEvTextRenderer.ColorChangePos colorChangePos = this.AChangePos[this.AChangePos.Count - 1];
 				if (colorChangePos.emot != NelEvTextRenderer.entry_emotion || colorChangePos.char_timescale != NelEvTextRenderer.entry_timescale)
 				{
-					flag = true;
+					flag2 = true;
 				}
 				if (!C32.isEqual(colorChangePos.Col, NowStyle.MyCol) || NowStyle.MyCol.a == 0)
 				{
 					NowStyle.MyCol.a = byte.MaxValue;
-					flag = true;
+					flag2 = true;
 				}
-				if (flag)
+				if (flag2)
 				{
 					this.insertChangePos(TMem, NowStyle);
 				}
@@ -856,6 +960,30 @@ namespace nel
 				num2--;
 			}
 			return num;
+		}
+
+		public void releaseReserved()
+		{
+			if (this.Areserved_text != null)
+			{
+				this.Areserved_text.Clear();
+			}
+		}
+
+		public string popReservedContent(int i)
+		{
+			if (this.Areserved_text == null || this.Areserved_text.Count <= i)
+			{
+				return null;
+			}
+			string text = this.Areserved_text[i];
+			this.Areserved_text.RemoveAt(i);
+			return text;
+		}
+
+		public int getReservedCountMax()
+		{
+			return this.Areserved_text.Count;
 		}
 
 		public bool progressNextParagraph(bool long_delay = false, STB StbShow = null)
@@ -950,13 +1078,15 @@ namespace nel
 
 		private int entry_char_index;
 
+		public float container_TS = 1f;
+
 		private static EMOT entry_emotion;
 
 		private static float entry_timescale;
 
 		private List<string> Areserved_text;
 
-		private float t;
+		protected float t;
 
 		private Vector3[] AVer0;
 
@@ -972,7 +1102,7 @@ namespace nel
 
 		private bool need_pos_update;
 
-		private bool need_mesh_update;
+		protected bool need_mesh_update;
 
 		private bool need_character_pos_check;
 
@@ -1003,6 +1133,10 @@ namespace nel
 		private static Material MtrNoise;
 
 		private const int SIZE_BIG = 38;
+
+		private bool is_dwarf;
+
+		private List<NelEvTextRenderer.MTExecuter> Amtl_index;
 
 		private struct EvChar
 		{
@@ -1160,6 +1294,20 @@ namespace nel
 			public int startt;
 
 			public int index;
+		}
+
+		private struct MTExecuter
+		{
+			public bool Equals(NelEvTextRenderer.MTExecuter Src)
+			{
+				return this.tag_index == Src.tag_index && this.count == Src.count;
+			}
+
+			public int tag_index;
+
+			public int char_index;
+
+			public byte count;
 		}
 	}
 }

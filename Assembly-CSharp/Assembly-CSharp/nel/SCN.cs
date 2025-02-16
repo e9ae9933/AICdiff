@@ -54,7 +54,7 @@ namespace nel
 			if (text != null)
 			{
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(text);
-				if (num <= 1599602520U)
+				if (num <= 1368021015U)
 				{
 					if (num <= 981561889U)
 					{
@@ -62,11 +62,11 @@ namespace nel
 						{
 							if (num != 981561889U)
 							{
-								goto IL_015D;
+								goto IL_01CF;
 							}
 							if (!(text == "city_in_museum"))
 							{
-								goto IL_015D;
+								goto IL_01CF;
 							}
 							if (GF.getC("MUS0") > 0U)
 							{
@@ -74,73 +74,109 @@ namespace nel
 							}
 							return "";
 						}
-						else if (!(text == "city_scl_center"))
+						else
 						{
-							goto IL_015D;
+							if (!(text == "city_scl_center"))
+							{
+								goto IL_01CF;
+							}
+							goto IL_01C3;
 						}
 					}
-					else if (num != 1368021015U)
+					else if (num != 1224726196U)
 					{
-						if (num != 1599602520U)
+						if (num != 1287972255U)
 						{
-							goto IL_015D;
+							if (num != 1368021015U)
+							{
+								goto IL_01CF;
+							}
+							if (!(text == "city_scl_ground"))
+							{
+								goto IL_01CF;
+							}
+							goto IL_01C3;
 						}
-						if (!(text == "house_theroom"))
+						else
 						{
-							goto IL_015D;
+							if (!(text == "school_in_garage"))
+							{
+								goto IL_01CF;
+							}
+							return "BGM_tigrina";
 						}
-						return "BGM_tokimeki";
 					}
-					else if (!(text == "city_scl_ground"))
+					else if (!(text == "school_in_armory"))
 					{
-						goto IL_015D;
+						goto IL_01CF;
 					}
 				}
-				else if (num <= 3012624432U)
+				else if (num <= 2022766569U)
 				{
-					if (num != 2022766569U)
+					if (num != 1599602520U)
 					{
-						if (num != 3012624432U)
+						if (num != 1624757242U)
 						{
-							goto IL_015D;
+							if (num != 2022766569U)
+							{
+								goto IL_01CF;
+							}
+							if (!(text == "city_in_baru"))
+							{
+								goto IL_01CF;
+							}
+							return "";
 						}
-						if (!(text == "city_scl_dorm"))
+						else if (!(text == "school_in_armory_mtgroom"))
 						{
-							goto IL_015D;
+							goto IL_01CF;
 						}
 					}
 					else
 					{
-						if (!(text == "city_in_baru"))
+						if (!(text == "house_theroom"))
 						{
-							goto IL_015D;
+							goto IL_01CF;
 						}
-						return "";
+						return "BGM_tokimeki";
 					}
 				}
-				else if (num != 3435686565U)
+				else if (num != 3012624432U)
 				{
-					if (num != 3499884134U)
+					if (num != 3435686565U)
 					{
-						goto IL_015D;
+						if (num != 3499884134U)
+						{
+							goto IL_01CF;
+						}
+						if (!(text == "city_in_bar"))
+						{
+							goto IL_01CF;
+						}
+						return "BGM_town2";
 					}
-					if (!(text == "city_in_bar"))
+					else
 					{
-						goto IL_015D;
+						if (!(text == "city_in_museum_backyard"))
+						{
+							goto IL_01CF;
+						}
+						return "BGM_houkago_no_hitotoki";
 					}
-					return "BGM_town2";
 				}
 				else
 				{
-					if (!(text == "city_in_museum_backyard"))
+					if (!(text == "city_scl_dorm"))
 					{
-						goto IL_015D;
+						goto IL_01CF;
 					}
-					return "BGM_houkago_no_hitotoki";
+					goto IL_01C3;
 				}
+				return "";
+				IL_01C3:
 				return "BGM_school";
 			}
-			IL_015D:
+			IL_01CF:
 			NextMap.prepared = true;
 			Dungeon dungeon = ((NextMap == NextMap.M2D.curMap) ? NextMap.Dgn : null);
 			if (dungeon == null)
@@ -303,7 +339,7 @@ namespace nel
 			{
 				return false;
 			}
-			if (SCN.M2D.PlayerNoel.outfit_type == NoelAnimator.OUTFIT.BABYDOLL)
+			if (SCN.M2D.PlayerNoel.outfit_type == PRNoel.OUTFIT.BABYDOLL)
 			{
 				return false;
 			}
@@ -472,55 +508,69 @@ namespace nel
 			if (key != null)
 			{
 				uint num2 = <PrivateImplementationDetails>.ComputeStringHash(key);
-				if (num2 <= 3172116432U)
+				if (num2 <= 3044102616U)
 				{
-					if (num2 <= 635059918U)
+					if (num2 <= 97881920U)
 					{
-						if (num2 != 97881920U)
+						if (num2 != 91367605U)
 						{
-							if (num2 == 635059918U)
+							if (num2 == 97881920U)
 							{
-								if (key == "pic_pvv010_vn")
+								if (key == "pic_pvv010_pn")
 								{
 									return num >= 10;
 								}
 							}
 						}
-						else if (key == "pic_pvv010_pn")
+						else if (key == "2weekattack")
 						{
-							return num >= 10;
+							return GF.getB("CITY_2WEEKATTACK");
 						}
 					}
-					else if (num2 != 3044102616U)
+					else if (num2 != 635059918U)
 					{
-						if (num2 == 3172116432U)
+						if (num2 != 2114468746U)
 						{
-							if (key == "pic_house_bath")
+							if (num2 == 3044102616U)
 							{
-								return GF.getB("PVV100_BATH");
+								if (key == "pic_eggremove_orgasm_0")
+								{
+									return SCN.M2D.PlayerNoel.EpCon.getOrgasmedCountForSituation("eggremove") > 0;
+								}
 							}
 						}
+						else if (key == "pic_scl_garage")
+						{
+							return (GF.getC("TIG0") == 3U && GF.getC("TIG1") >= 2U) || GF.getC("TIG0") >= 4U;
+						}
 					}
-					else if (key == "pic_eggremove_orgasm_0")
+					else if (key == "pic_pvv010_vn")
 					{
-						return SCN.M2D.PlayerNoel.EpCon.getOrgasmedCountForSituation("eggremove") > 0;
+						return num >= 10;
 					}
 				}
 				else if (num2 <= 3329645681U)
 				{
-					if (num2 != 3183913193U)
+					if (num2 != 3172116432U)
 					{
-						if (num2 == 3329645681U)
+						if (num2 != 3183913193U)
 						{
-							if (key == "pic_omorashi_0")
+							if (num2 == 3329645681U)
 							{
-								return GF.getB("OMORASHI");
+								if (key == "pic_omorashi_0")
+								{
+									return GF.getB("OMORASHI");
+								}
 							}
 						}
+						else if (key == "pic_pvv104_nusi")
+						{
+							return num >= 105;
+						}
 					}
-					else if (key == "pic_pvv104_nusi")
+					else if (key == "pic_house_bath")
 					{
-						return num >= 105;
+						return GF.getB("PVV100_BATH");
 					}
 				}
 				else if (num2 != 3374009128U)

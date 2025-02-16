@@ -286,13 +286,16 @@ namespace XX
 			}
 		}
 
-		public ButtonSkinRow setTitleTextS(STB str)
+		public virtual ButtonSkinRow setTitleTextS(STB str)
 		{
 			if (this.Tx == null)
 			{
 				this.setTitleText(" ");
 			}
-			this.Tx.Txt(str);
+			else
+			{
+				this.Tx.Txt(str);
+			}
 			return this;
 		}
 
@@ -488,7 +491,7 @@ namespace XX
 			{
 				return;
 			}
-			this.MdIco = base.makeMesh(BLEND.NORMAL, (this.AIcons != null && this.AIcons.Count > 0) ? MTRX.getMI(this.AIcons[0].pChar) : MTRX.MIicon);
+			this.MdIco = base.makeMesh(BLEND.NORMAL, (this.AIcons != null && this.AIcons.Count > 0) ? MTRX.getMI(this.AIcons[0].pChar, false) : MTRX.MIicon);
 		}
 
 		public override void setEnable(bool f)

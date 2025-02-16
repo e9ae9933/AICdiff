@@ -30,17 +30,20 @@ namespace nel
 			return false;
 		}
 
-		public void setE(IEffectSetter EF, float x, float y, bool _cutin_is_left)
+		public void setE(IEffectSetter EF, float x, float y, bool _cutin_is_left, bool is_over_orgasm = false)
 		{
 			this.Clear();
 			this.cutin_is_left = _cutin_is_left;
 			this.is_down = (this.Pr.isWormTrapped() ? (X.XORSP() < 0.5f) : (this.Pr.isPoseDown(false) || this.Pr.isPoseManguri(false)));
 			PxlSequence sequence = MTR.NoelUiPic.getPoseByName("_orgasm").getSequence(0);
-			int num = this.Pr.getAnimator().orgasm_frame_index;
+			NoelAnimator animator = this.Pr.getAnimator();
+			int num = animator.orgasm_frame_index;
 			if (num < 0)
 			{
 				num = (this.is_down ? 1 : 0);
 			}
+			num = num % 3 + (animator.poseIs(POSE_TYPE.MARUNOMI, false) ? 2 : (this.Pr.BetoMng.is_torned ? 1 : 0)) * 3;
+			EpOrgasmCutin.EMO_TYPE emo_TYPE = (is_over_orgasm ? EpOrgasmCutin.EMO_TYPE.TIKATIKA : EpOrgasmCutin.EMO_TYPE.NORMAL);
 			this.sF = sequence.getFrame(num);
 			if (this.MtrPr == null)
 			{
@@ -55,6 +58,7 @@ namespace nel
 				this.ALayEfDraw.Capacity = num2;
 			}
 			int num3 = 0;
+			int num4 = 0;
 			for (int i = 0; i < num2; i++)
 			{
 				PxlLayer layer = this.sF.getLayer(i);
@@ -73,6 +77,11 @@ namespace nel
 				{
 					ctLay = new EpOrgasmCutin.CtLay(layer, EpOrgasmCutin.LAY.SENSITIVE, true);
 				}
+				else if (TX.isStart(layer.name, "emo_", 0))
+				{
+					ctLay = new EpOrgasmCutin.CtLay(layer, EpOrgasmCutin.LAY.EMO, false);
+					num4++;
+				}
 				else
 				{
 					ctLay = new EpOrgasmCutin.CtLay(layer, EpOrgasmCutin.LAY.NORMAL, true);
@@ -82,20 +91,43 @@ namespace nel
 			this.absorbed_weight = 0;
 			if (num3 > 0)
 			{
-				int num4 = X.Mn(this.Pr.isWormTrapped() ? X.IntR(X.NIXP(2.2f, (float)num3)) : X.IntR(this.Pr.getAbsorbedTotalWeight()), num3);
-				if (num4 > 0)
+				int num5 = X.Mn(this.Pr.isWormTrapped() ? X.IntR(X.NIXP(2.2f, (float)num3)) : X.IntR(this.Pr.getAbsorbedTotalWeight()), num3);
+				if (num5 > 0)
 				{
-					this.absorbed_weight = num4;
-					int num5 = 0;
-					List<int> combinationI = X.getCombinationI(num3, num4, X.xors(), null);
-					for (int j = 0; j < num2; j++)
+					this.absorbed_weight = num5;
+					int num6 = 0;
+					using (BList<int> blist = ListBuffer<int>.Pop(0))
 					{
-						EpOrgasmCutin.CtLay ctLay2 = this.ALay[j];
-						if (ctLay2.type == EpOrgasmCutin.LAY.ENEMY && (combinationI == null || combinationI.IndexOf(num5++) >= 0))
+						List<int> combinationI = X.getCombinationI(num3, num5, X.xors(), blist);
+						for (int j = 0; j < num2; j++)
 						{
-							ctLay2.visible = true;
+							EpOrgasmCutin.CtLay ctLay2 = this.ALay[j];
+							if (ctLay2.type == EpOrgasmCutin.LAY.ENEMY && (combinationI == null || combinationI.IndexOf(num6++) >= 0))
+							{
+								ctLay2.visible = true;
+							}
+							this.ALay[j] = ctLay2;
 						}
-						this.ALay[j] = ctLay2;
+					}
+				}
+			}
+			if (num4 > 0)
+			{
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					for (int k = 0; k < num2; k++)
+					{
+						EpOrgasmCutin.CtLay ctLay3 = this.ALay[k];
+						if (ctLay3.type == EpOrgasmCutin.LAY.EMO)
+						{
+							stb.Set(ctLay3.L.name);
+							int num7 = stb.NmI("emo_".Length, -1, -1);
+							if (num7 >= 1)
+							{
+								ctLay3.visible = num7 == (int)emo_TYPE;
+								this.ALay[k] = ctLay3;
+							}
+						}
 					}
 				}
 			}
@@ -175,11 +207,15 @@ namespace nel
 
 		private EffectItem Efi;
 
+		private const string lay_header_emo = "emo_";
+
 		private PxlFrame sF;
 
 		private int absorbed_weight;
 
 		private bool is_down;
+
+		public const int FRAME_MAX = 3;
 
 		public const float dw = 420f;
 
@@ -220,7 +256,14 @@ namespace nel
 			NORMAL,
 			SENSITIVE,
 			ENEMY,
-			EFFECT
+			EFFECT,
+			EMO
+		}
+
+		private enum EMO_TYPE
+		{
+			NORMAL,
+			TIKATIKA
 		}
 	}
 }

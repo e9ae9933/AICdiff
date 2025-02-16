@@ -20,7 +20,7 @@ namespace nel.gm
 			PR playerNoel = base.M2D.PlayerNoel;
 			this.BxR.item_margin_x_px = 2f;
 			bool flag = playerNoel.getNearBench(false, false) != null;
-			this.EditSvd = new SVD(this.BxR, this.BxDesc, COOK.loaded_index, null, false, playerNoel == null || !SCN.canSave(flag) || !playerNoel.canSave(flag), false);
+			this.EditSvd = new UiSVD(this.BxR, this.BxDesc, COOK.loaded_index, null, false, playerNoel == null || !SCN.canSave(flag) || !playerNoel.canSave(flag), false);
 			this.BxR.hide();
 			this.edit_focus_init_to = COOK.loaded_index;
 			this.GM.EditFocusInitTo = null;
@@ -63,7 +63,7 @@ namespace nel.gm
 			{
 				flgUiEffectDisable.Rem("UIGM");
 			}
-			this.edit_focus_init_to = ((SVD.last_focused >= 0) ? SVD.last_focused : this.edit_focus_init_to);
+			this.edit_focus_init_to = ((UiSVD.last_focused >= 0) ? UiSVD.last_focused : this.edit_focus_init_to);
 		}
 
 		internal override void releaseEvac()
@@ -104,7 +104,7 @@ namespace nel.gm
 					}
 					return GMC_RES.BACK_CATEGORY;
 				}
-				SVD.STATE ui_state = this.EditSvd.ui_state;
+				UiSVD.STATE ui_state = this.EditSvd.ui_state;
 			}
 			return GMC_RES.CONTINUE;
 		}
@@ -189,7 +189,7 @@ namespace nel.gm
 			uiBoxDesigner.Focus();
 			this.BxR.hide();
 			aBtn aBtn = btnContainer.Get(0);
-			aBtn.Select(false);
+			aBtn.Select(true);
 			aBtn.SetChecked(false, true);
 			SND.Ui.play("locked", false);
 		}
@@ -206,7 +206,7 @@ namespace nel.gm
 			return true;
 		}
 
-		private SVD EditSvd;
+		private UiSVD EditSvd;
 
 		private bool svd_shown;
 

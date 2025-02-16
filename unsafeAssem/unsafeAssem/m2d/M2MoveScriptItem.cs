@@ -97,12 +97,20 @@ namespace m2d
 				case M2MoveScriptItem.TYPE.POSE:
 					this.pose_key = this._R1;
 					this.fix_pose_break_walk = this._R2.Length;
+					this.vx = -1f;
 					if (this._R3 != "")
 					{
 						this.pose_frame = X.NmI(this._R3, 0, false, false);
+					}
+					else
+					{
+						this.pose_frame = -1;
+					}
+					if (this._R4 != "")
+					{
+						this.vx = (float)X.NmI(this._R5, 0, false, false);
 						return;
 					}
-					this.pose_frame = -1;
 					return;
 				case M2MoveScriptItem.TYPE.MOVE:
 					this.pose_frame = ((this._R8 == "`") ? (-2) : (-1));
@@ -148,6 +156,12 @@ namespace m2d
 				case M2MoveScriptItem.TYPE.MOVE_VELOCITY:
 					this.mv_x = X.Nm(this._R1, 0f, true);
 					this.mv_y = X.Nm(this._R2, 0f, true);
+					if (TX.valid(this._R3) || TX.valid(this._R4))
+					{
+						this.vx = X.Nm(this._R3, 0f, false);
+						this.vy = X.Nm(this._R4, 0f, false);
+						return;
+					}
 					return;
 				case M2MoveScriptItem.TYPE.MOVE_A:
 					this.mv_x = 1f;
@@ -519,14 +533,22 @@ namespace m2d
 					this.t += TS;
 					return this.t >= (float)this.mv_t;
 				case M2MoveScriptItem.TYPE.POSE:
-					Mv.SpSetPose((this.pose_key == "") ? null : this.pose_key, -1, this.pose_key, false);
-					if (this.pose_frame >= 0)
+					if (this.t == 0f)
 					{
-						Mv.SpMotionReset(this.pose_frame);
+						Mv.SpSetPose((this.pose_key == "") ? null : this.pose_key, -1, this.pose_key, false);
+						if (this.pose_frame >= 0)
+						{
+							Mv.SpMotionReset(this.pose_frame);
+						}
+						if (this.fix_pose_break_walk > 0 && this.pose_key != "")
+						{
+							Mv.breakPoseFixOnWalk(this.fix_pose_break_walk);
+						}
 					}
-					if (this.fix_pose_break_walk > 0 && this.pose_key != "")
+					if (this.vx >= 0f)
 					{
-						Mv.breakPoseFixOnWalk(this.fix_pose_break_walk);
+						this.t += TS;
+						return (this.vx > 0f && this.vx <= this.t) || !Mv.SpPoseIs(this.pose_key);
 					}
 					return true;
 				case M2MoveScriptItem.TYPE.MOVE:
@@ -672,7 +694,14 @@ namespace m2d
 				case M2MoveScriptItem.TYPE.MOVE_VELOCITY:
 					if (M2MoveScriptItem.Phy != null)
 					{
-						M2MoveScriptItem.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._RELEASE, this.mv_x, this.mv_y, -1f, -1, 1, 0, -1, 0);
+						if (this.vx > 0f || this.vy > 0f)
+						{
+							M2MoveScriptItem.Phy.addFoc(FOCTYPE.WALK, this.mv_x, this.mv_y, -1f, (int)this.vx, (int)this.vy, 0, -1, 0);
+						}
+						else
+						{
+							M2MoveScriptItem.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._RELEASE, this.mv_x, this.mv_y, -1f, -1, 1, 0, -1, 0);
+						}
 					}
 					return true;
 				case (M2MoveScriptItem.TYPE)7:
@@ -1116,7 +1145,7 @@ namespace m2d
 
 		private static readonly Regex RegWait = new Regex("^[Ww]\\:?(\\d+)");
 
-		private static readonly Regex RegSetPose = new Regex("^[Pp]\\[ *([\\$\\w]*) *(\\~*) *(?:\\=(\\d+))? *\\]");
+		private static readonly Regex RegSetPose = new Regex("^[Pp]\\[ *([\\$\\w]*) *(\\~*) *(?:\\=(\\d+))? *\\](?:(\\:)(\\d+)?)?");
 
 		private static readonly Regex RegMove = new Regex("^>(\\+?)\\[ *([\\+\\-]\\=)? *([\\-\\d\\.]+)[\\, ]+([\\+\\-]\\=)? *([\\-\\d\\.]+) *(?:([\\:<]+) *([\\d\\.]+))? *\\](\\`?)");
 
@@ -1126,7 +1155,7 @@ namespace m2d
 
 		private static readonly Regex RegMovePtX = new Regex("^(\\@?)>>[xX]\\[ *((?:\\#< *)?(?:\\%|\\%?[\\$\\w]+)(?: *>)?) *(?:\\. *(\\w+))? *(?:\\+?([\\-\\d]+)[\\, ]+\\+?([\\-\\d]+))? *(?:([\\:<]+) *([\\d\\.]+))? *\\](\\`?)");
 
-		private static readonly Regex RegMoveVelocity = new Regex("^<<\\[ *([\\-\\d\\.]+)[\\, ]+([\\-\\d\\.]+) *]");
+		private static readonly Regex RegMoveVelocity = new Regex("^<<\\[ *([\\-\\d\\.]+)[\\, ]+([\\-\\d\\.]+) *(?:\\:(\\d+)(?: *\\:(\\d+)))? *]");
 
 		private static readonly Regex RegFloat = new Regex("^([\\^_])");
 

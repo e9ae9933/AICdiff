@@ -39,6 +39,15 @@ namespace nel
 			this.GClimb.alloc_jump_air = false;
 			this.absorb_weight = 2;
 			this.FD_fnFineAbsorbAttack = new EnemyAnimator.FnFineFrame(this.fnFineAbsorbAttack);
+			this.AtkAbsorbGrab.Prepare(this, true);
+			this.AtkReflect.Prepare(this, true);
+			if ((this.nattr & ENATTR._MATTR_BASIC) != ENATTR.NORMAL)
+			{
+				this.AtkAbsorbMain.hpdmg0 += 2;
+				this.AtkAbsorb2.hpdmg0 += 5;
+			}
+			this.AtkAbsorbMain.Prepare(this, true);
+			this.AtkAbsorb2.Prepare(this, true);
 		}
 
 		public override void quitSummonAndAppear(bool clearlock_on_summon = true)
@@ -95,7 +104,7 @@ namespace nel
 
 		private bool considerNormal(NAI Nai)
 		{
-			if (Nai.fnAwakeBasicHead(Nai))
+			if (Nai.fnAwakeBasicHead(Nai, NAI.TYPE.GAZE))
 			{
 				return true;
 			}
@@ -560,6 +569,7 @@ namespace nel
 					this.SpSetPose("dig", -1, null, false);
 					base.PtcVar("by", (double)base.mbottom).PtcST("snake_dig_getout", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 					base.disappearing = (base.throw_ray = false);
+					EnemyAttr.Splash(this, 2.25f);
 					this.FootD.initJump(false, true, false);
 					this.fineFootType();
 					this.Phy.remLockWallHitting(this);
@@ -587,7 +597,7 @@ namespace nel
 					}
 					else
 					{
-						base.tackleInit(this.AtkAbsorbGrab, (Tk.type == NAI.TYPE.PUNCH_WEED) ? this.TkiGrabManaWeed : this.TkiGrab).dy = -1.1f * this.Anm.scaleY;
+						base.tackleInit(this.AtkAbsorbGrab, (Tk.type == NAI.TYPE.PUNCH_WEED) ? this.TkiGrabManaWeed : this.TkiGrab, MGHIT.AUTO).dy = -1.1f * this.Anm.scaleY;
 					}
 				}
 				else if (base.AimPr is PR && base.isCoveringMv(base.AimPr, -this.sizex * 0.3f, -this.sizey * 0.3f))
@@ -649,9 +659,9 @@ namespace nel
 				this.t = 10f;
 				this.walk_st = (5 + X.xors(3)) * ((Tk.type == NAI.TYPE.PUNCH_1) ? 2 : 1);
 				this.SpSetPose("guard_2", -1, null, false);
-				this.MgRelectAttack0 = base.tackleInit(this.AtkReflect, this.TackleReflect0);
+				this.MgRelectAttack0 = base.tackleInit(this.AtkReflect, this.TackleReflect0, MGHIT.AUTO);
 				this.reflect_attack_id0 = this.MgRelectAttack0.id;
-				this.MgRelectAttack1 = base.tackleInit(this.AtkReflect, this.TackleReflect1);
+				this.MgRelectAttack1 = base.tackleInit(this.AtkReflect, this.TackleReflect1, MGHIT.AUTO);
 				this.reflect_attack_id1 = this.MgRelectAttack1.id;
 				this.MgRelectAttack1.Ray.SyncHitLock(this.MgRelectAttack0.Ray);
 			}
@@ -679,13 +689,13 @@ namespace nel
 						this.walk_st = num;
 						if (num <= 0)
 						{
-							goto IL_01C2;
+							goto IL_01C4;
 						}
 					}
 					base.PtcST("snake_guard_attack", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 					return true;
 				}
-				IL_01C2:
+				IL_01C4:
 				this.SpSetPose("guard_3", -1, null, false);
 				Tk.after_delay = 80f;
 				this.can_hold_tackle = false;
@@ -971,12 +981,12 @@ namespace nel
 				}
 				if (this.Absorb.target_pose == "torture_snake_0")
 				{
-					base.applyAbsorbDamageTo(pr, this.AtkAbsorbMain, true, X.XORSP() < 0.26f, false, 0f, false, null, false);
+					base.applyAbsorbDamageTo(pr, this.AtkAbsorbMain, true, X.XORSP() < 0.26f, false, 0f, false, null, false, true);
 					this.playSndPos("absorb_guchu", 1);
 				}
 				else
 				{
-					base.applyAbsorbDamageTo(pr, this.AtkAbsorb2, true, X.XORSP() < 0.7f, false, 0f, false, null, false);
+					base.applyAbsorbDamageTo(pr, this.AtkAbsorb2, true, X.XORSP() < 0.7f, false, 0f, false, null, false, true);
 					this.playSndPos("absorb_kiss_2", 1);
 				}
 			}
@@ -1076,9 +1086,9 @@ namespace nel
 			}
 		}
 
-		public override bool isTortureUsing()
+		public override bool isTortureUsingForAnim()
 		{
-			return base.isTortureUsing() || (0 < this.ixia_hold_level && this.ixia_hold_level < 5);
+			return base.isTortureUsingForAnim() || (0 < this.ixia_hold_level && this.ixia_hold_level < 5);
 		}
 
 		public bool initIxiaAlreadyThrown(bool progress = false)
@@ -1110,7 +1120,7 @@ namespace nel
 			return this.Nai != null && this.is_alive && Mg.kind == MGKIND.TACKLE && this.canAbsorbContinue() && this.can_hold_tackle && !this.Ser.has(SER.TIRED);
 		}
 
-		protected NelAttackInfo AtkAbsorbGrab = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbGrab = new EnAttackInfo
 		{
 			split_mpdmg = 1,
 			hpdmg0 = 1,
@@ -1120,7 +1130,7 @@ namespace nel
 			parryable = false
 		};
 
-		protected NelAttackInfo AtkReflect = new NelAttackInfo
+		protected EnAttackInfo AtkReflect = new EnAttackInfo(0.05f, 0.09f)
 		{
 			split_mpdmg = 5,
 			hpdmg0 = 11,
@@ -1129,43 +1139,39 @@ namespace nel
 			burst_vx = 0.08f,
 			knockback_len = 0.7f,
 			parryable = true
-		}.Torn(0.05f, 0.09f);
-
-		protected static EpAtk EpAbsorb = new EpAtk(3, "snake")
-		{
-			cli = 1,
-			vagina = 10,
-			other = 2,
-			multiple_orgasm = 0.2f
 		};
 
-		protected static EpAtk EpAbsorb2 = new EpAtk(8, "snake_2")
-		{
-			vagina = 4,
-			cli = 3,
-			mouth = 3,
-			breast = 6,
-			other = 2,
-			multiple_orgasm = 0.4f
-		};
-
-		protected NelAttackInfo AtkAbsorbMain = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbMain = new EnAttackInfo
 		{
 			split_mpdmg = 1,
 			attr = MGATTR.ABSORB_V,
 			Beto = BetoInfo.Normal,
-			EpDmg = NelNSnake.EpAbsorb,
+			EpDmg = new EpAtk(3, "snake")
+			{
+				cli = 1,
+				vagina = 10,
+				other = 2,
+				multiple_orgasm = 0.2f
+			},
 			SerDmg = new FlagCounter<SER>(4).Add(SER.SEXERCISE, 20f)
 		};
 
-		protected NelAttackInfo AtkAbsorb2 = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorb2 = new EnAttackInfo
 		{
 			mpdmg0 = 1,
 			split_mpdmg = 4,
 			hit_ptcst_name = "player_absorbed_basic",
 			attr = MGATTR.ABSORB,
 			Beto = BetoInfo.Normal,
-			EpDmg = NelNSnake.EpAbsorb2,
+			EpDmg = new EpAtk(8, "snake_2")
+			{
+				vagina = 4,
+				cli = 3,
+				mouth = 3,
+				breast = 6,
+				other = 2,
+				multiple_orgasm = 0.4f
+			},
 			SerDmg = new FlagCounter<SER>(4).Add(SER.SEXERCISE, 20f)
 		};
 

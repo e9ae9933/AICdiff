@@ -7,7 +7,7 @@ namespace XX.mobpxl
 {
 	public class MobSkltAnimator
 	{
-		internal MobSklt Sklt
+		public MobSklt Sklt
 		{
 			get
 			{
@@ -98,7 +98,7 @@ namespace XX.mobpxl
 			return false;
 		}
 
-		public void draw(MeshDrawer Md, Texture Tx, float x, float y)
+		public void draw(MeshDrawer Md, Texture Tx, SkltRenderTicket Tkt, float x, float y)
 		{
 			if (this.Sklt == null)
 			{
@@ -112,7 +112,7 @@ namespace XX.mobpxl
 			{
 				this.executeAnimFinePosition(false);
 			}
-			MobSkltAnimator.draw(Md, Tx, this.Sklt, x, y, this);
+			MobSkltAnimator.draw(Md, Tx, this.Sklt, Tkt, x, y, this);
 		}
 
 		internal void executeAnimFinePosition(bool force = false)
@@ -267,7 +267,7 @@ namespace XX.mobpxl
 			msp2.finePosition(mobSkltPosition, skltImage.Con.PartsSize, true, true);
 		}
 
-		internal static void draw(MeshDrawer Md, Texture Tx, MobSklt Sklt, float x, float y, MobSkltAnimator Caller = null)
+		internal static void draw(MeshDrawer Md, Texture Tx, MobSklt Sklt, SkltRenderTicket Tkt, float x, float y, MobSkltAnimator Caller = null)
 		{
 			Sklt.fineSort(false, true);
 			int count = Sklt.AImgSorted.Count;
@@ -301,106 +301,112 @@ namespace XX.mobpxl
 			MobSkltPosition mobSkltPosition = null;
 			SkltParts skltParts = null;
 			byte b = 0;
-			for (int i = 0; i < count; i++)
+			int i = 0;
+			while (i < count)
 			{
 				int num3 = ((list2 != null) ? list2[i].index : i);
 				SkltImage skltImage = Sklt.AImgSorted[num3];
-				if (skltImage.atlas_created)
+				MobSkltPosition mobSkltPosition2 = null;
+				string text2 = "";
+				byte b2 = 8;
+				if (array != null)
 				{
-					MobSkltPosition mobSkltPosition2 = null;
-					string text2 = "";
-					byte b2 = 8;
-					if (array != null)
+					MobSkltAnimator.OvrPos ovrPos = array[num3];
+					mobSkltPosition2 = ovrPos.Msp;
+					text2 = ovrPos.ovr_ptype;
+					b2 = ovrPos.visible;
+				}
+				if ((b2 & 8) != 0)
+				{
+					if (skltImage.visible)
 					{
-						MobSkltAnimator.OvrPos ovrPos = array[num3];
-						mobSkltPosition2 = ovrPos.Msp;
-						text2 = ovrPos.ovr_ptype;
-						b2 = ovrPos.visible;
-					}
-					if ((b2 & 8) != 0)
-					{
-						if (!skltImage.visible)
-						{
-							goto IL_0423;
-						}
-					}
-					else if ((b2 & 1) == 0)
-					{
-						goto IL_0423;
-					}
-					if (mobSkltPosition2 == null)
-					{
-						mobSkltPosition2 = skltImage.Msp.finePosition(skltImage, true, false);
-					}
-					if (skltParts != skltImage.Con)
-					{
-						skltParts = skltImage.Con;
-						mobSkltPosition = null;
-						if (array2 != null)
-						{
-							MobSkltAnimator.OvrPos ovrPos2 = array2[(int)skltImage.Con.type];
-							mobSkltPosition = ovrPos2.Msp;
-							text = ovrPos2.ovr_ptype;
-						}
-						if (mobSkltPosition == null)
-						{
-							mobSkltPosition = skltParts.getJointBase();
-						}
-						b = mobSkltPosition.flipping_flag;
-					}
-					SkltImageSrc source = skltImage.Source;
-					string text3 = (TX.valid(text2) ? text2 : (TX.valid(text) ? text : skltImage.current_ptype));
-					SkltImageSrc.ISrcPat srcPat;
-					skltImage.initForImgMd(Md, text3, Tx, num, num2, out srcPat);
-					PxlImage img = srcPat.Img;
-					Vector2 vector = new Vector2(srcPat.x, srcPat.y);
-					float num4 = (float)img.width * 0.5f;
-					float num5 = (float)img.height * 0.5f;
-					float num6 = X.Cos(mobSkltPosition2.rotateR);
-					float num7 = X.Sin(mobSkltPosition2.rotateR);
-					for (int j = 0; j < 4; j++)
-					{
-						Vector2 vector2;
-						switch (j)
-						{
-						case 0:
-							vector2 = (new Vector2(-num4, -num5 + (float)img.height) + vector) * mobSkltPosition2.ScaleBL;
-							break;
-						case 1:
-							vector2 = (new Vector2(-num4, -num5) + vector) * mobSkltPosition2.ScaleLT;
-							break;
-						case 2:
-							vector2 = (new Vector2(-num4 + (float)img.width, -num5) + vector) * mobSkltPosition2.ScaleTR;
-							break;
-						default:
-							vector2 = (new Vector2(-num4 + (float)img.width, -num5 + (float)img.height) + vector) * mobSkltPosition2.ScaleRB;
-							break;
-						}
-						Vector2 vector3 = vector2;
-						vector3 = X.ROTV2e(vector3, num6, num7) + mobSkltPosition2.Pos;
-						vector3 = MobSkltPosition.calcPositionP2A(vector3, skltParts.PartsSize, mobSkltPosition);
-						MobSkltAnimator.ABuf[j] = new Vector2(vector3.x * 0.015625f, -vector3.y * 0.015625f);
-					}
-					byte b3 = mobSkltPosition2.calcFlippingFlag(b);
-					if ((b3 & 1) != 0)
-					{
-						Md.TriRectBL(0);
-					}
-					if ((b3 & 2) != 0)
-					{
-						Md.Tri(0, 2, 1, false).Tri(0, 3, 2, false);
-					}
-					int vertexMax = Md.getVertexMax();
-					Md.Pos(MobSkltAnimator.ABuf[0], null).Pos(MobSkltAnimator.ABuf[1], null).Pos(MobSkltAnimator.ABuf[2], null)
-						.Pos(MobSkltAnimator.ABuf[3], null);
-					Md.InputImageUv();
-					if (list != null)
-					{
-						skltImage.Source.addUv2RectPartsUv(Md);
-						list.Add(new MobSkltAnimator.DrawnCache(skltImage, vertexMax));
+						goto IL_0142;
 					}
 				}
-				IL_0423:;
+				else if ((b2 & 1) != 0)
+				{
+					goto IL_0142;
+				}
+				IL_041E:
+				i++;
+				continue;
+				IL_0142:
+				if (mobSkltPosition2 == null)
+				{
+					mobSkltPosition2 = skltImage.Msp.finePosition(skltImage, true, false);
+				}
+				if (skltParts != skltImage.Con)
+				{
+					skltParts = skltImage.Con;
+					mobSkltPosition = null;
+					if (array2 != null)
+					{
+						MobSkltAnimator.OvrPos ovrPos2 = array2[(int)skltImage.Con.type];
+						mobSkltPosition = ovrPos2.Msp;
+						text = ovrPos2.ovr_ptype;
+					}
+					if (mobSkltPosition == null)
+					{
+						mobSkltPosition = skltParts.getJointBase();
+					}
+					b = mobSkltPosition.flipping_flag;
+				}
+				SkltImageSrc source = skltImage.Source;
+				string text3 = (TX.valid(text2) ? text2 : (TX.valid(text) ? text : skltImage.current_ptype));
+				SkltImageSrc.ISrcPat srcPat;
+				if (!skltImage.initForImgMd(Md, text3, Tx, Tkt, num, num2, out srcPat))
+				{
+					goto IL_041E;
+				}
+				PxlImage img = srcPat.Img;
+				Vector2 vector = new Vector2(srcPat.x, srcPat.y);
+				float num4 = (float)img.width * 0.5f;
+				float num5 = (float)img.height * 0.5f;
+				float num6 = X.Cos(mobSkltPosition2.rotateR);
+				float num7 = X.Sin(mobSkltPosition2.rotateR);
+				for (int j = 0; j < 4; j++)
+				{
+					Vector2 vector2;
+					switch (j)
+					{
+					case 0:
+						vector2 = (new Vector2(-num4, -num5 + (float)img.height) + vector) * mobSkltPosition2.ScaleBL;
+						break;
+					case 1:
+						vector2 = (new Vector2(-num4, -num5) + vector) * mobSkltPosition2.ScaleLT;
+						break;
+					case 2:
+						vector2 = (new Vector2(-num4 + (float)img.width, -num5) + vector) * mobSkltPosition2.ScaleTR;
+						break;
+					default:
+						vector2 = (new Vector2(-num4 + (float)img.width, -num5 + (float)img.height) + vector) * mobSkltPosition2.ScaleRB;
+						break;
+					}
+					Vector2 vector3 = vector2;
+					vector3 = X.ROTV2e(vector3, num6, num7) + mobSkltPosition2.Pos;
+					vector3 = MobSkltPosition.calcPositionP2A(vector3, skltParts.PartsSize, mobSkltPosition);
+					MobSkltAnimator.ABuf[j] = new Vector2(vector3.x * 0.015625f, -vector3.y * 0.015625f);
+				}
+				byte b3 = mobSkltPosition2.calcFlippingFlag(b);
+				if ((b3 & 1) != 0)
+				{
+					Md.TriRectBL(0);
+				}
+				if ((b3 & 2) != 0)
+				{
+					Md.Tri(0, 2, 1, false).Tri(0, 3, 2, false);
+				}
+				int vertexMax = Md.getVertexMax();
+				Md.Pos(MobSkltAnimator.ABuf[0], null).Pos(MobSkltAnimator.ABuf[1], null).Pos(MobSkltAnimator.ABuf[2], null)
+					.Pos(MobSkltAnimator.ABuf[3], null);
+				Md.InputImageUv();
+				if (list != null)
+				{
+					skltImage.Source.addUv2RectPartsUv(Md);
+					list.Add(new MobSkltAnimator.DrawnCache(skltImage, vertexMax));
+					goto IL_041E;
+				}
+				goto IL_041E;
 			}
 			Md.setCurrentMatrix(currentMatrix, false);
 		}

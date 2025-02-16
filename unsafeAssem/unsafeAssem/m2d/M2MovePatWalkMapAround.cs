@@ -38,7 +38,7 @@ namespace m2d
 			{
 				using (BList<M2BlockColliderContainer.BCCHitInfo> blist2 = ListBuffer<M2BlockColliderContainer.BCCHitInfo>.Pop(0))
 				{
-					if (footBCC.BCC.getConnectedBcc(footBCC, blist2, true) == 0)
+					if (footBCC.BCC.getConnectedBcc(footBCC, blist2, false, true, true, true, true) == 0)
 					{
 						this.dep_x = X.NIXP(footBCC.x + 2f, footBCC.right - 2f);
 						return true;

@@ -786,7 +786,7 @@ namespace nel
 					this.FastTravelFocused = wmiconPosition;
 					if (this.stop_t == 18f)
 					{
-						flag3 = true;
+						flag = (flag3 = true);
 					}
 					float num6 = X.LENGTHXY2(this.curspos_x, this.curspos_y, wmiconPosition.wmx, wmiconPosition.wmy);
 					if (num6 <= 0.0025000002f)
@@ -794,13 +794,13 @@ namespace nel
 						dx = wmiconPosition.wmx - this.curspos_x;
 						dy = wmiconPosition.wmy - this.curspos_y;
 						this.stop_t = -200f;
-						goto IL_029F;
+						goto IL_02A1;
 					}
 					float num7 = X.GAR2(this.curspos_x, -this.curspos_y, wmiconPosition.wmx, -wmiconPosition.wmy);
 					num6 = 0.08f * Mathf.Sqrt(num6);
 					dx = num6 * X.Cos(num7);
 					dy = -num6 * X.Sin(num7);
-					goto IL_029F;
+					goto IL_02A1;
 				}
 				IL_0105:
 				return this.stop_t == 1f;
@@ -815,7 +815,7 @@ namespace nel
 				this.FastTravelFocused = default(WMIconPosition);
 				flag = true;
 			}
-			IL_029F:
+			IL_02A1:
 			this.curspos_x += dx;
 			this.curspos_y += dy;
 			this.need_fine_quest_lt_text = (this.need_fine_wmi_cur = true);
@@ -1055,14 +1055,16 @@ namespace nel
 							if (this.DepertQReveal.getPosCache(this.WM).getPos(this.M2D, this.WM, blist))
 							{
 								this.revealToPos(blist[0]);
+								goto IL_041E;
 							}
-							goto IL_0411;
+							this.t_qreveal = -1f;
+							goto IL_041E;
 						}
 					}
 					this.t_qreveal = -1f;
 				}
 			}
-			IL_0411:
+			IL_041E:
 			if (this.need_fine_lt_text)
 			{
 				this.fineTopLeftText();
@@ -1099,7 +1101,7 @@ namespace nel
 						{
 							this.ATx[i].Alpha(num5 * this.alpha);
 						}
-						this.TxLT.Alpha(num5 * this.alpha * (float)(this.show_topleft_text ? 0 : 1));
+						this.TxLT.Alpha(num5 * this.alpha * (float)(this.show_topleft_text ? 1 : 0));
 						if (num5 >= 1f)
 						{
 							this.topright_t = -1;
@@ -1300,6 +1302,12 @@ namespace nel
 			{
 				float num10 = X.ZLINE(30f - this.t_detail, 30f);
 				this.drawWA(this.dtanim_sx + num, this.dtanim_sy + num2, this.dtanim_cellsize * (2.5f - 1.5f * num10), this.alpha_ * num10, ref flag, ref flag2);
+			}
+			else if (this.wa_drawn)
+			{
+				this.wa_drawn = false;
+				this.MdMapWA.updateForMeshRenderer(false);
+				this.MdMapWA_Fading.updateForMeshRenderer(false);
 			}
 			if (flag2)
 			{
@@ -1551,8 +1559,8 @@ namespace nel
 							WMIconPosition wmiconPosition = this.ABenchList[i];
 							if (X.BTW(num13 - 3f, wmiconPosition.wmx, num14 + 3f) && X.BTW(num15 - 3f, wmiconPosition.wmy, num16 + 3f))
 							{
-								float num17 = this.WM.map2meshx(wmiconPosition.wmx, mappos_x, cell_size);
-								float num18 = this.WM.map2meshy(wmiconPosition.wmy, mappos_y, cell_size);
+								float num17 = ButtonSkinWholeMapArea.map2meshx(wmiconPosition.wmx, mappos_x, cell_size);
+								float num18 = ButtonSkinWholeMapArea.map2meshy(wmiconPosition.wmy, mappos_y, cell_size);
 								this.MdMapFill.Col = c;
 								this.MdMapFill.BlurPoly2(num17, num18, num10, 0f, 12, 0f, num10 * 0.3f, null, this.MdMapFill.ColGrd);
 							}
@@ -1566,8 +1574,8 @@ namespace nel
 					for (int j = 0; j < count2; j++)
 					{
 						QuestTracker.QuestDepertureOnMap questDepertureOnMap = this.AQuestDep[j];
-						float num19 = this.WM.map2meshx(questDepertureOnMap.x, mappos_x, cell_size);
-						float num20 = this.WM.map2meshy(questDepertureOnMap.y, mappos_y, cell_size);
+						float num19 = ButtonSkinWholeMapArea.map2meshx(questDepertureOnMap.x, mappos_x, cell_size);
+						float num20 = ButtonSkinWholeMapArea.map2meshy(questDepertureOnMap.y, mappos_y, cell_size);
 						NEL.drawQuestDepertPinAnimSwitching(this.MdIco, IN.totalframe, questDepertureOnMap.ACol, num19, num20, alpha_ * this.icon_base_alpha, 1f, 0.5f, 1f, 1f, this.fast_travel_active_);
 					}
 				}
@@ -1585,7 +1593,7 @@ namespace nel
 						if (this.pr_pos_x != -1000f)
 						{
 							this.MdIco.Col = ButtonSkinWholeMapArea.Col.White().setA1(num22).C;
-							this.MdIco.RotaPF(this.WM.map2meshx(this.pr_pos_x, mappos_x, cell_size), this.WM.map2meshy(this.pr_pos_y, mappos_y, cell_size), 1f, 1f, 0f, MTRX.getPF(pr.is_alive ? "IconNoel0" : "IconNoel1"), false, false, false, uint.MaxValue, false, 0);
+							this.MdIco.RotaPF(ButtonSkinWholeMapArea.map2meshx(this.pr_pos_x, mappos_x, cell_size), ButtonSkinWholeMapArea.map2meshy(this.pr_pos_y, mappos_y, cell_size), 1f, 1f, 0f, MTRX.getPF(pr.is_alive ? "IconNoel0" : "IconNoel1"), false, false, false, uint.MaxValue, false, 0);
 						}
 					}
 				}
@@ -1603,7 +1611,7 @@ namespace nel
 							num23 *= 1.25f;
 						}
 					}
-					NEL.drawPointCurs(this.MdIco, this.WM.map2meshx(this.curspos_x, mappos_x, cell_size), this.WM.map2meshy(this.curspos_y, mappos_y, cell_size), num23, alpha_, point_CURS);
+					NEL.drawPointCurs(this.MdIco, ButtonSkinWholeMapArea.map2meshx(this.curspos_x, mappos_x, cell_size), ButtonSkinWholeMapArea.map2meshy(this.curspos_y, mappos_y, cell_size), num23, alpha_, point_CURS);
 				}
 				if (flag)
 				{
@@ -1632,8 +1640,8 @@ namespace nel
 			if (this.redraw_grid && this.WM != null && cell_size > 5f)
 			{
 				float num24 = alpha_ * X.ZLINE(cell_size - 5f, -4f);
-				float num25 = (float)X.IntR(this.WM.map2meshx((float)((int)mappos_x), mappos_x, cell_size));
-				float num26 = (float)X.IntR(this.WM.map2meshy((float)((int)mappos_y), mappos_y, cell_size));
+				float num25 = (float)X.IntR(ButtonSkinWholeMapArea.map2meshx((float)((int)mappos_x), mappos_x, cell_size));
+				float num26 = (float)X.IntR(ButtonSkinWholeMapArea.map2meshy((float)((int)mappos_y), mappos_y, cell_size));
 				int num27 = X.IntC(num3 / cell_size) + 4;
 				int num28 = num27 / 2;
 				int num29 = X.IntC(num4 / cell_size) + 4;
@@ -1661,6 +1669,16 @@ namespace nel
 			}
 		}
 
+		public static float map2meshx(float mappos_x, float center_mapx, float size)
+		{
+			return WholeMapItem.map2meshx(mappos_x, center_mapx, size);
+		}
+
+		public static float map2meshy(float mappos_y, float center_mapy, float size)
+		{
+			return WholeMapItem.map2meshy(mappos_y, center_mapy, size);
+		}
+
 		private void drawWA(float mappos_x, float mappos_y, float cell_size, float alpha_, ref bool re_fine, ref bool update_mdmapico)
 		{
 			float num = this.w * 64f;
@@ -1668,6 +1686,7 @@ namespace nel
 			float num3 = num - this.inner_margin * 2f;
 			float num4 = num2 - this.inner_margin * 2f;
 			bool flag = this.t_detail <= -30f;
+			this.wa_drawn = true;
 			if (this.redraw_grid && flag)
 			{
 				this.MdGrid.Col = MTRX.ColTrnsp;
@@ -1872,6 +1891,8 @@ namespace nel
 		public const int ZOOM_MAXT = 30;
 
 		private int t_zoomin;
+
+		private bool wa_drawn;
 
 		public const int DETAIL_MAXT = 30;
 

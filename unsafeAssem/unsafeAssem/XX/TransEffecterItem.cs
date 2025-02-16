@@ -311,8 +311,13 @@ namespace XX
 					num8 = 2f - num3;
 					num3 = 1f;
 				}
-				TransEffecterItem.TE.mulColor(EffectItem.Col1.Set(num5).multiply(C32.d2c(num5), num8, false).blend(num6, X.ANMP((int)E.af, 7, 1f))
-					.blend(maxValue, X.Scr(num, 1f - num3)), false);
+				EffectItem.Col1.Set(num5).multiply(C32.d2c(num5), num8, false).blend(num6, X.ANMP((int)E.af, 7, 1f))
+					.blend(maxValue, X.Scr(num, 1f - num3));
+				if (fading)
+				{
+					EffectItem.Col1.blend(maxValue, (1f - num) * 0.8f);
+				}
+				TransEffecterItem.TE.mulColor(EffectItem.Col1, false);
 			}
 			if (num4 > 0f || white_scr > 0f)
 			{
@@ -415,6 +420,26 @@ namespace XX
 			float num = ((E.af < E.x) ? 1f : (0.25f * (1f - X.ZLINE(E.af - E.x, E.y))));
 			EffectItem.Col1.Set((uint)(E.time & 16777215)).multiply(E.z, true);
 			TransEffecterItem.TE.addColor(EffectItem.Col1.blend(0U, 1f - num), false);
+			return true;
+		}
+
+		public static bool fnRunDraw_event_darken(EffectItem E)
+		{
+			if (E.z > 0f && E.af >= E.z)
+			{
+				return false;
+			}
+			TransEffecterItem.TE.mulColor(EffectItem.Col1.Set(E.time).Scr(1f - E.x), false);
+			return true;
+		}
+
+		public static bool fnRunDraw_svt_flush_darken(EffectItem E)
+		{
+			if (E.z > 0f && E.af >= E.z + E.y)
+			{
+				return false;
+			}
+			TransEffecterItem.TE.mulColor(EffectItem.Col1.Set((uint)(E.time | -16777216)).Scr(X.ZLINE(E.af - E.y, E.z)), false);
 			return true;
 		}
 

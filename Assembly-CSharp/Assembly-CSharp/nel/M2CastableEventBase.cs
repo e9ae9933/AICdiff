@@ -132,9 +132,9 @@ namespace nel
 			}
 			if (this.Anm.check_torture)
 			{
-				float num = 0f;
-				float num2 = 0f;
-				AbsorbManager.syncTorturePositionS(this.Target, this, this.ParPhy, this.Anm.pose_title, ref num, ref num2, false);
+				float num;
+				float num2;
+				AbsorbManager.syncTorturePositionS(this.Target, this, this.ParPhy, this.Anm.pose_title, out num, out num2, false);
 			}
 		}
 
@@ -233,7 +233,7 @@ namespace nel
 				this.CurMg = base.nM2D.MGC.setMagic(this, magic_kind, MGHIT.PR);
 				if (this.mp_hold > 0f)
 				{
-					this.CurMg.t = this.CurMg.casttime * this.mp_hold / (float)this.CurMg.reduce_mp;
+					this.CurMg.t = this.CurMg.casttime * this.mp_hold / this.CurMg.reduce_mp;
 				}
 			}
 			return this.CurMg;
@@ -243,7 +243,7 @@ namespace nel
 		{
 			if (this.CurMg != null && this.CurMg.casttime > 0f && !this.CurMg.is_sleep)
 			{
-				float num = X.Mn(this.CurMg.casttime, this.CurMg.t + this.TS * this.casting_time_scale) * (float)this.CurMg.reduce_mp / this.CurMg.casttime;
+				float num = X.Mn(this.CurMg.casttime, this.CurMg.t + this.TS * this.casting_time_scale) * this.CurMg.reduce_mp / this.CurMg.casttime;
 				this.mp_hold = num;
 				return true;
 			}
@@ -261,7 +261,7 @@ namespace nel
 			{
 				return false;
 			}
-			magicItem.reduce_mp = 0;
+			magicItem.reduce_mp = 0f;
 			this.CurMg = null;
 			this.mp_hold = 0f;
 			this.CurMg = magicItem;
@@ -370,7 +370,7 @@ namespace nel
 				}
 				return true;
 			}
-			this.CurMg.castedTimeResetTo(this.CurMg.casttime * this.mp_hold / (float)this.CurMg.reduce_mp);
+			this.CurMg.castedTimeResetTo(this.CurMg.casttime * this.mp_hold / this.CurMg.reduce_mp);
 			return false;
 		}
 
@@ -399,7 +399,7 @@ namespace nel
 		public void absorbDamageEffect()
 		{
 			this.TeCon.setDmgBlink(MGATTR.ABSORB, 10f, 1f, 0f, 0);
-			base.nM2D.Mana.AddMulti(base.x, base.y, X.NIXP(4f, 8f) * 4f, (MANA_HIT)44);
+			base.nM2D.Mana.AddMulti(base.x, base.y, X.NIXP(4f, 8f) * 4f, MANA_HIT.FROM_DAMAGE_SPLIT | MANA_HIT.FALL | MANA_HIT.FALL_EN, 1f);
 			this.playVo("dmga");
 			if (X.XORSP() < 0.63f)
 			{
@@ -423,11 +423,11 @@ namespace nel
 			}
 			if (this.Target != null && X.XORSP() < 0.5f)
 			{
-				this.Target.getAnimator().randomizeFrame();
+				this.Target.getAnimator().randomizeFrame(0.5f, 0.5f);
 			}
 		}
 
-		protected bool RenderPrepareMesh(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected bool RenderPrepareMesh(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			MdOut = null;
 			if (this.disappearing)

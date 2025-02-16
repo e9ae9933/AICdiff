@@ -84,7 +84,7 @@ namespace nel
 					}
 					else
 					{
-						Mg.Ray.hittype |= (HITTYPE)19;
+						Mg.Ray.hittype |= HITTYPE.PR | HITTYPE.EN | HITTYPE.BERSERK_MYSELF;
 						Mg.da = X.VALWALKANGLER(Mg.da, Mg.aim_agR, X.NI(0.023f, 0.0008f, X.ZLINE(Mg.t - 6f, 50f)) * 6.2831855f);
 					}
 				}

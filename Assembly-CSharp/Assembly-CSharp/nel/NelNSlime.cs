@@ -20,27 +20,30 @@ namespace nel
 			this.Mp = _Mp;
 			this.kind = ENEMYKIND.DEVIL;
 			float num = 7f;
-			this.Od = new OverDriveManager(this, 110, 81);
-			ENEMYID id = this.id;
+			this.posename_damage_huttobi = "huttobi";
+			NAI.FnNaiLogic fnNaiLogic = new NAI.FnNaiLogic(this.considerNormal);
 			NOD.BasicData basicData;
-			if (id != ENEMYID.SLIME_TUTORIAL)
+			switch (this.id)
 			{
-				if (id != ENEMYID.SLIME_0_FLW)
-				{
-					this.id = ENEMYID.SLIME_0;
-					basicData = NOD.getBasicData("SLIME_0");
-				}
-				else
-				{
-					this.id = ENEMYID.SLIME_0_FLW;
-					basicData = NOD.getBasicData("SLIME_0_FLW");
-				}
-			}
-			else
-			{
+			case ENEMYID.SLIME_TUTORIAL:
 				this.id = ENEMYID.SLIME_TUTORIAL;
 				basicData = NOD.getBasicData("SLIME_TUTORIAL");
 				num = 0f;
+				break;
+			case ENEMYID.SLIME_0_FLW:
+				this.id = ENEMYID.SLIME_0_FLW;
+				basicData = NOD.getBasicData("SLIME_0_FLW");
+				break;
+			case ENEMYID.SLIME_TUTORIAL_GARAGE:
+				this.id = ENEMYID.SLIME_TUTORIAL_GARAGE;
+				basicData = NOD.getBasicData("SLIME_TUTORIAL_GARAGE");
+				num = 0f;
+				this.gazing_type = NAI.TYPE.WAIT;
+				break;
+			default:
+				this.id = ENEMYID.SLIME_0;
+				basicData = NOD.getBasicData("SLIME_0");
+				break;
 			}
 			this.auto_rot_on_damage = true;
 			base.appear(_Mp, basicData);
@@ -56,9 +59,16 @@ namespace nel
 			{
 				this.Nai.fnSleepLogic = new NAI.FnNaiLogic(this.Nai.fnSleepSlide);
 			}
-			this.Nai.fnAwakeLogic = new NAI.FnNaiLogic(this.considerNormal);
+			this.Nai.fnAwakeLogic = fnNaiLogic;
 			this.Nai.fnOverDriveLogic = new NAI.FnNaiLogic(this.considerOverDrive);
 			this.absorb_weight = 1;
+			this.AtkTackleP.Prepare(this, true);
+			this.AtkTackleP0.Prepare(this, true);
+			this.AtkAbsorb.Prepare(this, true);
+			this.AtkOdPunch.Prepare(this, true);
+			this.AtkOdTsuppari.Prepare(this, true);
+			this.AtkOdAbsorb.Prepare(this, true);
+			this.AtkOdAbsorbFatal.Prepare(this, true);
 		}
 
 		public override void initOverDriveAppear()
@@ -77,8 +87,7 @@ namespace nel
 
 		public override bool readTicket(NaTicket Tk)
 		{
-			NAI.TYPE type = Tk.type;
-			switch (type)
+			switch (Tk.type)
 			{
 			case NAI.TYPE.AWAKE:
 				if (Tk.initProgress(this))
@@ -89,11 +98,35 @@ namespace nel
 					this.walk_time = (float)(this.walk_st = 0);
 				}
 				return !base.hasFoot();
-			case NAI.TYPE.SLEEP:
-			case NAI.TYPE.WALK_TO_WEED:
-				goto IL_0235;
 			case NAI.TYPE.WALK:
-				break;
+			case NAI.TYPE.BACKSTEP:
+			{
+				bool flag = Tk.initProgress(this);
+				if (flag)
+				{
+					this.walk_time = (float)(this.walk_st = 0);
+					if (Tk.aim != 3 && Tk.type != NAI.TYPE.BACKSTEP)
+					{
+						Tk.aim = (int)CAim.get_aim(base.x * 1.5f, 0f, Tk.depx * 1.5f, (float)X.IntR(-this.Nai.target_lastfoot_bottom + base.mbottom), false);
+					}
+					Tk.check_nearplace_error = 0;
+				}
+				if (CAim._YD(Tk.aim, 1) > 0 && !base.isOverDrive() && Tk.type != NAI.TYPE.BACKSTEP && this.Nai.RANtk(4813) < this.climb_up_ratio)
+				{
+					Tk.Recreate(NAI.TYPE.PUNCH, -1, true, null);
+					return true;
+				}
+				int num = base.walkThroughLift(flag, Tk, 20);
+				if (num >= 0)
+				{
+					if (num == 0 && !base.hasFoot())
+					{
+						this.SpSetPose("walk", -1, null, false);
+					}
+					return num == 0;
+				}
+				return this.runSlimeWalk(flag);
+			}
 			case NAI.TYPE.PUNCH:
 			case NAI.TYPE.PUNCH_0:
 			case NAI.TYPE.PUNCH_WEED:
@@ -109,56 +142,39 @@ namespace nel
 				return this.runSlimeOverDrivePunch(Tk);
 			case NAI.TYPE.PUNCH_2:
 				return this.runSlimeOverDriveTsuppari(Tk);
-			default:
-				switch (type)
+			case NAI.TYPE.APPEAL_0:
+				return this.runOverDriveAppeal(Tk);
+			case NAI.TYPE.WARP:
+				if (this.id == ENEMYID.SLIME_TUTORIAL_GARAGE)
 				{
-				case NAI.TYPE.APPEAL_0:
-					return this.runOverDriveAppeal(Tk);
-				case NAI.TYPE.BACKSTEP:
-					break;
-				case NAI.TYPE.WARP:
-					goto IL_0235;
-				case NAI.TYPE.GAZE:
-					if (!base.isOverDrive())
+					this.event_throw_ray = !this.event_throw_ray;
+					if (this.event_throw_ray)
 					{
-						base.readTicket(Tk);
-						if (base.hasFoot() && this.Nai.RANtk(883) < 0.8f)
-						{
-							this.runAppeal();
-						}
-						return Tk.t >= 60f;
+						this.Phy.addLockMoverHitting(HITLOCK.EVENT, -1f);
 					}
-					goto IL_0235;
-				default:
-					goto IL_0235;
+					else
+					{
+						this.Phy.remLockMoverHitting(HITLOCK.EVENT);
+					}
+				}
+				break;
+			case NAI.TYPE.GAZE:
+				if (!base.isOverDrive())
+				{
+					if (this.gazing_type != NAI.TYPE.GAZE)
+					{
+						Tk.type = NAI.TYPE.WAIT;
+						return true;
+					}
+					base.readTicket(Tk);
+					if (base.hasFoot() && this.Nai.RANtk(883) < 0.8f)
+					{
+						this.runAppeal();
+					}
+					return Tk.t >= 60f;
 				}
 				break;
 			}
-			bool flag = Tk.initProgress(this);
-			if (flag)
-			{
-				this.walk_time = (float)(this.walk_st = 0);
-				if (Tk.aim != 3 && Tk.type != NAI.TYPE.BACKSTEP)
-				{
-					Tk.aim = (int)CAim.get_aim(base.x * 1.5f, 0f, Tk.depx * 1.5f, (float)X.IntR(-this.Nai.target_lastfoot_bottom + base.mbottom), false);
-				}
-			}
-			if (CAim._YD(Tk.aim, 1) > 0 && !base.isOverDrive() && Tk.type != NAI.TYPE.BACKSTEP && this.Nai.RANtk(4813) < this.climb_up_ratio)
-			{
-				Tk.Recreate(NAI.TYPE.PUNCH, -1, true, null);
-				return true;
-			}
-			int num = base.walkThroughLift(flag, Tk, 20);
-			if (num >= 0)
-			{
-				if (num == 0 && !base.hasFoot())
-				{
-					this.SpSetPose("walk", -1, null, false);
-				}
-				return num == 0;
-			}
-			return this.runSlimeWalk(flag);
-			IL_0235:
 			return base.readTicket(Tk);
 		}
 
@@ -181,12 +197,12 @@ namespace nel
 				this.walk_time = this.Mp.floort + (float)num;
 				this.SpSetPose("walk", -1, null, false);
 			}
-			if (this.walk_time <= this.Mp.floort)
+			if (this.walk_time <= this.Mp.floort || !base.hasFoot())
 			{
 				return false;
 			}
 			float num2 = this.walk_time - this.Mp.floort;
-			this.Phy.addFoc(FOCTYPE.WALK, (float)CAim._XD(this.aim, 1) * (1f - X.ZCOS(num2, (float)num) - (1f - X.ZSIN(num2, (float)num * 0.33f))) * (base.isOverDrive() ? this.walkspd_od : (base.is_awaken ? this.walkspd_awake : this.walkspd_sleep)), 0f, -1f, -1, 1, 0, -1, 0);
+			this.setWalkXSpeed((float)CAim._XD(this.aim, 1) * (1f - X.ZCOS(num2, (float)num) - (1f - X.ZSIN(num2, (float)num * 0.33f))) * base.walkspd_default, true, false);
 			return true;
 		}
 
@@ -270,7 +286,7 @@ namespace nel
 					this.jumpInit(X.absmin(num2, this.jump_alloc) * num5, num3, num * num5, false);
 					if (Atk != null)
 					{
-						base.tackleInit(Atk.Burst(this.tackle_burst, 0f), tackleInfo);
+						base.tackleInit(Atk.Burst(this.tackle_burst, 0f), tackleInfo, MGHIT.AUTO);
 					}
 				}
 			}
@@ -302,7 +318,10 @@ namespace nel
 						}
 					}
 				}
-				base.hasFoot();
+				if (!base.hasFoot())
+				{
+					this.Nai.delay = X.Mx(this.Nai.delay, 20f);
+				}
 				if ((base.hasFoot() && this.t >= 20f) || this.walk_time >= 2f)
 				{
 					if (this.walk_time >= 2f)
@@ -312,6 +331,10 @@ namespace nel
 					base.is_right = base.is_right;
 					base.remF(NelEnemy.FLAG.NO_AUTO_LANDFALL_POSE_SET);
 					this.SpSetPose("atk_land", -1, null, false);
+					if (base.hasFoot())
+					{
+						EnemyAttr.Splash(this, 1.25f * this.nattr_splash_ratio);
+					}
 					this.t = 0f;
 					Tk.prog = PROG.PROG2;
 					this.can_hold_tackle = false;
@@ -422,9 +445,9 @@ namespace nel
 				if (this.walk_st % 2 == 0 || !pr.is_alive)
 				{
 					base.runAbsorb();
-					base.applyAbsorbDamageTo(pr, this.AtkAbsorb, true, false, false, 0f, false, null, false);
+					base.applyAbsorbDamageTo(pr, this.AtkAbsorb, true, false, false, 0f, false, null, false, true);
 				}
-				this.Anm.randomizeFrame();
+				this.Anm.randomizeFrame(0.5f, 0.5f);
 				this.walk_time += (float)(18 + X.xors(9) + ((this.walk_st % 6 == 2) ? 44 : 0));
 			}
 			return true;
@@ -432,7 +455,7 @@ namespace nel
 
 		private bool considerNormal(NAI Nai)
 		{
-			if (Nai.fnAwakeBasicHead(Nai))
+			if (Nai.fnAwakeBasicHead(Nai, this.gazing_type))
 			{
 				return true;
 			}
@@ -442,9 +465,10 @@ namespace nel
 				{
 					return Nai.AddTicketB(NAI.TYPE.PUNCH, 128, true);
 				}
+				int num = (((this.nattr & ENATTR.ACME) != ENATTR.NORMAL) ? 70 : 0);
 				if (Nai.isPrGaraakiState())
 				{
-					if (Nai.fnBasicPunch(Nai, 16, (float)(30 + ((Nai.target_lastfoot_bottom < base.mbottom - 0.5f) ? 60 : 0)), 40f, 0f, 0f, 8841, false))
+					if (Nai.fnBasicPunch(Nai, 130, (float)(30 + ((Nai.target_lastfoot_bottom < base.mbottom - 0.5f) ? 60 : 0)), (float)(40 + num), 0f, 0f, 8841, false))
 					{
 						return true;
 					}
@@ -458,15 +482,15 @@ namespace nel
 					}
 					if (base.y - Nai.AimPr.y > 1.5f)
 					{
-						if (Nai.fnBasicPunch(Nai, 16 + (flag ? 20 : 0), (float)(20 - (flag ? 10 : 0)), 0f, 0f, 0f, 8841, false))
+						if (Nai.fnBasicPunch(Nai, 130 + (flag ? 20 : 0), (float)(20 - (flag ? 10 : 0)), (float)(num / 2), 0f, 0f, 8841, false))
 						{
 							return true;
 						}
 					}
 					else
 					{
-						float num = 1f - X.ZLINE(this.enlarge_level - 1f);
-						if (Nai.fnBasicPunch(Nai, 16, 60f - num * 70f, 2f + 40f * num, 0f, 0f, 8841, false))
+						float num2 = 1f - X.ZLINE(this.enlarge_level - 1f);
+						if (Nai.fnBasicPunch(Nai, 130, 60f - num2 * 70f, 2f + 40f * num2 + (float)num, 0f, 0f, 8841, false))
 						{
 							return true;
 						}
@@ -554,7 +578,7 @@ namespace nel
 				this.walk_time = 1f;
 				this.t = 0f;
 				Tk.prog = PROG.PROG1;
-				base.tackleInit(this.AtkOdPunch, this.TkOdPunch);
+				base.tackleInit(this.AtkOdPunch, this.TkOdPunch, MGHIT.AUTO);
 				this.Phy.addLockMoverHitting(HITLOCK.SPECIAL_ATTACK, 60f);
 			}
 			else if (this.walk_time >= 1f)
@@ -566,6 +590,7 @@ namespace nel
 					Tk.prog = PROG.PROG2;
 					this.Phy.remLockMoverHitting(HITLOCK.SPECIAL_ATTACK);
 					this.can_hold_tackle = false;
+					EnemyAttr.Splash(this, 2f);
 					base.M2D.Cam.Qu.SinV(11f, 40f, 0f, 0);
 					base.M2D.Cam.Qu.Vib(3f, 40f, 1f, 10);
 				}
@@ -626,7 +651,7 @@ namespace nel
 					this.Phy.addLockMoverHitting(HITLOCK.SPECIAL_ATTACK, 200f).addLockGravity(HITLOCK.SPECIAL_ATTACK, 0f, 200f);
 					this.t = 0f;
 					this.FootD.lockPlayFootStamp(4);
-					base.tackleInit(this.AtkOdTsuppari, this.TkOdTsuppari);
+					base.tackleInit(this.AtkOdTsuppari, this.TkOdTsuppari, MGHIT.AUTO);
 					this.Phy.addFocXy(FOCTYPE.SPECIAL_ATTACK, base.mpf_is_right * 0.1f, 0f, -1f, 0, 80, 140, 0, 0);
 					this.Phy.addFocXy(FOCTYPE.SPECIAL_ATTACK, 0f, -0.46f * (float)X.MPF(flag), -1f, 0, 80, 140, -1, 0);
 					this.FootD.footable_bits = (flag ? 2U : 8U);
@@ -648,6 +673,7 @@ namespace nel
 						base.M2D.Cam.Qu.SinH(4f, 20f, 0f, 0);
 						base.M2D.Cam.Qu.SinV(9f, 30f, 0f, 0);
 						this.can_hold_tackle = false;
+						EnemyAttr.Splash(this, base.x, base.y, 2f, 1f, 1f);
 						if (!flag2)
 						{
 							this.Phy.remLockGravity(HITLOCK.SPECIAL_ATTACK);
@@ -725,9 +751,9 @@ namespace nel
 					pr.defineParticlePreVariable();
 					pr.PtcVar("rot_agR", (double)(X.NIXP(-0.09f, 0.09f) * 3.1415927f)).PtcST("absorb_dmg_bite", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 					bool flag = this.walk_st >= 0 && (this.walk_st % 3 == 0 || !pr.is_alive);
-					base.applyAbsorbDamageTo(pr, this.AtkOdAbsorb, flag, true, false, 0f, false, null, false);
+					base.applyAbsorbDamageTo(pr, this.AtkOdAbsorb, flag, true, false, 0f, false, null, false, true);
 					this.Mp.DropCon.setBlood(pr, flag ? 7 : 23, MTR.col_blood, 0f, true);
-					this.Anm.randomizeFrame();
+					this.Anm.randomizeFrame(0.5f, 0.5f);
 					pr.Ser.Add(SER.DO_NOT_LAY_EGG, 240, 99, false);
 					this.walk_time += (float)(21 + X.xors(7));
 					if ((pr.get_hp() <= 0f && this.walk_st <= 0) || this.walk_st <= -15)
@@ -791,9 +817,9 @@ namespace nel
 								this.Absorb.changeTorturePose("torture_slime_2", true, false, -1, -1);
 								this.Anm.showToFront(false, false);
 							}
-							this.Anm.randomizeFrame();
+							this.Anm.randomizeFrame(0.5f, 0.5f);
 						}
-						base.applyAbsorbDamageTo(pr, (!flag2) ? this.AtkOdAbsorbFatal : this.AtkAbsorb, true, true, false, 0f, false, null, false);
+						base.applyAbsorbDamageTo(pr, (!flag2) ? this.AtkOdAbsorbFatal : this.AtkAbsorb, true, true, false, 0f, false, null, false, true);
 						pr.Ser.Add(SER.DO_NOT_LAY_EGG, 240, 99, false);
 						if (X.XORSP() < 0.13f || pr.get_mp() > 0f)
 						{
@@ -824,7 +850,7 @@ namespace nel
 						if (num3 > 0f)
 						{
 							PrEggManager.CATEG categ = PrEggManager.CATEG.SLIME;
-							if (pr.applyEggPlantDamage(this.od_plant_val, categ, true, num3) > 0)
+							if (pr.EggCon.applyEggPlantDamage(this.od_plant_val, categ, true, num3) > 0)
 							{
 								if (this.walk_st >= 105 && !X.SENSITIVE && this.Anm.poseIs("torture_slime_1", false))
 								{
@@ -852,6 +878,15 @@ namespace nel
 			return true;
 		}
 
+		public override RAYHIT can_hit(M2Ray Ray)
+		{
+			if ((Ray.hittype & HITTYPE.AUTO_TARGET) == HITTYPE.NONE && this.event_throw_ray)
+			{
+				return RAYHIT.NONE;
+			}
+			return base.can_hit(Ray);
+		}
+
 		public override NelEnemy changeState(NelEnemy.STATE st)
 		{
 			this.Anm.rotationR_speed = 0f;
@@ -862,10 +897,6 @@ namespace nel
 				base.killPtc(PtcHolder.PTC_HOLD.ACT);
 			}
 			base.changeState(st);
-			if (this.state == NelEnemy.STATE.DAMAGE_HUTTOBI)
-			{
-				this.SpSetPose("huttobi", -1, null, false);
-			}
 			return this;
 		}
 
@@ -927,7 +958,7 @@ namespace nel
 
 		protected int jump_duration = 19;
 
-		protected NelAttackInfo AtkTackleP = new NelAttackInfo
+		protected EnAttackInfo AtkTackleP = new EnAttackInfo(0.012f, 0.05f)
 		{
 			hpdmg0 = 7,
 			split_mpdmg = 13,
@@ -937,7 +968,7 @@ namespace nel
 			knockback_len = 0.7f,
 			parryable = true,
 			Beto = BetoInfo.Normal
-		}.Torn(0.012f, 0.05f);
+		};
 
 		protected NOD.TackleInfo TkNormal = NOD.getTackle("slime_normal");
 
@@ -945,7 +976,7 @@ namespace nel
 
 		protected NOD.TackleInfo TkAbsorb = NOD.getTackle("slime_absorb");
 
-		protected NelAttackInfo AtkTackleP0 = new NelAttackInfo
+		protected EnAttackInfo AtkTackleP0 = new EnAttackInfo
 		{
 			hpdmg0 = 7,
 			is_grab_attack = true,
@@ -953,7 +984,7 @@ namespace nel
 			parryable = true
 		};
 
-		protected NelAttackInfo AtkAbsorb = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorb = new EnAttackInfo
 		{
 			split_mpdmg = 2,
 			attr = MGATTR.ABSORB,
@@ -969,9 +1000,9 @@ namespace nel
 
 		protected NOD.TackleInfo TkOdPunch = NOD.getTackle("slime_od_punch");
 
-		protected NelAttackInfo AtkOdPunch = new NelAttackInfo
+		protected EnAttackInfo AtkOdPunch = new EnAttackInfo(0.15f, 0.25f)
 		{
-			hpdmg0 = 10,
+			hpdmg0 = 24,
 			attr = MGATTR.BITE,
 			split_mpdmg = 53,
 			huttobi_ratio = 2f,
@@ -980,13 +1011,13 @@ namespace nel
 			burst_vy = -0.1f,
 			is_penetrate_grab_attack = true,
 			parryable = true
-		}.Torn(0.15f, 0.25f);
+		};
 
 		protected NOD.TackleInfo TkOdTsuppari = NOD.getTackle("slime_od_tsuppari");
 
-		protected NelAttackInfo AtkOdTsuppari = new NelAttackInfo
+		protected EnAttackInfo AtkOdTsuppari = new EnAttackInfo(0.03f, 0.5f)
 		{
-			hpdmg0 = 6,
+			hpdmg0 = 16,
 			split_mpdmg = 4,
 			huttobi_ratio = 2f,
 			shield_break_ratio = 2f,
@@ -994,19 +1025,19 @@ namespace nel
 			burst_vy = -0.1f,
 			Beto = BetoInfo.Normal,
 			parryable = true
-		}.Torn(0.03f, 0.5f);
+		};
 
-		protected NelAttackInfo AtkOdAbsorb = new NelAttackInfo
+		protected EnAttackInfo AtkOdAbsorb = new EnAttackInfo(0.06f, -1000f)
 		{
-			hpdmg0 = 4,
+			hpdmg0 = 11,
 			split_mpdmg = 9,
 			attr = MGATTR.BITE,
 			Beto = BetoInfo.BigBite
 		};
 
-		protected NelAttackInfo AtkOdAbsorbFatal = new NelAttackInfo
+		protected EnAttackInfo AtkOdAbsorbFatal = new EnAttackInfo(0.03f, -1000f)
 		{
-			hpdmg0 = 3,
+			hpdmg0 = 8,
 			mpdmg0 = 1,
 			split_mpdmg = 15,
 			attr = MGATTR.EATEN,
@@ -1032,5 +1063,9 @@ namespace nel
 		protected float overdrive_eat_post_delay = 90f;
 
 		public float climb_up_ratio = 0.25f;
+
+		private bool event_throw_ray;
+
+		private NAI.TYPE gazing_type = NAI.TYPE.GAZE;
 	}
 }

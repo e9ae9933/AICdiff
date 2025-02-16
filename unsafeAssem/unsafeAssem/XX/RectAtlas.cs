@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace XX
@@ -7,7 +8,8 @@ namespace XX
 	{
 		public RectAtlas(int w, int h)
 		{
-			this.FirstWrapper = new RectAtlas.AtlasNode(0, 0, w, h);
+			this.current_id = 1U;
+			this.ANode = new List<RectAtlas.AtlasNode>(64);
 			if (w > 0 && h > 0)
 			{
 				this.Clear(w, h);
@@ -16,36 +18,99 @@ namespace XX
 
 		public virtual void Clear(int w, int h)
 		{
-			this.FirstWrapper = new RectAtlas.AtlasNode(0, 0, w, h);
+			RectAtlas.AtlasNode atlasNode = new RectAtlas.AtlasNode(0, 0, w, h)
+			{
+				id = 1U
+			};
 			this.width = w;
 			this.height = h;
+			this.current_id = 1U;
+			this.ANode.Clear();
+			this.ANode.Add(atlasNode);
 			this.use_w = (this.use_h = 0);
+		}
+
+		private void assignNode(ref RectAtlas.AtlasNode Node)
+		{
+			if (this.ANode.Count >= this.ANode.Capacity)
+			{
+				this.ANode.Capacity = this.ANode.Count * 2;
+			}
+			uint num = this.current_id + 1U;
+			this.current_id = num;
+			Node.id = num;
+			this.ANode.Add(Node);
+		}
+
+		private void removeNode(RectAtlas.AtlasNode Node)
+		{
+			RectAtlas.AtlasNode atlasNode = default(RectAtlas.AtlasNode);
+			this.removeNode(Node, ref atlasNode);
+		}
+
+		private void removeNode(RectAtlas.AtlasNode Node, ref RectAtlas.AtlasNode ReplaceNode)
+		{
+			int i = this.ANode.Count - 1;
+			while (i >= 0)
+			{
+				RectAtlas.AtlasNode atlasNode = this.ANode[i];
+				if (atlasNode.id == Node.id)
+				{
+					if (ReplaceNode.valid)
+					{
+						ReplaceNode.id = atlasNode.id;
+						this.ANode[i] = ReplaceNode;
+						return;
+					}
+					this.ANode.RemoveAt(i);
+					if (Node.id == this.current_id)
+					{
+						this.current_id -= 1U;
+					}
+					return;
+				}
+				else
+				{
+					i--;
+				}
+			}
 		}
 
 		public virtual RectInt createRect(int imgw, int imgh, out int cost)
 		{
+			RectAtlas.AtlasNode atlasNode = default(RectAtlas.AtlasNode);
 			cost = 0;
-			RectAtlas.AtlasNode atlasNode;
-			while ((atlasNode = this.FirstWrapper.Insert(ref cost, imgw, imgh)) == null)
+			for (;;)
 			{
+				int count = this.ANode.Count;
+				for (int i = 0; i < count; i++)
+				{
+					atlasNode = this.ANode[i].Insert(this, ref cost, imgw, imgh);
+					if (atlasNode.valid)
+					{
+						break;
+					}
+				}
+				if (atlasNode.valid)
+				{
+					break;
+				}
 				int num = this.width;
 				int num2 = this.height;
-				RectAtlas.AtlasNode atlasNode2;
 				if (this.width > this.height)
 				{
 					this.height *= 2;
 					this.wholeExtendAfter();
-					this.FirstWrapper.clipRect(true, num, num2, this.use_w, this.use_h);
-					atlasNode2 = new RectAtlas.AtlasNode(0, this.use_h, num, this.height - this.use_h);
+					int count2 = this.ANode.Count;
+					this.ANode.Add(new RectAtlas.AtlasNode(0, num2, num, this.height - num2));
 				}
 				else
 				{
 					this.width *= 2;
 					this.wholeExtendAfter();
-					this.FirstWrapper.clipRect(false, num, num2, this.use_w, this.use_h);
-					atlasNode2 = new RectAtlas.AtlasNode(this.use_w, 0, this.width - this.use_w, this.height);
+					int count3 = this.ANode.Count;
+					this.ANode.Add(new RectAtlas.AtlasNode(num, 0, this.width - num, num2));
 				}
-				this.FirstWrapper = new RectAtlas.AtlasNode(0, 0, this.width, this.height, this.FirstWrapper, atlasNode2);
 			}
 			this.use_w = X.Mx(atlasNode.r, this.use_w);
 			this.use_h = X.Mx(atlasNode.b, this.use_h);
@@ -69,65 +134,53 @@ namespace XX
 
 		public int use_h;
 
-		private RectAtlas.AtlasNode FirstWrapper;
-
 		public RectAtlas.FnExtend fnExtend;
+
+		private List<RectAtlas.AtlasNode> ANode;
+
+		private uint current_id = 1U;
 
 		public delegate void FnExtend(int width, int height);
 
-		private class AtlasNode
+		private struct AtlasNode
 		{
-			public bool has_branch
+			public bool used
 			{
 				get
 				{
-					return this.Branch0 != null;
+					return this.id == uint.MaxValue;
 				}
-			}
-
-			public bool h_split
-			{
-				get
+				set
 				{
-					return this.Branch0 != null && this.Branch0.w < this.w;
-				}
-			}
-
-			public bool v_split
-			{
-				get
-				{
-					return this.Branch0 != null && this.Branch0.h < this.h;
+					if (value)
+					{
+						this.id = uint.MaxValue;
+					}
 				}
 			}
 
 			public AtlasNode(int _x, int _y, int _w, int _h)
 			{
-				this.used = false;
 				this.x = _x;
 				this.y = _y;
 				this.w = _w;
 				this.h = _h;
+				this.id = 0U;
 			}
 
 			public AtlasNode(int _x, int _y, int _w, int _h, RectAtlas.AtlasNode _Branch0, RectAtlas.AtlasNode _Branch1)
 			{
-				this.used = false;
 				this.x = _x;
 				this.y = _y;
 				this.w = _w;
 				this.h = _h;
-				this.Branch0 = _Branch0;
-				this.Branch1 = _Branch1;
+				this.id = 0U;
 			}
 
 			public void Clear(int _w, int _h)
 			{
 				this.w = _w;
 				this.h = _h;
-				this.used = false;
-				this.Branch0 = null;
-				this.Branch1 = null;
 			}
 
 			public int r
@@ -146,9 +199,17 @@ namespace XX
 				}
 			}
 
+			public bool valid
+			{
+				get
+				{
+					return this.w > 0 && this.h > 0;
+				}
+			}
+
 			public override string ToString()
 			{
-				string text = string.Concat(new string[]
+				return string.Concat(new string[]
 				{
 					this.x.ToString(),
 					", ",
@@ -158,18 +219,6 @@ namespace XX
 					", ",
 					this.b.ToString()
 				});
-				if (this.Branch0 != null)
-				{
-					if (this.h_split)
-					{
-						text = text + "# |" + this.Branch0.r.ToString();
-					}
-					else
-					{
-						text = text + "# -" + this.Branch0.b.ToString();
-					}
-				}
-				return text;
 			}
 
 			public bool isContaining(int imgw, int imgh)
@@ -182,81 +231,37 @@ namespace XX
 				return imgw == this.w && imgh == this.h;
 			}
 
-			public RectAtlas.AtlasNode Insert(ref int cost, int imgw, int imgh)
+			public RectAtlas.AtlasNode Insert(RectAtlas Con, ref int cost, int imgw, int imgh)
 			{
 				if (this.used || !this.isContaining(imgw, imgh))
 				{
-					return null;
+					return default(RectAtlas.AtlasNode);
 				}
 				cost++;
-				RectAtlas.AtlasNode atlasNode2;
-				if (this.Branch0 != null)
+				if (this.isFit(imgw, imgh))
 				{
-					RectAtlas.AtlasNode atlasNode = this.Branch0.Insert(ref cost, imgw, imgh);
-					atlasNode2 = ((atlasNode != null) ? atlasNode : this.Branch1.Insert(ref cost, imgw, imgh));
+					Con.removeNode(this);
+					this.used = true;
+					return this;
+				}
+				int num = this.w - imgw;
+				int num2 = this.h - imgh;
+				RectAtlas.AtlasNode atlasNode;
+				RectAtlas.AtlasNode atlasNode2;
+				if (num > num2)
+				{
+					atlasNode = new RectAtlas.AtlasNode(this.x, this.y, imgw, this.h);
+					atlasNode2 = new RectAtlas.AtlasNode(this.x + imgw, this.y, this.w - imgw, this.h);
 				}
 				else
 				{
-					if (this.isFit(imgw, imgh))
-					{
-						this.used = true;
-						return this;
-					}
-					int num = this.w - imgw;
-					int num2 = this.h - imgh;
-					if (num > num2)
-					{
-						this.Branch0 = new RectAtlas.AtlasNode(this.x, this.y, imgw, this.h);
-						this.Branch1 = new RectAtlas.AtlasNode(this.x + imgw, this.y, this.w - imgw, this.h);
-					}
-					else
-					{
-						this.Branch0 = new RectAtlas.AtlasNode(this.x, this.y, this.w, imgh);
-						this.Branch1 = new RectAtlas.AtlasNode(this.x, this.y + imgh, this.w, this.h - imgh);
-					}
-					atlasNode2 = this.Branch0.Insert(ref cost, imgw, imgh);
+					atlasNode = new RectAtlas.AtlasNode(this.x, this.y, this.w, imgh);
+					atlasNode2 = new RectAtlas.AtlasNode(this.x, this.y + imgh, this.w, this.h - imgh);
 				}
-				if (this.Branch0.used && this.Branch1.used)
-				{
-					this.used = true;
-				}
-				return atlasNode2;
+				Con.removeNode(this, ref atlasNode);
+				Con.assignNode(ref atlasNode2);
+				return atlasNode.Insert(Con, ref cost, imgw, imgh);
 			}
-
-			public RectAtlas.AtlasNode clipRect(bool extend_vertical, int pre_w, int pre_h, int clip_w, int clip_h)
-			{
-				if (this.used)
-				{
-					return null;
-				}
-				if (extend_vertical)
-				{
-					if (this.b >= pre_h)
-					{
-						this.h = clip_h - this.y;
-						if (this.h <= 0)
-						{
-							this.used = true;
-						}
-					}
-				}
-				else if (this.r >= pre_h)
-				{
-					this.w = clip_w - this.x;
-					if (this.w <= 0)
-					{
-						this.used = true;
-					}
-				}
-				if (this.Branch0 != null)
-				{
-					this.Branch0.clipRect(extend_vertical, pre_w, pre_h, clip_w, clip_h);
-					this.Branch1.clipRect(extend_vertical, pre_w, pre_h, clip_w, clip_h);
-				}
-				return null;
-			}
-
-			public bool used;
 
 			public readonly int x;
 
@@ -266,9 +271,7 @@ namespace XX
 
 			public int h;
 
-			public RectAtlas.AtlasNode Branch0;
-
-			public RectAtlas.AtlasNode Branch1;
+			public uint id;
 		}
 	}
 }

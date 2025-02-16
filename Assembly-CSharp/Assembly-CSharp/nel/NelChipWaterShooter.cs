@@ -24,6 +24,11 @@ namespace nel
 			this.water_touched = false;
 			this.Ext.mist_passable = false;
 			this.Ext.ChipCheckingFn = (int mapx, int mapy, M2Pt Pt) => CCON.mistPassable(Pt.cfg, 0) && !CCON.isWater(Pt.cfg);
+			this.Ext.Fine(0f, false);
+			if (!this.Ext.run(0f))
+			{
+				this.Mp.remRunnerObject(this.Ext);
+			}
 		}
 
 		public override void fnReachFined(bool initted, bool changed)
@@ -52,7 +57,7 @@ namespace nel
 			{
 				if (NelChipWaterShooter.PtcZT_inject == null)
 				{
-					NelChipWaterShooter.PtcZT_inject = new EfParticleOnce("wmng_fall_inject", EFCON_TYPE.UI);
+					NelChipWaterShooter.PtcZT_inject = new EfParticleOnce("wmng_fall_inject", EFCON_TYPE.FIXED);
 				}
 				this.PtcZT = NelChipWaterShooter.PtcZT_inject;
 				this.PtcZT.z = 42f;
@@ -60,7 +65,7 @@ namespace nel
 			}
 			if (NelChipWaterShooter.PtcZT_hit == null)
 			{
-				NelChipWaterShooter.PtcZT_hit = new EfParticleOnce("wmng_fall_hit", EFCON_TYPE.UI);
+				NelChipWaterShooter.PtcZT_hit = new EfParticleOnce("wmng_fall_hit", EFCON_TYPE.FIXED);
 			}
 			this.PtcZT = NelChipWaterShooter.PtcZT_hit;
 			this.PtcZT.z = 20f;

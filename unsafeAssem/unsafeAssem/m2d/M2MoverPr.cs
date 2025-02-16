@@ -8,8 +8,6 @@ namespace m2d
 {
 	public class M2MoverPr : M2Attackable
 	{
-		public int water_drunk { get; set; }
-
 		public bool need_check_event
 		{
 			set
@@ -72,8 +70,7 @@ namespace m2d
 				this.base_gravity0 = base.base_gravity;
 			}
 			this.recheck_force_crouch = true;
-			this.juice_stock = 0;
-			this.water_drunk = (this.water_drunk_cache = 0);
+			this.pre_jump_velocity_y = 0f;
 			this.stopRunning(false, false);
 			base.killSpeedForce(true, true, false);
 			if (this.FootD != null)
@@ -158,6 +155,16 @@ namespace m2d
 		public virtual void fineFootStampType()
 		{
 			this.Phy.getFootManager().footstamp_type = FOOTSTAMP.SHOES;
+		}
+
+		public override void deactivateFromMap()
+		{
+			if (this.MyLight != null)
+			{
+				this.MyLight.Mp.remLight(this.MyLight);
+				this.MyLight = null;
+			}
+			base.deactivateFromMap();
 		}
 
 		public override void runPre()
@@ -265,10 +272,7 @@ namespace m2d
 			}
 			if (flag)
 			{
-				if ((this.manip & M2MoverPr.PR_MNP.NO_MOVING_B) != (M2MoverPr.PR_MNP)0 && this.Phy.walk_xspeed != 0f)
-				{
-					this.Phy.walk_xspeed = X.MULWALK(this.Phy.walk_xspeed, 0f, 0.08f);
-				}
+				M2MoverPr.PR_MNP pr_MNP = this.manip;
 				if ((this.manip & M2MoverPr.PR_MNP.NO_CROUCH) == (M2MoverPr.PR_MNP)0 && continue_crouch)
 				{
 					if (this.canJump())
@@ -466,7 +470,8 @@ namespace m2d
 			}
 			if (flag && !this.isMoveScriptActive(false))
 			{
-				this.Phy.walk_xspeed = this.calcWalkSpeed(num3);
+				float num5 = this.calcWalkSpeed(num3);
+				this.Phy.walk_xspeed = num5;
 			}
 			if (num4 != 0 && flag)
 			{
@@ -541,13 +546,13 @@ namespace m2d
 						flag2 = false;
 					}
 				}
-				int num5 = 0;
+				int num6 = 0;
 				if (flag2)
 				{
 					this.last_foot_bottom_y_ = base.mbottom;
 					if (this.isTO(0))
 					{
-						num5 = -1;
+						num6 = -1;
 						flag4 = !this.isLP(40) && !this.isRP(40) && (!this.isJumpPD(1) || this.isTP(10));
 						if (!flag4)
 						{
@@ -579,7 +584,7 @@ namespace m2d
 					}
 					else if (this.isBO(0))
 					{
-						num5 = 1;
+						num6 = 1;
 						flag4 = !this.isLP(20) && !this.isRP(20) && (!this.isJumpPD(1) || this.isBP());
 						if (!flag4)
 						{
@@ -613,38 +618,38 @@ namespace m2d
 				}
 				else if (flag3 && this.FootD.LadderBCC != null)
 				{
-					float num6 = this.FootD.LadderBCC.shifted_x - this.Phy.move_depert_tstack_x_w;
-					if (base.mtop >= this.FootD.LadderBCC.shifted_y + 0.1f + 0.03f && X.Abs(num6) < ((!base.hasFoot() && (this.isTP(10) || this.pre_ladder_shifting)) ? 0.88f : ((base.hasFoot() && (this.isTP(10) || this.isLO(0) || this.isRO(0))) ? 0.38f : 0.16f)))
+					float num7 = this.FootD.LadderBCC.shifted_x - this.Phy.move_depert_tstack_x_w;
+					if (base.mtop >= this.FootD.LadderBCC.shifted_y + 0.1f + 0.03f && X.Abs(num7) < ((!base.hasFoot() && (this.isTP(10) || this.pre_ladder_shifting)) ? 0.88f : ((base.hasFoot() && (this.isTP(10) || this.isLO(0) || this.isRO(0))) ? 0.38f : 0.16f)))
 					{
 						this.pre_ladder_shifting = true;
-						if (X.Abs(num6) < 0.34f)
+						if (X.Abs(num7) < 0.34f)
 						{
-							this.Phy.addFoc(FOCTYPE.RESIZE, num6, 0f, -1f, -1, 1, 0, -1, 0);
+							this.Phy.addFoc(FOCTYPE.RESIZE, num7, 0f, -1f, -1, 1, 0, -1, 0);
 							if (this.FootD.LadderBCC.isCarryable(this.FootD, 0f, true) == this.FootD.LadderBCC)
 							{
 								this.FootD.rideInitTo(this.FootD.LadderBCC, false);
 								this.Phy.walk_xspeed = 0f;
 								flag3 = false;
-								float num7 = base.mtop + 0.25f - this.FootD.LadderBCC.shifted_bottom;
-								if (num7 > 0f)
+								float num8 = base.mtop + 0.25f - this.FootD.LadderBCC.shifted_bottom;
+								if (num8 > 0f)
 								{
-									this.Phy.addFoc(FOCTYPE.RESIZE, 0f, -num7, -1f, -1, 1, 0, -1, 0);
+									this.Phy.addFoc(FOCTYPE.RESIZE, 0f, -num8, -1f, -1, 1, 0, -1, 0);
 								}
 							}
 							else
 							{
-								this.Phy.addFoc(FOCTYPE.RESIZE, -num6, 0f, -1f, -1, 1, 0, -1, 0);
+								this.Phy.addFoc(FOCTYPE.RESIZE, -num7, 0f, -1f, -1, 1, 0, -1, 0);
 							}
 						}
 					}
-					if (flag3 && !base.hasFoot() && X.Abs(num6) >= 0.083f)
+					if (flag3 && !base.hasFoot() && X.Abs(num7) >= 0.083f)
 					{
-						this.Phy.addFoc(FOCTYPE.RESIZE, X.absMn(num6, 0.08f), 0f, -1f, -1, 1, 0, -1, 0);
+						this.Phy.addFoc(FOCTYPE.RESIZE, X.absMn(num7, 0.08f), 0f, -1f, -1, 1, 0, -1, 0);
 					}
 				}
-				if (num5 != 0 && this.Phy.main_updated_count <= 0 && this.pre_camera_y != -1000f)
+				if (num6 != 0 && this.Phy.main_updated_count <= 0 && this.pre_camera_y != -1000f)
 				{
-					if (num5 < 0)
+					if (num6 < 0)
 					{
 						this.pre_camera_y = X.Mx(this.drawy - 4f * base.CLEN, this.pre_camera_y - 0.071428575f);
 					}
@@ -984,24 +989,30 @@ namespace m2d
 
 		public override void runPhysics(float fcnt)
 		{
+			bool flag = false;
 			if (this.jump_pushing > 0f)
 			{
 				int num = 0;
-				bool flag = this.jump_pushing == 20001f;
-				if (this.jump_pushing == 20000f || flag)
+				bool flag2 = this.jump_pushing == 20001f;
+				bool flag3 = false;
+				bool flag4 = false;
+				if (this.jump_pushing == 20000f || flag2)
 				{
+					this.FootD.fineFootStampType();
 					this.jumpInitialize();
 					this.runnormalMK();
 					this.PadVib("jump", 1f);
+					flag3 = true;
+					flag4 = this.Phy.is_on_web;
 					if ((this.move_key & M2MoverPr.MOVEK.TO_R_RUN) != (M2MoverPr.MOVEK)0)
 					{
-						this.Phy.setWalkXSpeed(this.runSpeed, true, true);
+						this.Phy.setWalkXSpeed(this.runSpeed, true, !this.Phy.is_on_ice);
 					}
 					if ((this.move_key & M2MoverPr.MOVEK.TO_L_RUN) != (M2MoverPr.MOVEK)0)
 					{
-						this.Phy.setWalkXSpeed(-this.runSpeed, true, true);
+						this.Phy.setWalkXSpeed(-this.runSpeed, true, !this.Phy.is_on_ice);
 					}
-					if (flag && this.isBO(0))
+					if (flag2 && this.isBO(0))
 					{
 						this.jump_pushing = (float)(this.Phy.isin_water ? 11000 : 1);
 					}
@@ -1016,8 +1027,8 @@ namespace m2d
 						float num2;
 						if (!base.canGoToSideLB(out bccline, out num2, AIM.T, 0.2f, -0.15f, false, false, false) && bccline != null)
 						{
-							bool flag2 = true;
-							this.checkBCCEvent(bccline, ref flag2, bccline.BCC.base_shift_x, bccline.BCC.base_shift_y + X.Mn(base.vy * 0.4f, 0f));
+							bool flag5 = true;
+							this.checkBCCEvent(bccline, ref flag5, bccline.BCC.base_shift_x, bccline.BCC.base_shift_y + X.Mn(base.vy * 0.4f, 0f));
 						}
 					}
 				}
@@ -1027,12 +1038,12 @@ namespace m2d
 				}
 				if (num > 0)
 				{
-					bool flag3 = this.jump_pushing >= 11000f;
+					bool flag6 = this.jump_pushing >= 11000f;
 					this.jump_pushing = -1f;
 					if (base.vy < -0.10712f && num == 1)
 					{
 						float num3 = X.Mx(base.vy, -0.06695f);
-						this.Phy.addFocFallingY(FOCTYPE.JUMP | FOCTYPE._CHECK_WALL, num3, 0.66f * (flag3 ? this.Phy.water_speed_scale : 1f), 0);
+						this.Phy.addFocFallingY(FOCTYPE.JUMP | FOCTYPE._CHECK_WALL, num3, 0.66f * (flag6 ? this.Phy.water_speed_scale : 1f), 0);
 					}
 				}
 				else if (this.jump_pushing >= 11000f)
@@ -1050,6 +1061,17 @@ namespace m2d
 					{
 						this.falling_camera_shift = 40;
 						float num5 = this.ySpeedStart_water * this.jump_speed_ratio;
+						if (flag3)
+						{
+							if (flag4)
+							{
+								num5 *= 0.5f;
+							}
+						}
+						else
+						{
+							num5 = X.Mx(num5, this.Phy.pre_force_velocity_y);
+						}
 						if (this.jump_pushing > 15000f)
 						{
 							this.Phy.addFoc(FOCTYPE.JUMP | FOCTYPE._CHECK_WALL, 0f, num5, -1f, -1, 1, 0, -1, 0);
@@ -1057,8 +1079,8 @@ namespace m2d
 						}
 						else
 						{
-							float num6 = 15001f - this.jump_pushing;
-							num5 += this.Phy.gravity_apply_velocity(num6 * this.Phy.water_speed_scale);
+							float num6 = this.jump_pushing;
+							num5 += this.Phy.gravity_apply_velocity(this.TS * this.Phy.water_speed_scale);
 							if (num5 >= 0f)
 							{
 								this.jump_pushing = 11000f;
@@ -1074,17 +1096,30 @@ namespace m2d
 				else
 				{
 					float num7 = this.ySpeedStart * this.jump_speed_ratio;
+					if (flag3)
+					{
+						if (flag4)
+						{
+							num7 *= 0.5f;
+						}
+					}
+					else
+					{
+						num7 = X.Mx(num7, this.pre_jump_velocity_y);
+					}
 					if (this.jump_pushing > 10000f)
 					{
 						this.falling_camera_shift = 20;
+						this.pre_jump_velocity_y = num7;
 						this.Phy.addFoc(FOCTYPE.JUMP | FOCTYPE._GRAVITY_LOCK | FOCTYPE._CHECK_WALL, 0f, num7, -1f, -1, 1, 0, -1, 0);
 						this.jump_pushing -= this.TS;
+						flag = true;
 					}
 					else if (this.jump_pushing > 1f)
 					{
 						this.falling_camera_shift = 20;
-						float num8 = 10001f - this.jump_pushing;
-						num7 += this.Phy.gravity_apply_velocity(num8 * 1f);
+						float num8 = this.jump_pushing;
+						num7 += this.Phy.gravity_apply_velocity(this.TS);
 						if (num7 >= 0f)
 						{
 							this.jump_pushing = 1f;
@@ -1093,25 +1128,40 @@ namespace m2d
 						{
 							this.jump_pushing -= this.TS;
 							this.Phy.addFoc(FOCTYPE.JUMP | FOCTYPE._GRAVITY_LOCK | FOCTYPE._CHECK_WALL, 0f, num7, -1f, -1, 1, 0, -1, 0);
+							this.pre_jump_velocity_y = num7;
+							flag = true;
 						}
 					}
 				}
 			}
-			bool flag4 = true;
+			if (!flag)
+			{
+				this.pre_jump_velocity_y = 0f;
+			}
+			bool flag7 = true;
 			if (this.jump_raising)
 			{
 				float y = this.Phy.calcFocVelocity(FOCTYPE.WALK, true, false).y;
 				if (y < 0f)
 				{
-					flag4 = false;
+					flag7 = false;
 					this.jump_cam_shift_y = X.Mx(-5.5f, this.jump_cam_shift_y + y);
 				}
 			}
-			if (flag4 && this.jump_cam_shift_y != 0f)
+			if (flag7 && this.jump_cam_shift_y != 0f)
 			{
 				this.jump_cam_shift_y = X.VALWALK(this.jump_cam_shift_y, 0f, base.hasFoot() ? 0.044f : 0.018f);
 			}
 			base.runPhysics(fcnt);
+		}
+
+		public override void addFocFallWaterVelocity(float __vy, int duration)
+		{
+			if (15000f <= this.jump_pushing && this.jump_pushing <= (float)(15000 + this.JUMP_HOLD_MAXT_WATER))
+			{
+				__vy *= 0.0625f;
+			}
+			base.addFocFallWaterVelocity(__vy, duration);
 		}
 
 		public override IFootable checkFootObject(float pre_fall_y)
@@ -1165,7 +1215,7 @@ namespace m2d
 		{
 			if (this.MScr == null || !this.MScr.isActive())
 			{
-				this.Phy.walk_xspeed = 0f;
+				this.Phy.setWalkXSpeed(0f, false, true);
 			}
 			return base.assignMoveScript(st, soft_touch);
 		}
@@ -1182,12 +1232,13 @@ namespace m2d
 			this.checkevent |= M2MoverPr.CHECKEV._EXECUTE;
 		}
 
-		public virtual void setAbsorbAnimation(string p)
+		public virtual bool setAbsorbAnimation(string p, bool set_default = false, bool frozen_replacable = false)
 		{
 			if (TX.valid(p))
 			{
 				this.SpSetPose(p, -1, null, false);
 			}
+			return true;
 		}
 
 		public virtual bool runUi()
@@ -1408,6 +1459,14 @@ namespace m2d
 			if (!no_reset_time)
 			{
 				this.crouching = 0f;
+			}
+		}
+
+		public void clipCrouchTime(float t)
+		{
+			if (this.crouching > t)
+			{
+				this.crouching = t;
 			}
 		}
 
@@ -2424,9 +2483,16 @@ namespace m2d
 			{
 				return this.crouching > 0f || this.t_force_crouch > 0f;
 			}
+			set
+			{
+				if (!value && !this.forceCrouch(false, false))
+				{
+					this.crouching = 0f;
+				}
+			}
 		}
 
-		protected bool view_crouching
+		public bool view_crouching
 		{
 			get
 			{
@@ -2512,7 +2578,7 @@ namespace m2d
 			return HITTYPE.PR;
 		}
 
-		public float last_foot_bottom_y
+		public override float last_foot_bottom_y
 		{
 			get
 			{
@@ -2535,17 +2601,40 @@ namespace m2d
 			return this.isMoveScriptActive(false) || this.isNormalState();
 		}
 
+		public void setOffsetPixel(float x = -1000f, float y = -1000f)
+		{
+			this.offset_pixel_x = ((x != -1000f) ? x : this.offset_pixel_x);
+			this.offset_pixel_y = ((y != -1000f) ? y : this.offset_pixel_y);
+		}
+
+		public M2MoverPr.MOVEK getMoveKey()
+		{
+			return this.move_key;
+		}
+
+		public bool move_inputting_anything
+		{
+			get
+			{
+				return (this.move_key & M2MoverPr.MOVEK._TO) > (M2MoverPr.MOVEK)0;
+			}
+		}
+
+		public const float RUNNING_STICK_THRESH_DEFAULT = 0.8f;
+
 		public static float running_thresh = 0.8f;
 
 		public static bool double_tap_running = true;
 
 		public static bool jump_press_reverse = false;
 
+		private const float jump_ratio_on_web = 0.5f;
+
 		protected float walkSpeed = 0.085f;
 
 		protected float runSpeed = 0.17f;
 
-		protected float ySpeedMax0 = 0.19f;
+		public float ySpeedMax0 = 0.19f;
 
 		protected float ySpeedStart = -0.298f;
 
@@ -2577,6 +2666,8 @@ namespace m2d
 
 		private const int FALLING_CAM_SHIFT_MAXT = 38;
 
+		private float pre_jump_velocity_y;
+
 		private bool jump_hold_lock_ = true;
 
 		private float jump_pushing;
@@ -2603,21 +2694,15 @@ namespace m2d
 
 		private bool pre_ladder_shifting;
 
-		public byte pee_lock;
-
-		public const int PEE_LOCK_MAX = 5;
-
 		public int ep;
-
-		public int water_drunk_cache;
-
-		public int juice_stock;
 
 		public M2MoverPr.PR_MNP manip;
 
 		private M2MoverPr.MOVEK move_key;
 
 		private const int RUN_DELAY = 18;
+
+		public M2Light MyLight;
 
 		protected float last_foot_bottom_y_;
 
@@ -2627,9 +2712,9 @@ namespace m2d
 
 		protected float pre_camera_y = -1000f;
 
-		protected float offset_pixel_x;
+		public float offset_pixel_x;
 
-		protected float offset_pixel_y;
+		public float offset_pixel_y;
 
 		protected int size_y_default_pixel;
 
@@ -2696,7 +2781,7 @@ namespace m2d
 			CHANGED_STATE = 134217728
 		}
 
-		protected enum MOVEK
+		public enum MOVEK
 		{
 			KEYP_R = 1,
 			KEYD_R,
@@ -2740,6 +2825,7 @@ namespace m2d
 			STOP_EVADE,
 			STOP_MG = 4,
 			STOP_SHIELD = 8,
+			STOP_COMMAND = 15,
 			STOP_SPECIAL_OUTFIT = 271,
 			EVENT = 16,
 			WATER_CHOKE_FLOAT = 32,
@@ -2753,6 +2839,9 @@ namespace m2d
 			WEAK_THROW_RAY = 8192,
 			ALLOC_SHIELD_HOLD = 16384,
 			FORCE_SHIELD_KEY_HOLD = 32768,
+			CANNOT_EXECUTE_CHECKTARGET = 65536,
+			ORGASM_INJECTABLE = 131072,
+			NO_USE_ITEM = 262144,
 			FLAG_PD = 1048576,
 			FLAG_PRESS = 2097152,
 			FLAG_HIT = 4194304,

@@ -1,5 +1,7 @@
 ﻿using System;
 using m2d;
+using nel.smnp;
+using XX;
 
 namespace nel
 {
@@ -13,7 +15,7 @@ namespace nel
 			this.Anm = this.En.getAnimator();
 		}
 
-		public M2MoverPr AimPr
+		public M2Attackable AimPr
 		{
 			get
 			{
@@ -25,7 +27,7 @@ namespace nel
 		{
 			get
 			{
-				M2MoverPr aimPr = this.AimPr;
+				M2Attackable aimPr = this.AimPr;
 				if (aimPr == null)
 				{
 					return null;
@@ -36,6 +38,14 @@ namespace nel
 					return null;
 				}
 				return footManager.get_LastBCC();
+			}
+		}
+
+		public AIM aim
+		{
+			get
+			{
+				return this.En.aim;
 			}
 		}
 
@@ -159,7 +169,7 @@ namespace nel
 			}
 		}
 
-		public EnemySummoner Summoner
+		public SummonerPlayer Summoner
 		{
 			get
 			{
@@ -173,6 +183,16 @@ namespace nel
 			{
 				return this.En.TS;
 			}
+		}
+
+		public bool SpPoseIs(string nPose)
+		{
+			return this.En.SpPoseIs(nPose);
+		}
+
+		public M2SoundPlayerItem playSndPos(string cue_key, float x, float y, PtcHolder.PTC_HOLD hold = PtcHolder.PTC_HOLD.NO_HOLD, PTCThread.StFollow follow = PTCThread.StFollow.NO_FOLLOW, PTCThread Thread = null)
+		{
+			return this.En.playSndPos(cue_key, x, y, hold, follow, Thread);
 		}
 
 		public bool hasFoot()

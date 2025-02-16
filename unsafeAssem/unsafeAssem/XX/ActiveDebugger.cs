@@ -5,25 +5,35 @@ using UnityEngine.InputSystem;
 
 namespace XX
 {
-	public class ActiveDebugger : MonoBehaviour, IFontStorageListener
+	public class ActiveDebugger : MonoBehaviourAutoRun, IFontStorageListener
 	{
 		public void Start()
 		{
 			if (!X.DEBUGRELOADMTR)
 			{
-				Object.Destroy(this);
+				global::UnityEngine.Object.Destroy(this);
 				return;
 			}
 			ActiveDebugger.Instance = this;
 			Debug.Log("active debugger on");
 		}
 
-		public void runActiveDebugger()
+		public override string ToString()
 		{
-			if (MTRX.prepared && IN.getKD(Key.F9, -1))
+			return "ActiveDebugger";
+		}
+
+		protected override bool runIRD(float fcnt)
+		{
+			if (!MTRX.prepared)
+			{
+				return true;
+			}
+			if (IN.getKD(Key.F9, -1))
 			{
 				this.ReloadF9(KEY.getModifier(null));
 			}
+			return true;
 		}
 
 		protected virtual bool ReloadF9(MODIF md)

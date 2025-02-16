@@ -16,13 +16,13 @@ namespace nel
 
 		public static bool is_liquid(PrEggManager.CATEG c)
 		{
-			return c == PrEggManager.CATEG.GOLEM_OD || c == PrEggManager.CATEG.FOX;
+			return c == PrEggManager.CATEG.GOLEM_OD || c == PrEggManager.CATEG.FOX || c == PrEggManager.CATEG.PIG;
 		}
 
 		public PrEggManager(PR _Pr)
 		{
 			this.Pr = _Pr;
-			this.AItm = new PrEggManager.PrEggItem[5];
+			this.AItm = new PrEggManager.PrEggItem[6];
 		}
 
 		public PrEggManager.PrEggItem Get(PrEggManager.CATEG categ)
@@ -38,10 +38,20 @@ namespace nel
 			return null;
 		}
 
+		public void newGame(bool fine_up_after = false)
+		{
+			this.worm_total = 0;
+			this.clear(fine_up_after);
+		}
+
+		public void clearWormCount()
+		{
+			this.worm_total = 0;
+		}
+
 		public PrEggManager clear(bool fine_up_after = false)
 		{
 			this.LEN = 0;
-			this.worm_total = 0;
 			this.egg_water_exist = 0;
 			this.total_ = (this.status_reduce_max_ = -1);
 			this.check_holded_mp = 0f;
@@ -52,6 +62,7 @@ namespace nel
 			if (!this.lock_fine)
 			{
 				this.egg_laying = 0;
+				this.Pr.SttInjector.need_check_on_runpre = true;
 				this.fineActivate();
 			}
 			if (fine_up_after)
@@ -113,7 +124,7 @@ namespace nel
 			{
 				if (this.AItm[i].val <= 0f)
 				{
-					global::XX.X.spliceEmpty<PrEggManager.PrEggItem>(this.AItm, i, 1);
+					X.spliceEmpty<PrEggManager.PrEggItem>(this.AItm, i, 1);
 					this.total_ = (this.status_reduce_max_ = (this.egg_water_exist = -1));
 					this.LEN--;
 				}
@@ -136,7 +147,7 @@ namespace nel
 				if (prEggItem.categ == categ)
 				{
 					num += (int)prEggItem.val;
-					global::XX.X.spliceEmpty<PrEggManager.PrEggItem>(this.AItm, i, 1);
+					X.spliceEmpty<PrEggManager.PrEggItem>(this.AItm, i, 1);
 					this.total_ = (this.status_reduce_max_ = (this.egg_water_exist = -1));
 					this.LEN--;
 				}
@@ -164,10 +175,10 @@ namespace nel
 				if (prEggItem.categ == categ && prEggItem.val > 0f)
 				{
 					int num2 = (int)prEggItem.val;
-					prEggItem.val = global::XX.X.Mx(prEggItem.val * (1f - level), global::XX.X.Mn(prEggItem.val, 5f));
+					prEggItem.val = X.Mx(prEggItem.val * (1f - level), X.Mn(prEggItem.val, 5f));
 					num += num2 - (int)prEggItem.val;
 					prEggItem.val_absorbed *= 1f - level;
-					prEggItem.val_clip = (int)global::XX.X.Mx(0f, (float)prEggItem.val_clip * (1f - level));
+					prEggItem.val_clip = (int)X.Mx(0f, (float)prEggItem.val_clip * (1f - level));
 				}
 			}
 			if (UIStatus.PrIs(this.Pr))
@@ -190,7 +201,7 @@ namespace nel
 			}
 			if (categ == PrEggManager.CATEG.WORM)
 			{
-				count = global::XX.X.Mx(0, MDAT.getWormEggLayableMax(this.Pr) - this.worm_total);
+				count = X.Mx(0, MDAT.getWormEggLayableMax(this.Pr) - this.worm_total);
 				this.worm_total += count;
 			}
 			if (count <= 0)
@@ -199,8 +210,8 @@ namespace nel
 			}
 			bool flag = PrEggManager.is_liquid(categ);
 			Vector3 hipPos = this.Pr.getHipPos();
-			int num = global::XX.CAim._XD((int)hipPos.z, 1);
-			this.Pr.NM2D.IMNG.dropManual(NelItem.GetById(flag ? "mtr_essence0" : "mtr_noel_egg", false), count, global::XX.X.MMX(0, grade, 4), hipPos.x + 0.4f * (float)num, hipPos.y, vx * global::XX.X.NIXP(1f, 1.4f), vy - 0.03f, null, false, NelItemManager.TYPE.NORMAL);
+			int num = CAim._XD((int)hipPos.z, 1);
+			this.Pr.NM2D.IMNG.dropManual(NelItem.GetById(flag ? "mtr_essence0" : "mtr_noel_egg", false), count, X.MMX(0, grade, 4), hipPos.x + 0.4f * (float)num, hipPos.y, vx * X.NIXP(1f, 1.4f), vy - 0.03f, null, false, NelItemManager.TYPE.NORMAL).discarded = true;
 		}
 
 		public void progressAfterBattle()
@@ -224,7 +235,7 @@ namespace nel
 				PrEggManager.PrEggItem prEggItem = this.AItm[i];
 				if (!prEggItem.run(fcnt, (this.egg_laying >= 3 || (!this.Pr.Ser.has(SER.DO_NOT_LAY_EGG) && !this.Pr.Ser.has(SER.EGGED))) && flag2))
 				{
-					global::XX.X.spliceEmpty<PrEggManager.PrEggItem>(this.AItm, i, 1);
+					X.spliceEmpty<PrEggManager.PrEggItem>(this.AItm, i, 1);
 					this.total_ = (this.status_reduce_max_ = (this.egg_water_exist = -1));
 					this.LEN--;
 					flag2 = false;
@@ -233,25 +244,23 @@ namespace nel
 				{
 					if (this.egg_laying == 1 || this.egg_laying == 2)
 					{
-						if (this.Pr.runLayingEggCheck(true))
+						if (this.Pr.runLayingEggCheckActivate())
 						{
 							this.egg_laying = 3;
 							float num = 40f;
 							for (int j = 0; j <= i; j++)
 							{
-								num += global::XX.X.Mx(-this.AItm[j].add_cushion / 0.35f, 200f);
+								num += X.Mx(-this.AItm[j].add_cushion / 0.35f, 200f);
 							}
-							this.egg_voice_time = global::XX.X.NIXP(110f, 180f);
-							this.Pr.PtcST("laying_egg_activate", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-							PostEffect.IT.setPEfadeinout(POSTM.ZOOM2, 60f, num, 1f, 0);
-							PostEffect.IT.setPEfadeinout(POSTM.LAYING_EGG, 140f, num, 1f, 0);
-							PostEffect.IT.setPEfadeinout(POSTM.HEARTBEAT, 150f, global::XX.X.Mx(num - 120f, 0f), 1f, 0);
+							this.egg_voice_time = X.NIXP(110f, 180f);
+							this.Pr.DMGE.effectEggInitLaying(num);
 						}
 						else if (this.egg_laying == 1)
 						{
 							this.egg_laying = 2;
 							this.fineSer();
 							UILog.Instance.AddAlertTX("Alert_nearly_laying", UILogRow.TYPE.ALERT_EGG);
+							this.Pr.DMGE.effectEggNearlyLaying();
 						}
 					}
 					flag2 = false;
@@ -268,7 +277,7 @@ namespace nel
 					M2SerItem m2SerItem = this.Pr.Ser.Find(SER.LAYING_EGG);
 					if (m2SerItem != null)
 					{
-						m2SerItem.fineSer(100);
+						m2SerItem.fineSer(100, true, false);
 					}
 					if (this.egg_laying == 3)
 					{
@@ -276,14 +285,15 @@ namespace nel
 						if (this.egg_voice_time < 0f)
 						{
 							this.Pr.playVo("laying_s", false, false);
-							this.Pr.PadVib("laying_egg_s", global::XX.X.NIXP(0.4f, 1f));
-							this.egg_voice_time = global::XX.X.NIXP(40f, 90f);
+							this.Pr.PadVib("laying_egg_s", X.NIXP(0.4f, 1f));
+							this.egg_voice_time = X.NIXP(40f, 90f);
 						}
 					}
 				}
 				else
 				{
 					this.egg_laying = 0;
+					this.Pr.SttInjector.need_check_on_runpre = true;
 				}
 			}
 			if (this.t_need_fine_mp > 0f)
@@ -340,6 +350,10 @@ namespace nel
 				this.fineActivate();
 				this.Pr.NM2D.IMNG.fineSpecialNoelRow(this.Pr);
 			}
+			if (!this.Pr.NM2D.IMNG.getNoelEggObtainable())
+			{
+				prEggItem.lock_egg_item = true;
+			}
 			if (PrEggManager.is_liquid(categ))
 			{
 				this.Pr.EpCon.addEggLayCount(categ, val);
@@ -351,7 +365,7 @@ namespace nel
 					PrEggManager.PrEggItem prEggItem3 = this.AItm[j];
 					if (prEggItem.val_absorbed > 0f)
 					{
-						prEggItem3.val_absorbed = global::XX.X.Mn(prEggItem3.val_absorbed, (float)prEggItem3.val_clip);
+						prEggItem3.val_absorbed = X.Mn(prEggItem3.val_absorbed, (float)prEggItem3.val_clip);
 					}
 				}
 			}
@@ -402,7 +416,7 @@ namespace nel
 					if (num > 0f)
 					{
 						float num2 = num * prEggItem.mp_hold_absorb_ratio;
-						prEggItem.val_absorbed += global::XX.X.Mn(num2, prEggItem.val * prEggItem.mp_hold_absorb_ratio);
+						prEggItem.val_absorbed += X.Mn(num2, prEggItem.val * prEggItem.mp_hold_absorb_ratio);
 						if (num2 < prEggItem.val)
 						{
 							num = 0f;
@@ -412,7 +426,7 @@ namespace nel
 							num -= prEggItem.val;
 						}
 					}
-					if (flag && global::XX.X.XORSP() < 1f * ((float)prEggItem.val_absorbed_clip / prEggItem.val - 0.5f) / 0.5f)
+					if (flag && X.XORSP() < 1f * ((float)prEggItem.val_absorbed_clip / prEggItem.val - 0.5f) / 0.5f)
 					{
 						this.status_reduce_max_ = -1;
 						this.egg_laying = 1;
@@ -447,11 +461,75 @@ namespace nel
 					}
 					else if (decline_egg_item)
 					{
-						prEggItem.eggitem_count = 0;
+						prEggItem.lock_egg_item = true;
 					}
 				}
 			}
 			return flag;
+		}
+
+		public int applyEggPlantDamage(float val_mp_ratio, PrEggManager.CATEG categ, bool set_effect_and_alert, float check_ratio = 1f)
+		{
+			if (X.SENSITIVE)
+			{
+				return 0;
+			}
+			int num = (int)this.Pr.get_maxmp();
+			int num2 = X.IntC((float)num * val_mp_ratio);
+			int num3 = (int)this.Pr.get_mp();
+			num3 += DIFF.mp_egg_lock_adding(this.Pr, (float)num3);
+			float num4 = 0f;
+			float num5 = this.Pr.NM2D.NightCon.applyEggRatio();
+			float re = this.Pr.getRE(RCP.RPI_EFFECT.EGG_RESIST);
+			int num6;
+			if (re >= 0f)
+			{
+				num6 = num2;
+				num4 = re;
+			}
+			else
+			{
+				if (0f < check_ratio && check_ratio < 1f)
+				{
+					check_ratio = X.Scr(check_ratio, -re * 0.66f);
+				}
+				num6 = X.IntC((float)num * val_mp_ratio * (1f - re * ((check_ratio >= 1000f) ? 1.5f : 1f)));
+				num5 *= X.NI(1f, 2.5f, -re);
+			}
+			if (num5 <= 0f)
+			{
+				return 0;
+			}
+			if (check_ratio < 1000f)
+			{
+				float num7 = 1f - (float)(num3 + this.total) / (float)num / num5;
+				num7 = 1f - check_ratio * num7 + num4;
+				if (X.XORSP() < num7)
+				{
+					return 0;
+				}
+			}
+			if (num - num3 < num2 || (!this.Pr.Ser.has(SER.DO_NOT_LAY_EGG) && this.hasNearlyLayingEgg(categ)))
+			{
+				return 0;
+			}
+			num6 = X.Mx(0, X.Mn(num6, num - num3 - this.total));
+			if (num6 > 0)
+			{
+				this.Add(categ, num6);
+				this.Pr.Ser.checkSer();
+				this.Pr.GSaver.GsMp.Fine(false);
+				this.Pr.BetoMng.Check(this.Pr, BetoInfo.Sperm, false, true);
+				if (set_effect_and_alert)
+				{
+					PostEffect.IT.setSlow(45f, 0.5f, 0);
+					this.Pr.PtcHld.PtcSTTimeFixed("worm_egg_activate", 1f, PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW, false);
+					this.Pr.PtcST("worm_egg_activate", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+					UILog.Instance.AddAlertTX("Alert_" + categ.ToString().ToLower() + "_eggplant", UILogRow.TYPE.ALERT_EGG);
+					this.Pr.UP.applyPlantedEgg();
+				}
+			}
+			return num6;
 		}
 
 		public float DrawTo(MeshDrawer Md, float x, float y, float total_width, float h, float cushion_mp_ratio = 0f)
@@ -461,7 +539,7 @@ namespace nel
 				return 0f;
 			}
 			float maxmp = this.Pr.get_maxmp();
-			float num = global::XX.X.Mx(this.Pr.get_mp(), this.Pr.GSaver.GsMp.saved_gauge_value);
+			float num = X.Mx(this.Pr.get_mp(), this.Pr.GSaver.GsMp.saved_gauge_value);
 			float num2 = 0f;
 			float num3 = (float)this.Pr.Skill.getHoldingMp(false);
 			float num4 = num3;
@@ -484,7 +562,7 @@ namespace nel
 					}
 				}
 			}
-			float num6 = (float)((int)global::XX.X.Mx(0f, total_width * (global::XX.X.Mn(maxmp - (float)this.total, num) - num2) / maxmp - cushion_mp_ratio));
+			float num6 = (float)((int)X.Mx(0f, total_width * (X.Mn(maxmp - (float)this.total, num) - num2) / maxmp - cushion_mp_ratio));
 			float num7 = (this.Pr.canProgressLayingEgg() ? num4 : 0f);
 			float num8 = 0f;
 			for (int j = 0; j < this.LEN; j++)
@@ -521,7 +599,7 @@ namespace nel
 		{
 			get
 			{
-				return global::XX.X.Mn(this.total_real, (int)this.Pr.get_maxmp());
+				return X.Mn(this.total_real, (int)this.Pr.get_maxmp());
 			}
 		}
 
@@ -583,7 +661,7 @@ namespace nel
 							else if (prEggItem.add_cushion < 0f)
 							{
 								flag = true;
-								num += global::XX.X.Mx(0f, prEggItem.val + prEggItem.t_cushion);
+								num += X.Mx(0f, prEggItem.val + prEggItem.t_cushion);
 							}
 							else
 							{
@@ -705,7 +783,7 @@ namespace nel
 			return this.AItm[g];
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool read_clip)
+		public void readBinaryFrom(ByteReader Ba, bool read_clip, bool read_lock)
 		{
 			this.lock_fine = true;
 			this.clear(false);
@@ -715,9 +793,9 @@ namespace nel
 			{
 				float num2 = Ba.readFloat();
 				PrEggManager.CATEG categ = (PrEggManager.CATEG)Ba.readByte();
-				PrEggManager.PrEggItem prEggItem = this.Add(categ, global::XX.X.IntC(num2));
+				PrEggManager.PrEggItem prEggItem = this.Add(categ, X.IntC(num2));
 				prEggItem.val = num2;
-				prEggItem.readBinaryFrom(Ba, read_clip);
+				prEggItem.readBinaryFrom(Ba, read_clip, read_lock);
 			}
 			if (read_clip)
 			{
@@ -827,7 +905,7 @@ namespace nel
 				this.fnRunDropEggEffect = (M2DropObject Dro, float fcnt) => this.runDropEggEffectInner(Dro, fcnt);
 				this.fnRunDropWormEffect = (M2DropObject Dro, float fcnt) => this.runDropWormEffectInner(Dro, fcnt);
 				this.ADrw[1].grd_level_t = 1f;
-				this.t_drip = global::XX.X.NI(30, 90, global::XX.X.XORSP());
+				this.t_drip = X.NI(30, 90, X.XORSP());
 				this.eggitem_count = (this.eggitem_grade = 0);
 			}
 
@@ -835,27 +913,27 @@ namespace nel
 			{
 				if (!no_random)
 				{
-					count = (byte)global::XX.X.Mx(1, 2 + global::XX.X.xors(3) + global::XX.X.IntR(global::XX.X.ZSIN((float)this.val_absorbed_clip, this.Con.Pr.get_maxmp()) * 4f));
+					count = (byte)X.Mx(1, 2 + X.xors(3) + X.IntR(X.ZSIN((float)this.val_absorbed_clip, this.Con.Pr.get_maxmp()) * 4f));
 				}
 				else
 				{
-					count = (byte)global::XX.X.Mx(1, 3 + global::XX.X.IntR(global::XX.X.ZSIN((float)this.val_absorbed_clip, this.Con.Pr.get_maxmp()) * 4f));
+					count = (byte)X.Mx(1, 3 + X.IntR(X.ZSIN((float)this.val_absorbed_clip, this.Con.Pr.get_maxmp()) * 4f));
 				}
-				grade = (byte)(global::XX.X.xors(global::XX.X.Mx(1, global::XX.X.IntC((float)this.Con.total / this.Pr.get_maxmp() / 0.3f))) + this.Pr.NM2D.IMNG.getNoelJuiceQuality(1.8f));
-				grade = (byte)global::XX.X.MMX(0, (int)grade + this.Pr.EpCon.getNoelEggQualityAdd(), 4);
+				grade = (byte)(X.xors(X.Mx(1, X.IntC((float)this.Con.total / this.Pr.get_maxmp() / 0.3f))) + this.Pr.NM2D.IMNG.getNoelJuiceQuality(1.8f));
+				grade = (byte)X.MMX(0, (int)grade + this.Pr.EpCon.getNoelEggQualityAdd(), 4);
 			}
 
 			public void initLayingEgg(bool decline_egg_item = false)
 			{
 				this.add_cushion = -this.val;
-				this.val_absorbed = global::XX.X.Abs(this.add_cushion);
+				this.val_absorbed = X.Abs(this.add_cushion);
 				this.t_effect_egg = -1000f;
 				this.getCountAndGrade(out this.eggitem_count, out this.eggitem_grade, false);
-				this.effect_egg_count = global::XX.X.IntC(this.val_absorbed / this.Con.Pr.get_maxmp() / 0.125f) + (4 + global::XX.X.xors(3) + (int)this.eggitem_count);
+				this.effect_egg_count = X.IntC(this.val_absorbed / this.Con.Pr.get_maxmp() / 0.125f) + (4 + X.xors(3) + (int)this.eggitem_count);
 				this.effect_egg_count_layed = 0;
 				if (decline_egg_item)
 				{
-					this.eggitem_count = 0;
+					this.lock_egg_item = true;
 				}
 			}
 
@@ -868,8 +946,8 @@ namespace nel
 			{
 				int num = 0;
 				int num2 = 1;
-				float num3 = global::XX.X.MMX(1f, (float)global::XX.X.IntR(total_width * this.val / maxmp), total_width - drawn_width);
-				float num4 = global::XX.X.MMX(0f, (float)((int)(num3 + ((this.add_cushion < 0f) ? (total_width * this.t_cushion / maxmp) : 0f))), total_width - drawn_width);
+				float num3 = X.MMX(1f, (float)X.IntR(total_width * this.val / maxmp), total_width - drawn_width);
+				float num4 = X.MMX(0f, (float)((int)(num3 + ((this.add_cushion < 0f) ? (total_width * this.t_cushion / maxmp) : 0f))), total_width - drawn_width);
 				if (num4 <= 0f)
 				{
 					return 0f;
@@ -887,7 +965,7 @@ namespace nel
 					else
 					{
 						num5 += this.val;
-						hold_mp_value = global::XX.X.Mx(hold_mp_value - this.val, 0f);
+						hold_mp_value = X.Mx(hold_mp_value - this.val, 0f);
 					}
 				}
 				Color32 color = MTRX.ColWhite;
@@ -919,6 +997,7 @@ namespace nel
 					color2 = C32.d2c(3435628190U);
 					break;
 				case PrEggManager.CATEG.GOLEM_OD:
+				case PrEggManager.CATEG.PIG:
 					color3 = C32.d2c(2860154759U);
 					color4 = C32.d2c(3429918291U);
 					color5 = C32.d2c(1427181322U);
@@ -935,14 +1014,14 @@ namespace nel
 				}
 				if (this.add_cushion > 0f)
 				{
-					float num7 = global::XX.X.ZPOW(this.t_cushion - 40f, 30f);
+					float num7 = X.ZPOW(this.t_cushion - 40f, 30f);
 					color3 = MTRX.cola.Set(4288256409U).blend(color3, num7).C;
 					color4 = MTRX.cola.White().blend(color4, num7).C;
 					color5 = MTRX.cola.White().blend(color5, num7).C;
 					color = MTRX.cola.Black().blend(color, num7).C;
 					color2 = MTRX.cola.Black().blend(color2, num7).C;
 				}
-				float num8 = ((this.add_cushion > 0f) ? global::XX.X.ZSIN(this.t_cushion, 70f) : 1f);
+				float num8 = ((this.add_cushion > 0f) ? X.ZSIN(this.t_cushion, 70f) : 1f);
 				float num9 = num8 * (h - 3f);
 				Md.chooseSubMesh(num, false, false);
 				if (num8 == 1f)
@@ -974,27 +1053,27 @@ namespace nel
 				}
 				Md.chooseSubMesh(num2, false, false);
 				Md.initForImg(MTRX.EffCircle128, 0);
-				int num10 = global::XX.X.Mx(2, (int)this.val / 4);
+				int num10 = X.Mx(2, (int)this.val / 4);
 				for (int j = 0; j < num10; j++)
 				{
 					int num11 = IN.totalframe - j * 7;
 					if (num11 >= 0)
 					{
 						num11 %= 130;
-						uint ran = global::XX.X.GETRAN2((int)(this.categ * (PrEggManager.CATEG)7 + num11 / 130 * 9 + j), (int)(14 + j % 5 + this.categ * PrEggManager.CATEG._ALL));
+						uint ran = X.GETRAN2((int)(this.categ * (PrEggManager.CATEG)7 + num11 / 130 * 9 + j), (int)(14 + j % 5 + this.categ * PrEggManager.CATEG.FOX));
 						float num12 = (float)num11 / 130f;
-						float num13 = (1f + global::XX.X.RAN(ran, 2063) * 5f) * global::XX.X.ZLINE(num12, 0.125f) * (1f - global::XX.X.ZLINE(num12 - 0.875f, 0.125f));
-						float num14 = global::XX.X.RAN(ran, 2250) * 5f + 2f;
+						float num13 = (1f + X.RAN(ran, 2063) * 5f) * X.ZLINE(num12, 0.125f) * (1f - X.ZLINE(num12 - 0.875f, 0.125f));
+						float num14 = X.RAN(ran, 2250) * 5f + 2f;
 						float num15 = y - num13 - num14 + ((num14 + num13) * 2f + h) * num12;
-						float num16 = -3f + global::XX.X.RAN(ran, 1469) * (num3 + 6f);
-						Md.Col = MTRX.cola.Set(color).blend(color2, global::XX.X.RAN(ran, 1351)).C;
+						float num16 = -3f + X.RAN(ran, 1469) * (num3 + 6f);
+						Md.Col = MTRX.cola.Set(color).blend(color2, X.RAN(ran, 1351)).C;
 						Md.Rect(x + num16, num15, num13 * 2f, num13 * 2f, false);
 					}
 				}
 				if (this.add_cushion < 0f)
 				{
 					float num17 = total_width * (this.val + this.add_cushion) / maxmp - 1f;
-					float num18 = 0.25f + 0.25f * global::XX.X.COSIT(77f);
+					float num18 = 0.25f + 0.25f * X.COSIT(77f);
 					Color32[] colorArray = Md.getColorArray();
 					Vector3[] vertexArray = Md.getVertexArray();
 					num10 = Md.getVertexMax();
@@ -1012,7 +1091,7 @@ namespace nel
 				else if (num5 > 0f)
 				{
 					float num19 = total_width * num5 / maxmp;
-					float num20 = 0.125f + 0.125f * global::XX.X.COSIT(157f);
+					float num20 = 0.125f + 0.125f * X.COSIT(157f);
 					Color32[] colorArray2 = Md.getColorArray();
 					Vector3[] vertexArray2 = Md.getVertexArray();
 					num10 = Md.getVertexMax();
@@ -1042,7 +1121,7 @@ namespace nel
 					{
 						this.t_cushion = 0f;
 					}
-					float num = global::XX.X.Mn(-this.add_cushion / 200f, 0.35f);
+					float num = X.Mn(-this.add_cushion / 200f, 0.35f);
 					bool flag = false;
 					if (this.Pr.Ser.has(SER.EGGED_2))
 					{
@@ -1069,7 +1148,7 @@ namespace nel
 					}
 					if (this.t_effect_egg == -1000f)
 					{
-						this.t_effect_egg = (float)((int)global::XX.X.NIXP(25f, 35f));
+						this.t_effect_egg = (float)((int)X.NIXP(25f, 35f));
 						UILog.Instance.AddAlertTX("Alert_laying_egg_" + this.categ.ToString().ToLower(), UILogRow.TYPE.ALERT_EGG);
 					}
 					if (this.t_effect_egg >= 0f)
@@ -1081,9 +1160,9 @@ namespace nel
 							this.effect_egg_count_layed = num2 + 1;
 							if (num2 < this.effect_egg_count)
 							{
-								this.t_effect_egg = (float)((int)global::XX.X.NIXP(25f, 50f));
+								this.t_effect_egg = (float)((int)X.NIXP(25f, 50f));
 								this.layEggEffect();
-								if (this.eggitem_count > 0 && global::XX.X.Abs(this.val) < 40f)
+								if (this.eggitem_count > 0 && X.Abs(this.val) < 40f)
 								{
 									this.effect_egg_count++;
 									this.t_effect_egg /= 4f;
@@ -1112,22 +1191,22 @@ namespace nel
 							}
 						}
 					}
-					if (global::XX.X.XORSP() < 0.04f)
+					if (X.XORSP() < 0.04f)
 					{
-						this.Pr.publishVaginaSplash(MTR.col_blood_egg, 3, 1.7f);
+						this.Pr.DMGE.publishVaginaSplash(MTR.col_blood_egg, 3, 1.7f);
 					}
 					if (this.t_drip > 0f)
 					{
 						this.t_drip = 0f;
 						this.Pr.Mp.playSnd("laying_egg_air");
-						this.publishDrip((int)global::XX.X.NIXP(1f, 3f), true);
+						this.publishDrip((int)X.NIXP(1f, 3f), true);
 					}
 					this.t_drip += fcnt;
 					if (this.t_drip >= 0f)
 					{
-						this.t_drip = -((this.t_effect_egg >= 0f) ? global::XX.X.NI(1, 15, global::XX.X.XORSP()) : global::XX.X.NI(18, 115, global::XX.X.XORSP()));
-						this.publishDrip((int)global::XX.X.NIXP(1f, 3f), true);
-						if (global::XX.X.XORSP() < 0.4f)
+						this.t_drip = -((this.t_effect_egg >= 0f) ? X.NI(1, 15, X.XORSP()) : X.NI(18, 115, X.XORSP()));
+						this.publishDrip((int)X.NIXP(1f, 3f), true);
+						if (X.XORSP() < 0.4f)
 						{
 							this.Pr.Mp.playSnd("laying_egg");
 							if (this.Pr.UP.isPoseLayingEgg())
@@ -1155,12 +1234,12 @@ namespace nel
 						if (this.t_drip > 0f)
 						{
 							this.t_drip = 0f;
-							this.publishDrip((int)global::XX.X.NIXP(2f, 6f), true);
+							this.publishDrip((int)X.NIXP(2f, 6f), true);
 						}
 						this.t_drip += fcnt;
 						if (this.t_drip >= 0f)
 						{
-							this.t_drip = -global::XX.X.NI(3, 35, global::XX.X.Pow(global::XX.X.XORSP(), 2));
+							this.t_drip = -X.NI(3, 35, X.Pow(X.XORSP(), 2));
 							this.publishDrip(1, true);
 						}
 					}
@@ -1168,12 +1247,12 @@ namespace nel
 					{
 						if (this.t_drip < 0f)
 						{
-							this.t_drip = global::XX.X.NI(30, 90, global::XX.X.XORSP());
+							this.t_drip = X.NI(30, 90, X.XORSP());
 						}
 						this.t_drip -= fcnt * (float)(flag2 ? 4 : 1);
 						if (this.t_drip < 0f)
 						{
-							this.t_drip = global::XX.X.NI(30, 90, global::XX.X.XORSP());
+							this.t_drip = X.NI(30, 90, X.XORSP());
 							this.publishDrip(1, false);
 						}
 					}
@@ -1185,12 +1264,12 @@ namespace nel
 			{
 				if (this.t_drip_ui < 0f)
 				{
-					this.t_drip_ui = global::XX.X.NI(20, 60, global::XX.X.XORSP());
+					this.t_drip_ui = X.NI(20, 60, X.XORSP());
 				}
 				this.t_drip_ui -= fcnt * (float)(this.isLayingEgg() ? 6 : 1);
 				if (this.t_drip_ui < 0f)
 				{
-					this.t_drip_ui = global::XX.X.NI(30, 70, global::XX.X.XORSP()) * global::XX.X.NIL(1f, 3f, (float)this.val_absorbed_clip + global::XX.X.Mx(0f, this.val - 80f), global::XX.X.Mn(140f, this.val));
+					this.t_drip_ui = X.NI(30, 70, X.XORSP()) * X.NIL(1f, 3f, (float)this.val_absorbed_clip + X.Mx(0f, this.val - 80f), X.Mn(140f, this.val));
 					this.Pr.UP.applyDrip(false);
 				}
 			}
@@ -1204,8 +1283,8 @@ namespace nel
 			{
 				if (this.val > 0f)
 				{
-					this.val = (float)global::XX.X.IntR(this.val * lvl);
-					this.val_absorbed = (float)global::XX.X.IntR(this.val_absorbed * lvl);
+					this.val = (float)X.IntR(this.val * lvl);
+					this.val_absorbed = (float)X.IntR(this.val_absorbed * lvl);
 				}
 				if (this.add_cushion < 0f)
 				{
@@ -1218,16 +1297,16 @@ namespace nel
 				Vector3 hipPos = this.Pr.getHipPos();
 				bool flag = this.Pr.isPoseDown(false);
 				bool flag2 = PrEggManager.is_liquid(this.categ);
-				int num = global::XX.CAim._XD((int)hipPos.z, 1);
-				float num2 = (flag ? global::XX.X.NIXP(0.013f, 0.03f) : 0f) * (float)num;
-				float num3 = (flag ? (-global::XX.X.NIXP(0.003f, 0.06f)) : 0f) - (float)global::XX.CAim._YD((int)hipPos.z, 1) * 0.12f;
+				int num = CAim._XD((int)hipPos.z, 1);
+				float num2 = (flag ? X.NIXP(0.013f, 0.03f) : 0f) * (float)num;
+				float num3 = (flag ? (-X.NIXP(0.003f, 0.06f)) : 0f) - (float)CAim._YD((int)hipPos.z, 1) * 0.12f;
 				if (!flag2)
 				{
-					bool flag3 = global::XX.X.XORSP() < 0.3f;
+					bool flag3 = X.XORSP() < 0.3f;
 					float num4 = hipPos.x;
 					if (num == 0)
 					{
-						num4 += (float)global::XX.X.MPFXP() * global::XX.X.NIXP(0.12f, 0.2f);
+						num4 += (float)X.MPFXP() * X.NIXP(0.12f, 0.2f);
 					}
 					float num5 = 0.158f;
 					PrEggManager.CATEG categ = this.categ;
@@ -1243,7 +1322,7 @@ namespace nel
 							fnDropObjectDraw = M2DropObjectReader.GetFn("LayedEffectEggSlime");
 							flag3 = false;
 							num2 *= 2f;
-							num5 = global::XX.X.NIXP(0.07f, 0.1f);
+							num5 = X.NIXP(0.07f, 0.1f);
 						}
 					}
 					else
@@ -1278,31 +1357,34 @@ namespace nel
 						num7 = 7827054U;
 						num8 = 131328U;
 					}
-					int num9 = global::XX.X.IntR(global::XX.X.NIXP(9f, 16f));
+					int num9 = X.IntR(X.NIXP(9f, 16f));
 					M2DropObject.FnDropObjectDraw fn = M2DropObjectReader.GetFn("splash_sperma");
 					for (int i = num9 - 1; i >= 0; i--)
 					{
-						num7 = MTRX.cola.Set(num7).blend(num8, global::XX.X.XORSP()).rgba;
-						M2DropObject m2DropObject2 = this.Mp.DropCon.Add(fn, hipPos.x + 0.04f * global::XX.X.XORSPSH(), hipPos.y + 0.08f * global::XX.X.XORSPSH(), num2 + global::XX.X.NIXP(-0.02f, 0.08f) * (float)num, num3 + global::XX.X.NIXP(-0.026f, 0.072f), num6, (float)num7);
+						num7 = MTRX.cola.Set(num7).blend(num8, X.XORSP()).rgba;
+						M2DropObject m2DropObject2 = this.Mp.DropCon.Add(fn, hipPos.x + 0.04f * X.XORSPSH(), hipPos.y + 0.08f * X.XORSPSH(), num2 + X.NIXP(-0.02f, 0.08f) * (float)num, num3 + X.NIXP(-0.026f, 0.072f), num6, (float)num7);
 						m2DropObject2.bounce_x_reduce = 0f;
 						m2DropObject2.bounce_y_reduce = 0f;
 						m2DropObject2.gravity_scale = 0.1f;
 						m2DropObject2.type = (DROP_TYPE)516;
 					}
 				}
-				if ((this.eggitem_count > 0) ? (global::XX.X.XORSP() < global::XX.X.NIL(global::XX.X.Abs(this.val), this.val_absorbed, 0.88f, 0.12f)) : (global::XX.X.XORSP() < 0.035f))
+				if ((this.eggitem_count > 0) ? (X.XORSP() < X.NIL(X.Abs(this.val), this.val_absorbed, 0.88f, 0.12f)) : (X.XORSP() < 0.035f))
 				{
 					if (this.eggitem_count > 0)
 					{
 						this.eggitem_count -= 1;
-						this.Con.dropEggItem(this.categ, 1, (int)this.eggitem_grade, num2, num3);
+						if (!this.lock_egg_item)
+						{
+							this.Con.dropEggItem(this.categ, 1, (int)this.eggitem_grade, num2, num3);
+						}
 					}
 					this.Pr.PtcST("laying_egg_flash", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-					this.Pr.UP.applyLayingEggCutin(flag2, false, false);
+					this.Pr.UP.CutinMng.applyLayingEggCutin(flag2, -1f, false, false);
 				}
-				this.Pr.PtcVar("x", (double)hipPos.x).PtcVar("y", (double)hipPos.y).PtcVar("ra", (double)global::XX.CAim._XD((int)hipPos.z, 1))
+				this.Pr.PtcVar("x", (double)hipPos.x).PtcVar("y", (double)hipPos.y).PtcVar("ra", (double)CAim._XD((int)hipPos.z, 1))
 					.PtcST("laying_egg", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-				this.publishDrip((int)global::XX.X.NIXP(1f, 6f), true);
+				this.publishDrip((int)X.NIXP(1f, 6f), true);
 			}
 
 			public void progressAfterBattle()
@@ -1311,8 +1393,8 @@ namespace nel
 				{
 					return;
 				}
-				this.val_clip += global::XX.X.IntC(this.Con.Pr.get_maxmp() * 0.3f);
-				this.val_absorbed = global::XX.X.Mn(this.val * 0.875f, global::XX.X.Mn((float)this.val_clip * 0.8f, this.val_absorbed));
+				this.val_clip += X.IntC(this.Con.Pr.get_maxmp() * 0.3f);
+				this.val_absorbed = X.Mn(this.val * 0.875f, X.Mn((float)this.val_clip * 0.8f, this.val_absorbed));
 			}
 
 			private void applySerDamage()
@@ -1331,7 +1413,7 @@ namespace nel
 
 			private void layEggWormEffect(float x, float y, bool from_ground_egg)
 			{
-				bool flag = global::XX.X.XORSP() >= 0.5f;
+				bool flag = X.XORSP() >= 0.5f;
 				float num = (float)(flag ? (-1) : 1);
 				PrEggManager.CATEG categ = this.categ;
 				M2DropObject.FnDropObjectDraw fnDropObjectDraw;
@@ -1350,7 +1432,7 @@ namespace nel
 				{
 					fnDropObjectDraw = M2DropObjectReader.GetFn("LayedEffectSlime");
 				}
-				M2DropObject m2DropObject = this.Mp.DropCon.Add(fnDropObjectDraw, x, y, from_ground_egg ? (num * global::XX.X.NIXP(0.008f, 0.011f)) : 0.0001f, from_ground_egg ? global::XX.X.NIXP(-0.012f, -0.028f) : 0f, (float)(flag ? (-1) : 0), -1f);
+				M2DropObject m2DropObject = this.Mp.DropCon.Add(fnDropObjectDraw, x, y, from_ground_egg ? (num * X.NIXP(0.008f, 0.011f)) : 0.0001f, from_ground_egg ? X.NIXP(-0.012f, -0.028f) : 0f, (float)(flag ? (-1) : 0), -1f);
 				m2DropObject.FnRun = this.fnRunDropWormEffect;
 				m2DropObject.bounce_x_reduce = 0.7f;
 				m2DropObject.bounce_y_reduce = 0f;
@@ -1381,7 +1463,7 @@ namespace nel
 
 			private bool runDropWormEffectInner(M2DropObject Dro, float fcnt)
 			{
-				uint ran = global::XX.X.GETRAN2(Dro.index, Dro.index % 7);
+				uint ran = X.GETRAN2(Dro.index, Dro.index % 7);
 				float num = (float)((Dro.z != 0f) ? (-1) : 1);
 				if (Dro.on_ground)
 				{
@@ -1390,7 +1472,7 @@ namespace nel
 					{
 						num2 = 0f;
 					}
-					Dro.vx = num * global::XX.X.NI(0.005f, 0.01f, global::XX.X.RAN(ran, 1571)) * num2;
+					Dro.vx = num * X.NI(0.005f, 0.01f, X.RAN(ran, 1571)) * num2;
 					if (Dro.af_ground > 700f)
 					{
 						return false;
@@ -1431,7 +1513,7 @@ namespace nel
 					{
 						return (int)this.val_absorbed;
 					}
-					return (int)global::XX.X.Mn(this.val_absorbed, (float)this.val_clip);
+					return (int)X.Mn(this.val_absorbed, (float)this.val_clip);
 				}
 			}
 
@@ -1443,22 +1525,29 @@ namespace nel
 					{
 						return (int)this.val_absorbed;
 					}
-					return (int)global::XX.X.Mn(this.val_absorbed, global::XX.X.Mn((float)this.val_clip + this.Con.Pr.get_maxmp() * 0.3f, this.val));
+					return (int)X.Mn(this.val_absorbed, X.Mn((float)this.val_clip + this.Con.Pr.get_maxmp() * 0.3f, this.val));
 				}
 			}
 
-			public void readBinaryFrom(ByteArray Ba, bool read_clip)
+			public void readBinaryFrom(ByteReader Ba, bool read_clip, bool read_lock)
 			{
 				this.add_cushion = 0f;
 				this.t_cushion = 0f;
+				this.lock_egg_item = false;
 				this.val_absorbed = Ba.readFloat();
 				this.mp_hold_absorb_ratio = Ba.readFloat();
 				if (read_clip)
 				{
 					this.val_clip = Ba.readInt();
-					return;
 				}
-				this.val_clip = (int)this.val;
+				else
+				{
+					this.val_clip = (int)this.val;
+				}
+				if (read_lock)
+				{
+					this.lock_egg_item = Ba.readBoolean();
+				}
 			}
 
 			public void writeBinaryTo(ByteArray Ba)
@@ -1466,6 +1555,7 @@ namespace nel
 				Ba.writeFloat(this.val_absorbed);
 				Ba.writeFloat(this.mp_hold_absorb_ratio);
 				Ba.writeInt(this.val_clip);
+				Ba.writeBool(this.lock_egg_item);
 			}
 
 			public readonly PrEggManager Con;
@@ -1500,6 +1590,8 @@ namespace nel
 
 			private byte eggitem_grade;
 
+			public bool lock_egg_item;
+
 			public const float laying_speed_default = 0.35f;
 
 			public PrEggManager.CATEG categ;
@@ -1517,6 +1609,7 @@ namespace nel
 			SLIME,
 			MUSH,
 			GOLEM_OD,
+			PIG,
 			FOX,
 			_ALL
 		}

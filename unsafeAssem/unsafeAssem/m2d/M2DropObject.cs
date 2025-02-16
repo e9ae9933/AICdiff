@@ -200,7 +200,7 @@ namespace m2d
 							}
 							if ((this.type & DROP_TYPE.CHECK_LIFT) != DROP_TYPE.NO_OPTION && pointPuts.isLift())
 							{
-								this.Mp.BCC.isFallable(this.x, num4, this.size, num5 + this.size + 0.5f, out this.Foot, false, true, -1f);
+								this.Mp.BCC.isFallable(this.x, num4, this.size, num5 + this.size + 0.5f, out this.Foot, false, true, -1f, null);
 								if (this.Foot != null)
 								{
 									num3 = (float)num6 - this.size;
@@ -237,7 +237,7 @@ namespace m2d
 									this.check_thresh = 0f;
 									for (int k = count_carryable_bcc - 1; k >= 0; k--)
 									{
-										num3 = this.Mp.getCarryableBCCByIndex(k).isFallable(this.x, this.y, this.size, this.size + num5, out this.Foot, true, true, -1f);
+										num3 = this.Mp.getCarryableBCCByIndex(k).isFallable(this.x, this.y, this.size, this.size + num5, out this.Foot, true, true, -1f, null);
 										if (this.Foot != null)
 										{
 											num3 += num5;
@@ -668,11 +668,11 @@ namespace m2d
 			return true;
 		}
 
-		public static bool runDraw_splash(M2DropObject Dro, EffectItem Ef, M2DrawBinder Ed, float size_min, float size_max, float ground_size_level, bool bottom_flag = true, float ground_fadein_t = 10f, float ground_hold_t = 20f, float ground_fadeout_t = 24f, float ground_yshift = -8f)
+		public static bool runDraw_splash(M2DropObject Dro, EffectItem Ef, M2DrawBinder Ed, float size_min, float size_max, float ground_size_level, bool bottom_flag = true, float ground_fadein_t = 10f, float ground_hold_t = 20f, float ground_fadeout_t = 24f, float ground_yshift = -8f, float alpha = 1f)
 		{
 			uint ran = X.GETRAN2(Dro.index, Dro.index % 7);
 			int num = X.IntR(X.NI(size_min, size_max, X.RAN(ran, 1590)));
-			C32 c = EffectItem.Col1.Set((uint)((ulong)(-16777216) | (ulong)((long)((int)Dro.time)))).mulA(X.NI(0.9f, 1f, X.RAN(ran, 1938)) * Dro.z);
+			C32 c = EffectItem.Col1.Set(4278190080U | (uint)Dro.time).mulA(X.NI(0.9f, 1f, X.RAN(ran, 1938)) * Dro.z * alpha);
 			if (!Dro.on_ground)
 			{
 				Ef.y += X.Mx(0f, Dro.size);
@@ -699,7 +699,7 @@ namespace m2d
 				float num4 = X.ZLINE(num3, ground_fadein_t);
 				float num5 = X.ZLINE(num3 - ground_hold_t - ground_fadein_t, ground_fadeout_t);
 				MeshDrawer mesh2 = Ef.GetMesh("", MTRX.getMtr(BLEND.NORMAL, -1), bottom_flag);
-				mesh2.Col = c.mulA(num4 - num5).C;
+				mesh2.Col = c.mulA((num4 - num5) * alpha).C;
 				if (ground_yshift > 0f)
 				{
 					ground_yshift *= X.RAN(ran, 654);
@@ -714,12 +714,12 @@ namespace m2d
 		public static bool fnDropRunDraw_splash_blood(M2DropObject Dro, EffectItem Ef, M2DrawBinder Ed)
 		{
 			Dro.type |= DROP_TYPE.ALLOC_FOREVER;
-			return M2DropObject.runDraw_splash(Dro, Ef, Ed, 0.5f, 4.5f, 3f, false, 4f, 90f, 130f, -7f);
+			return M2DropObject.runDraw_splash(Dro, Ef, Ed, 0.5f, 4.5f, 3f, false, 4f, 90f, 130f, -7f, 1f);
 		}
 
 		public static bool fnDropRunDraw_splash_love_juice(M2DropObject Dro, EffectItem Ef, M2DrawBinder Ed)
 		{
-			return M2DropObject.runDraw_splash(Dro, Ef, Ed, 0.5f, 1.3f, 2f, false, 30f, 60f, 40f, -8f);
+			return M2DropObject.runDraw_splash(Dro, Ef, Ed, 0.5f, 1.3f, 2f, false, 30f, 60f, 40f, -8f, 1f);
 		}
 
 		public static bool fnDropRunDraw_splash_sperma(M2DropObject Dro, EffectItem Ef, M2DrawBinder Ed)
@@ -729,12 +729,31 @@ namespace m2d
 			{
 				num = 2f - X.ZSIN(Dro.af, 9f);
 			}
-			return M2DropObject.runDraw_splash(Dro, Ef, Ed, 1.5f * num, 5.3f * num, 2f, false, 4f, 50f, 40f, -8f);
+			return M2DropObject.runDraw_splash(Dro, Ef, Ed, 1.5f * num, 5.3f * num, 2f, false, 4f, 50f, 40f, -8f, 1f);
+		}
+
+		public static bool fnDropRunDraw_splash_sperma_b(M2DropObject Dro, EffectItem Ef, M2DrawBinder Ed)
+		{
+			float num = 1f;
+			if (!Dro.on_ground)
+			{
+				num = X.ZSIN(Dro.af, 9f);
+			}
+			return M2DropObject.runDraw_splash(Dro, Ef, Ed, 1.5f * num, 5.3f * num, 2f, true, 4f, 50f, 40f, -8f, num);
+		}
+
+		public static bool fnDropRunDraw_graystone(M2DropObject Dro, EffectItem Ef, M2DrawBinder Ed)
+		{
+			return M2DropObject.fnDrawAtlasForDropObject(Dro, Ef, Ed, default(M2ImageAtlas.AtlasRect), null);
 		}
 
 		public static bool fnDrawAtlasForDropObject(M2DropObject Dro, EffectItem Ef, M2DrawBinder Ed, M2ImageAtlas.AtlasRect _Atlas, MImage MI)
 		{
-			if (!_Atlas.valid || Dro.af_ground < -120f)
+			if (!_Atlas.valid && MI != null)
+			{
+				return false;
+			}
+			if (Dro.af_ground < -120f)
 			{
 				return false;
 			}
@@ -745,10 +764,19 @@ namespace m2d
 			}
 			uint ran = X.GETRAN2(Dro.index, Dro.index % 7);
 			float num2 = (float)((X.RAN(ran, 2985) < 0.5f) ? 4 : 2);
-			float num3 = (float)((int)(X.RAN(ran, 1335) * num2)) / num2 * (float)_Atlas.w;
-			float num4 = (float)((int)(X.RAN(ran, 2018) * num2)) / num2 * (float)_Atlas.h;
-			MeshDrawer meshImg = Ef.GetMeshImg("", MI, BLEND.NORMAL, true);
-			meshImg.initForImg(MI.Tx, (float)_Atlas.x + num3, (float)_Atlas.y + num4, (float)_Atlas.w / num2, (float)_Atlas.h / num2);
+			MeshDrawer meshDrawer;
+			if (MI != null)
+			{
+				float num3 = (float)((int)(X.RAN(ran, 1335) * num2)) / num2 * (float)_Atlas.w;
+				float num4 = (float)((int)(X.RAN(ran, 2018) * num2)) / num2 * (float)_Atlas.h;
+				meshDrawer = Ef.GetMeshImg("", MI, BLEND.NORMAL, true);
+				meshDrawer.initForImg(MI.Tx, (float)_Atlas.x + num3, (float)_Atlas.y + num4, (float)_Atlas.w / num2, (float)_Atlas.h / num2);
+			}
+			else
+			{
+				meshDrawer = Ef.GetMesh("", uint.MaxValue, BLEND.NORMAL, true);
+				num2 *= 4f;
+			}
 			float num5 = 6.2831855f / X.NI(50, 200, X.RAN(ran, 569)) * (float)X.MPF(X.RAN(ran, 2293) > 0.5f);
 			float num6 = X.ZLINE(Dro.af_ground, 90f);
 			float num7 = X.RAN(ran, 2196) * 6.2831855f + num5 * (Dro.af - Dro.af_ground * 0.5f);
@@ -772,8 +800,16 @@ namespace m2d
 					num7 += X.angledifR(num7, -1.5707964f) * X.ZPOW(num6);
 				}
 			}
-			meshImg.Col = meshImg.ColGrd.Set(4292072403U).blend(0U, num).C;
-			meshImg.RotaGraph(0f, (float)((num2 == 4f) ? 2 : 7), 1f, num7, null, false);
+			meshDrawer.Col = meshDrawer.ColGrd.Set((MI != null) ? 4292072403U : 4289177511U).blend(0U, num).C;
+			if (MI != null)
+			{
+				meshDrawer.RotaGraph(0f, (float)((num2 == 4f) ? 2 : 7), 1f, num7, null, false);
+			}
+			else
+			{
+				meshDrawer.Rotate(num7, false).TranslateP(0f, num2 * 0.33f, false);
+				meshDrawer.Rect(0f, 0f, num2, num2, false);
+			}
 			return true;
 		}
 
@@ -798,6 +834,8 @@ namespace m2d
 		public float af;
 
 		public float af_ground;
+
+		public const float gravity_scale_default = 0.5f;
 
 		public float gravity_scale = 0.5f;
 
@@ -833,11 +871,13 @@ namespace m2d
 
 		public bool y_bounced;
 
-		public bool water_float;
-
 		public bool camera_in;
 
 		public int wall_in;
+
+		public const float WIND_APPLY_START_T = 200f;
+
+		public const float WIND_APPLY_FADE_T = 200f;
 
 		public delegate bool FnDropObjectDraw(M2DropObject Dro, EffectItem Ef, M2DrawBinder Ed);
 

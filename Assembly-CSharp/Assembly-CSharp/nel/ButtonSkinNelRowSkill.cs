@@ -10,7 +10,6 @@ namespace nel
 			: base(_B, _w, _h)
 		{
 			this.BSk = _B;
-			this.Sk = _B.Sk;
 			this.fix_text_size_ = 18f;
 			this.TxHowTo = base.MakeTx("-text");
 			this.TxHowTo.Align(ALIGN.CENTER).AlignY(ALIGNY.MIDDLE);
@@ -28,18 +27,35 @@ namespace nel
 				this.TxHowTo.auto_condense = true;
 			}
 			this.TxHowTo.Size(14f);
-			IN.PosP(this.TxHowTo.transform, this.w * 64f * (this.Sk.always_enable ? 0.25f : 0.19f), 0f, -0.25f);
-			this.TxHowTo.Txt(this.Sk.manipulate);
-			if (this.Sk.new_icon)
-			{
-				base.show_new_icon = 10;
-				this.Md.chooseSubMesh(2, false, false);
-				this.Md.setMaterial(MTRX.MIicon.getMtr(BLEND.NORMAL, base.container_stencil_ref), false);
-			}
 			this.Md.chooseSubMesh(1, false, false);
 			this.Md.setMaterial(MTR.MIiconL.getMtr(BLEND.NORMAL, base.container_stencil_ref), false);
 			this.Md.chooseSubMesh(0, false, false);
 			this.Md.connectRendererToTriMulti(this.MyMeshRenderer);
+		}
+
+		public void initSkill(PrSkill _Sk)
+		{
+			if (this.Sk != _Sk)
+			{
+				this.Sk = _Sk;
+				if (this.Sk != null)
+				{
+					this.setTitle(null);
+					IN.PosP(this.TxHowTo.transform, this.w * 64f * (this.Sk.always_enable ? 0.25f : 0.19f), 0f, -0.25f);
+					this.TxHowTo.Txt(this.Sk.manipulate);
+					if (this.Sk.new_icon)
+					{
+						base.show_new_icon = 10;
+						this.Md.chooseSubMesh(2, false, false);
+						this.Md.setMaterial(MTRX.MIicon.getMtr(BLEND.NORMAL, base.container_stencil_ref), false);
+					}
+					else
+					{
+						base.show_new_icon = 0;
+					}
+					this.fine_flag = true;
+				}
+			}
 		}
 
 		public override ButtonSkin WHPx(float _wpx, float _hpx)
@@ -50,17 +66,17 @@ namespace nel
 
 		protected override void fineDrawAdditional(ref float shift_px_x, ref float shift_px_y, ref bool shift_y_abs)
 		{
-			PxlFrame thumbPF = this.Sk.getThumbPF();
-			if (thumbPF == null)
+			PxlFrame pxlFrame = ((this.Sk != null) ? this.Sk.getThumbPF() : null);
+			if (pxlFrame == null)
 			{
 				return;
 			}
 			this.Md.chooseSubMesh(1, false, false);
 			this.Md.Col = C32.MulA(uint.MaxValue, this.alpha_ * 0.3f);
-			int num = thumbPF.countLayers();
+			int num = pxlFrame.countLayers();
 			for (int i = 0; i < num; i++)
 			{
-				PxlLayer layer = thumbPF.getLayer(i);
+				PxlLayer layer = pxlFrame.getLayer(i);
 				PxlImage img = layer.Img;
 				float num2 = this.w * -0.38f + layer.x * 0.015625f;
 				float num3 = (0.5f - layer.y) * 0.015625f;
@@ -86,10 +102,13 @@ namespace nel
 		protected override void setTitleText(string str)
 		{
 			base.setTitleText(str);
-			float num = this.w * 64f;
-			this.Tx.auto_condense = true;
-			this.Tx.max_swidth_px = (num - (num * 0.12f + 35f)) * 0.5f - (float)(this.Sk.always_enable ? 0 : 25);
-			this.TxHowTo.max_swidth_px = X.Mx(30f, (num - (num * 0.12f + 35f)) * 0.4f - (float)(this.Sk.always_enable ? 0 : 45));
+			if (this.Sk != null)
+			{
+				float num = this.w * 64f;
+				this.Tx.auto_condense = true;
+				this.Tx.max_swidth_px = (num - (num * 0.12f + 35f)) * 0.5f - (float)(this.Sk.always_enable ? 0 : 25);
+				this.TxHowTo.max_swidth_px = X.Mx(30f, (num - (num * 0.12f + 35f)) * 0.4f - (float)(this.Sk.always_enable ? 0 : 45));
+			}
 		}
 
 		public void fineNewIconBlink()
@@ -148,7 +167,7 @@ namespace nel
 
 		public readonly aBtnNelRowSkill BSk;
 
-		public readonly PrSkill Sk;
+		private PrSkill Sk;
 
 		protected TextRenderer TxHowTo;
 	}

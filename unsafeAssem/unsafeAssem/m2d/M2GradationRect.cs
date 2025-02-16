@@ -11,7 +11,7 @@ namespace m2d
 			: base("_", _index, _Lay.Mp)
 		{
 			this.Lay = _Lay;
-			this.key = TX.ToUnixTime(DateTime.Now).ToString() + "_" + (global::XX.X.xors() % 65536U).ToString();
+			this.key = TX.ToUnixTime(DateTime.Now).ToString() + "_" + (X.xors() % 65536U).ToString();
 			this.ColS = new C32(MTRX.ColBlack);
 			this.ColD = new C32(MTRX.ColTrnsp);
 		}
@@ -102,7 +102,7 @@ namespace m2d
 						float num = this.Mp.pixel2meshx(this.x + this.width / 2f) * 0.015625f;
 						float num2 = this.Mp.pixel2meshy(base.y + this.height / 2f) * 0.015625f;
 						Md.Translate(num, num2, false);
-						float num3 = global::XX.X.Mx(base.w, base.h) * 0.5f * 0.015625f;
+						float num3 = X.Mx(base.w, base.h) * 0.5f * 0.015625f;
 						if (is_chip_layer)
 						{
 							this.Lay.M2D.IMGS.Atlas.initForRectWhite(Md, num - num3, num2 - num3, num3 * 2f, num3 * 2f, true, false);
@@ -232,8 +232,8 @@ namespace m2d
 				return;
 			}
 			Md.ColGrd.Set(c2).mulA(alpha).multiply(is_chip_layer ? 0.5f : 1f, false);
-			float num9 = global::XX.X.Mx(base.w, base.h) / 2f;
-			int num10 = global::XX.X.MMX(6, global::XX.X.IntC(num9 * 2f * 3.1415927f / 5f), 32);
+			float num9 = X.Mx(base.w, base.h) / 2f;
+			int num10 = X.MMX(6, X.IntC(num9 * 2f * 3.1415927f / 5f), 32);
 			if (redrawing == -1)
 			{
 				if (base.w > base.h)

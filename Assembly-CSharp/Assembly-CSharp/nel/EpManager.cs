@@ -24,7 +24,11 @@ namespace nel
 			this.Atotal_exp_default[8] = 15;
 			this.Atotal_orgasmed = new int[11];
 			this.Ases_orgasmable = new float[12];
+			this.Aorgasm_locked_stack = new List<EpManager.OrgasmInfo>(3);
 			this.SituCon = new EpSituation();
+			this.EhBounce = new EffectHandler<EffectItem>(4, null);
+			this.PeZoom = new EffectHandlerPE(1);
+			this.PeSlow = new EffectHandlerPE(1);
 			this.Suppressor = new EpSuppressor();
 			this.At_announce = new float[2];
 			this.newGame();
@@ -35,45 +39,43 @@ namespace nel
 
 		public void newGame()
 		{
-			global::XX.X.ALL0(this.Atotal_exp);
-			global::XX.X.ALL0(this.Atotal_orgasmed);
-			global::XX.X.ALL0(this.Ases_orgasmable);
+			X.ALL0(this.Atotal_exp);
+			X.ALL0(this.Atotal_orgasmed);
+			X.ALL0(this.Ases_orgasmable);
 			this.Osituation_orgasmed = new BDic<string, int>();
 			this.Oegg_layed = new BDic<PrEggManager.CATEG, int>();
 			this.pee_count = 0;
 			this.orgasm_individual_count = 0;
+			this.t_orgasm_cutin_tikatika = 0f;
 			this.SituCon.newGame();
 			this.splash_lock = (this.go_unlock_thresh = false);
 			this.Cutin.Clear();
 			this.flushCurrentBattle();
-			this.bt_exp_added = (this.bt_orgasm = (this.bt_applied = (EPCATEG_BITS)0));
-			this.orgasm_oazuke = false;
+			this.bt_exp_added = (this.bt_orgasm = (this.bt_applied = (this.bt_corrupt_acmemist = (EPCATEG_BITS)0)));
+			this.orgasm_oazuke = (this.attachable_ser_oazuke = false);
 			this.lead_to_orgasm = (EPCATEG_BITS)0;
 			this.cure_ep_after_orgasm = (this.cure_ep_after_orgasm_one = 0f);
 			this.t_oazuke = -1f;
-			this.lock_breath_progress = false;
 			this.ep = (float)this.Pr.ep;
 			this.t_ptc = (float)(this.t_ptc_ui = -1);
-			this.t_breath = -1;
+			this.t_corrupt_gacha_mist = 0f;
 			this.breath_key_ = null;
 			this.t_crack_cure = (this.gacha_hit_stocked = 0f);
 			this.dsex_orgasm = (this.dsex_orgasm_pre = 0);
 			this.multiple_orgasm = 0;
 			this.crack_cure_count = (this.crack_cure_once = 0);
-			this.t_sage = (this.t_lock = 0f);
+			this.t_sage = (this.t_lock = (this.t_lock_orgasmlocked = 0f));
 			this.hold_orgasm_after_t = 0f;
 			this.At_announce[0] = (this.At_announce[1] = 0f);
-			this.PeSlow = null;
+			this.Aorgasm_locked_stack.Clear();
 			if (this.EfUi != null)
 			{
 				this.EfUi.destruct();
 				this.EfUi = null;
 			}
-			if (this.PeZoom != null)
-			{
-				this.PeZoom.deactivate(false);
-				this.PeZoom = null;
-			}
+			this.EhBounce.release(false);
+			this.PeZoom.release(false);
+			this.PeSlow.release(false);
 			this.releaseEffect();
 		}
 
@@ -85,19 +87,20 @@ namespace nel
 
 		public void initS()
 		{
+			this.t_orgasm_cutin_tikatika = 0f;
 		}
 
 		public void flushCurrentSession()
 		{
 			for (int i = 0; i < 11; i++)
 			{
-				this.Atotal_exp[i] = global::XX.X.Mn(20, this.Atotal_exp[i]);
+				this.Atotal_exp[i] = X.Mn(20, this.Atotal_exp[i]);
 			}
 			this.flushCurrentBattle();
 			this.Suppressor.Clear();
 			this.splash_lock = false;
 			this.cure_ep_after_orgasm = 0f;
-			this.bt_exp_added = (this.bt_orgasm = (this.bt_applied = (EPCATEG_BITS)0));
+			this.bt_exp_added = (this.bt_orgasm = (this.bt_applied = (this.bt_corrupt_acmemist = (EPCATEG_BITS)0)));
 			this.orgasm_oazuke = false;
 		}
 
@@ -114,6 +117,7 @@ namespace nel
 			this.dsex_orgasm = 0;
 			this.splash_lock = false;
 			this.hold_orgasm_after_t = 0f;
+			this.bt_corrupt_acmemist = (EPCATEG_BITS)0;
 			this.lead_to_orgasm = (EPCATEG_BITS)0;
 			if (this.ep >= 950f)
 			{
@@ -125,7 +129,7 @@ namespace nel
 
 		public void recalcOrgasmable()
 		{
-			global::XX.X.ALL0(this.Ases_orgasmable);
+			X.ALL0(this.Ases_orgasmable);
 			int num = 0;
 			float num2 = 1f;
 			for (int i = 0; i < 2; i++)
@@ -135,15 +139,15 @@ namespace nel
 					float num3 = (float)(this.Atotal_exp[j] + this.Atotal_exp_default[j]);
 					if (i == 0)
 					{
-						num += (int)global::XX.X.Mn(num3, 20f);
+						num += (int)X.Mn(num3, 20f);
 					}
 					else
 					{
 						num3 *= num2;
-						this.Ases_orgasmable[j] = 1f - Mathf.Pow(1f - global::XX.X.NI3(0.08f, 0.33f, 0.6f, global::XX.X.ZLINE(num3, 40f)), 0.06666667f);
+						this.Ases_orgasmable[j] = 1f - Mathf.Pow(1f - X.NI3(0.08f, 0.33f, 0.6f, X.ZLINE(num3, 40f)), 0.06666667f);
 						if (j != 8)
 						{
-							this.Ases_orgasmable[11] = global::XX.X.Mx(this.Ases_orgasmable[j], this.Ases_orgasmable[11]);
+							this.Ases_orgasmable[11] = X.Mx(this.Ases_orgasmable[j], this.Ases_orgasmable[11]);
 						}
 					}
 				}
@@ -156,17 +160,17 @@ namespace nel
 
 		public int getNoelJuiceQualityAdd()
 		{
-			return global::XX.X.xors(global::XX.X.Mx(1, global::XX.X.IntC(this.Ases_orgasmable[6] + this.Ases_orgasmable[3] + this.Ases_orgasmable[7] + this.Ases_orgasmable[9])));
+			return X.xors(X.Mx(1, X.IntC(this.Ases_orgasmable[6] + this.Ases_orgasmable[3] + this.Ases_orgasmable[7] + this.Ases_orgasmable[9])));
 		}
 
 		public int getNoelEggQualityAdd()
 		{
-			return global::XX.X.xors(global::XX.X.Mx(1, global::XX.X.IntC(this.Ases_orgasmable[8] + this.Ases_orgasmable[2] + this.Ases_orgasmable[7])));
+			return X.xors(X.Mx(1, X.IntC(this.Ases_orgasmable[8] + this.Ases_orgasmable[2] + this.Ases_orgasmable[7])));
 		}
 
 		private void checkOazuke(bool over_coming_ep)
 		{
-			if (!SCN.occurableOazuke())
+			if (!SCN.occurableOazuke() || !this.attachable_ser_oazuke)
 			{
 				return;
 			}
@@ -181,7 +185,7 @@ namespace nel
 					}
 					else
 					{
-						num += global::XX.X.NI(0.03f, 0.08f, global::XX.X.Mx(0f, (float)(this.Atotal_exp[i] - 8) / 12f));
+						num += X.NI(0.03f, 0.08f, X.Mx(0f, (float)(this.Atotal_exp[i] - 8) / 12f));
 					}
 				}
 			}
@@ -189,18 +193,19 @@ namespace nel
 			{
 				num += 0.25f;
 			}
-			num = global::XX.X.Mn(1f, num);
+			num = X.Mn(1f, num);
 			if (this.Suppressor.Count > 0)
 			{
-				num = global::XX.X.ZLINE(num) * global::XX.X.NI(0.33f, 0f, global::XX.X.ZLINE((float)this.Suppressor.Count, 4f));
+				num = X.ZLINE(num) * X.NI(0.33f, 0f, X.ZLINE((float)this.Suppressor.Count, 4f));
 			}
 			if (this.Pr.isDoubleSexercise())
 			{
 				num += 0.25f;
 			}
-			if (global::XX.X.XORSP() < num)
+			if (X.XORSP() < num)
 			{
 				this.Pr.Ser.Add(SER.FRUSTRATED, -1, 99, false);
+				this.attachable_ser_oazuke = false;
 				this.t_oazuke = 0f;
 			}
 		}
@@ -220,7 +225,7 @@ namespace nel
 					num = (num - 12f) * 0.5f + 12f;
 				}
 			}
-			return (int)global::XX.X.Mn((float)DIFF.orgasm_tap_max_count, (float)(5 + global::XX.X.Mx(0, this.Suppressor.Sum() - 1) * 2) * ((float)(this.orgasm_oazuke ? 3 : 1) + num));
+			return (int)X.Mn((float)DIFF.orgasm_tap_max_count, (float)(5 + X.Mx(0, this.Suppressor.Sum() - 1) * 2) * ((float)(this.orgasm_oazuke ? 3 : 1) + num));
 		}
 
 		public bool canAbsorbContinue()
@@ -239,7 +244,7 @@ namespace nel
 			{
 				if (this.canAbsorbContinue())
 				{
-					this.gacha_hit_stocked = global::XX.X.Mx(this.gacha_hit_stocked, this.AbsorbOrgasm.get_Gacha().getCount(true));
+					this.gacha_hit_stocked = X.Mx(this.gacha_hit_stocked, this.AbsorbOrgasm.get_Gacha().getCount(true));
 				}
 				else
 				{
@@ -256,11 +261,11 @@ namespace nel
 			int num2 = this.Suppressor.Sum();
 			if (num2 == 0)
 			{
-				tval *= global::XX.X.NI3(0.5f, 1f, 2f, global::XX.X.ZLINE(num, 40f));
+				tval *= X.NI3(0.5f, 1f, 2f, X.ZLINE(num, 40f));
 			}
 			else
 			{
-				tval *= global::XX.X.NI3(1f, 1f, 2f, global::XX.X.ZLINE(num, 40f)) * global::XX.X.NI(1f, 0.125f, global::XX.X.ZLINE((float)(num2 - 3), 12f));
+				tval *= X.NI3(1f, 1f, 2f, X.ZLINE(num, 40f)) * X.NI(1f, 0.125f, X.ZLINE((float)(num2 - 3), 12f));
 			}
 			return tval * this.Pr.Ser.EpApplyRatio();
 		}
@@ -271,9 +276,9 @@ namespace nel
 			int num2 = this.Suppressor.Sum();
 			if (num2 != 0 || this.t_sage > 0f)
 			{
-				num = global::XX.X.NI(num, this.Ases_orgasmable[11], global::XX.X.ZLINE((float)(num2 - 2), 8f));
+				num = X.NI(num, this.Ases_orgasmable[11], X.ZLINE((float)(num2 - 2), 8f));
 			}
-			num += ((this.Pr.Ser.has(SER.SEXERCISE) || (!this.Pr.is_alive && global::XX.X.XORSP() < global::XX.X.NI(0.33f, 1f, global::XX.X.ZLINE((float)this.Suppressor.Count, 7f)))) ? global::XX.X.NI(0.08f, 0.2f, num) : 0f);
+			num += ((this.Pr.Ser.has(SER.SEXERCISE) || (!this.Pr.is_alive && X.XORSP() < X.NI(0.33f, 1f, X.ZLINE((float)this.Suppressor.Count, 7f)))) ? X.NI(0.08f, 0.2f, num) : 0f);
 			num += (this.Pr.isDoubleSexercise() ? 0.4f : (this.Pr.Ser.has(SER.FRUSTRATED) ? 0.125f : 0f));
 			float orgasmableRatio = this.Suppressor.getOrgasmableRatio(target);
 			return num * ((orgasmableRatio == 1f) ? 1f : (this.Suppressor.getOrgasmableRatio(target) - 0.004f));
@@ -286,12 +291,12 @@ namespace nel
 
 		public float getExperienceLevel(EPCATEG categ)
 		{
-			return global::XX.X.ZLINE((float)this.Atotal_exp[(int)categ], 20f);
+			return X.ZLINE((float)this.Atotal_exp[(int)categ], 20f);
 		}
 
 		private bool checkMultipleOrgasm(EpAtk Atk)
 		{
-			return Atk.multiple_orgasm != 0f && global::XX.X.XORSP() < Atk.multiple_orgasm * global::XX.X.Pow(1f - global::XX.X.ZLINE((float)(this.multiple_orgasm - 1), 9f) * 0.5f - global::XX.X.ZLINE((float)(this.multiple_orgasm - 10), 40f) * 0.48f, 2);
+			return Atk.multiple_orgasm != 0f && X.XORSP() < Atk.multiple_orgasm * X.Pow(1f - X.ZLINE((float)(this.multiple_orgasm - 1), 9f) * 0.5f - X.ZLINE((float)(this.multiple_orgasm - 10), 40f) * 0.48f, 2);
 		}
 
 		public bool applyEpDamage(EpAtk Atk, M2Attackable AttackedBy = null, EPCATEG_BITS bits = EPCATEG_BITS._ALL, float lead_orgasm_multiple = 1f, bool can_execute_orgasm = true)
@@ -313,23 +318,36 @@ namespace nel
 			{
 				float num2 = (float)Atk.val;
 				bool flag2 = false;
+				if (Atk.situation_key == "masturbate" && EnemySummoner.isActiveBorder())
+				{
+					this.attachable_ser_oazuke = false;
+				}
 				if (this.go_unlock_thresh)
 				{
-					num2 *= global::XX.X.NIXP(2f, 4.5f);
+					num2 *= X.NIXP(2f, 4.5f);
 				}
 				else if (Atk.situation_key != "masturbate")
 				{
+					if (this.t_sage >= 0f && !this.attachable_ser_oazuke && X.XORSP() <= 0.2f + (float)(1 + this.Pr.Ser.getLevel(SER.SEXERCISE)) * 0.2f)
+					{
+						this.attachable_ser_oazuke = true;
+					}
 					if (this.ep >= 950f)
 					{
 						if ((this.lead_to_orgasm & (EPCATEG_BITS)(1 << (int)epcateg)) == (EPCATEG_BITS)0)
 						{
 							float num3 = this.getLeadToOrgasmRatio(epcateg);
-							num3 = global::XX.X.Scr(num3, (this.t_sage < 0f) ? 0.6f : ((num3 < 0.02f) ? (0.02f * (float)(this.Pr.Ser.getLevel(SER.SEXERCISE) + 1)) : 0f));
-							if (global::XX.X.XORSP() < num3 * lead_orgasm_multiple)
+							num3 = X.Scr(num3, (this.t_sage < 0f) ? 0.6f : ((num3 < 0.02f) ? (0.02f * (float)(this.Pr.Ser.getLevel(SER.SEXERCISE) + 1)) : 0f));
+							if (this.t_lock_orgasmlocked > 0f)
 							{
-								if (this.lead_to_orgasm == (EPCATEG_BITS)0)
+								num3 *= 0.25f;
+							}
+							if (X.XORSP() < num3 * lead_orgasm_multiple)
+							{
+								if (this.lead_to_orgasm == (EPCATEG_BITS)0 && !this.Pr.isOrgasmLocked(false))
 								{
 									UILog.Instance.AddAlertTX("EP_preparing_orgasm", UILogRow.TYPE.ALERT_EP2);
+									this.bt_corrupt_acmemist = (EPCATEG_BITS)0;
 								}
 								this.lead_to_orgasm |= (EPCATEG_BITS)(1 << (int)epcateg);
 							}
@@ -339,7 +357,7 @@ namespace nel
 							if (this.Pr.Ser.has(SER.FORBIDDEN_ORGASM) && this.t_sage >= 0f)
 							{
 								this.t_oazuke = -1f;
-								this.t_lock = global::XX.X.Mx(this.t_lock, 40f);
+								this.t_lock = X.Mx(this.t_lock, 40f);
 								num2 = 0f;
 								this.checkOazuke(true);
 								this.corruptLog("corrupt_forbidden", 0.08f, false);
@@ -349,59 +367,88 @@ namespace nel
 								num2 = 7f;
 								if ((float)this.Pr.ep + num2 >= 1000f && (this.lead_to_orgasm & (EPCATEG_BITS)num) == (EPCATEG_BITS)0)
 								{
-									num2 = global::XX.X.MMX(0f, num2, (float)(999 - this.Pr.ep));
+									num2 = X.MMX(0f, num2, (float)(999 - this.Pr.ep));
 								}
 							}
 						}
 						else
 						{
 							num2 = 0f;
-							this.t_lock = global::XX.X.Mx(this.t_lock, 40f);
+							this.t_lock = X.Mx(this.t_lock, 40f);
 						}
 					}
 					else
 					{
 						num2 = this.calcNormalEpErection(epcateg, num2);
-						num2 = global::XX.X.MMX(0f, num2, (float)(950 - this.Pr.ep));
+						num2 = X.MMX(0f, num2, (float)(950 - this.Pr.ep));
 					}
 				}
-				num2 = (float)global::XX.X.IntR(num2);
+				num2 = (float)X.IntR(num2);
 				if (num2 > 0f)
 				{
 					this.Pr.ep += (int)((this.t_sage < 0f) ? 1000f : num2);
 					if (!can_execute_orgasm)
 					{
-						this.Pr.ep = global::XX.X.Mn(this.Pr.ep, 999);
+						this.Pr.ep = X.Mn(this.Pr.ep, 999);
+					}
+					if (this.bt_corrupt_acmemist != (EPCATEG_BITS)0 && X.XORSP() < 0.05f)
+					{
+						this.bt_corrupt_acmemist = (EPCATEG_BITS)0;
 					}
 					this.t_oazuke = 0f;
 					if (this.Pr.isAbsorbState() && this.AbsorbOrgasm == null)
 					{
 						bool flag3 = false;
-						if (this.Pr.Ser.has(SER.FRUSTRATED))
-						{
-							this.Pr.Ser.Add(SER.FRUSTRATED, (this.Pr.ep >= 1000) ? (-1) : 100, 99, false);
-							if ((this.bt_exp_added & (EPCATEG_BITS)(1 << (int)epcateg)) != (EPCATEG_BITS)0)
-							{
-								this.corruptLog("corrupt_frustrated", 0.16f, this.Pr.getAbsorbContainer().CorruptGacha(5f));
-								flag3 = true;
-							}
-						}
 						if (!flag3 && this.Pr.Ser.getLevel(SER.ORGASM_AFTER) >= 1 && (this.bt_orgasm & (EPCATEG_BITS)(1 << (int)epcateg)) != (EPCATEG_BITS)0)
 						{
-							this.corruptLog("corrupt_orgasm_after", 0.16f, this.Pr.getAbsorbContainer().CorruptGacha(1f));
+							this.corruptLog("corrupt_orgasm_after", 0.16f, this.Pr.getAbsorbContainer().CorruptGacha(1f, true));
+							flag3 = true;
+						}
+						if (this.t_sage >= 0f)
+						{
+							if (this.Pr.Ser.has(SER.FRUSTRATED))
+							{
+								this.Pr.Ser.Add(SER.FRUSTRATED, (this.Pr.ep >= 1000) ? (-1) : 100, 99, false);
+								if ((this.bt_exp_added & (EPCATEG_BITS)(1 << (int)epcateg)) != (EPCATEG_BITS)0)
+								{
+									this.corruptLog("corrupt_frustrated", 0.16f, this.Pr.getAbsorbContainer().CorruptGacha(5f, true));
+									flag3 = true;
+								}
+							}
+							if (!flag3 && this.t_corrupt_gacha_mist > 0f && (this.bt_corrupt_acmemist & (EPCATEG_BITS)(1 << (int)epcateg)) != (EPCATEG_BITS)0)
+							{
+								this.corruptLog("corrupt_acme_mist", 0.16f, false);
+								this.bt_corrupt_acmemist |= (EPCATEG_BITS)(1 << (int)epcateg);
+							}
 						}
 					}
 					if (this.Pr.ep >= 1000)
 					{
-						this.initOrgasm(Atk, false);
-						flag2 = true;
-						if (AttackedBy is NelEnemy)
+						if (this.Pr.isOrgasmLocked(false))
 						{
-							UiBenchMenu.enemy_orgasm = true;
+							this.Aorgasm_locked_stack.Add(new EpManager.OrgasmInfo
+							{
+								categ = epcateg,
+								situation = Atk.situation_key
+							});
+							this.Pr.ep = 850;
+							this.lead_to_orgasm = (EPCATEG_BITS)0;
+							this.t_lock_orgasmlocked = 250f;
+							this.Pr.Ser.Add(SER.ORGASM_STACK, 30, 99, false);
+							this.fineCounter();
 						}
-						else if (this.Pr.isBenchState())
+						else
 						{
-							UiBenchMenu.orgasm_onemore = true;
+							this.initOrgasm(Atk, false);
+							flag2 = true;
+							if (AttackedBy is NelEnemy)
+							{
+								UiBenchMenu.enemy_orgasm = true;
+							}
+							else if (this.Pr.isBenchState())
+							{
+								UiBenchMenu.orgasm_onemore = true;
+							}
 						}
 					}
 					else
@@ -417,7 +464,7 @@ namespace nel
 				if (CFG.ui_sensitive_description > 0)
 				{
 					float num4 = (float)CFG.ui_sensitive_description / 10f;
-					if (!flag2 && global::XX.X.XORSP() < global::XX.X.NI(global::XX.X.NI(0.04f, 0.75f, num4 * num4), global::XX.X.NI(0.04f, 0.75f, 1f - global::XX.X.Pow(1f - num4, 2)), global::XX.X.ZLINE(this.ep - 350f, 650f)))
+					if (!flag2 && X.XORSP() < X.NI(X.NI(0.04f, 0.75f, num4 * num4), X.NI(0.04f, 0.75f, 1f - X.Pow(1f - num4, 2)), X.ZLINE(this.ep - 350f, 650f)))
 					{
 						this.setAlert(false, epcateg.ToString().ToLower(), Atk.situation_key.ToLower());
 					}
@@ -435,6 +482,28 @@ namespace nel
 			return flag;
 		}
 
+		public bool progressOrgasmStack(bool is_first, out bool orgasmed)
+		{
+			orgasmed = false;
+			if (this.Aorgasm_locked_stack.Count == 0)
+			{
+				return false;
+			}
+			EpManager.OrgasmInfo orgasmInfo = this.Aorgasm_locked_stack[0];
+			EPCATEG_BITS epcateg_BITS = (EPCATEG_BITS)(1 << (int)orgasmInfo.categ);
+			this.lead_to_orgasm |= epcateg_BITS;
+			this.Pr.ep += 5;
+			if (this.Pr.ep >= 1000)
+			{
+				orgasmed = true;
+				this.initOrgasm(orgasmInfo.situation, epcateg_BITS, false);
+				this.Pr.ep = 950 - (int)X.NIXP(0f, 40f);
+				this.Aorgasm_locked_stack.RemoveAt(0);
+			}
+			this.fineCounter();
+			return true;
+		}
+
 		private EPCATEG getTarget(EpAtk Atk, EPCATEG_BITS bits, out int apply_bits, bool consider_cfg_boost = true)
 		{
 			apply_bits = (int)(Atk.target_bits & bits);
@@ -448,19 +517,19 @@ namespace nel
 			{
 				if ((apply_bits & (1 << i)) != 0)
 				{
-					num += (float)Atk.Get(i) * (consider_cfg_boost ? CFG.getEpApplyRatio((EPCATEG)i) : 1f);
+					num += (float)Atk.Get(i) * (consider_cfg_boost ? CFGSP.getEpApplyRatio((EPCATEG)i) : 1f);
 				}
 			}
 			if (num > 0f)
 			{
-				float num2 = global::XX.X.XORSP() * num;
+				float num2 = X.XORSP() * num;
 				EPCATEG epcateg2 = EPCATEG._ALL_TARG;
 				for (int j = 0; j < 11; j++)
 				{
 					if ((apply_bits & (1 << j)) != 0)
 					{
 						epcateg2 = (EPCATEG)j;
-						float num3 = (float)Atk.Get(j) * (consider_cfg_boost ? CFG.getEpApplyRatio((EPCATEG)j) : 1f);
+						float num3 = (float)Atk.Get(j) * (consider_cfg_boost ? CFGSP.getEpApplyRatio((EPCATEG)j) : 1f);
 						if (num2 < num3)
 						{
 							epcateg = epcateg2;
@@ -488,7 +557,7 @@ namespace nel
 			{
 				ratio = 1f;
 			}
-			if (global::XX.X.XORSP() < ratio * (float)CFG.ui_sensitive_description / 10f)
+			if (X.XORSP() < ratio * (float)CFG.ui_sensitive_description / 10f)
 			{
 				UILog.Instance.AddAlertTX(tx_key, UILogRow.TYPE.ALERT_EP2);
 			}
@@ -499,7 +568,7 @@ namespace nel
 			float num = this.t_lock;
 			if (this.ep > (float)this.Pr.ep)
 			{
-				this.t_lock = global::XX.X.Mn(0f, this.t_lock);
+				this.t_lock = X.Mn(0f, this.t_lock);
 			}
 			else
 			{
@@ -507,7 +576,7 @@ namespace nel
 				{
 					return;
 				}
-				this.t_lock = global::XX.X.Mx(this.t_lock, 40f);
+				this.t_lock = X.Mx(this.t_lock, 40f);
 			}
 			int num2 = (int)(this.t_lock - num);
 			if (this.Pr.Ser.has(SER.ORGASM_AFTER) && num2 > 0)
@@ -533,16 +602,17 @@ namespace nel
 
 		public void addEggLayCount(PrEggManager.CATEG categ, int cnt = 1)
 		{
-			this.Oegg_layed[categ] = global::XX.X.Get<PrEggManager.CATEG, int>(this.Oegg_layed, categ, 0) + cnt;
+			this.Oegg_layed[categ] = X.Get<PrEggManager.CATEG, int>(this.Oegg_layed, categ, 0) + cnt;
 		}
 
-		public void initOrgasmCumming(EpAtk Atk, bool adding = true)
+		public void initOrgasmCumming(EPCATEG_BITS target_bits, bool adding = true)
 		{
-			EPCATEG_BITS epcateg_BITS = (EPCATEG_BITS)(1 << (int)Atk.getRandom());
+			int num = X.bit_count((uint)target_bits);
+			EPCATEG_BITS epcateg_BITS = ((num <= 1) ? target_bits : ((EPCATEG_BITS)(1 << X.bit_on_index((uint)target_bits, X.xors(num)))));
 			this.lead_to_orgasm = (adding ? (this.lead_to_orgasm | epcateg_BITS) : epcateg_BITS);
 		}
 
-		public EPCATEG addMasturbateCountImmediate(EpAtk Atk, int multiple_orgasm = 1)
+		public EPCATEG addMasturbateCountImmediate(string situation_key, int multiple_orgasm = 1)
 		{
 			EPCATEG epcateg;
 			if (this.lead_to_orgasm == (EPCATEG_BITS)0)
@@ -551,11 +621,11 @@ namespace nel
 			}
 			else
 			{
-				int num = global::XX.X.bit_count((uint)this.lead_to_orgasm);
-				int num2 = global::XX.X.bit_on_index((uint)this.lead_to_orgasm, global::XX.X.xors(num));
+				int num = X.bit_count((uint)this.lead_to_orgasm);
+				int num2 = X.bit_on_index((uint)this.lead_to_orgasm, X.xors(num));
 				epcateg = (EPCATEG)((num2 < 0) ? 10 : num2);
 			}
-			string text = EpSituation.situ_write_replace(Atk.situation_key.ToUpper());
+			string text = EpSituation.situ_write_replace(situation_key.ToUpper());
 			this.lead_to_orgasm = (EPCATEG_BITS)0;
 			if (REG.match(text, REG.RegSuffixNumber))
 			{
@@ -568,25 +638,32 @@ namespace nel
 			this.SituCon.addTempSituation(text, multiple_orgasm, false);
 			if (TX.valid(text))
 			{
-				this.Osituation_orgasmed[text] = global::XX.X.Get<string, int>(this.Osituation_orgasmed, text, 0) + 1;
+				this.Osituation_orgasmed[text] = X.Get<string, int>(this.Osituation_orgasmed, text, 0) + 1;
 			}
 			return epcateg;
 		}
 
 		public void initOrgasm(EpAtk Atk, bool skip_effect = false)
 		{
-			bool flag = Atk.situation_key == "masturbate";
+			this.initOrgasm(Atk.situation_key, Atk.target_bits, skip_effect);
+		}
+
+		public void initOrgasm(string situation_key, EPCATEG_BITS target_bits, bool skip_effect = false)
+		{
+			this.Pr.SttInjector.need_check_on_runpre = true;
+			bool flag = situation_key == "masturbate";
 			if (flag)
 			{
-				this.initOrgasmCumming(Atk, false);
+				this.initOrgasmCumming(target_bits, false);
 			}
-			EPCATEG epcateg = this.addMasturbateCountImmediate(Atk, this.multiple_orgasm + 1);
+			bool flag2 = this.t_sage < 0f;
+			EPCATEG epcateg = this.addMasturbateCountImmediate(situation_key, this.multiple_orgasm + 1);
 			if (this.multiple_orgasm == 0)
 			{
 				this.orgasm_individual_count++;
 			}
-			bool flag2 = EnemySummoner.isActiveBorder();
-			if (flag2)
+			bool flag3 = EnemySummoner.isActiveBorder();
+			if (flag3)
 			{
 				this.splash_lock = false;
 			}
@@ -595,25 +672,27 @@ namespace nel
 			this.cure_ep_after_orgasm_one = this.cure_ep_after_orgasm / 600f;
 			this.bt_orgasm |= this.bt_exp_added;
 			this.bt_exp_added = (this.bt_applied = (EPCATEG_BITS)0);
+			this.bt_corrupt_acmemist = (EPCATEG_BITS)0;
 			this.Atotal_orgasmed[(int)epcateg]++;
 			if (this.multiple_orgasm == 0)
 			{
-				this.Atotal_exp[(int)epcateg] = (byte)global::XX.X.Mn(40, (int)(this.Atotal_exp[(int)epcateg] + ((this.Atotal_exp[(int)epcateg] >= 20) ? 2 : 1)));
+				this.Atotal_exp[(int)epcateg] = (byte)X.Mn(40, (int)(this.Atotal_exp[(int)epcateg] + ((this.Atotal_exp[(int)epcateg] >= 20) ? 2 : 1)));
 			}
 			this.Suppressor.Orgasmed(epcateg, 540);
 			this.t_oazuke = 0f;
+			this.attachable_ser_oazuke = false;
 			this.recalcOrgasmable();
 			int count = this.Suppressor.Count;
 			this.Pr.Ser.Add(SER.ORGASM_INITIALIZE, -1, 99, false);
 			this.Pr.Ser.Cure(SER.ORGASM_AFTER);
-			this.Pr.getAbsorbContainer().CorruptGacha(5f);
-			bool flag3 = this.orgasm_oazuke;
+			this.Pr.getAbsorbContainer().CorruptGacha(5f, true);
+			bool flag4 = this.orgasm_oazuke;
 			if (this.Pr.isDoubleSexercise())
 			{
 				this.dsex_orgasm++;
-				flag3 = true;
+				flag4 = true;
 			}
-			if (flag3 && this.hold_orgasm_after_t == 0f)
+			if (flag4 && this.hold_orgasm_after_t == 0f)
 			{
 				this.hold_orgasm_after_t = 520f;
 			}
@@ -631,7 +710,8 @@ namespace nel
 				}
 			}
 			this.At_announce[0] = 0f;
-			this.At_announce[1] = global::XX.X.Mx(300f, this.At_announce[1]);
+			this.At_announce[1] = X.Mx(300f, this.At_announce[1]);
+			this.t_orgasm_cutin_tikatika += 1f;
 			this.t_sage = -this.calcOrgasmInitDelayTime();
 			if (this.go_unlock_thresh)
 			{
@@ -647,36 +727,47 @@ namespace nel
 			}
 			if (!this.splash_lock)
 			{
-				this.crack_cure_count += (int)global::XX.X.Mx(1f, (float)this.calcOrgasmCureCrack(epcateg) * (flag ? 0.33f : 1f));
-				this.crack_cure_once = global::XX.X.Mx(1, global::XX.X.Mn(this.crack_cure_count / 4, flag ? 1 : 2));
+				this.crack_cure_count += (int)X.Mx(1f, (float)this.calcOrgasmCureCrack(epcateg) * (flag ? 0.33f : 1f));
+				this.crack_cure_once = X.Mx(1, X.Mn(this.crack_cure_count / 4, flag ? 1 : 2));
 			}
-			this.setAlert(true, epcateg.ToString().ToLower(), Atk.situation_key.ToLower());
+			this.setAlert(true, epcateg.ToString().ToLower(), situation_key.ToLower());
 			this.fineEffect(true);
 			if (!skip_effect)
 			{
 				PostEffect it = PostEffect.IT;
-				this.Pr.playVo(flag ? "must_orgasm" : "orgasm", false, false);
+				this.Pr.VO.playOrgasm(flag);
 				if (this.Pr.UP.isActive())
 				{
-					if (this.PeZoom != null)
-					{
-						this.PeZoom.deactivate(false);
-						this.PeZoom = null;
-					}
+					this.PeZoom.release(false);
+					this.EhBounce.release(false);
 					if (!this.go_unlock_thresh)
 					{
+						float num = 1.125f;
 						if (this.multiple_orgasm == 0)
 						{
-							this.PeSlow = it.setSlow(global::XX.X.NI(80, 20, global::XX.X.ZSIN((float)(count - 2), 3f)), global::XX.X.NI(0.6f, 0.22f, global::XX.X.ZSIN((float)(count - 1), 3f)), 0);
+							if (!this.Pr.LockCntOccur.isLocked(PR.OCCUR.HITSTOP_ORGASM))
+							{
+								this.PeSlow.Set(it.setSlow(X.NI(80, 20, X.ZSIN((float)(count - 2), 3f)), X.Scr(X.NI(0.22f, 0.6f, X.ZSIN((float)(count - 1), 3f)), (this.Aorgasm_locked_stack.Count > 0) ? 0.5f : 0f), 0));
+								this.Pr.LockCntOccur.Add(PR.OCCUR.HITSTOP_ORGASM, 240f);
+							}
+							else
+							{
+								this.PeSlow.Set(it.setSlow(28f, 0.88f, 0));
+							}
+							TransEffecterItem transEffecterItem = this.Pr.M2D.Cam.TeCon.setBounceZoomIn(num, 40f, 0);
+							PostEffect.IT.addTimeFixedEffect(transEffecterItem, 0.5f);
+							this.EhBounce.Set(transEffecterItem);
+							this.Pr.LockCntOccur.Add(PR.OCCUR.NOELJUICE_ZOOMIN, 140f);
 						}
-						else if (this.PeSlow != null)
+						else
 						{
-							this.PeSlow.deactivate(false);
+							this.PeSlow.deactivate(true);
 						}
-						it.addTimeFixedEffect(this.PeZoom = it.setPE(POSTM.ZOOM2_EATEN, 50f, 1f, 0), 0.6f);
+						PostEffectItem postEffectItem = it.setPE(POSTM.ZOOM2_EATEN, 50f, 1f, 0);
+						this.PeZoom.Set(postEffectItem);
+						it.addTimeFixedEffect(postEffectItem, 0.6f);
 						it.addTimeFixedEffect(it.setPEabsorbed(POSTM.BGM_LOWER, 10f, 300f, 1f, 0), 1f);
 						it.addTimeFixedEffect(it.setPEabsorbed(POSTM.SND_VOLUME_REDUCE, 10f, 200f, 0.75f, 0), 1f);
-						PostEffect.IT.addTimeFixedEffect(this.Pr.M2D.Cam.TeCon.setBounceZoomIn(1.125f, 40f, 0), 0.5f);
 						if (flag)
 						{
 							it.addTimeFixedEffect(this.Pr.TeCon.setQuakeSinH(4f, 50, 19f, 1f, 0), 0.7f);
@@ -691,21 +782,21 @@ namespace nel
 						this.Pr.PtcHld.PtcSTTimeFixed("ep_orgasm", 0.85f, PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW, false);
 					}
 					EffectNel effect = UIBase.Instance.getEffect();
-					float num = (UIBase.Instance.event_center_uipic ? 1f : UIBase.uipic_mpf);
-					bool flag4;
-					if (num >= 0f)
+					float num2 = (UIBase.Instance.event_center_uipic ? 1f : UIBase.uipic_mpf);
+					bool flag5;
+					if (num2 >= 0f)
 					{
-						flag4 = this.Pr.drawx >= this.Pr.M2D.Cam.x + 32f;
+						flag5 = this.Pr.drawx >= this.Pr.M2D.Cam.x + 32f;
 					}
 					else
 					{
-						flag4 = this.Pr.drawx > this.Pr.M2D.Cam.x - 32f;
+						flag5 = this.Pr.drawx > this.Pr.M2D.Cam.x - 32f;
 					}
-					float num2 = num * (170f + ((!UIBase.Instance.showing_pict) ? 340f : 0f) + (IN.w - 340f) / 2f) / UIPicture.Instance.PosSyncSlide.z + (float)global::XX.X.MPF(!flag4) * 0.2f * IN.w;
-					effect.PtcSTsetVar("cx", (double)num2).PtcSTsetVar("dwh", 210.0).PtcST("ep_orgasm_ui", null, PTCThread.StFollow.NO_FOLLOW, null);
+					float num3 = num2 * (170f + ((!UIBase.Instance.showing_pict) ? 340f : 0f) + (IN.w - 340f) / 2f) / UIPicture.Instance.PosSyncSlide.z + (float)X.MPF(!flag5) * 0.2f * IN.w;
+					effect.PtcSTsetVar("cx", (double)num3).PtcSTsetVar("dwh", 210.0).PtcST("ep_orgasm_ui", null, PTCThread.StFollow.NO_FOLLOW, null);
 					if (!flag)
 					{
-						this.Cutin.setE(effect, num2, 0f, flag4);
+						this.Cutin.setE(effect, num3, 0f, flag5, this.t_orgasm_cutin_tikatika >= (this.Pr.is_alive ? 20f : 8f) && X.XORSP() < X.NIL(1f, 0.5f, (float)this.multiple_orgasm, 8f));
 					}
 					else
 					{
@@ -717,16 +808,16 @@ namespace nel
 			}
 			if (!this.splash_lock)
 			{
-				if (Atk.situation_key == "masturbate" && this.Pr.NM2D.IMNG.hasEmptyBottle())
+				if (situation_key == "masturbate" && this.Pr.NM2D.IMNG.hasEmptyBottle())
 				{
-					this.Pr.executeSplashNoelJuice(true, false, 1, false, false, false, false);
+					this.Pr.JuiceCon.executeSplashNoelJuice(true, false, 1, false, false, flag2, false);
 				}
 				else
 				{
-					this.Pr.checkNoelJuiceOrgasm(global::XX.X.ZLINE((float)(count - 2), 5f) * 0.5f + global::XX.X.ZLINE((float)this.multiple_orgasm, 3f) * 0.8f);
+					this.Pr.JuiceCon.checkNoelJuiceOrgasm(X.ZLINE((float)(count - 2), 5f) * 0.5f + X.ZLINE((float)this.multiple_orgasm, 3f) * 0.8f, flag2);
 				}
 			}
-			if (!flag2)
+			if (!flag3)
 			{
 				this.splash_lock = true;
 			}
@@ -740,7 +831,7 @@ namespace nel
 
 		private float calcOrgasmInitDelayTime()
 		{
-			return global::XX.X.NI(120, 80, global::XX.X.ZSIN((float)(this.Suppressor.Count - 1), 6f));
+			return X.NI(120, 80, X.ZSIN((float)(this.Suppressor.Count - 1), 6f));
 		}
 
 		private int calcOrgasmTurnEp()
@@ -750,8 +841,8 @@ namespace nel
 
 		private int calcOrgasmCureCrack(EPCATEG maincateg)
 		{
-			float num = global::XX.X.NI(8f, 0.5f, global::XX.X.ZLINE((float)this.Suppressor.Sum(), 8f));
-			return global::XX.X.Mx(1, global::XX.X.IntR(num * global::XX.X.NI(0.5f, 1f, this.getExperienceLevel(maincateg))));
+			float num = X.NI(8f, 0.5f, X.ZLINE((float)this.Suppressor.Sum(), 8f));
+			return X.Mx(1, X.IntR(num * X.NI(0.5f, 1f, this.getExperienceLevel(maincateg))));
 		}
 
 		public void cureOrgasmAfter()
@@ -773,7 +864,7 @@ namespace nel
 			}
 			if (this.t_sage > 0f)
 			{
-				this.t_sage = (this.t_lock = 0f);
+				this.t_sage = (this.t_lock = (this.t_lock_orgasmlocked = 0f));
 				this.flushCurrentBattle();
 				this.Pr.Ser.Cure(SER.FRUSTRATED);
 				this.Pr.Ser.Cure(SER.ORGASM_INITIALIZE);
@@ -785,16 +876,8 @@ namespace nel
 				this.fineEffect(true);
 				this.cure_ep_after_orgasm = 0f;
 			}
-			if (this.PeSlow != null)
-			{
-				this.PeSlow.deactivate(false);
-				this.PeSlow = null;
-			}
-			if (this.PeZoom != null)
-			{
-				this.PeZoom.deactivate(false);
-				this.PeZoom = null;
-			}
+			this.PeSlow.deactivate(false);
+			this.PeZoom.deactivate(false);
 		}
 
 		private void quitOrgasmInitTime()
@@ -808,7 +891,7 @@ namespace nel
 				this.Pr.Ser.Cure(SER.FRUSTRATED);
 			}
 			int num = -1;
-			this.Pr.Ser.Add(SER.ORGASM_AFTER, num, this.multiple_orgasm - 1 + (this.orgasm_oazuke ? 1 : 0) + ((this.dsex_orgasm_pre > 0) ? global::XX.X.Mn(this.dsex_orgasm_pre + 1, 9) : 0), false);
+			this.Pr.Ser.Add(SER.ORGASM_AFTER, num, this.multiple_orgasm - 1 + (this.orgasm_oazuke ? 1 : 0) + ((this.dsex_orgasm_pre > 0) ? X.Mn(this.dsex_orgasm_pre + 1, 9) : 0), false);
 			if (this.multiple_orgasm > 1)
 			{
 				UILog.Instance.AddAlert(TX.GetA("EP_multiple_orgasm", this.multiple_orgasm.ToString() ?? ""), UILogRow.TYPE.ALERT_EP);
@@ -818,16 +901,12 @@ namespace nel
 			{
 				this.SituCon.flushLastExSituationTemp();
 			}
-			this.PeSlow = null;
+			this.PeSlow.deactivate(true);
 		}
 
 		private void quitOrgasmAfterTime()
 		{
-			if (this.PeZoom != null)
-			{
-				this.PeZoom.deactivate(false);
-				this.PeZoom = null;
-			}
+			this.PeZoom.deactivate(false);
 			this.cure_ep_after_orgasm = (this.cure_ep_after_orgasm_one = 0f);
 			this.orgasm_oazuke = false;
 			this.t_sage = 0f;
@@ -848,7 +927,7 @@ namespace nel
 				{
 					return (M2MoverPr.DECL)0;
 				}
-				return (M2MoverPr.DECL)15;
+				return M2MoverPr.DECL.STOP_COMMAND;
 			}
 		}
 
@@ -856,11 +935,8 @@ namespace nel
 		{
 			if (this.t_sage < 0f)
 			{
+				this.PeZoom.fine(100);
 				this.t_sage += fcnt;
-				if (this.PeZoom != null)
-				{
-					this.PeZoom.fine(120);
-				}
 				if (this.t_sage >= 0f)
 				{
 					this.quitOrgasmInitTime();
@@ -869,14 +945,14 @@ namespace nel
 			else if (this.t_crack_cure != 0f)
 			{
 				bool flag = this.t_crack_cure < 0f;
-				this.t_crack_cure = global::XX.X.VALWALK(this.t_crack_cure, 0f, fcnt);
+				this.t_crack_cure = X.VALWALK(this.t_crack_cure, 0f, fcnt);
 				if (this.t_crack_cure == 0f)
 				{
 					this.t_crack_cure = 0f;
-					int num = global::XX.X.Mn(this.crack_cure_once, this.crack_cure_count);
+					int num = X.Mn(this.crack_cure_once, this.crack_cure_count);
 					this.Pr.GaugeBrk.Cure(num, true);
 					this.crack_cure_count -= num;
-					this.crack_cure_once = global::XX.X.Mn(global::XX.X.Mx(1, global::XX.X.Mn(this.crack_cure_count / 3, this.crack_cure_once)), this.crack_cure_count);
+					this.crack_cure_once = X.Mn(X.Mx(1, X.Mn(this.crack_cure_count / 3, this.crack_cure_once)), this.crack_cure_count);
 					if (flag)
 					{
 						UILog.Instance.AddAlertTX("Alert_cure_crack", UILogRow.TYPE.ALERT);
@@ -886,9 +962,13 @@ namespace nel
 			}
 			float num2 = 0f;
 			bool flag2 = false;
+			if (this.t_lock_orgasmlocked > 0f)
+			{
+				this.t_lock_orgasmlocked = X.Mx(this.t_lock_orgasmlocked - fcnt, 0f);
+			}
 			if (this.t_lock > 0f)
 			{
-				this.t_lock = global::XX.X.Mx(this.t_lock - fcnt, 0f);
+				this.t_lock = X.Mx(this.t_lock - fcnt, 0f);
 			}
 			else
 			{
@@ -904,7 +984,7 @@ namespace nel
 					}
 					if (this.t_oazuke >= 0f && this.t_sage == 0f)
 					{
-						if (global::XX.X.BTWW((float)(this.Pr.isDoubleSexercise() ? 500 : this.exp_add_ep), this.ep, 950f))
+						if (X.BTWW((float)(this.Pr.isDoubleSexercise() ? 500 : this.exp_add_ep), this.ep, 950f))
 						{
 							this.t_oazuke += fcnt;
 							if (this.t_oazuke >= 160f)
@@ -940,38 +1020,39 @@ namespace nel
 						this.Pr.Ser.Cure(SER.FRUSTRATED);
 						this.t_oazuke = -1f;
 					}
-					else if (!global::XX.X.SENSITIVE && ((this.Pr.isBenchState() && SCN.occurableOazuke()) || this.Pr.isMasturbating()))
+					else if (!X.SENSITIVE && this.attachable_ser_oazuke && ((this.Pr.isBenchState() && SCN.occurableOazuke()) || this.Pr.isMasturbating()))
 					{
 						this.Pr.Ser.Add(SER.FRUSTRATED, -1, 99, false);
+						this.attachable_ser_oazuke = false;
 					}
-					else if (!global::XX.X.SENSITIVE && this.Pr.canStartFrustratedMasturbate(true))
+					else if (this.t_oazuke >= 0f && !X.SENSITIVE && this.Pr.canStartFrustratedMasturbate(true))
 					{
 						this.t_oazuke += fcnt;
 						if (this.t_oazuke >= (float)(((!PUZ.IT.barrier_active && this.Pr.enemy_targetted == 0) || this.Pr.isDoubleSexercise()) ? 50 : 130))
 						{
-							this.Pr.initMasturbation(true, false);
-							this.t_oazuke = -150f;
+							if (this.Pr is PRMain)
+							{
+								(this.Pr as PRMain).initMasturbation(true, false);
+							}
+							this.t_oazuke = -200f;
 						}
 					}
 					else if (this.t_oazuke > 0f)
 					{
-						this.t_oazuke = global::XX.X.Mx(this.t_oazuke - fcnt * 2f, 0f);
+						this.t_oazuke = X.Mx(this.t_oazuke - fcnt * 2f, 0f);
 					}
-					if (this.t_oazuke < 0f)
+					else if (this.t_oazuke < 0f)
 					{
-						this.t_oazuke = 0f;
+						this.t_oazuke = X.VALWALK(this.t_oazuke, 0f, fcnt);
 					}
 				}
 			}
 			if (this.t_sage > 0f)
 			{
-				if (this.PeZoom != null)
+				this.PeZoom.fine(100);
+				if (X.XORSP() < 0.03f)
 				{
-					this.PeZoom.fine(120);
-				}
-				if (global::XX.X.XORSP() < 0.03f)
-				{
-					this.Pr.publishVaginaSplash(MTR.col_blood_ep, 5, 1.02f);
+					this.Pr.DMGE.publishVaginaSplash(MTR.col_blood_ep, 5, 1.02f);
 				}
 				if (!Map2d.can_handle || !this.Pr.isLayingEggOrOrgasm() || this.Pr.EggCon.isLaying())
 				{
@@ -980,7 +1061,7 @@ namespace nel
 						this.t_sage = 1f;
 						if (this.dsex_orgasm_pre > 1)
 						{
-							this.dsex_orgasm_pre = global::XX.X.Mx(this.dsex_orgasm_pre - 1, 1);
+							this.dsex_orgasm_pre = X.Mx(this.dsex_orgasm_pre - 1, 1);
 						}
 					}
 				}
@@ -988,7 +1069,7 @@ namespace nel
 				{
 					if (this.cure_ep_after_orgasm > 0f)
 					{
-						num2 = global::XX.X.Mx(num2, this.cure_ep_after_orgasm_one);
+						num2 = X.Mx(num2, this.cure_ep_after_orgasm_one);
 						this.cure_ep_after_orgasm -= num2;
 					}
 					this.t_sage += fcnt;
@@ -1015,6 +1096,10 @@ namespace nel
 									this.AbsorbOrgasm.Con.timeout = 0;
 									this.AbsorbOrgasm.kirimomi_release = false;
 									this.AbsorbOrgasm.get_Gacha().addCountAbs(this.gacha_hit_stocked, 0.875f);
+									if (this.Pr.Rebagacha != null)
+									{
+										this.Pr.Rebagacha.need_reposit = true;
+									}
 								}
 							}
 						}
@@ -1035,7 +1120,7 @@ namespace nel
 					{
 						if (this.ep < 1000f * num4)
 						{
-							this.At_announce[i] = global::XX.X.Mx(this.At_announce[i] - fcnt, 0f);
+							this.At_announce[i] = X.Mx(this.At_announce[i] - fcnt, 0f);
 						}
 					}
 					else if (this.ep >= 1000f * num4)
@@ -1045,9 +1130,17 @@ namespace nel
 					}
 				}
 			}
+			if (this.t_corrupt_gacha_mist > 0f)
+			{
+				this.t_corrupt_gacha_mist = X.Mx(0f, this.t_corrupt_gacha_mist - fcnt);
+				if (this.Pr.isAbsorbState() && this.AbsorbOrgasm == null)
+				{
+					this.Pr.getAbsorbContainer().CorruptGacha(0.041666668f, false);
+				}
+			}
 			if (num2 > 0f)
 			{
-				this.ep = global::XX.X.Mx(0f, this.ep - num2);
+				this.ep = X.Mx(0f, this.ep - num2);
 				flag2 = true;
 			}
 			if (flag2)
@@ -1068,7 +1161,7 @@ namespace nel
 					{
 						num5 = 1f;
 					}
-					this.t_ptc = global::XX.X.NI(110, 50, (num5 - 0.5f) / 0.5f);
+					this.t_ptc = X.NI(110, 50, (num5 - 0.5f) / 0.5f);
 					if (UIBase.FlgUiEffectGmDisable == null && !UIBase.FlgUiEffectGmDisable.isActive())
 					{
 						this.Pr.PtcVar("ep", (double)num5).PtcST("ep_smoke", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
@@ -1076,6 +1169,10 @@ namespace nel
 				}
 			}
 			this.Suppressor.run(fcnt);
+			if (this.t_orgasm_cutin_tikatika > 0f)
+			{
+				this.t_orgasm_cutin_tikatika -= fcnt * 0.0033333334f;
+			}
 			if (this.hold_orgasm_after_t > 0f)
 			{
 				this.hold_orgasm_after_t -= fcnt;
@@ -1086,7 +1183,7 @@ namespace nel
 			}
 			else if (this.hold_orgasm_after_t < 0f && (this.t_sage == 0f || this.t_sage > 1f))
 			{
-				this.hold_orgasm_after_t = global::XX.X.VALWALK(this.hold_orgasm_after_t, 0f, fcnt);
+				this.hold_orgasm_after_t = X.VALWALK(this.hold_orgasm_after_t, 0f, fcnt);
 			}
 			if (this.dsex_orgasm > 0 && this.Suppressor.Count == 0 && this.t_sage == 0f && !this.Pr.Ser.hasBit(50331648UL))
 			{
@@ -1094,12 +1191,22 @@ namespace nel
 			}
 		}
 
-		public void lockOazuke()
+		public void lockOazuke(float _t = 0f)
 		{
+			if (_t <= 0f || !this.Pr.Ser.has(SER.FRUSTRATED))
+			{
+				if (this.t_oazuke > 0f)
+				{
+					this.t_oazuke = X.Mn(this.t_oazuke, 5f);
+				}
+				return;
+			}
 			if (this.t_oazuke > 0f)
 			{
-				this.t_oazuke = global::XX.X.Mn(this.t_oazuke, 5f);
+				this.t_oazuke = -_t;
+				return;
 			}
+			this.t_oazuke = X.Mn(this.t_oazuke, -_t);
 		}
 
 		public bool hold_orgasm_after
@@ -1112,7 +1219,7 @@ namespace nel
 
 		private void changedFine()
 		{
-			this.Pr.ep = global::XX.X.IntC(this.ep);
+			this.Pr.ep = X.IntC(this.ep);
 			this.Pr.Ser.checkSer();
 			this.fineEffect(false);
 		}
@@ -1138,63 +1245,12 @@ namespace nel
 					{
 						num = 1f;
 					}
-					this.t_ptc_ui = (int)global::XX.X.NI(70, 20, (num - 0.5f) / 0.5f);
+					this.t_ptc_ui = (int)X.NI(70, 20, (num - 0.5f) / 0.5f);
 					if (UIBase.FlgUiEffectGmDisable == null || !UIBase.FlgUiEffectGmDisable.isActive())
 					{
 						UIBase.Instance.getEffect().PtcSTsetVar("ep", (double)num).PtcST("ep_smoke_ui", null, PTCThread.StFollow.NO_FOLLOW, null);
 					}
 				}
-			}
-			if (this.t_breath >= 0 && !this.lock_breath_progress)
-			{
-				int num2 = this.t_breath - 1;
-				this.t_breath = num2;
-				if (num2 <= 0)
-				{
-					if (!this.Pr.playVo(this.breath_key_, false, false))
-					{
-						this.t_breath = 40;
-						return;
-					}
-					string text = this.breath_key_;
-					if (text != null)
-					{
-						if (text == "breath_aft")
-						{
-							this.t_breath = (int)global::XX.X.NIXP(90f, 104f);
-							return;
-						}
-						if (text == "cough")
-						{
-							this.t_breath = (int)global::XX.X.NIXP(20f, 30f);
-							return;
-						}
-					}
-					this.t_breath = (int)global::XX.X.NIXP(80f, 90f);
-				}
-			}
-		}
-
-		public string breath_key
-		{
-			get
-			{
-				return this.breath_key_;
-			}
-			set
-			{
-				if (this.breath_key_ == value)
-				{
-					return;
-				}
-				this.breath_key_ = value;
-				if (this.breath_key_ != null)
-				{
-					this.lock_breath_progress = false;
-					this.t_breath = (int)global::XX.X.NIXP(10f, 30f);
-					return;
-				}
-				this.t_breath = -1;
 			}
 		}
 
@@ -1215,12 +1271,12 @@ namespace nel
 
 		public int getOrgasmedTotal()
 		{
-			return global::XX.X.sum(this.Atotal_orgasmed);
+			return X.sum(this.Atotal_orgasmed);
 		}
 
 		public int getOrgasmedCountForSituation(string situation)
 		{
-			return global::XX.X.Get<string, int>(this.Osituation_orgasmed, situation.ToUpper(), 0);
+			return X.Get<string, int>(this.Osituation_orgasmed, situation.ToUpper(), 0);
 		}
 
 		public int getOrgasmedIndividualTotal()
@@ -1250,6 +1306,19 @@ namespace nel
 			get
 			{
 				return true;
+			}
+		}
+
+		public void corruptGachaMist(float t)
+		{
+			this.t_corrupt_gacha_mist = X.Mx(this.t_corrupt_gacha_mist, t);
+		}
+
+		public bool is_in_corrupt_gacha_mist
+		{
+			get
+			{
+				return this.t_corrupt_gacha_mist > 0f;
 			}
 		}
 
@@ -1303,13 +1372,13 @@ namespace nel
 			}
 			if (this.crack_cure_count > 0 && this.t_crack_cure <= 0f)
 			{
-				this.t_crack_cure = ((this.t_crack_cure == 0f) ? (-50f) : global::XX.X.Mx(-50f, this.t_crack_cure));
+				this.t_crack_cure = ((this.t_crack_cure == 0f) ? (-50f) : X.Mx(-50f, this.t_crack_cure));
 			}
 		}
 
 		private bool drawEffect(EffectItem E)
 		{
-			float num = ((E.z == 0f) ? global::XX.X.ZLINE(E.af - 60f, 120f) : (1f - global::XX.X.ZLINE(E.af, 90f)));
+			float num = ((E.z == 0f) ? X.ZLINE(E.af - 60f, 120f) : (1f - X.ZLINE(E.af, 90f)));
 			if (num <= 0f)
 			{
 				return E.z == 0f;
@@ -1318,14 +1387,14 @@ namespace nel
 			{
 				return true;
 			}
-			float num2 = (this.go_unlock_thresh ? 1f : global::XX.X.ZLINE(this.Pr.Mp.floort - (float)E.time, 33f));
+			float num2 = (this.go_unlock_thresh ? 1f : X.ZLINE(this.Pr.Mp.floort - (float)E.time, 33f));
 			MeshDrawer mesh = E.GetMesh("ep", this.MtrHeartPattern, true);
 			mesh.base_z += 0.002f;
 			if (UIBase.Instance.event_center_uipic)
 			{
 				float gamemenu_slide_z = UIBase.Instance.gamemenu_slide_z;
 				UIBase.Instance.setBaseToScreenCenter(mesh);
-				mesh.base_x -= global::XX.X.NI((IN.wh + 340f) * 0.015625f, (IN.wh - 170f) * 0.015625f, gamemenu_slide_z);
+				mesh.base_x -= X.NI((IN.wh + 340f) * 0.015625f, (IN.wh - 170f) * 0.015625f, gamemenu_slide_z);
 			}
 			mesh.ColGrd.Set(3439274452U);
 			float num3 = 1f;
@@ -1336,52 +1405,52 @@ namespace nel
 			if (this.t_sage < 0f)
 			{
 				mesh.ColGrd.Set(3439294397U);
-				float num5 = global::XX.X.COSIT(45f);
+				float num5 = X.COSIT(45f);
 				mesh.setMtrColor("_ColorA", C32.MulA(mesh.ColGrd.C, num));
-				mesh.setMtrColor("_ColorB", C32.MulA(mesh.ColGrd.blend(3426025499U, 0.5f + num5 * 0.125f + global::XX.X.COSIT(9.34f) * 0.125f).C, num));
-				float num6 = global::XX.X.NI(1f, 0.85f + 0.1f * global::XX.X.COSIT(130f) + 0.025f * global::XX.X.COSIT(2.83f) + 0.025f * global::XX.X.COSIT(5.13f), num2);
+				mesh.setMtrColor("_ColorB", C32.MulA(mesh.ColGrd.blend(3426025499U, 0.5f + num5 * 0.125f + X.COSIT(9.34f) * 0.125f).C, num));
+				float num6 = X.NI(1f, 0.85f + 0.1f * X.COSIT(130f) + 0.025f * X.COSIT(2.83f) + 0.025f * X.COSIT(5.13f), num2);
 				mesh.Col = mesh.ColGrd.White().mulA(num6).C;
-				num7 = 0.5f + 0.12f * global::XX.X.COSIT(90f);
-				num8 = 1f - global::XX.X.ANMPT(70, 1f);
-				num9 = global::XX.X.ZLINE(1f - global::XX.X.ZSIN(num2) * 0.45f + global::XX.X.COSIT(21f) * 0.04f);
-				num4 = global::XX.X.NI(1f, num4, global::XX.X.ZLINE(1f + this.t_sage / this.calcOrgasmInitDelayTime() - 0.5f, 0.5f));
+				num7 = 0.5f + 0.12f * X.COSIT(90f);
+				num8 = 1f - X.ANMPT(70, 1f);
+				num9 = X.ZLINE(1f - X.ZSIN(num2) * 0.45f + X.COSIT(21f) * 0.04f);
+				num4 = X.NI(1f, num4, X.ZLINE(1f + this.t_sage / this.calcOrgasmInitDelayTime() - 0.5f, 0.5f));
 			}
 			else if (this.t_sage > 0f)
 			{
 				mesh.ColGrd.Set(3437263270U);
 				mesh.setMtrColor("_ColorA", C32.MulA(mesh.ColGrd.C, num));
 				mesh.setMtrColor("_ColorB", C32.MulA(mesh.ColGrd.blend(3430242404U, num2).C, num));
-				float num10 = num * (0.8f + 0.1f * global::XX.X.COSIT(170f) + 0.022f * global::XX.X.COSIT(3.83f) + 0.022f * global::XX.X.COSIT(5.41f));
-				num8 = global::XX.X.ANMPT(120, 1f);
+				float num10 = num * (0.8f + 0.1f * X.COSIT(170f) + 0.022f * X.COSIT(3.83f) + 0.022f * X.COSIT(5.41f));
+				num8 = X.ANMPT(120, 1f);
 				num7 = 2f - num8;
 				if (num2 < 1f)
 				{
-					num7 += (1f - num2) * (0.22f + global::XX.X.COSIT(43f) * 0.03f + global::XX.X.COSIT(4.78f) * 0.03f);
+					num7 += (1f - num2) * (0.22f + X.COSIT(43f) * 0.03f + X.COSIT(4.78f) * 0.03f);
 				}
-				num9 = global::XX.X.NI(1f - num8, 1f, (1f - num2) * 0.6f);
-				mesh.Col = mesh.ColGrd.White().mulA(num10 * global::XX.X.NI(1f - global::XX.X.ZLINE(num9 - 0.75f, 0.25f), 1f, global::XX.X.ZSIN2(1f - num2))).C;
+				num9 = X.NI(1f - num8, 1f, (1f - num2) * 0.6f);
+				mesh.Col = mesh.ColGrd.White().mulA(num10 * X.NI(1f - X.ZLINE(num9 - 0.75f, 0.25f), 1f, X.ZSIN2(1f - num2))).C;
 			}
 			else
 			{
-				float num11 = global::XX.X.ANMPT((int)global::XX.X.NI(120, 55, global::XX.X.ZLINE(num4 - 0.4f, 0.4f)), 1f);
+				float num11 = X.ANMPT((int)X.NI(120, 55, X.ZLINE(num4 - 0.4f, 0.4f)), 1f);
 				num3 = 1f - num11 * 0.25f;
-				float num12 = global::XX.X.ZSINV(num4 - 0.3f, 0.59999996f);
-				float num13 = num * global::XX.X.NI(1f, 1f - 0.75f * num11, num2) * global::XX.X.NI(0.55f, 0.9f, num12);
+				float num12 = X.ZSINV(num4 - 0.3f, 0.59999996f);
+				float num13 = num * X.NI(1f, 1f - 0.75f * num11, num2) * X.NI(0.55f, 0.9f, num12);
 				mesh.setMtrColor("_ColorA", mesh.ColGrd.Set(3438402791U).blend(3439289524U, num12).mulA(num)
 					.C);
-				mesh.setMtrColor("_ColorB", mesh.ColGrd.Set(1153607605).blend(2008911270U, global::XX.X.ZPOW(num12 - 0.2f, 0.8f)).mulA(num)
+				mesh.setMtrColor("_ColorB", mesh.ColGrd.Set(1153607605).blend(2008911270U, X.ZPOW(num12 - 0.2f, 0.8f)).mulA(num)
 					.C);
-				num8 = 1f - global::XX.X.ANMPT((int)global::XX.X.NI(120, 85, global::XX.X.ZLINE(num4 - 0.4f, 0.5f)), 1f);
+				num8 = 1f - X.ANMPT((int)X.NI(120, 85, X.ZLINE(num4 - 0.4f, 0.5f)), 1f);
 				num7 = 0f;
 				if (num2 < 1f)
 				{
-					num7 += (1f - num2) * (0.14f + global::XX.X.COSIT(73f) * 0.014f + global::XX.X.COSIT(6.78f) * 0.015f);
+					num7 += (1f - num2) * (0.14f + X.COSIT(73f) * 0.014f + X.COSIT(6.78f) * 0.015f);
 				}
-				num9 = global::XX.X.ANMPT((int)global::XX.X.NI(120, 65, global::XX.X.ZLINE(num4 - 0.4f, 0.6f)), 1f);
-				mesh.Col = mesh.ColGrd.White().mulA(num13 * global::XX.X.NI(1f - global::XX.X.ZLINE(num9 - 0.75f, 0.25f), 1f, global::XX.X.ZSIN2(1f - num2))).C;
+				num9 = X.ANMPT((int)X.NI(120, 65, X.ZLINE(num4 - 0.4f, 0.6f)), 1f);
+				mesh.Col = mesh.ColGrd.White().mulA(num13 * X.NI(1f - X.ZLINE(num9 - 0.75f, 0.25f), 1f, X.ZSIN2(1f - num2))).C;
 			}
 			PxlSequence sqPatHeartVoltage = MTR.SqPatHeartVoltage;
-			mesh.PatternFill4GDTPat(-170f, -IN.hh - 2f, 340f, (IN.h + 2f) * num4 * num3, sqPatHeartVoltage.getImage(global::XX.X.Mn((int)((float)sqPatHeartVoltage.countFrames() * num9), sqPatHeartVoltage.countFrames() - 1), 0), 2f, num7, num8);
+			mesh.PatternFill4GDTPat(-170f, -IN.hh - 2f, 340f, (IN.h + 2f) * num4 * num3, sqPatHeartVoltage.getImage(X.Mn((int)((float)sqPatHeartVoltage.countFrames() * num9), sqPatHeartVoltage.countFrames() - 1), 0), 2f, num7, num8);
 			return true;
 		}
 
@@ -1397,7 +1466,7 @@ namespace nel
 				this.SituCon.flushLastExSituationTemp();
 			}
 			int orgasmedTotal = this.getOrgasmedTotal();
-			if (global::XX.X.DEBUG)
+			if (X.DEBUG)
 			{
 				this.addP(Bx, TX.GetA("GM_ep_debug", ((int)this.ep).ToString() + "/" + 1000f.ToString(), orgasmedTotal.ToString()), ALIGN.LEFT, 0f, false, 0f, "");
 				Bx.Br();
@@ -1409,7 +1478,7 @@ namespace nel
 			}
 			else if (this.ep > 300f)
 			{
-				this.addP(Bx, TX.GetA("GM_ep_level_" + global::XX.X.Mn((int)(this.ep_ratio * 10f), 9).ToString(), ((int)(this.ep_ratio * 100f)).ToString() + "%"), ALIGN.LEFT, 0f, true, 0f, "");
+				this.addP(Bx, TX.GetA("GM_ep_level_" + X.Mn((int)(this.ep_ratio * 10f), 9).ToString(), ((int)(this.ep_ratio * 100f)).ToString() + "%"), ALIGN.LEFT, 0f, true, 0f, "");
 				Bx.Br();
 			}
 			else if (this.getOrgasmedIndividualTotal() >= 5)
@@ -1448,7 +1517,7 @@ namespace nel
 				string text = "";
 				for (int i = 0; i < 11; i++)
 				{
-					float num = global::XX.X.MMX(0f, (float)this.Atotal_exp[i] / 20f, 2f);
+					float num = X.MMX(0f, (float)this.Atotal_exp[i] / 20f, 2f);
 					string text2 = "EP_Targ_";
 					EPCATEG epcateg = (EPCATEG)i;
 					string text3 = TX.Get(text2 + epcateg.ToString().ToLower(), "???");
@@ -1502,21 +1571,21 @@ namespace nel
 					string text5;
 					if (!eggItem.no_auto_getout)
 					{
-						float num2 = global::XX.X.ZLINE((float)eggItem.val_absorbed_view, eggItem.val);
+						float num2 = X.ZLINE((float)eggItem.val_absorbed_view, eggItem.val);
 						if (!eggItem.isLayingEgg())
 						{
-							num2 = global::XX.X.Mn(num2, 0.995f);
+							num2 = X.Mn(num2, 0.995f);
 						}
 						else
 						{
 							num2 = 1f;
 						}
-						text5 = TX.GetA("GM_Egg_amount_and_feeded", global::XX.X.IntR(eggItem.val).ToString(), global::XX.X.IntR(num2 * 100f).ToString());
+						text5 = TX.GetA("GM_Egg_amount_and_feeded", X.IntR(eggItem.val).ToString(), X.IntR(num2 * 100f).ToString());
 						text5 = text5 + "\n" + TX.Get("GM_Egg_desc_" + ((int)(num2 * 3f)).ToString(), "");
 					}
 					else
 					{
-						text5 = TX.GetA("GM_Egg_amount", global::XX.X.IntR(eggItem.val).ToString());
+						text5 = TX.GetA("GM_Egg_amount", X.IntR(eggItem.val).ToString());
 						text5 = text5 + "\n" + (eggItem.isLayingEgg() ? TX.Get("GM_Egg_desc_no_getout_laying", "") : TX.Get("GM_Egg_desc_no_getout", ""));
 					}
 					Bx.addP(new DsnDataP("", false)
@@ -1627,7 +1696,7 @@ namespace nel
 			Bx.XSh(40f);
 			Bx.addImg(new DsnDataImg
 			{
-				text = TX.GetA("GM_ep_water_drunk_level", this.Pr.water_drunk.ToString()),
+				text = TX.GetA("GM_ep_water_drunk_level", this.Pr.JuiceCon.water_drunk.ToString()),
 				alignx = ALIGN.LEFT,
 				swidth = Bx.use_w - 70f,
 				html = true,
@@ -1669,7 +1738,7 @@ namespace nel
 				this.PeeSlotDr = new SlotDrawer(MTR.SqPeeSlot.getFrame(0), 0, 0);
 				this.PeeSlotDr.ReturnIntv(stock, 28, 0);
 			}
-			this.PeeSlotDr.clearFill().Fill(MTR.SqPeeSlot.getFrame(1), 0, this.Pr.juice_stock);
+			this.PeeSlotDr.clearFill().Fill(MTR.SqPeeSlot.getFrame(1), 0, this.Pr.JuiceCon.juice_stock);
 			float swidthByCount = this.PeeSlotDr.getSWidthByCount(stock);
 			float sheightByCount = this.PeeSlotDr.getSHeightByCount(stock);
 			Md.Col = C32.MulA(MTRX.ColWhite, alpha);
@@ -1693,13 +1762,13 @@ namespace nel
 			TX tx = TX.getTX(text + situation_key + "_" + target_s, true, true, TX.getCurrentFamily());
 			if (tx == null)
 			{
-				tx = TX.getTX(text + "general_" + target_s, true, true, TX.getCurrentFamily());
+				tx = TX.getTX(text + situation_key, true, true, TX.getCurrentFamily());
 				if (tx == null)
 				{
-					tx = TX.getTX(text + situation_key, true, true, TX.getCurrentFamily());
+					tx = TX.getTX(text + "general_" + target_s, true, true, TX.getCurrentFamily());
 					if (tx == null)
 					{
-						tx = TX.getTX(text + "general_" + global::XX.X.xors(3).ToString(), true, false, null);
+						tx = TX.getTX(text + "general_" + X.xors(3).ToString(), true, false, null);
 					}
 				}
 			}
@@ -1715,7 +1784,7 @@ namespace nel
 		{
 			float num = (float)CFG.ui_sensitive_description / 10f;
 			num = ratio_basic + ratio_by_cfg * (1f - (1f - num) * (1f - add_lvl));
-			if (global::XX.X.XORSP() < num)
+			if (X.XORSP() < num)
 			{
 				return UILog.Instance.AddAlert(TX.Get(tx_key, ""), UILogRow.TYPE.ALERT_EP);
 			}
@@ -1744,16 +1813,16 @@ namespace nel
 		{
 			get
 			{
-				return global::XX.X.Get<string, int>(this.Osituation_orgasmed, "masturbate".ToUpper(), 0);
+				return X.Get<string, int>(this.Osituation_orgasmed, "masturbate".ToUpper(), 0);
 			}
 		}
 
-		public void readBinaryFrom(ByteArray Ba)
+		public void readBinaryFrom(ByteReader Ba)
 		{
 			this.newGame();
 			int num = Ba.readByte();
 			this.ep = Ba.readFloat();
-			this.ep = global::XX.X.Mn(this.ep, 950f);
+			this.ep = X.Mn(this.ep, 950f);
 			if (num == 0)
 			{
 				this.t_lock = Ba.readFloat();
@@ -1793,7 +1862,9 @@ namespace nel
 						this.orgasm_individual_count = (int)Ba.readUInt();
 						if (num >= 4)
 						{
-							this.splash_lock = Ba.readBoolean();
+							int num3 = Ba.readByte();
+							this.splash_lock = (num3 & 1) != 0;
+							this.attachable_ser_oazuke = (num3 & 2) != 0;
 						}
 					}
 				}
@@ -1804,9 +1875,9 @@ namespace nel
 			}
 			if (num < 3)
 			{
-				this.orgasm_individual_count = global::XX.X.sum(this.Atotal_orgasmed);
+				this.orgasm_individual_count = X.sum(this.Atotal_orgasmed);
 			}
-			this.Pr.ep = global::XX.X.IntC(this.ep);
+			this.Pr.ep = X.IntC(this.ep);
 			this.flushCurrentBattle();
 		}
 
@@ -1824,7 +1895,7 @@ namespace nel
 			Ba.writeUInt((uint)this.pee_count);
 			Ba.writeDictionaryT<PrEggManager.CATEG>(this.Oegg_layed, (PrEggManager.CATEG V) => (int)V);
 			Ba.writeUInt((uint)this.orgasm_individual_count);
-			Ba.writeBool(this.splash_lock);
+			Ba.writeByte((this.splash_lock ? 1 : 0) | (this.attachable_ser_oazuke ? 2 : 0));
 		}
 
 		public EpAtk copyOverkillPower()
@@ -1888,6 +1959,8 @@ namespace nel
 
 		private const int corrupt_orgasm_after = 1;
 
+		private const float corrupt_gacha_mist_level = 0.041666668f;
+
 		public const string SITUATION_MASTURBATE = "masturbate";
 
 		public const string SITUATION_MASTURBATE_UPPER = "MASTURBATE";
@@ -1901,6 +1974,8 @@ namespace nel
 		private int dsex_orgasm;
 
 		private int dsex_orgasm_pre;
+
+		private readonly List<EpManager.OrgasmInfo> Aorgasm_locked_stack;
 
 		public const int categ_max = 11;
 
@@ -1926,7 +2001,17 @@ namespace nel
 
 		private int orgasm_individual_count;
 
+		private float t_corrupt_gacha_mist;
+
 		public bool splash_lock;
+
+		private float t_orgasm_cutin_tikatika;
+
+		private const float T_ORGASM_CUTIN_TIKA_FCNT = 0.0033333334f;
+
+		private const float ORGASM_CUTIN_TIKA_THRESHOLD = 20f;
+
+		private const float ORGASM_CUTIN_TIKA_THRESHOLD_NOTALIVE = 8f;
 
 		private float[] Ases_orgasmable;
 
@@ -1937,6 +2022,8 @@ namespace nel
 		private EPCATEG_BITS bt_applied;
 
 		private EPCATEG_BITS bt_orgasm;
+
+		private EPCATEG_BITS bt_corrupt_acmemist;
 
 		private bool orgasm_oazuke;
 
@@ -1949,6 +2036,8 @@ namespace nel
 		private AbsorbManager AbsorbOrgasm;
 
 		private float gacha_hit_stocked;
+
+		public bool attachable_ser_oazuke;
 
 		private float ep;
 
@@ -1964,7 +2053,11 @@ namespace nel
 
 		private Material MtrHeartPattern;
 
-		private PostEffectItem PeZoom;
+		private readonly EffectHandlerPE PeZoom;
+
+		private readonly EffectHandler<EffectItem> EhBounce;
+
+		private readonly EffectHandlerPE PeSlow;
 
 		private SlotDrawer PeeSlotDr;
 
@@ -1976,11 +2069,9 @@ namespace nel
 
 		private float t_lock;
 
+		private float t_lock_orgasmlocked;
+
 		private int multiple_orgasm;
-
-		private PostEffectItem PeSlow;
-
-		private int t_breath = -1;
 
 		private float[] At_announce;
 
@@ -1992,12 +2083,17 @@ namespace nel
 
 		public readonly EpOrgasmCutin Cutin;
 
-		public bool lock_breath_progress;
-
 		private string breath_key_ = "";
 
 		private FnEffectRun FD_drawEffect;
 
 		public bool go_unlock_thresh;
+
+		private struct OrgasmInfo
+		{
+			public EPCATEG categ;
+
+			public string situation;
+		}
 	}
 }

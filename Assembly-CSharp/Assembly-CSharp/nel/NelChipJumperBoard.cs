@@ -181,6 +181,10 @@ namespace nel
 			return true;
 		}
 
+		public void rewriteFootType(M2BlockColliderContainer.BCCLine Bcc, IMapDamageListener Fd, ref string s)
+		{
+		}
+
 		private float draw_basex
 		{
 			get

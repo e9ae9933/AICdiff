@@ -251,6 +251,8 @@ namespace evt
 
 		public float shift_x;
 
+		public float shift_x_onright;
+
 		private int last_emo_drawn = -1;
 
 		public bool dont_appear_on_editor;

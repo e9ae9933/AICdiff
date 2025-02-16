@@ -187,6 +187,10 @@ namespace XX
 				}
 				return null;
 			}
+			if (Ptc == null)
+			{
+				return null;
+			}
 			T t = base.Pop(32);
 			if (t == null)
 			{
@@ -335,7 +339,7 @@ namespace XX
 		{
 			if (Gob != null)
 			{
-				Gob = Object.Instantiate<GameObject>(Gob, new Vector3(_x, _y, 0f), Quaternion.identity);
+				Gob = global::UnityEngine.Object.Instantiate<GameObject>(Gob, new Vector3(_x, _y, 0f), Quaternion.identity);
 				Gob.transform.SetParent(this.Trs, false);
 			}
 			return Gob;

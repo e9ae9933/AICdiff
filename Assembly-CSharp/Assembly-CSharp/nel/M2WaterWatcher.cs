@@ -1450,9 +1450,9 @@ namespace nel
 				if (flag)
 				{
 					this.SetWaterEffect(WaterEffectItem.TYPE.FALL_HIT, m2Mover.x, m2Mover.y - m2Mover.sizey * 0.75f, 0f, 0);
-					if (physic != null && !m2Mover.hasFoot() && m2Mover.canApplyCarryVelocity())
+					if (!m2Mover.hasFoot() && m2Mover.canApplyCarryVelocity())
 					{
-						physic.addFoc(FOCTYPE.KNOCKBACK | FOCTYPE._NO_CONSIDER_WATER, 0f, 0.06f, -1f, 0, 5, 0, -1, 0);
+						m2Mover.addFocFallWaterVelocity(0.05f, 5);
 					}
 				}
 			}
@@ -1566,6 +1566,8 @@ namespace nel
 		private float water_surface_appeared_f = -2f;
 
 		private readonly DRect RcW;
+
+		public const float FALL_VELOCITY = 0.05f;
 
 		private const string snd_key = "water_fall_loop";
 

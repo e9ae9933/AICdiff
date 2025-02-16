@@ -66,7 +66,7 @@ namespace XX
 			MTRX.Expander = new ExpandImageDrawer();
 			MTRX.OMeshImages = new BDic<string, PxlFrame>();
 			MTRX.OMI = new BDic<PxlCharacter, MImage>(3);
-			MTRX.PxlIcon = MTRX.loadMtiPxc("_icons", "Pxl/_icons.pxls", "_", false, false);
+			MTRX.PxlIcon = MTRX.loadMtiPxc("_icons", "Pxl/_icons.pxls", "_", false, false, false);
 			MTRX.PmdM2Zero = new PhysicsMaterial2D();
 			MTRX.PmdM2Zero.friction = 0f;
 			MTRX.PmdM2Zero.bounciness = 0f;
@@ -85,13 +85,13 @@ namespace XX
 			SND.loadSheets("1", "MTRX");
 		}
 
-		public static PxlCharacter loadMtiPxc(string pxl_name, string pxls_path, string image_mti_load_key, bool autoFlipX = true, bool load_external = true)
+		public static PxlCharacter loadMtiPxc(string pxl_name, string pxls_path, string image_mti_load_key, bool autoFlipX = true, bool load_external = true, bool load_external_async = false)
 		{
 			MTIOneImage mtioneImage;
-			return MTRX.loadMtiPxc(out mtioneImage, pxl_name, pxls_path, image_mti_load_key, autoFlipX, load_external);
+			return MTRX.loadMtiPxc(out mtioneImage, pxl_name, pxls_path, image_mti_load_key, autoFlipX, load_external, load_external_async);
 		}
 
-		public static PxlCharacter loadMtiPxc(out MTIOneImage MtiI, string pxl_name, string pxls_path, string image_mti_load_key, bool autoFlipX = true, bool load_external = true)
+		public static PxlCharacter loadMtiPxc(out MTIOneImage MtiI, string pxl_name, string pxls_path, string image_mti_load_key, bool autoFlipX = true, bool load_external = true, bool load_external_async = false)
 		{
 			PxlCharacter pxlCharacter = PxlsLoader.getPxlCharacter(pxl_name);
 			if (pxlCharacter == null)
@@ -107,9 +107,13 @@ namespace XX
 			if (load_external)
 			{
 				string text = pxls_path + ".bytes.texture_0";
-				MtiI = MTI.LoadContainerOneImage(text, image_mti_load_key, null);
-				MtiI.ReplaceExternalPngForPxl(pxlCharacter, true);
-				MTRX.assignMI(pxlCharacter, MtiI.MI);
+				MtiI = MTI.LoadContainerOneImage(text, null, null);
+				MtiI.addLoadKey(image_mti_load_key, load_external_async);
+				if (MtiI.MI != null)
+				{
+					MtiI.ReplaceExternalPngForPxl(pxlCharacter, true);
+					MTRX.assignMI(pxlCharacter, MtiI.MI);
+				}
 			}
 			return pxlCharacter;
 		}
@@ -121,6 +125,7 @@ namespace XX
 			MTRX.ShaderGDTAdd = MTRX.MtiShader.LoadShader("Hachan/ShaderGDTAdd");
 			MTRX.ShaderGDTAddZT = MTRX.MtiShader.LoadShader("Hachan/ShaderGDTAddZT");
 			MTRX.ShaderGDTSub = MTRX.MtiShader.LoadShader("Hachan/ShaderGDTSub");
+			MTRX.ShaderGDTSubZT = MTRX.MtiShader.LoadShader("Hachan/ShaderGDTSubZT");
 			MTRX.ShaderGDTZW = MTRX.MtiShader.LoadShader("Hachan/ShaderGDTZW");
 			MTRX.ShaderGDTZT = MTRX.MtiShader.LoadShader("Hachan/ShaderGDTZT");
 			MTRX.ShaderGDTP2 = MTRX.MtiShader.LoadShader("Hachan/ShaderGDTP2");
@@ -149,12 +154,13 @@ namespace XX
 			MTRX.ShaderMeshAdd = MTRX.MtiShader.LoadShader("Hachan/ShaderMeshAdd");
 			MTRX.ShaderMeshAddZT = MTRX.MtiShader.LoadShader("Hachan/ShaderMeshAddZT");
 			MTRX.ShaderMeshMul = MTRX.MtiShader.LoadShader("Hachan/ShaderMeshMul");
-			MTRX.MtrSpineDefault = MTRX.MtiShader.Load<Material>("MaterialForSpine");
+			MTRX.MtrSpineDefault = Resources.Load<Material>("Basic/MaterialForSpine");
 			MTRX.MtrMeshNormal = MTRX.newMtr(MTRX.ShaderMesh);
 			MTRX.MtrMeshZW = MTRX.newMtr(MTRX.ShaderMeshZW);
 			MTRX.MtrMeshAdd = MTRX.newMtr(MTRX.ShaderMeshAdd);
 			MTRX.MtrMeshSub = MTRX.newMtr(MTRX.ShaderMeshSub);
 			MTRX.MtrMeshAddZT = MTRX.newMtr(MTRX.ShaderMeshAddZT);
+			MTRX.MtrMeshSubZT = MTRX.newMtr(MTRX.MtiShader.LoadShader("Hachan/ShaderMeshSubZT"));
 			MTRX.MtrMeshMul = MTRX.newMtr(MTRX.ShaderMeshMul);
 			MTRX.MtrMeshMask = MTRX.newMtr(MTRX.ShaderMeshMask);
 			MTRX.MtrMeshStriped = MTRX.newMtr(MTRX.MtiShader.LoadShader("Hachan/ShaderMeshStriped"));
@@ -172,15 +178,16 @@ namespace XX
 			PxlCharacter pxlIcon = MTRX.PxlIcon;
 			if (pxlIcon != null)
 			{
-				MTRX.ChrL.add(pxlIcon.getPoseByName("charsprite_L").getSequence(0), "0123456789/+%-:ms.xceipfNEXTGO!", 0);
+				MTRX.SqPattern = pxlIcon.getPoseByName("Pattern").getSequence(0);
+				MTRX.IconWhite = MTRX.SqPattern.getImage(2, 0);
+				MTRX.MIicon = (MTRX.OMI[pxlIcon] = new MImage(MTRX.IconWhite.get_I()));
+				MTRX.ChrL.add(pxlIcon.getPoseByName("charsprite_L").getSequence(0), "0123456789/+%-:ms.xceipf!?ABCDEFGHIJKLMNOPQRSTUVWXYZ…", 0);
 				MTRX.ChrLb.add(pxlIcon.getPoseByName("charsprite_lnumb").getSequence(0), "0123456789/+%-:", 0);
 				MTRX.ChrM.add(pxlIcon.getPoseByName("charsprite_m").getSequence(0), "ABCDEFGHIJKLMNOPQRSTUVWXYZ*/1234567890.:+-abcdefghijklmnopqrstuvwxyz()!?_", 0);
 				MTRX.assignPxlImages(pxlIcon.getPoseByName("main"), false);
 				PxlPose poseByName = pxlIcon.getPoseByName("effect");
 				MTRX.AEff = MTRX.getPFArray(poseByName, 0f, 0f);
 				MTRX.assignPxlImages(poseByName, false);
-				MTRX.SqPattern = pxlIcon.getPoseByName("Pattern").getSequence(0);
-				MTRX.IconWhite = MTRX.SqPattern.getImage(2, 0);
 				MTRX.PatSelection = MTRX.SqPattern.getImage(1, 0);
 				MTRX.EffCircle128 = MTRX.SqPattern.getImage(3, 0);
 				MTRX.EffBlurCircle245 = MTRX.SqPattern.getImage(4, 0);
@@ -198,7 +205,6 @@ namespace XX
 				MTRX.SqM2dIcon = pxlIcon.getPoseByName("m2d").getSequence(0);
 				MTRX.AUiSerIcon = pxlIcon.getPoseByName("ser").getSequence(0);
 				MTRX.assignPxlImages(MTRX.AUiSerIcon, "AUiSerIcon");
-				MTRX.MIicon = (MTRX.OMI[pxlIcon] = new MImage(MTRX.IconWhite.get_I()));
 				if (MTRX.Aadditinal_pmesh_pose_title != null)
 				{
 					int num = MTRX.Aadditinal_pmesh_pose_title.Length;
@@ -309,7 +315,7 @@ namespace XX
 			{
 				return null;
 			}
-			return MTRX.getMI(PF.pChar);
+			return MTRX.getMI(PF.pChar, false);
 		}
 
 		public static MImage getMI(PxlImage PI)
@@ -318,10 +324,10 @@ namespace XX
 			{
 				return null;
 			}
-			return MTRX.getMI(PI.pChar);
+			return MTRX.getMI(PI.pChar, false);
 		}
 
-		public static MImage getMI(PxlCharacter Pcr)
+		public static MImage getMI(PxlCharacter Pcr, bool no_make_mi = false)
 		{
 			if (Pcr == null)
 			{
@@ -330,6 +336,10 @@ namespace XX
 			MImage mimage;
 			if (!MTRX.OMI.TryGetValue(Pcr, out mimage))
 			{
+				if (no_make_mi)
+				{
+					return null;
+				}
 				using (Dictionary<string, PxlImage>.Enumerator enumerator = Pcr.getImageObject().GetEnumerator())
 				{
 					if (enumerator.MoveNext())
@@ -697,153 +707,6 @@ namespace XX
 			return M;
 		}
 
-		public static void DrawMeshIcon(MeshDrawer Md, float cx, float cy, float wd, string name, float val1 = 0f)
-		{
-			if (name != null && name == "lock")
-			{
-				float num = 0.55f;
-				Md.Rect(cx, cy + wd * (-0.5f + num / 2f), wd, wd * num, false);
-				Md.Arc(cx, cy + (-0.5f + num) * wd, (1f - num) * 0.78f * wd, 3.1415927f * (0.95f * X.ZPOW(val1, 0.4f) - 0.12f * X.ZCOS(val1 - 0.4f, 0.6f)), 3.1415927f, X.Mx(2f, wd * 0.1f));
-			}
-		}
-
-		public static void kadomaruRectExtImg(MeshDrawer Md, float x, float y, float w, float h, float radius, PxlImage Img = null, bool no_divide_ppu = false)
-		{
-			if (!no_divide_ppu)
-			{
-				x *= 0.015625f;
-				y *= 0.015625f;
-				w *= 0.015625f;
-				h *= 0.015625f;
-				radius *= 0.015625f;
-			}
-			Md.initForImg(Img ?? MTRX.EffCircle128, 0);
-			radius = X.Mn(X.Mn(w, h) * 0.5f, radius);
-			if (radius * 2.00001f >= w && radius * 2.00001f >= h)
-			{
-				Md.Rect(x, y, w, h, true);
-				return;
-			}
-			float uv_left = Md.uv_left;
-			float uv_top = Md.uv_top;
-			float uv_width = Md.uv_width;
-			float uv_height = Md.uv_height;
-			float num = w * 0.5f;
-			float num2 = h * 0.5f;
-			float num3 = x - num;
-			float num4 = y - num2;
-			float num5 = x + num;
-			float num6 = y + num2;
-			float num7 = uv_left + uv_width;
-			float num8 = uv_top + uv_height;
-			if (radius * 2.00001f >= w)
-			{
-				float num9 = uv_top + uv_height * 0.5f;
-				Md.TriRectBL(0).TriRectBL(4).Tri(5, 0, 3, false)
-					.Tri(5, 3, 7, false);
-				Md.PosUv(num3, num6 - radius, uv_left, num9, null).PosUv(num3, num6, uv_left, num8, null).PosUv(num5, num6, num7, num8, null)
-					.PosUv(num5, num6 - radius, num7, num9, null);
-				Md.PosUv(num3, num4, uv_left, uv_top, null).PosUv(num3, num4 + radius, uv_left, num9, null).PosUv(num5, num4 + radius, num7, num9, null)
-					.PosUv(num5, num4, num7, uv_top, null);
-				return;
-			}
-			if (radius * 2.00001f >= h)
-			{
-				float num10 = uv_left + uv_width * 0.5f;
-				Md.TriRectBL(0).TriRectBL(4).Tri(3, 2, 5, false)
-					.Tri(3, 5, 4, false);
-				Md.PosUv(num3, num4, uv_left, uv_top, null).PosUv(num3, num6, uv_left, num8, null).PosUv(num3 + radius, num6, num10, num8, null)
-					.PosUv(num3 + radius, num4, num10, uv_top, null);
-				Md.PosUv(num5 - radius, num4, num10, uv_top, null).PosUv(num5 - radius, num6, num10, num8, null).PosUv(num5, num6, num7, num8, null)
-					.PosUv(num5, num4, num7, uv_top, null);
-				return;
-			}
-			float num11 = uv_left + uv_width * 0.5f;
-			float num12 = uv_top + uv_height * 0.5f;
-			Md.TriRectBL(0).TriRectBL(4).TriRectBL(8)
-				.TriRectBL(12)
-				.TriRectBL(1, 4, 7, 2)
-				.TriRectBL(7, 6, 9, 8)
-				.TriRectBL(13, 8, 11, 14)
-				.TriRectBL(3, 2, 13, 12)
-				.TriRectBL(2, 7, 8, 13);
-			Md.PosUv(num3, num4, uv_left, uv_top, null).PosUv(num3, num4 + radius, uv_left, num12, null).PosUv(num3 + radius, num4 + radius, num11, num12, null)
-				.PosUv(num3 + radius, num4, num11, uv_top, null);
-			Md.PosUv(num3, num6 - radius, uv_left, num12, null).PosUv(num3, num6, uv_left, num8, null).PosUv(num3 + radius, num6, num11, num8, null)
-				.PosUv(num3 + radius, num6 - radius, num11, num12, null);
-			Md.PosUv(num5 - radius, num6 - radius, num11, num12, null).PosUv(num5 - radius, num6, num11, num8, null).PosUv(num5, num6, num7, num8, null)
-				.PosUv(num5, num6 - radius, num7, num12, null);
-			Md.PosUv(num5 - radius, num4, num11, uv_top, null).PosUv(num5 - radius, num4 + radius, num11, num12, null).PosUv(num5, num4 + radius, num7, num12, null)
-				.PosUv(num5, num4, num7, uv_top, null);
-		}
-
-		public static void TriangleImg(MeshDrawer Md, float x0, float y0, float x1, float y1, float x2, float y2, PxlImage Img = null, AIM posa = AIM.L, bool no_divide_ppu = false)
-		{
-			if (!no_divide_ppu)
-			{
-				x0 *= 0.015625f;
-				y0 *= 0.015625f;
-				x1 *= 0.015625f;
-				y1 *= 0.015625f;
-				x2 *= 0.015625f;
-				y2 *= 0.015625f;
-			}
-			float uv_left = Md.uv_left;
-			float uv_top = Md.uv_top;
-			float uv_width = Md.uv_width;
-			float uv_height = Md.uv_height;
-			Md.initForImg(Img ?? MTRX.IconWhite, 0);
-			Md.Tri(0, 1, 2, false).Pos(x0, y0, null).Pos(x1, y1, null)
-				.Pos(x2, y2, null);
-			Vector2[] uvArray = Md.getUvArray();
-			int num = Md.getVertexMax() - 3;
-			switch (posa)
-			{
-			case AIM.L:
-				uvArray[num] = new Vector2(uv_left, uv_top + uv_height * 0.5f);
-				uvArray[num + 1] = new Vector2(uv_left + uv_width, uv_top + uv_height);
-				uvArray[num + 2] = new Vector2(uv_left + uv_width, uv_top);
-				return;
-			case AIM.T:
-				uvArray[num] = new Vector2(uv_left, uv_top);
-				uvArray[num + 1] = new Vector2(uv_left + uv_width * 0.5f, uv_top + uv_height);
-				uvArray[num + 2] = new Vector2(uv_left + uv_width, uv_top);
-				return;
-			case AIM.R:
-				uvArray[num] = new Vector2(uv_left, uv_top);
-				uvArray[num + 1] = new Vector2(uv_left, uv_top + uv_height);
-				uvArray[num + 2] = new Vector2(uv_left + uv_width, uv_top + uv_height * 0.5f);
-				return;
-			case AIM.B:
-				uvArray[num] = new Vector2(uv_left + uv_width * 0.5f, uv_top);
-				uvArray[num + 1] = new Vector2(uv_left, uv_top + uv_height);
-				uvArray[num + 2] = new Vector2(uv_left + uv_width, uv_top + uv_height);
-				return;
-			case AIM.LT:
-				uvArray[num] = new Vector2(uv_left, uv_top);
-				uvArray[num + 1] = new Vector2(uv_left, uv_top + uv_height);
-				uvArray[num + 2] = new Vector2(uv_left + uv_width, uv_top + uv_height);
-				return;
-			case AIM.TR:
-				uvArray[num] = new Vector2(uv_left + uv_width, uv_top);
-				uvArray[num + 1] = new Vector2(uv_left, uv_top + uv_height);
-				uvArray[num + 2] = new Vector2(uv_left + uv_width, uv_top + uv_height);
-				return;
-			case AIM.BL:
-				uvArray[num] = new Vector2(uv_left, uv_top);
-				uvArray[num + 1] = new Vector2(uv_left, uv_top + uv_height);
-				uvArray[num + 2] = new Vector2(uv_left + uv_width, uv_top);
-				return;
-			case AIM.RB:
-				uvArray[num] = new Vector2(uv_left, uv_top);
-				uvArray[num + 1] = new Vector2(uv_left + uv_width, uv_top);
-				uvArray[num + 2] = new Vector2(uv_left + uv_width, uv_top + uv_height);
-				return;
-			default:
-				return;
-			}
-		}
-
 		public static Shader getShd(string shader_name)
 		{
 			return MTRX.MtiShader.LoadShader(shader_name);
@@ -861,7 +724,7 @@ namespace XX
 
 		public static Material getMtr(BLEND blnd, PxlMeshDrawer PMesh, int stencil_ref = -1)
 		{
-			return MTRX.getMI(PMesh.SourceFrame.pChar).getMtr(blnd, stencil_ref);
+			return MTRX.getMI(PMesh.SourceFrame.pChar, false).getMtr(blnd, stencil_ref);
 		}
 
 		public static Material getMtr(BLEND blnd = BLEND.NORMAL, int stencil_ref = -1)
@@ -914,27 +777,18 @@ namespace XX
 				return MTRX.MtrMeshMul;
 			case BLEND.SUB:
 				return MTRX.MtrMeshSub;
-			case BLEND.ADDP:
-			case BLEND.MULP:
-			case BLEND.NORMALZT:
-			case BLEND.NORMALBORDER8:
-				break;
 			case BLEND.NORMALZW:
 				return MTRX.MtrMeshZW;
 			case BLEND.ADDZT:
 				return MTRX.MtrMeshAddZT;
 			case BLEND.NORMALST:
 				return MTRX.getMtr(MTRX.ShaderMeshST, stencil_ref);
-			default:
-				if (blnd == BLEND.MASK)
-				{
-					return MTRX.getMtr(MTRX.ShaderMeshMask, stencil_ref);
-				}
-				if (blnd == BLEND.MASK_TRANSPARENT)
-				{
-					return MTRX.getMtr(MTRX.ShaderMeshMaskTransparent, stencil_ref);
-				}
-				break;
+			case BLEND.SUBZT:
+				return MTRX.MtrMeshSubZT;
+			case BLEND.MASK:
+				return MTRX.getMtr(MTRX.ShaderMeshMask, stencil_ref);
+			case BLEND.MASK_TRANSPARENT:
+				return MTRX.getMtr(MTRX.ShaderMeshMaskTransparent, stencil_ref);
 			}
 			return MTRX.MtrMeshNormal;
 		}
@@ -998,6 +852,8 @@ namespace XX
 				return MTRX.ShaderGDTST;
 			case BLEND.NORMALBORDER8ST:
 				return MTRX.ShaderGDTSTBorder8;
+			case BLEND.SUBZT:
+				return MTRX.ShaderGDTSubZT;
 			case BLEND.GDT_NORMALGLOW:
 				return MTRX.ShaderGDTNormalGlow;
 			case BLEND.GDT_NORMALBLUR:
@@ -1183,6 +1039,8 @@ namespace XX
 
 		public static Material MtrMeshAddZT;
 
+		public static Material MtrMeshSubZT;
+
 		public static Material MtrMeshMask;
 
 		public static Material MtrMeshStriped;
@@ -1248,6 +1106,8 @@ namespace XX
 		public static Shader ShaderGDTAddZT;
 
 		public static Shader ShaderGDTSub;
+
+		public static Shader ShaderGDTSubZT;
 
 		public static Shader ShaderGDTP2;
 

@@ -50,10 +50,7 @@ namespace m2d
 			}
 			GL.LoadProjectionMatrix(matrix4x);
 			this.Md.clearSimple();
-			this.Md.getMaterial().SetPass(0);
-			GL.Begin(4);
 			this.Mp.drawLights(this.Md, this.Sm, this.alpha, (float)X.AF, true);
-			GL.End();
 			return true;
 		}
 

@@ -47,7 +47,7 @@ namespace m2d
 			{
 				return this.z_far;
 			}
-			return 295f;
+			return 395f;
 		}
 
 		public bool RenderToCam(XCameraBase XCon, ProjectionContainer JCon, Camera Cam)

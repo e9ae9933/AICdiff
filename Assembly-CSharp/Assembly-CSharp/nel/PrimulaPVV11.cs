@@ -308,7 +308,7 @@ namespace nel
 					this.initMistShot(this.phase % 10 + 10);
 					int num = this.phase + 1;
 					this.phase = num;
-					if (num >= 14)
+					if (num >= 10 + (int)DIFF.V(3f, 4f, 4f))
 					{
 						this.phase = 20;
 					}
@@ -346,7 +346,7 @@ namespace nel
 					this.initMistShot(this.phase % 10 + 20);
 					int num = this.phase + 1;
 					this.phase = num;
-					if (num >= 34)
+					if (num >= 30 + (int)DIFF.V(3f, 3f, 4f))
 					{
 						this.phase = 40;
 						this.t = 200f - DIFF.V(225f, 140f, 80f);
@@ -433,49 +433,62 @@ namespace nel
 			{
 			case 0:
 				num = -3f;
-				goto IL_01D0;
+				goto IL_0205;
 			case 1:
 				num = -8f;
 				num2 = 2.1f;
-				goto IL_01D0;
+				goto IL_0205;
 			case 2:
 				num = 2.6f;
 				num2 = 1.1f;
-				goto IL_01D0;
+				goto IL_0205;
 			case 3:
 				num = -11f;
 				num2 = 2.1f;
-				goto IL_01D0;
+				goto IL_0205;
 			case 4:
 				num = 6f;
-				goto IL_01D0;
+				goto IL_0205;
 			case 5:
 				num = -16.1f;
 				num2 = 3.1f;
-				goto IL_01D0;
+				goto IL_0205;
 			case 10:
 				num = -9.6f;
 				num2 = 1.1f;
-				goto IL_01D0;
+				goto IL_0205;
 			case 11:
+				if (DIFF.I == 0)
+				{
+					num = -1.15f;
+					num2 = 1.1f;
+					goto IL_0205;
+				}
 				num = -4f;
 				num2 = 8.1f;
 				num3 = -5.2f;
-				goto IL_01D0;
+				goto IL_0205;
 			case 12:
-				num = 2.6f;
+				if (DIFF.I == 0)
+				{
+					num = 4.6f;
+				}
+				else
+				{
+					num = 2.6f;
+				}
 				num2 = 1.1f;
-				goto IL_01D0;
+				goto IL_0205;
 			case 13:
 				num = 14f;
 				num2 = 8.1f;
 				num3 = -5.2f;
-				goto IL_01D0;
+				goto IL_0205;
 			}
 			if (20 <= id && id < 30)
 			{
 				float num4;
-				if (false == (id == 23))
+				if (false == (id == 23) || DIFF.I <= 1)
 				{
 					num2 = 8.1f;
 					num3 = -5.2f;
@@ -496,7 +509,7 @@ namespace nel
 					num = (float)((id - 21) * CAim._XD(this.Par.aim, 1) * 8) * num4;
 				}
 			}
-			IL_01D0:
+			IL_0205:
 			Vector4 jumpVelocity = M2Mover.getJumpVelocity(this.Mp, num, num3, num2, 0.32000002f, 0f);
 			magicItem.createDropper(jumpVelocity.x, jumpVelocity.y, 0.125f, -1f, -1f).gravity_scale = 0.2f;
 			return magicItem;
@@ -512,8 +525,9 @@ namespace nel
 			{
 				Mg.Ray.projectile_power = 500;
 				Mg.Ray.hittype_to_week_projectile = HITTYPE.NONE;
+				Mg.Other = ((this.state == PrimulaPVV11.STATE.MIST) ? this.MkSleep : NelNMush.MkSleep);
 			}
-			return fcnt == 0f || NelNMush.MgRunMushShotS(Mg, (this.state == PrimulaPVV11.STATE.MIST) ? this.MkSleep : NelNMush.MkSleep, fcnt, "primula_mist_shot_init", 150, 0.2f, 0.8f, 0f, 8f, -2, 0.007f);
+			return fcnt == 0f || NelNMush.MgRunMushShotS(Mg, fcnt, "primula_mist_shot_init", 150, 0.2f, 0.8f, 0f, 8f, -2, 0.007f);
 		}
 
 		private bool MgDrawMistShot(MagicItem Mg, float fcnt)

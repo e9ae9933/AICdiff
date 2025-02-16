@@ -14,6 +14,14 @@ namespace XX
 		public DsnDataP Text(string t)
 		{
 			this.text = t;
+			this.Stb = null;
+			return this;
+		}
+
+		public DsnDataP Text(STB _Stb)
+		{
+			this.text = null;
+			this.Stb = _Stb;
 			return this;
 		}
 

@@ -15,11 +15,11 @@ namespace nel.mgm.dojo
 			{
 				if (M2DBase.Instance != null)
 				{
-					M2DBase.Instance.loadMaterialPxl("mg_dojo", "EvImg/mg_dojo.pxls", false, true);
+					M2DBase.Instance.loadMaterialPxl("mg_dojo", "EvImg/mg_dojo.pxls", false, true, false);
 				}
 				else
 				{
-					MTRX.loadMtiPxc("mg_dojo", "EvImg/mg_dojo.pxls", "MgmDojo", false, true);
+					MTRX.loadMtiPxc("mg_dojo", "EvImg/mg_dojo.pxls", "MgmDojo", false, true, false);
 				}
 			}
 			return 0;
@@ -272,7 +272,7 @@ namespace nel.mgm.dojo
 
 		private void prepareMdMaterial()
 		{
-			this.MI = MTRX.getMI(this.Pxc);
+			this.MI = MTRX.getMI(this.Pxc, false);
 			Material mtr = this.MI.getMtr(BLEND.NORMAL, -1);
 			this.MMRD.setMaterial(this.MdFig, mtr, false);
 			this.Indg.prepareMaterial(this);
@@ -464,9 +464,14 @@ namespace nel.mgm.dojo
 				}
 				break;
 			case MgmDojo.EWAIT.LEARN:
-				if (this.NM2D != null && this.NM2D.IMNG.get_DescBox().EvtWait(is_first))
+				if (this.NM2D != null)
 				{
-					return true;
+					ItemDescBox descBox = this.NM2D.IMNG.get_DescBox();
+					descBox.lock_input_focus = false;
+					if (descBox.EvtWait(is_first))
+					{
+						return true;
+					}
 				}
 				break;
 			}
@@ -508,7 +513,7 @@ namespace nel.mgm.dojo
 		{
 			if (this.cur_bgm_id >= 0)
 			{
-				BGM.setOverrideKey(block_b ? "toB" : "_");
+				BGM.setOverrideKey(block_b ? "toB" : "_", false);
 			}
 		}
 

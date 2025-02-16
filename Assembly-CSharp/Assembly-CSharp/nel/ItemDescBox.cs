@@ -75,7 +75,7 @@ namespace nel
 			return is_first || (this.ATask.Count > 0 && this.ATask[0].type == ItemDescBox.TYPE.FOCUS);
 		}
 
-		private ItemDescBox addTask(ItemDescBox.IdbTask Task)
+		public ItemDescBox.IdbTask addTask(ItemDescBox.IdbTask Task)
 		{
 			int count = this.ATask.Count;
 			int num = -1;
@@ -107,7 +107,7 @@ namespace nel
 			{
 				this.readTask();
 			}
-			return this;
+			return Task;
 		}
 
 		private void readTask()
@@ -138,6 +138,7 @@ namespace nel
 				idbTask = this.ATask[0];
 				this.type = idbTask.type;
 				this.PosTarget = Vector4.zero;
+				this.lock_input_focus = false;
 				bool flag = false;
 				if (idbTask.Target is ItemDescBox.IdbTask.IdbPopup)
 				{
@@ -156,9 +157,9 @@ namespace nel
 				{
 					flag = this.makeFocus(idbTask, idbTask.Target as PrSkill);
 				}
-				else if (idbTask.Target is EnhancerManager.Enhancer)
+				else if (idbTask.Target is ENHA.Enhancer)
 				{
-					flag = this.makeFocus(idbTask, idbTask.Target as EnhancerManager.Enhancer);
+					flag = this.makeFocus(idbTask, idbTask.Target as ENHA.Enhancer);
 				}
 				else if (idbTask.Target is TRMManager.TRMReward)
 				{
@@ -182,19 +183,47 @@ namespace nel
 				}
 				if (flag)
 				{
-					goto IL_01EB;
+					goto IL_01F2;
 				}
 				this.spliceTask(0);
 			}
 			this.type = ItemDescBox.TYPE.AUTO;
 			this.deactivate();
 			return this;
-			IL_01EB:
+			IL_01F2:
 			if (idbTask.type == ItemDescBox.TYPE.FOCUS)
 			{
 				BGM.addHalfFlag("IDESCBOX");
 			}
+			this.fineTaskPosition(idbTask);
 			return this;
+		}
+
+		public void fineTaskPosition(ItemDescBox.IdbTask Task)
+		{
+			if (Task.position_key != null && this.ATask.IndexOf(Task) == 0)
+			{
+				string text = Task.position_key;
+				if (TX.isStart(text, "@", 0))
+				{
+					text = TX.slice(text, 1);
+				}
+				Vector4 vector;
+				if (TalkDrawer.getDefinedPosition(text, out vector))
+				{
+					if (this.PosTarget.z == 0f)
+					{
+						this.PosTarget.x = this.PosTarget.x + vector.x;
+						this.PosTarget.y = this.PosTarget.y + vector.y;
+					}
+					else
+					{
+						this.PosTarget.x = this.PosTarget.x + vector.x * this.M2D.curMap.rCLENB;
+						this.PosTarget.y = this.PosTarget.y + vector.y * this.M2D.curMap.rCLENB;
+					}
+					this.runUiPosition(true);
+				}
+			}
 		}
 
 		public void spliceStackIf(NelItemManager.POPUP p)
@@ -268,6 +297,7 @@ namespace nel
 			this.ATask.Clear();
 			this.read_delay_ = 0f;
 			BGM.remHalfFlag("IDESCBOX");
+			this.lock_input_focus = false;
 			this.readTaskExecute();
 		}
 
@@ -287,7 +317,7 @@ namespace nel
 			return this;
 		}
 
-		public ItemDescBox addTaskPopUp(NelItemManager.POPUP p_categ, string text, float mapx, float mapy, float shifty_toupper = 0f, float shifty_tounder = 0f, bool abs = false)
+		public ItemDescBox.IdbTask addTaskPopUp(NelItemManager.POPUP p_categ, string text, float mapx, float mapy, float shifty_toupper = 0f, float shifty_tounder = 0f, bool abs = false)
 		{
 			ItemDescBox.TYPE type = ItemDescBox.TYPE.POPUP;
 			if ((p_categ & NelItemManager.POPUP._FOCUS_MODE) != NelItemManager.POPUP.HIDE)
@@ -298,32 +328,32 @@ namespace nel
 			return this.addTask(new ItemDescBox.IdbTask(type, new ItemDescBox.IdbTask.IdbPopup(p_categ, text, mapx, mapy, shifty_toupper, shifty_tounder, abs), false));
 		}
 
-		public ItemDescBox addTaskFocus(PrSkill _Target, bool is_supertop = false)
+		public ItemDescBox.IdbTask addTaskFocus(PrSkill _Target, bool is_supertop = false)
 		{
 			return this.addTask(new ItemDescBox.IdbTask(ItemDescBox.TYPE.FOCUS, _Target, is_supertop));
 		}
 
-		public ItemDescBox addTaskFocus(EnhancerManager.Enhancer _Target, bool is_supertop = false)
+		public ItemDescBox.IdbTask addTaskFocus(ENHA.Enhancer _Target, bool is_supertop = false)
 		{
 			return this.addTask(new ItemDescBox.IdbTask(ItemDescBox.TYPE.FOCUS, _Target, is_supertop));
 		}
 
-		public ItemDescBox addTaskFocus(MGKIND _Target)
+		public ItemDescBox.IdbTask addTaskFocus(MGKIND _Target)
 		{
 			return this.addTask(new ItemDescBox.IdbTask(ItemDescBox.TYPE.FOCUS, "MGKIND:" + _Target.ToString(), false));
 		}
 
-		public ItemDescBox addTaskFocus(List<NelItemEntry> _Target)
+		public ItemDescBox.IdbTask addTaskFocus(List<NelItemEntry> _Target)
 		{
 			return this.addTask(new ItemDescBox.IdbTask(ItemDescBox.TYPE.FOCUS, _Target, false));
 		}
 
-		public ItemDescBox addTaskFocus(TRMManager.TRMReward _Target)
+		public ItemDescBox.IdbTask addTaskFocus(TRMManager.TRMReward _Target)
 		{
 			return this.addTask(new ItemDescBox.IdbTask(ItemDescBox.TYPE.FOCUS, _Target, false));
 		}
 
-		public ItemDescBox addTaskFocusMoney(int money)
+		public ItemDescBox.IdbTask addTaskFocusMoney(int money)
 		{
 			return this.addTask(new ItemDescBox.IdbTask(ItemDescBox.TYPE.FOCUS, "MONEY:" + money.ToString(), false));
 		}
@@ -342,6 +372,7 @@ namespace nel
 			this.delayt = 0;
 			this.radius = _radius;
 			this.ginitted = false;
+			this.lock_input_focus = false;
 			this.frame_color = (this.letter_line_color = 0U);
 			this.ShadowCol = MTRX.ColTrnsp;
 			this.frame_start_vertex = (this.frame_start_tri = -1);
@@ -500,7 +531,7 @@ namespace nel
 			{
 				entry_count = E.count;
 			}
-			Stb.Add(E.Data.getLocalizedName((int)E.grade, null));
+			Stb.Add(E.Data.getLocalizedName((int)E.grade));
 			if (!E.Data.has(NelItem.CATEG.INDIVIDUAL_GRADE))
 			{
 				Stb.Add("<img mesh=\"nel_item_grade.", (int)E.grade, "\" />");
@@ -656,16 +687,22 @@ namespace nel
 			this.PosTarget.Set(0f, 0f, 0f, IN.hh * 0.37f);
 			this.tmarg = this.bmarg + num * (float)AItm.Count;
 			int count = AItm.Count;
-			string descLocalized = AItm[count - 1].Data.getDescLocalized(null, (int)AItm[0].grade);
-			float num2 = (this.M2D.Ui.draw_letter_box ? 580f : 330f);
 			using (STB stb = TX.PopBld(null, 0))
 			{
+				AItm[count - 1].Data.getDescLocalized(stb, null, (int)AItm[0].grade);
+				string text = stb.ToString();
+				stb.Clear();
+				float num2 = (this.M2D.Ui.draw_letter_box ? 580f : 330f);
 				using (STB stb2 = TX.PopBld(null, 0))
 				{
 					for (int i = 0; i < count; i++)
 					{
 						NelItemEntry nelItemEntry = AItm[i];
-						stb.Append(nelItemEntry.Data.getLocalizedName((int)nelItemEntry.grade, null), "\n");
+						if (stb.Length > 0)
+						{
+							stb.Ret("\n");
+						}
+						nelItemEntry.Data.getLocalizedName(stb, (int)nelItemEntry.grade);
 						if (nelItemEntry.grade >= 1 && !nelItemEntry.Data.individual_grade)
 						{
 							stb.Add("<img mesh=\"nel_item_grade.", (int)nelItemEntry.grade, "\" tx_color />");
@@ -675,14 +712,14 @@ namespace nel
 					this.TxTitle.Txt(stb);
 					this.TxHave.Txt(stb2);
 				}
+				this.make(text);
+				this.Tx.auto_wrap = true;
+				this.Tx.max_swidth_px = num2;
+				this.Tx.Redraw(false);
+				this.frame_color = 4283780170U;
+				this._appear_time = 65;
+				this.wh(num2, (text == "") ? 1f : this.Tx.get_sheight_px());
 			}
-			this.make(descLocalized);
-			this.Tx.auto_wrap = true;
-			this.Tx.max_swidth_px = num2;
-			this.Tx.Redraw(false);
-			this.frame_color = 4283780170U;
-			this._appear_time = 65;
-			this.wh(num2, (descLocalized == "") ? 1f : this.Tx.get_sheight_px());
 			float num3 = base.get_sheight_px() / 2f - this.bmarg - num / 2f + 4f;
 			float num4 = -base.get_swidth_px() / 2f + 64f;
 			IN.PosP(this.TxTitle.transform, num4 + this.TxTitle.size * 1.376f, num3 + num / 2f - 4f, -0.01f);
@@ -766,14 +803,14 @@ namespace nel
 			return true;
 		}
 
-		private bool makeFocus(ItemDescBox.IdbTask Task, EnhancerManager.Enhancer Eh)
+		private bool makeFocus(ItemDescBox.IdbTask Task, ENHA.Enhancer Eh)
 		{
 			if (Eh == null)
 			{
 				return false;
 			}
 			this.makeBigItemGet(Task, Eh.title, Eh.descript, "get_enhancer", false);
-			EnhancerManager.SqImgIcon.getFrameByName(Eh.key);
+			ENHA.SqImgIcon.getFrameByName(Eh.key);
 			return true;
 		}
 
@@ -895,12 +932,12 @@ namespace nel
 					return this;
 				}
 			}
-			bool flag = this.is_focus && this.t >= 20f;
+			bool flag = this.is_focus && this.t >= 20f && (!this.lock_input_focus || !EV.isActive(false) || EV.isWaiting(this));
 			if (this.TrmRwd != null)
 			{
 				this.runRewardText((this.t >= 0f) ? this.t : 1000f, ref flag);
 			}
-			if ((flag && (IN.isCancelPD() || IN.isSubmitPD(1) || IN.isCheckPD(1) || IN.isMousePushDown())) || (this.ATask.Count == 0 && base.isActive()))
+			if ((flag && (IN.isCancelPD() || IN.isSubmitPD(1) || IN.isCheckPD(1) || IN.isMousePushDown(1))) || (this.ATask.Count == 0 && base.isActive()))
 			{
 				this.read_delay_ = 25f;
 				SND.Ui.play("talk_progress", false);
@@ -961,12 +998,12 @@ namespace nel
 			if (this.PosTarget.z == 0f)
 			{
 				float num = this.M2D.ui_shift_x * 0.5f;
-				base.posSetA(num, this.PosTarget.y - this.PosTarget.w, num, this.PosTarget.y, !out_pos);
+				base.posSetA(this.PosTarget.x + num, this.PosTarget.y - this.PosTarget.w, this.PosTarget.x + num, this.PosTarget.y, !out_pos);
 				return;
 			}
 			if (base.visible)
 			{
-				NelItemManager.fineBoxPosOnMap(this, M2DBase.Instance, this.PosTarget, out_pos, false, 0f, 0f);
+				M2BoxOneLine.fineBoxPosOnMap(this, M2DBase.Instance, this.PosTarget, out_pos, false, 0f, 0f);
 			}
 		}
 
@@ -1042,7 +1079,7 @@ namespace nel
 			{
 				cancelable = false;
 			}
-			if (!cancelable && t >= 30f && base.isActive() && IN.ketteiPD())
+			if (!cancelable && t >= 30f && base.isActive() && IN.ketteiPD(1))
 			{
 				this.reel_t = 100f;
 				IN.clearPushDown(false);
@@ -1259,10 +1296,10 @@ namespace nel
 					}
 				}
 			}
-			else if (this.ScreenTask.Target is EnhancerManager.Enhancer)
+			else if (this.ScreenTask.Target is ENHA.Enhancer)
 			{
 				num2 = 4f;
-				pxlFrame = (this.ScreenTask.Target as EnhancerManager.Enhancer).PF;
+				pxlFrame = (this.ScreenTask.Target as ENHA.Enhancer).PF;
 				flag2 = true;
 			}
 			else if (this.ScreenTask.Target is string)
@@ -1364,6 +1401,8 @@ namespace nel
 
 		private float read_delay_;
 
+		public bool lock_input_focus;
+
 		public static Color32[] Acol_normal = new Color32[]
 		{
 			C32.d2c(2855482163U),
@@ -1423,7 +1462,7 @@ namespace nel
 			ICO
 		}
 
-		private class IdbTask
+		public class IdbTask
 		{
 			public IdbTask(ItemDescBox.TYPE _type, object _Target, bool _is_supertop = false)
 			{
@@ -1440,6 +1479,8 @@ namespace nel
 			public int f0;
 
 			public bool supertop;
+
+			public string position_key;
 
 			public class IdbPopup
 			{

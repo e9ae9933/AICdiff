@@ -172,6 +172,10 @@ namespace nel
 
 		public void quitClimbWalk()
 		{
+			if (this.auto_reset_animR)
+			{
+				this.Anm.rotationR = 0f;
+			}
 			if (this.pre_corner_slip_bits != 32U)
 			{
 				this.Phy.corner_slip_alloc_bits = this.pre_corner_slip_bits;
@@ -358,7 +362,11 @@ namespace nel
 			this.t_hitwall.Update(base.TS);
 			this.t_stop_hitwall_check.Update(base.TS);
 			this.t_stopping.Update(base.TS);
-			this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._CHECK_WALL | FOCTYPE._INDIVIDUAL, velocityDir.x * speed, velocityDir.y * speed, -1f, -1, 1, 0, -1, 0);
+			this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._CHECK_WALL | FOCTYPE._INDIVIDUAL, 0f, velocityDir.y * speed, -1f, -1, 1, 0, -1, 0);
+			if (velocityDir.x != 0f)
+			{
+				this.Phy.walk_xspeed = velocityDir.x * speed;
+			}
 			if (velocityDir.z != 0f)
 			{
 				this.Phy.addFoc(FOCTYPE.JUMP | FOCTYPE._CHECK_WALL | FOCTYPE._INDIVIDUAL, 0f, velocityDir.z * speed, -1f, -1, 1, 0, -1, 0);
@@ -589,6 +597,8 @@ namespace nel
 		private RevCounter t_stop_hitwall_check;
 
 		private uint pre_corner_slip_bits = 32U;
+
+		public bool auto_reset_animR;
 
 		public bool alloc_jump_air;
 

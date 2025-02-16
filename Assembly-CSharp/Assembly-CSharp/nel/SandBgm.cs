@@ -29,7 +29,7 @@ namespace nel
 				}
 				if (this.t == 2)
 				{
-					Object.Destroy(this);
+					global::UnityEngine.Object.Destroy(this);
 				}
 			}
 		}

@@ -64,6 +64,7 @@ namespace nel.mgm
 				{
 					SND.loadSheets("ev_cuts_eggremove", "EGGREMOVE");
 				}
+				this.prepareTxKD(true);
 				if (this.total_egg < 0)
 				{
 					this.total_egg = 5;
@@ -87,14 +88,10 @@ namespace nel.mgm
 			EV.remListener(this);
 			EV.remWaitListener(this);
 			SND.unloadSheets("ev_cuts_eggremove", "EGGREMOVE");
-			if (this.TxRB != null)
+			this.prepareTxKD(false);
+			if (this.TargetPr != null)
 			{
-				IN.DestroyE(this.TxRB.gameObject);
-				if (this.TargetPr != null)
-				{
-					this.TargetPr.NM2D.remValotAddition(this);
-					this.TargetPr.NM2D.remValotAddition(this.TxRB);
-				}
+				this.TargetPr.NM2D.remValotAddition(this);
 			}
 			if (this.situcon_locked && this.TargetPr != null)
 			{
@@ -165,8 +162,6 @@ namespace nel.mgm
 				aligny = ALIGNY.BOTTOM,
 				text_margin_y = 12f
 			});
-			this.TxRB = UiGO.CreateBottomRightText("rb", -4.075f);
-			this.TxRB.Txt(TX.Get("Mstb_KeyHelp", ""));
 			GameObject gameObject = IN.CreateGobGUI(base.gameObject, "-darken");
 			this.MdDarken = MeshDrawer.prepareMeshRenderer(gameObject, MTRX.MtrMeshNormal, 0f, -1, null, true, true);
 			IN.setZAbs(gameObject.transform, -4.15f);
@@ -238,7 +233,7 @@ namespace nel.mgm
 			}
 			if (this.TargetPr != null)
 			{
-				this.TargetPr.EpCon.breath_key = null;
+				this.TargetPr.VO.breath_key = null;
 			}
 			IN.clearPushDown(true);
 			switch (this.stt)
@@ -250,29 +245,27 @@ namespace nel.mgm
 				if (this.DsMain != null)
 				{
 					this.DsMain.deactivate();
-					this.TxRB.gameObject.SetActive(false);
+					this.prepareTxKD(false);
 					this.deactivateDarken();
-					return;
 				}
 				break;
 			case MgmEggRemove.STATE.DOING:
 				this.DsMain.activate();
 				this.activateDarken();
-				this.TxRB.gameObject.SetActive(true);
+				this.prepareTxKD(true);
 				this.egg_anim_applied = 0;
 				this.gauge_timing_grade = 1f;
 				this.need_redraw_gauge = true;
 				this.eggpow = 0f;
 				this.Pdr.snd_tick = "pendulum_tick";
-				return;
+				break;
 			case MgmEggRemove.STATE.ORGASM:
 				this.orgasmed_count++;
-				return;
+				break;
 			case MgmEggRemove.STATE.ORGASM_WAITING:
 				EV.getVariableContainer().define("_result", "orgasm", true);
 				this.DsMain.deactivate();
 				this.deactivateDarken();
-				this.TxRB.gameObject.SetActive(false);
 				if (this.EfOrgasm == null && UIBase.Instance != null)
 				{
 					this.ImgOrgasm = EV.Pics.getPic(MgmEggRemove.Aevimg_key[X.xors(MgmEggRemove.Aevimg_key.Length)], true, true);
@@ -280,8 +273,14 @@ namespace nel.mgm
 					UIPicture.Instance.setFade("down_b", UIPictureBase.EMSTATE.SHAMED | UIPictureBase.EMSTATE.SMASH | UIPictureBase.EMSTATE.ORGASM, false, true, false);
 				}
 				break;
-			default:
-				return;
+			}
+			if (this.TkKD != null)
+			{
+				if (this.stt != MgmEggRemove.STATE.DOING)
+				{
+					this.TkKD.hold_blink = false;
+				}
+				this.TkKD.need_fine = true;
 			}
 		}
 
@@ -299,6 +298,11 @@ namespace nel.mgm
 				}
 				break;
 			case MgmEggRemove.STATE.DOING:
+				this.TargetPr.EpCon.run(fcnt);
+				if (this.TkKD != null)
+				{
+					this.TkKD.hold_blink = IN.isCancelOn(0) || IN.isMenuO(0);
+				}
 				if (this.t_state >= 20f && this.gauge_level <= 0f && (IN.isCancelOn(20) || IN.isMenuO(20)))
 				{
 					this.changeState(MgmEggRemove.STATE.DEACTIVATING);
@@ -367,15 +371,16 @@ namespace nel.mgm
 						}
 						this.applyEpDmg(EPCATEG.CANAL, X.NIL(1f, 0.1f, this.t_gauge_input, 270f), true);
 						SND.Ui.play("absorb_guchu", false);
-						if (this.TargetPr != null && X.XORSP() < 0.6f)
+						if (this.TargetPr != null)
 						{
-							this.TargetPr.playVo(((float)this.TargetPr.ep >= 950000f) ? "mustll" : "must", false, false);
+							this.TargetPr.VO.playMgmEggRemoveVoIn();
 						}
 					}
 				}
 				break;
 			case MgmEggRemove.STATE.ORGASM:
 			case MgmEggRemove.STATE.FINISH:
+				this.TargetPr.EpCon.run(fcnt);
 				if (this.stt == MgmEggRemove.STATE.ORGASM && this.TargetPr != null && this.TargetPr.EpCon.isOrgasmInitTime())
 				{
 					flag = this.t_state <= 60f;
@@ -386,6 +391,7 @@ namespace nel.mgm
 				}
 				break;
 			case MgmEggRemove.STATE.ORGASM_WAITING:
+				this.TargetPr.EpCon.run(fcnt);
 				if (this.t_state >= 70f)
 				{
 					this.t_state = 70f - X.NIXP(90f, 120f);
@@ -409,7 +415,7 @@ namespace nel.mgm
 				this.Pdr.fixCenter();
 				if (this.TargetPr != null)
 				{
-					this.TargetPr.playVo(((float)this.TargetPr.ep >= 950000f) ? "must_come" : "mustll", false, false);
+					this.TargetPr.VO.playMgmEggRemoveVoOut();
 					if (this.gauge_level >= 0.5f && this.AEggCountAndGrade.Count > 0 && !this.AEggCountAndGrade[0].is_liquid && X.XORSP() < 0.5f)
 					{
 						this.applyEpDmg(EPCATEG.UTERUS, 2f, true);
@@ -497,7 +503,7 @@ namespace nel.mgm
 							{
 								break;
 							}
-							UIPicture.Instance.applyLayingEggCutin(eggInfo.is_liquid, false, true);
+							UIPicture.Instance.CutinMng.applyLayingEggCutin(eggInfo.is_liquid, -1f, false, true);
 							if (this.egg_anim_applied >= 2)
 							{
 								break;
@@ -836,7 +842,7 @@ namespace nel.mgm
 				num2 = 1f;
 			}
 			num2 *= 0.5f;
-			MeshDrawer mesh = Ef.GetMesh("eggremove_cutin", MTRX.getMI(this.ImgOrgasm.PF.pChar).getMtr(250), false);
+			MeshDrawer mesh = Ef.GetMesh("eggremove_cutin", MTRX.getMI(this.ImgOrgasm.PF.pChar, false).getMtr(250), false);
 			MeshDrawer mesh2 = Ef.GetMesh("eggremove_cutin", MTRX.getMtr(BLEND.MASK, 250), false);
 			mesh.base_z -= 0.1f;
 			mesh.TranslateP(-IN.wh * 0.4f, 0f, false);
@@ -849,7 +855,7 @@ namespace nel.mgm
 			return true;
 		}
 
-		private bool fnDrawFaceCutin(AnimateCutin Cti, Map2d Mp, MeshDrawer Md, MeshDrawer MdT, float t, ref bool update_meshdrawer)
+		private bool fnDrawFaceCutin(AnimateCutin Cti, Map2d Mp, MeshDrawer Md, MeshDrawer MdT, float t, float anim_t, ref bool update_meshdrawer)
 		{
 			update_meshdrawer = true;
 			if (t == 0f)
@@ -863,16 +869,16 @@ namespace nel.mgm
 					this.PP_FaceCutin.loadFromSH(stringHolder, 0);
 				}
 			}
-			float num = X.ZSIN(t, 15f);
+			float num = X.ZSIN(anim_t, 15f);
 			float num2 = X.ZLINE(80f - t, 35f);
 			if (num2 <= 0f)
 			{
 				return false;
 			}
-			float num3 = (1f - X.ZLINE(t, 40f)) * X.COSIT(48f) * 40f;
+			float num3 = (1f - X.ZLINE(anim_t, 40f)) * X.COSIT(48f) * 40f;
 			Cti.setBase(40f + X.COSIT(420f) * 3.5f, -170f + num3 * 0.3f + X.COSIT(392f) * 3.5f, 1.25f);
 			Md.clear(false, false);
-			Md.Col = Md.ColGrd.Set(4294920124U).blend(4290690750U, X.ZSIN(t, 25f)).C;
+			Md.Col = Md.ColGrd.Set(4294920124U).blend(4290690750U, X.ZSIN(anim_t, 25f)).C;
 			this.PP_FaceCutin.t = X.NI(Cti.restarted ? 0.75f : 0.25f, 1f, num) * num2;
 			this.PP_FaceCutin.drawTo(Md, 0f, num3, 0f, 1f);
 			Cti.setMulColor(4294920124U, 1f - X.ZLINE(t, 35f));
@@ -923,7 +929,7 @@ namespace nel.mgm
 		{
 			if (UIBase.Instance != null)
 			{
-				return UIBase.Instance.PtcST(ptcst_name, Listener);
+				return UIBase.Instance.PtcST(ptcst_name, Listener, PTCThread.StFollow.NO_FOLLOW);
 			}
 			return null;
 		}
@@ -962,6 +968,35 @@ namespace nel.mgm
 			}
 		}
 
+		public void prepareTxKD(bool flag)
+		{
+			if (flag)
+			{
+				if (this.TkKD == null && this.TargetPr != null)
+				{
+					if (this.FD_KeyDesc == null)
+					{
+						this.FD_KeyDesc = new TxKeyDesc.FnGetKD(this.getKD);
+					}
+					this.TkKD = this.TargetPr.NM2D.TxKD.AddTicket(170, this.FD_KeyDesc, this);
+					this.TkKD.showable_front_ui = true;
+					return;
+				}
+			}
+			else if (this.TkKD != null)
+			{
+				this.TkKD = this.TkKD.destruct();
+			}
+		}
+
+		public void getKD(STB Stb, object Target)
+		{
+			if (this.stt == MgmEggRemove.STATE.DOING || this.stt == MgmEggRemove.STATE.ORGASM)
+			{
+				Stb.AddTxA("Mstb_KeyHelp", false);
+			}
+		}
+
 		public bool EvtRead(EvReader ER, StringHolder rER, int skipping = 0)
 		{
 			if (rER.cmd != "MGM_EGGRMV")
@@ -994,15 +1029,15 @@ namespace nel.mgm
 						}
 						if (this.TargetPr != null)
 						{
-							this.TargetPr.NM2D.remValotAddition(this.TxRB);
+							this.prepareTxKD(false);
 							this.TargetPr.NM2D.remValotAddition(this);
-							this.TargetPr.EpCon.breath_key = null;
+							this.TargetPr.VO.breath_key = null;
 							if (this.TargetPr.isBenchState() && this.TargetPr.EpCon.isOrgasm())
 							{
 								this.TargetPr.UP.setFade("masturbate", UIPictureBase.EMSTATE.ORGASM, true, true, false);
 								this.TargetPr.getAnimator().setPose("bench_must_orgasm_2", -1, false);
 								this.TargetPr.getAnimator().animReset(9);
-								this.TargetPr.EpCon.breath_key = "breath_aft";
+								this.TargetPr.VO.breath_key = "breath_aft";
 							}
 							else
 							{
@@ -1192,9 +1227,11 @@ namespace nel.mgm
 
 		private EvImg ImgOrgasm;
 
-		public TextRendererRBKeyDesc TxRB;
+		private TxKeyDesc.KDTicket TkKD;
 
 		private PopPolyDrawer PP_FaceCutin;
+
+		private TxKeyDesc.FnGetKD FD_KeyDesc;
 
 		private enum STATE
 		{

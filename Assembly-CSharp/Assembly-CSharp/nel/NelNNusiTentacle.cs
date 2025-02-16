@@ -38,6 +38,10 @@ namespace nel
 			this.FD_getOtherTentacleAbsorbing = new Func<AbsorbManager, bool>(this.getOtherTentacleAbsorbing);
 			this.set_enlarge_bouncy_effect = false;
 			base.addF((NelEnemy.FLAG)6291584);
+			this.AtkUPunch.Prepare(this, true);
+			this.AtkStruggle.Prepare(this, true);
+			this.AtkGrab.Prepare(this, true);
+			this.AtkNormalAbsorb.Prepare(this, true);
 		}
 
 		public override NelEnemyNested initNest(NelEnemy _Parent, int array_create_capacity = 4)
@@ -183,7 +187,7 @@ namespace nel
 			{
 				if (this.LinkTentacle != null && this.LinkTentacle.curpose == NelNBoss_Nusi.TENPOSE.ground)
 				{
-					this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.ground2stand, true);
+					this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.ground2stand, true, -1);
 				}
 				else
 				{
@@ -394,7 +398,7 @@ namespace nel
 				{
 					return true;
 				}
-				this.LinkTentacle.EAPose(middlepunch ? NelNBoss_Nusi.TENPOSE.middlepunch_0 : NelNBoss_Nusi.TENPOSE.underpunch_0, true);
+				this.LinkTentacle.EAPose(middlepunch ? NelNBoss_Nusi.TENPOSE.middlepunch_0 : NelNBoss_Nusi.TENPOSE.underpunch_0, true, -1);
 				base.throw_ray = true;
 				if (middlepunch)
 				{
@@ -414,7 +418,7 @@ namespace nel
 			}
 			if (Tk.prog == PROG.ACTIVE && Tk.Progress(ref this.t, 120, true))
 			{
-				this.LinkTentacle.EAPose(middlepunch ? NelNBoss_Nusi.TENPOSE.middlepunch_1 : NelNBoss_Nusi.TENPOSE.underpunch_1, true);
+				this.LinkTentacle.EAPose(middlepunch ? NelNBoss_Nusi.TENPOSE.middlepunch_1 : NelNBoss_Nusi.TENPOSE.underpunch_1, true, -1);
 				this.LinkTentacle.EA.timescale = 2f;
 				base.PtcVar("cx", (double)this.atk_cx).PtcVar("cy", (double)base.y).PtcVar("lgt", (double)tackleInfo.x_reachable)
 					.PtcVar("middle", (double)(middlepunch ? 1 : 0))
@@ -423,7 +427,7 @@ namespace nel
 			if (Tk.prog == PROG.PROG0 && Tk.Progress(ref this.t, 4, true))
 			{
 				this.AtkUPunch.press_state_replace = byte.MaxValue;
-				MagicItem magicItem = base.tackleInit(this.AtkUPunch, tackleInfo);
+				MagicItem magicItem = base.tackleInit(this.AtkUPunch, tackleInfo, MGHIT.AUTO);
 				magicItem.sx = this.atk_cx - this.Phy.tstacked_x;
 				magicItem.sy = 0f;
 				magicItem.dx = tackleInfo.difx_map * this.Boss.mpf_is_right;
@@ -433,13 +437,14 @@ namespace nel
 			}
 			if (Tk.prog == PROG.PROG1)
 			{
-				if (this.t >= 6f)
+				if (this.t >= 6f && this.can_hold_tackle)
 				{
-					if (this.can_hold_tackle)
-					{
-						base.throw_ray = true;
-					}
+					base.throw_ray = true;
 					this.can_hold_tackle = false;
+					if (base.nattr_has_mattr)
+					{
+						EnemyAttr.SplashSOnAir(this.Parent, this.Phy.tstacked_x - this.Boss.mpf_is_right * 3f, this.Phy.tstacked_y, tackleInfo.difx_map, (this.Boss.mpf_is_right > 0f) ? 0f : 3.1415927f, 0f, 0.4f, 1f, 6, 1.6f);
+					}
 				}
 				if (this.t >= 40f)
 				{
@@ -470,7 +475,7 @@ namespace nel
 				{
 					return true;
 				}
-				this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.struggle_0, true);
+				this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.struggle_0, true, -1);
 				this.LinkTentacle.EA.fine_intv = 2f;
 				base.throw_ray = true;
 				this.dangerousStar(tkiStruggle.difx_map, 0f, tkiStruggle.radius, 196f);
@@ -492,7 +497,7 @@ namespace nel
 				nestTarget.shiftx = base.VALWALK(nestTarget.shiftx, -1.5f, 0.2f);
 				if (Tk.Progress(ref this.t, 76, true))
 				{
-					this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.struggle_1, true);
+					this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.struggle_1, true, -1);
 					this.LinkTentacle.EA.addListenerEvent(new AnimationState.TrackEntryEventDelegate(this.fnEAEventStruggle));
 					this.LinkTentacle.EA.timescale = 1.6f;
 					this.playSndPos("nusit_struggle_trigger", 1);
@@ -517,7 +522,7 @@ namespace nel
 				{
 					this.can_hold_tackle = false;
 					base.throw_ray = false;
-					this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.struggle_2, true);
+					this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.struggle_2, true, -1);
 					this.LinkTentacle.EA.fine_intv = 5f;
 				}
 			}
@@ -549,12 +554,16 @@ namespace nel
 				float tstacked_x = this.Phy.tstacked_x;
 				base.PtcVar("cx", (double)tstacked_x).PtcVar("lgt", (double)(num2 * 0.5f)).PtcST("nusit_strg_hit", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.NO_FOLLOW);
 				this.AtkUPunch.press_state_replace = ((e.Int >= 3) ? 3 : byte.MaxValue);
-				MagicItem magicItem = base.tackleInit(this.AtkUPunch, this.TkiStruggle);
+				MagicItem magicItem = base.tackleInit(this.AtkUPunch, this.TkiStruggle, MGHIT.AUTO);
 				magicItem.sx = this.atk_cx - tstacked_x;
 				magicItem.sy = 0f;
 				magicItem.dx = num2 * this.Boss.mpf_is_right;
 				magicItem.dy = 0f;
 				this.walk_time = 8f;
+				if (base.nattr_has_mattr)
+				{
+					EnemyAttr.Splash(this.Parent, this.Boss.x + this.Boss.mpf_is_right * (num2 * 0.875f), base.mbottom - 0.125f, 3f, 1f, 3f);
+				}
 			}
 		}
 
@@ -568,7 +577,7 @@ namespace nel
 				{
 					return true;
 				}
-				this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.ground, true);
+				this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.ground, true, -1);
 				this.LinkTentacle.EA.fine_intv = 2f;
 				this.setAim(this.Boss.getTentacleGrabAim(this), false);
 				this.angleR = ((this.aim == AIM.T) ? 1.5707964f : (-1.5707964f));
@@ -603,8 +612,8 @@ namespace nel
 				float num2 = X.XORSPS() * 1.2f + this.Nai.target_x;
 				if (this.Summoner != null)
 				{
-					M2LpSummon summonedArea = this.Summoner.getSummonedArea();
-					num2 = X.MMX((float)summonedArea.mapx + 0.5f, num2, (float)(summonedArea.mapx + summonedArea.mapw) - 0.5f);
+					M2LpSummon lp = this.Summoner.Lp;
+					num2 = X.MMX((float)lp.mapx + 0.5f, num2, (float)(lp.mapx + lp.mapw) - 0.5f);
 				}
 				if (this.aim == AIM.T)
 				{
@@ -647,12 +656,18 @@ namespace nel
 				{
 					this.walk_st = 1;
 					this.absorb_weight = 2;
-					MagicItem magicItem = base.tackleInit(this.AtkGrab, tkiGrab);
+					MagicItem magicItem = base.tackleInit(this.AtkGrab, tkiGrab, MGHIT.AUTO);
 					magicItem.sx = 0f;
 					magicItem.sy = 0f;
 					magicItem.dx = 0f;
 					magicItem.dy = (float)(-(float)CAim._YD(this.aim, 1)) * tkiGrab.dify_map;
 					base.throw_ray = false;
+				}
+				if (this.walk_st == 1 && this.t >= 24f && base.nattr_has_mattr)
+				{
+					this.walk_st = 2;
+					float num3 = base.y + (float)((this.aim == AIM.T) ? (-4) : 1);
+					EnemyAttr.SplashSOnAir(this.Parent, base.x, num3, 8f, CAim.get_agR(this.aim, 0f), 0.7f, 0.2f, 1f, 5, 1.6f);
 				}
 				if (this.t >= 38f)
 				{
@@ -669,8 +684,8 @@ namespace nel
 			}
 			if (Tk.prog == PROG.PROG3)
 			{
-				float num3 = X.ZSIN(this.t, 90f);
-				this.faintshift_lgt = -tkiGrab.dify_map * num3 * 1.3f;
+				float num4 = X.ZSIN(this.t, 90f);
+				this.faintshift_lgt = -tkiGrab.dify_map * num4 * 1.3f;
 				if (Tk.Progress(ref this.t, 90, true))
 				{
 					this.walk_st = 0;
@@ -682,7 +697,7 @@ namespace nel
 				{
 					this.walk_st = 1;
 					this.LinkTentacle.EA.fine_intv = 5f;
-					this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.ground2stand, true);
+					this.LinkTentacle.EAPose(NelNBoss_Nusi.TENPOSE.ground2stand, true, -1);
 				}
 				this.LinkTentacle.walkShiftPosToDefault(0.04f * this.TS);
 				if (this.t >= 100f)
@@ -729,7 +744,7 @@ namespace nel
 				this.Phy.addTranslateStack(this.Boss.x - this.Phy.tstacked_x, 0f);
 				if (this.walk_st == 1)
 				{
-					M2BlockColliderContainer.BCCLine fallableBcc = this.Mp.getFallableBcc(base.x, this.Boss.y, this.sizex, 18f, -1f, true, false);
+					M2BlockColliderContainer.BCCLine fallableBcc = this.Mp.getFallableBcc(base.x, this.Boss.y, this.sizex, 18f, -1f, true, false, null);
 					if (fallableBcc != null)
 					{
 						this.t = 0f;
@@ -865,7 +880,7 @@ namespace nel
 					if (this.MgFaintAtk == null || this.MgFaintAtk.id != this.faintatk_id || this.MgFaintAtk.killed)
 					{
 						this.absorb_weight = 1;
-						MagicItem magicItem = (this.MgFaintAtk = base.tackleInit(this.AtkCaptureFaint, 0f, 0f, 2.5f, true, false));
+						MagicItem magicItem = (this.MgFaintAtk = base.tackleInit(this.AtkCaptureFaint, 0f, 0f, 2.5f, true, false, MGHIT.AUTO));
 						this.faintatk_id = magicItem.id;
 						magicItem.Ray.check_hit_wall = false;
 						magicItem.Ray.check_other_hit = true;
@@ -964,7 +979,7 @@ namespace nel
 
 		private Vector3 fineFaintTentaclePos(float margin_in = 0f)
 		{
-			M2LpSummon m2LpSummon = ((this.Summoner != null) ? this.Summoner.getSummonedArea() : null);
+			M2LpSummon m2LpSummon = ((this.Summoner != null) ? this.Summoner.Lp : null);
 			Vector2 vector;
 			Vector2 vector2;
 			if (m2LpSummon != null)
@@ -1060,7 +1075,7 @@ namespace nel
 			Absorb.target_pose = null;
 			Absorb.kirimomi_release = false;
 			Absorb.release_from_publish_count = true;
-			Absorb.pose_priority = 100;
+			Absorb.pose_priority = 94;
 			PrGachaItem gacha = Absorb.get_Gacha();
 			this.walk_st = (this.Boss.isFaintCounterExecuting(false) ? 1000 : 0);
 			if (this.walk_st >= 1000)
@@ -1173,7 +1188,7 @@ namespace nel
 								this.Mp.DropCon.setLoveJuice(pr, flag3 ? 5 : 15, uint.MaxValue, 0f, false);
 							}
 							this.walk_time += (float)(16 + X.xors(25));
-							base.applyAbsorbDamageTo(pr, this.AtkNormalAbsorb, flag3, flag2, false, 0f, false, null, false);
+							base.applyAbsorbDamageTo(pr, this.AtkNormalAbsorb, flag3, flag2, false, 0f, false, null, false, true);
 							if (X.XORSP() < 0.3f)
 							{
 								pr.getAnimator().randomizeFrame();
@@ -1360,7 +1375,7 @@ namespace nel
 		public void EAPose(NelNBoss_Nusi.TENPOSE p)
 		{
 			this.tenpose = p;
-			NelNBoss_Nusi.TentacleLink.EAPoseS(this.EA, this.v_id % 5, p);
+			NelNBoss_Nusi.TentacleLink.EAPoseS(this.EA, this.v_id % 5, p, -1);
 			this.EA.timescale = 1f;
 		}
 
@@ -1478,11 +1493,11 @@ namespace nel
 			base.checkTiredTime(ref t0, Atk);
 		}
 
-		public override Vector2 getDamageCounterShiftMapPos()
+		public override Vector3 getDamageCounterShiftMapPos()
 		{
 			if (this.DmgCounterSPos.z > 0f)
 			{
-				return new Vector2(this.DmgCounterSPos.x - base.x, this.DmgCounterSPos.y - base.y);
+				return new Vector3(this.DmgCounterSPos.x - base.x, this.DmgCounterSPos.y - base.y, 1f);
 			}
 			return base.getDamageCounterShiftMapPos();
 		}
@@ -1652,7 +1667,7 @@ namespace nel
 
 		private const int T_UPUNCH_AFTER_DELAY = 240;
 
-		private NelAttackInfo AtkUPunch = new NelAttackInfo
+		private EnAttackInfo AtkUPunch = new EnAttackInfo
 		{
 			hpdmg0 = 33,
 			burst_vx = 0.3f,
@@ -1668,7 +1683,7 @@ namespace nel
 
 		private NOD.TackleInfo TkiStruggle = NOD.getTackle("nusit_struggle");
 
-		private NelAttackInfo AtkStruggle = new NelAttackInfo
+		private EnAttackInfo AtkStruggle = new EnAttackInfo
 		{
 			hpdmg0 = 20,
 			burst_vx = 0.5f,
@@ -1698,7 +1713,7 @@ namespace nel
 
 		private NOD.TackleInfo TkiGrab = NOD.getTackle("nusit_grab");
 
-		private NelAttackInfo AtkGrab = new NelAttackInfo
+		private EnAttackInfo AtkGrab = new EnAttackInfo
 		{
 			hpdmg0 = 10,
 			mpdmg0 = 2,
@@ -1710,13 +1725,13 @@ namespace nel
 			Beto = BetoInfo.NormalS
 		};
 
-		private NelAttackInfo AtkNormalAbsorb = new NelAttackInfo
+		private EnAttackInfo AtkNormalAbsorb = new EnAttackInfo(0.04f, 0.1f)
 		{
 			hpdmg0 = 14,
 			split_mpdmg = 10,
 			attr = MGATTR.BITE,
 			Beto = BetoInfo.Blood
-		}.Torn(0.04f, 0.1f);
+		};
 
 		private const int T_GRAB_PREP0 = 55;
 
@@ -1784,7 +1799,7 @@ namespace nel
 
 		public const int PRI_WAIT = 128;
 
-		private const int ABSORB_PRI = 100;
+		private const int ABSORB_PRI = 94;
 
 		private Func<AbsorbManager, bool> FD_getOtherTentacleAbsorbing;
 

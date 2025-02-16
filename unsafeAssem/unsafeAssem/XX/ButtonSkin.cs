@@ -181,6 +181,7 @@ namespace XX
 			TextRenderer textRenderer = IN.CreateGob(this.Gob, name).AddComponent<TextRenderer>();
 			IN.setZ(textRenderer.gameObject.transform, -0.01f);
 			textRenderer.BelongScroll = this.B.BelongScroll;
+			textRenderer.use_valotile = this.use_valotile_;
 			return textRenderer;
 		}
 

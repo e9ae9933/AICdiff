@@ -147,7 +147,7 @@ namespace nel
 
 		public HITTYPE getHitType(M2Ray Ray)
 		{
-			return (HITTYPE)6;
+			return HITTYPE.EN | HITTYPE.WALL;
 		}
 
 		public RAYHIT can_hit(M2Ray Ray)
@@ -323,6 +323,11 @@ namespace nel
 			return 8U;
 		}
 
+		public float auto_target_priority(M2Mover CalcFrom)
+		{
+			return 1f;
+		}
+
 		public DRect getMapBounds(DRect BufRc)
 		{
 			if (this.Lp == null)
@@ -345,7 +350,7 @@ namespace nel
 				return false;
 			}
 			M2BlockColliderContainer.BCCLine bccline;
-			bcccon.isFallable(m2FootManager.Mv.x, m2FootManager.Mv.mbottom, 0.05f, 0.15f, out bccline, true, true, -1f);
+			bcccon.isFallable(m2FootManager.Mv.x, m2FootManager.Mv.mbottom, 0.05f, 0.15f, out bccline, true, true, -1f, null);
 			if (bccline != null)
 			{
 				this.initRideBy(m2FootManager.Mv);
@@ -356,6 +361,10 @@ namespace nel
 		public bool footedQuit(IMapDamageListener Fd, bool from_jump_init = false)
 		{
 			return true;
+		}
+
+		public void rewriteFootType(M2BlockColliderContainer.BCCLine Bcc, IMapDamageListener Fd, ref string s)
+		{
 		}
 
 		public override IFootable initCarry(ICarryable FootD)

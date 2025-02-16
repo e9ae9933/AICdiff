@@ -242,6 +242,11 @@ namespace nel
 			}
 		}
 
+		public override string ToString()
+		{
+			return "M2AreaTitle";
+		}
+
 		public bool isActive()
 		{
 			return this.t >= 0f;

@@ -72,9 +72,9 @@ namespace XX
 				}
 				this.last_input = Stb.ToString(lcs, lce - lcs);
 			}
-			catch (Exception)
+			catch
 			{
-				X.de("エラー", null);
+				X.de("Strings Input エラー", null);
 			}
 			if (this.last_input.Length > 0)
 			{
@@ -640,6 +640,10 @@ namespace XX
 		public string slice_join(int i = 1, string k = " ", string cover_quote = "")
 		{
 			int clength = this.clength;
+			if (clength == i + 1)
+			{
+				return this.Acmds[i];
+			}
 			string text = "";
 			while (i < clength)
 			{
@@ -762,6 +766,6 @@ namespace XX
 
 		protected Regex RegItemSplitter;
 
-		public int clength_;
+		private int clength_;
 	}
 }

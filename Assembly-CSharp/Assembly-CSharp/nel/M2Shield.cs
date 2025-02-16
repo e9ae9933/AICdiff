@@ -571,7 +571,7 @@ namespace nel
 				{
 					result |= M2Shield.RESULT._NEAR_FLAG;
 				}
-				pr.applyShieldResult(result, attr, hit_x, hit_y, false);
+				pr.DMG.applyShieldResult(result, attr, hit_x, hit_y, false);
 			}
 			return result;
 		}
@@ -650,11 +650,11 @@ namespace nel
 			Mg.Ray.RadiusM(Mg.Dro.size);
 			if (!Mg.Caster.canHoldMagic(Mg) || Mg.Atk0 == null)
 			{
-				Mg.explodeManaToRay();
+				Mg.explodeManaToRay(1f);
 				return false;
 			}
 			Mg.Ray.clearReflectBuffer();
-			if ((Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0, HITTYPE.NONE) & (HITTYPE)4194336) != HITTYPE.NONE && Mg.reflectV(Mg.Ray, ref Mg.Dro.vx, ref Mg.Dro.vy, 0.15f, 1f, false))
+			if ((Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0, HITTYPE.NONE) & (HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN)) != HITTYPE.NONE && Mg.reflectV(Mg.Ray, ref Mg.Dro.vx, ref Mg.Dro.vy, 0.15f, 1f, false))
 			{
 				Mg.reflect_lock_floort = 0f;
 				Mg.sz = 45f;

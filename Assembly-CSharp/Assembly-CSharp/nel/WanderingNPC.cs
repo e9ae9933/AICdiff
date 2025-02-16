@@ -99,10 +99,10 @@ namespace nel
 			{
 				return;
 			}
-			float num = global::XX.X.NI(this.walk_len_min, this.walk_len_max, WanderingNPC.XORSP());
-			int num2 = global::XX.X.IntC(num);
-			float num3 = global::XX.X.Cos(this.agR);
-			float num4 = -global::XX.X.Sin(this.agR);
+			float num = X.NI(this.walk_len_min, this.walk_len_max, WanderingNPC.XORSP());
+			int num2 = X.IntC(num);
+			float num3 = X.Cos(this.agR);
+			float num4 = -X.Sin(this.agR);
 			float num5 = curWM.Bounds.width - 1f;
 			float num6 = curWM.Bounds.height - 1f;
 			if (this.has_bell_ == 1 || WanderingNPC.XORSP() < 0.25f)
@@ -122,29 +122,29 @@ namespace nel
 				{
 					this.posx = -this.posx;
 					this.agR = WanderingNPC.XORSPS() * 3.1415927f * 0.3f;
-					num3 = global::XX.X.Cos(this.agR);
-					num4 = -global::XX.X.Sin(this.agR);
+					num3 = X.Cos(this.agR);
+					num4 = -X.Sin(this.agR);
 				}
 				else if (num3 > 0f && this.posx >= num5)
 				{
 					this.posx = num5 - (this.posx - num5);
 					this.agR = 3.1415927f + WanderingNPC.XORSPS() * 3.1415927f * 0.3f;
-					num3 = global::XX.X.Cos(this.agR);
-					num4 = -global::XX.X.Sin(this.agR);
+					num3 = X.Cos(this.agR);
+					num4 = -X.Sin(this.agR);
 				}
 				else if (num4 < 0f && this.posy < 0f)
 				{
 					this.posy = -this.posy;
 					this.agR = -1.5707964f + WanderingNPC.XORSPS() * 3.1415927f * 0.3f;
-					num3 = global::XX.X.Cos(this.agR);
-					num4 = -global::XX.X.Sin(this.agR);
+					num3 = X.Cos(this.agR);
+					num4 = -X.Sin(this.agR);
 				}
 				else if (num4 > 0f && this.posy >= num6)
 				{
 					this.posy = num6 - (this.posy - num6);
 					this.agR = 1.5707964f + WanderingNPC.XORSPS() * 3.1415927f * 0.3f;
-					num3 = global::XX.X.Cos(this.agR);
-					num4 = -global::XX.X.Sin(this.agR);
+					num3 = X.Cos(this.agR);
+					num4 = -X.Sin(this.agR);
 				}
 			}
 		}
@@ -209,7 +209,7 @@ namespace nel
 					{
 						num = this.FD_overrideCalcableLength(num);
 					}
-					if (wmitem != null && !wmitem.Rc.isEmpty() && global::XX.X.chkLENRectCirc(wmitem.Rc.x, wmitem.Rc.y, wmitem.Rc.right, wmitem.Rc.bottom, curWM.Bounds.x + 0.5f + this.posx, curWM.Bounds.y + 0.5f + this.posy, num + len_add))
+					if (wmitem != null && !wmitem.Rc.isEmpty() && X.chkLENRectCirc(wmitem.Rc.x, wmitem.Rc.y, wmitem.Rc.right, wmitem.Rc.bottom, curWM.Bounds.x + 0.5f + this.posx, curWM.Bounds.y + 0.5f + this.posy, num + len_add))
 					{
 						bool flag2 = false;
 						if (appear_ratio < 0f)
@@ -219,12 +219,12 @@ namespace nel
 						}
 						if (this.has_bell_ == 1)
 						{
-							appear_ratio = global::XX.X.Scr(appear_ratio, 0.5f);
+							appear_ratio = X.Scr(appear_ratio, 0.5f);
 						}
 						flag = WanderingNPC.XORSP() < appear_ratio;
 						if (!flag && flag2)
 						{
-							this.appear_ratio = global::XX.X.Scr(this.appear_ratio, 0.25f);
+							this.appear_ratio = X.Scr(this.appear_ratio, 0.25f);
 						}
 					}
 				}
@@ -242,7 +242,7 @@ namespace nel
 							if (REG.match(point.comment, new Regex("aim[\\t \\s]+[TB]?([LR])")))
 							{
 								text = REG.R1;
-								if (global::XX.CAim.parseString(text, -1) >= 0)
+								if (CAim.parseString(text, -1) >= 0)
 								{
 									text2 = text;
 								}
@@ -273,11 +273,11 @@ namespace nel
 						}
 						for (int i = 0; i < 8; i++)
 						{
-							float num4 = Bench.mapcx + (float)global::XX.X.MPF(i % 2 == 0 == flag3) * (num3 + (float)(i / 2));
-							if (global::XX.X.BTW((float)mp.crop + 1.5f, num4, (float)(mp.clms - mp.crop) - 1.5f))
+							float num4 = Bench.mapcx + (float)X.MPF(i % 2 == 0 == flag3) * (num3 + (float)(i / 2));
+							if (X.BTW((float)mp.crop + 1.5f, num4, (float)(mp.clms - mp.crop) - 1.5f))
 							{
 								float footableY = mp.getFootableY(num4, (int)Bench.mapcy, 12, true, -1f, false, true, true, 0f);
-								if (global::XX.X.BTW((float)(num2 - 2), footableY, (float)num2 + 1.5f))
+								if (X.BTW((float)(num2 - 2), footableY, (float)num2 + 1.5f))
 								{
 									flag = true;
 									zero.Set(num4, footableY);
@@ -300,7 +300,7 @@ namespace nel
 							int num5 = -1;
 							if (TX.valid(text))
 							{
-								num5 = global::XX.CAim.parseString(text, -1);
+								num5 = CAim.parseString(text, -1);
 							}
 							if (num5 < 0)
 							{
@@ -334,7 +334,7 @@ namespace nel
 									m2Mover = m2EventItem;
 									if (TX.noe(text2))
 									{
-										global::XX.AIM aim = (global::XX.AIM)num5;
+										AIM aim = (AIM)num5;
 										text2 = aim.ToString();
 										string[] array = meta.Get("npc_greeting_aim");
 										if (array != null)
@@ -359,14 +359,14 @@ namespace nel
 							if (m2Mover != null)
 							{
 								this.M2D.ev_mobtype == "";
-								m2Mover.setAim((global::XX.AIM)num5, false);
+								m2Mover.setAim((AIM)num5, false);
 								m2Mover.SpSetShift(0f, 10.5f + meta.GetNm("npc_yshift", 0f, 0));
 								m2Mover.setTo(zero.x, zero.y - m2Mover.sizey);
 							}
 						}
 						catch (Exception ex)
 						{
-							global::XX.X.de(ex.ToString(), null);
+							X.de(ex.ToString(), null);
 						}
 					}
 				}
@@ -471,7 +471,7 @@ namespace nel
 			return new Vector2(curWM.Bounds.x + 0.5f + (float)((int)this.posx), curWM.Bounds.y + 0.5f + (float)((int)this.posy));
 		}
 
-		public void readBinaryFrom(ByteArray Ba, int vers)
+		public void readBinaryFrom(ByteReader Ba, int vers)
 		{
 			this.posx = Ba.readFloat();
 			this.posy = Ba.readFloat();
@@ -517,7 +517,7 @@ namespace nel
 
 		public static float NIXP(float v, float v2)
 		{
-			return global::XX.X.NI(v, v2, WanderingNPC.XORSP());
+			return X.NI(v, v2, WanderingNPC.XORSP());
 		}
 
 		public static float XORSP()

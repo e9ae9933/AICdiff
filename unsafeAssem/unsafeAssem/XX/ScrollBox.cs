@@ -253,7 +253,7 @@ namespace XX
 			}
 			if (BScroll != null)
 			{
-				Object.Destroy(BScroll.gameObject);
+				global::UnityEngine.Object.Destroy(BScroll.gameObject);
 				BScroll = null;
 			}
 			return false;
@@ -943,6 +943,11 @@ namespace XX
 			}
 		}
 
+		public aBtn get_BScrollH()
+		{
+			return this.BScrollH;
+		}
+
 		protected bool runFn(ScrollBox.FnScrollBoxBindings[] AFn, aBtn B)
 		{
 			if (AFn == null)
@@ -1222,7 +1227,7 @@ namespace XX
 		{
 			if (this.area_selectable_ && this.BView != null)
 			{
-				this.BView.Select(false);
+				this.BView.Select(true);
 			}
 		}
 

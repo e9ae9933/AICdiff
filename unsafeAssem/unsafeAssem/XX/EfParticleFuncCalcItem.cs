@@ -25,21 +25,25 @@ namespace XX
 			this.time_rate = _time_rate;
 		}
 
-		public float Get(EfParticle EP, float ratio = -1f)
+		public float Get(float maxt, float ratio)
 		{
 			if (this.st == this.et)
 			{
 				return 0f;
 			}
-			float num = ((ratio < 0f && EP != null) ? EfParticle.tz : ratio);
+			float num = ratio;
 			float num2 = this.et;
-			if (!this.time_rate && EP != null)
+			if (!this.time_rate && maxt > 0f)
 			{
-				num *= (float)EP.maxt;
+				num *= maxt;
 				if (this.et == -1000f)
 				{
-					num2 = (float)EP.maxt;
+					num2 = maxt;
 				}
+			}
+			else if (this.et == -1000f)
+			{
+				num2 = 1f;
 			}
 			num = (num - this.st) / (num2 - this.st);
 			return this.Fn(num) * this.mult;

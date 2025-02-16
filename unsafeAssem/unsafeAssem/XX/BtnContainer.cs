@@ -376,7 +376,7 @@ namespace XX
 					t.bind();
 					if (this.default_focus == i)
 					{
-						t.Select(false);
+						t.Select(true);
 					}
 				}
 				else
@@ -816,14 +816,19 @@ namespace XX
 			return this;
 		}
 
-		public override string getValueString()
+		public uint getValueBits()
 		{
-			int num = 0;
+			uint num = 0U;
 			for (int i = 0; i < this.LEN; i++)
 			{
-				num |= (this.Get(i).isChecked() ? (1 << i) : 0);
+				num |= (this.Get(i).isChecked() ? (1U << i) : 0U);
 			}
-			return num.ToString();
+			return num;
+		}
+
+		public override string getValueString()
+		{
+			return this.getValueBits().ToString();
 		}
 
 		public override void setValue(string s)

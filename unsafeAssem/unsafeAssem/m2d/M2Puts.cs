@@ -318,15 +318,15 @@ namespace m2d
 			this.DaB = (this.DaG = (this.DaT = (this.DaL = null)));
 		}
 
-		public virtual int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdL, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
+		public virtual int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdLB, MeshDrawer MdLT, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
 		{
-			bool invisible = this.Img.Meta.invisible;
-			bool flag = true;
+			bool flag = this.Img.Meta.invisible && !Map2d.editor_decline_lighting;
+			bool flag2 = true;
 			if (this.Img.has_remover_mesh)
 			{
-				flag = !this.Img.Meta.is_window || this.Lay.getLayerMeta().useWindowRemover(this.Mp);
+				flag2 = !this.Lay.getLayerMeta().no_remover && (!this.Img.Meta.is_window || this.Lay.getLayerMeta().useWindowRemover(this.Mp));
 			}
-			if (invisible && !Map2d.editor_decline_lighting && !flag)
+			if (flag && !flag2)
 			{
 				return 0;
 			}
@@ -334,13 +334,19 @@ namespace m2d
 			{
 				if (this.Img.Meta.draw_lit_layer)
 				{
-					MdG = (MdB = (MdT = MdL));
+					if (this.Img.mesh_type >= 2)
+					{
+						MdG = (MdB = (MdT = (MdLB = MdLT)));
+					}
+					else
+					{
+						MdG = (MdB = (MdT = (MdLT = MdLB)));
+					}
 				}
 				else if (this.Img.Meta.draw_overtop_layer)
 				{
-					MdT = MdTT;
-					MdG = MdTT;
-					MdB = MdTT;
+					MdG = (MdB = (MdT = MdTT));
+					MdLB = MdLT;
 				}
 				else if (this.Img.mesh_type == 3)
 				{
@@ -357,7 +363,7 @@ namespace m2d
 			}
 			MeshDrawer meshDrawer = null;
 			PxlMeshDrawer pxlMeshDrawer = null;
-			if (this.Mp.SubMapData != null && !invisible)
+			if (this.Mp.SubMapData != null && !flag)
 			{
 				Dungeon dgn = this.Mp.SubMapData.getBaseMap().Dgn;
 				if (dgn != null)
@@ -368,32 +374,41 @@ namespace m2d
 			int num = 0;
 			if (meshDrawer != null)
 			{
-				num = (M2Puts.entryMainPicToMesh(this, ref num, meshDrawer, sx, sy, _zm, _zm, _rotR, this.flip, 100, pxlMeshDrawer, ref this.DaT) ? 256 : 0) | 4096;
+				num = (M2Puts.entryMainPicToMesh(this, ref num, meshDrawer, sx, sy, _zm, _zm, _rotR, this.flip, 100, pxlMeshDrawer, ref this.DaT) ? 256 : 0) | 8192;
 			}
 			else
 			{
 				if (this.Img.Meta.draw_lit_layer)
 				{
-					MdG = (MdB = (MdT = (MdL = this.Mp.MyDrawerL)));
+					MdG = (MdB = (MdLB = (this.Img.Meta.draw_overtop_layer ? this.Mp.MyDrawerLT : this.Mp.MyDrawerL)));
+					MdTT = (MdT = this.Mp.MyDrawerLT);
 				}
-				if (!this.Img.Meta.merge_to_one_layer && this.Img.Meta.draw_overtop_layer)
+				if (!this.Img.Meta.merge_to_one_layer)
 				{
-					if (this.Img.mesh_type == 3)
+					if (this.Img.Meta.draw_overtop_layer)
 					{
-						MdT = MdTT;
+						MdLB = MdLT;
+						if (this.Img.mesh_type == 3)
+						{
+							MdT = MdTT;
+						}
+						else if (this.Img.mesh_type == 2)
+						{
+							MdG = MdTT;
+						}
+						else
+						{
+							MdB = MdTT;
+						}
 					}
 					else if (this.Img.mesh_type == 2)
 					{
-						MdG = MdTT;
-					}
-					else
-					{
-						MdB = MdTT;
+						MdLB = MdLT;
 					}
 				}
 				int num2 = 0;
 				int num3 = 1;
-				if (flag && Map2d.editor_decline_lighting)
+				if (flag2 && Map2d.editor_decline_lighting)
 				{
 					num2 = 1;
 					num3 = -1;
@@ -402,7 +417,7 @@ namespace m2d
 				{
 					if (num2 == 0)
 					{
-						if (!invisible)
+						if (!flag)
 						{
 							for (int i = 0; i < 5; i++)
 							{
@@ -423,7 +438,7 @@ namespace m2d
 									}
 									if (i == 3)
 									{
-										M2Puts.entryMainPicToMesh(this, ref num, MdL, sx, sy, _zm, _zm, _rotR, this.flip, i, pxlMeshDrawer, ref this.DaL);
+										M2Puts.entryMainPicToMesh(this, ref num, MdLB, sx, sy, _zm, _zm, _rotR, this.flip, i, pxlMeshDrawer, ref this.DaL);
 									}
 									if (i == 4)
 									{
@@ -433,11 +448,11 @@ namespace m2d
 							}
 						}
 					}
-					else if (flag)
+					else if (flag2)
 					{
 						for (int j = 0; j < 5; j++)
 						{
-							pxlMeshDrawer = this.Img.getSrcMesh(j | 32);
+							pxlMeshDrawer = this.getSrcMeshForEntry(j | 32);
 							if (pxlMeshDrawer != null)
 							{
 								MeshDrawer meshDrawer2;
@@ -453,7 +468,7 @@ namespace m2d
 									meshDrawer2 = MdT;
 									break;
 								case 3:
-									meshDrawer2 = MdL;
+									meshDrawer2 = MdLB;
 									break;
 								default:
 									meshDrawer2 = MdTT;
@@ -474,7 +489,7 @@ namespace m2d
 						{
 							break;
 						}
-						if (!flag)
+						if (!flag2)
 						{
 							break;
 						}
@@ -578,7 +593,7 @@ namespace m2d
 				{
 					for (int i = this.AChipLight.Count - 1; i >= 0; i--)
 					{
-						this.Mp.addLight(this.AChipLight[i].initPuts(this));
+						this.Mp.addLight(this.AChipLight[i].initPuts(this), -1);
 					}
 				}
 			}
@@ -633,6 +648,14 @@ namespace m2d
 				this.DaT = null;
 				this.DaL = null;
 			}
+		}
+
+		public void clearDrawer()
+		{
+			this.DaB = null;
+			this.DaG = null;
+			this.DaT = null;
+			this.DaL = null;
 		}
 
 		public virtual void activateToDrawer()
@@ -1219,6 +1242,29 @@ namespace m2d
 		public void getPutsBounds(out int l, out int t, out int r, out int b)
 		{
 			this.Img.getPutsBounds(this, base.CLEN, out l, out t, out r, out b);
+		}
+
+		public virtual void getFlippedRotation(out int rot, out bool flip)
+		{
+			flip = !this.flip;
+			int num = this.rotation;
+			int num2;
+			if (num != 1)
+			{
+				if (num != 3)
+				{
+					num2 = this.rotation;
+				}
+				else
+				{
+					num2 = 1;
+				}
+			}
+			else
+			{
+				num2 = 3;
+			}
+			rot = num2;
 		}
 
 		public string getBaseName()

@@ -163,7 +163,7 @@ namespace nel
 			Stb.Add("WAIT ", 13, "\n");
 			if (flag)
 			{
-				Stb.AR("#MS_ % 'q'");
+				Stb.AR("#MS_SOFT_ % 'q'");
 			}
 			Stb.AR("LABEL _EXECUTE_MAP_TRANSFER");
 			if (walk_in)
@@ -209,13 +209,13 @@ namespace nel
 				{
 					Stb.AR("_xspd=~walk_xspeed[%]");
 					Stb.AR("_xspd=~abs[$_xspd]");
-					Stb.AR("#MS_ % 'q'");
+					Stb.AR("#MS_SOFT_ % 'q'");
 					if (sync_pos)
 					{
-						Stb.AR("#MS_ % '-G'");
+						Stb.AR("#MS_SOFT_ % '-G'");
 					}
 					Stb.AR("IF $_xspd' < 0.02' {");
-					Stb.Add("  #MS_ % '>+[", CAim._XD(deperture_aim, 1) * lr_walk_w, ",0 <2.3 ]' ").Ret("\n");
+					Stb.Add("  #MS_SOFT_ % '>+[", CAim._XD(deperture_aim, 1) * lr_walk_w, ",0 <2.3 ]' ").Ret("\n");
 					Stb.AR(StbInjectBeforeWaitMove);
 					Stb.AR("WAIT_MOVE");
 					Stb.AR("} ELSE {");
@@ -225,7 +225,7 @@ namespace nel
 					Stb.AR("}");
 					if (sync_pos)
 					{
-						Stb.AR("#MS_ % '+G'");
+						Stb.AR("#MS_SOFT_ % '+G'");
 					}
 				}
 			}
@@ -259,7 +259,7 @@ namespace nel
 			}
 			if (deperture_aim == 3)
 			{
-				Stb.AR("#MS_ % '+G  >+[0,40 :25 ] .' ");
+				Stb.AR("#MS_SOFT_ % '+G  >+[0,40 :25 ] .' ");
 			}
 		}
 
@@ -268,12 +268,13 @@ namespace nel
 			EV.stopGMain(false);
 			CsvVariableContainer variableContainer = EV.getVariableContainer();
 			M2LabelPoint m2LabelPoint = null;
+			bool flag = false;
 			int num = -1;
 			string text = jump_key;
 			M2MoverPr m2MoverPr = null;
 			NelM2DBase nelM2DBase = M2DBase.Instance as NelM2DBase;
-			bool flag = true;
-			bool flag2 = false;
+			bool flag2 = true;
+			bool flag3 = false;
 			if (TX.isStart(jump_key, "!", 0))
 			{
 				if (nelM2DBase.curMap == null)
@@ -283,8 +284,8 @@ namespace nel
 				m2MoverPr = nelM2DBase.curMap.getKeyPr();
 				if (jump_key == "!!")
 				{
-					flag = false;
-					flag2 = true;
+					flag2 = false;
+					flag3 = true;
 				}
 				else
 				{
@@ -292,7 +293,7 @@ namespace nel
 					m2LabelPoint = nelM2DBase.curMap.getLabelPoint(text2);
 					if (m2LabelPoint != null)
 					{
-						flag = false;
+						flag2 = false;
 						if (m2LabelPoint is M2LpMapTransferWarp)
 						{
 							num = (int)CAim.get_opposite((m2LabelPoint as M2LpMapTransferWarp).getDestAim());
@@ -318,14 +319,15 @@ namespace nel
 				if (m2LabelPoint is M2LpMapTransferDoor)
 				{
 					M2LpMapTransferDoor m2LpMapTransferDoor = m2LabelPoint as M2LpMapTransferDoor;
-					flag = false;
+					flag = m2LpMapTransferDoor.start_from_focus;
+					flag2 = false;
 					if (m2LpMapTransferDoor.walk_aim != -1)
 					{
 						num = (int)CAim.get_opposite((AIM)m2LpMapTransferDoor.walk_aim);
 					}
 				}
 			}
-			if (flag)
+			if (flag2)
 			{
 				int num2 = CAim.parseString(aim, X.NmI(aim, -1, false, false));
 				WholeMapItem wholeFor = nelM2DBase.WM.GetWholeFor(SrcMp, false);
@@ -350,7 +352,7 @@ namespace nel
 			}
 			if (m2LabelPoint == null)
 			{
-				if (!flag2)
+				if (!flag3)
 				{
 					X.de("矩形 " + text + "が見つかりませんでした。", null);
 				}
@@ -375,9 +377,14 @@ namespace nel
 						M2LpMapTransferBase m2LpMapTransferBase = m2LabelPoint as M2LpMapTransferBase;
 						float num3 = (float)CAim._XD(num, 1);
 						float num4 = (float)CAim._YD(num, 1);
-						bool flag3 = variableContainer.Get("__walk_in") == "1";
-						float num5 = ((num3 == 0f) ? m2LabelPoint.mapfocx : ((m2LabelPoint.cx + num3 * (m2LabelPoint.w / 2f - 30f)) * mp.rCLEN));
-						float num6 = ((num4 == 0f) ? (m2LabelPoint.bottom * mp.rCLEN - sizey - 0.125f) : (flag3 ? ((m2LabelPoint.cy - num4 * (m2LabelPoint.h / 2f - 22f)) * mp.rCLEN) : ((m2LabelPoint.cy - num4 * (m2LabelPoint.h / 2f - 50f)) * mp.rCLEN - 1f)));
+						bool flag4 = variableContainer.Get("__walk_in") == "1";
+						float num5 = ((num3 == 0f || flag) ? m2LabelPoint.mapfocx : ((m2LabelPoint.cx + num3 * (m2LabelPoint.w / 2f - 30f)) * mp.rCLEN));
+						float num6 = ((num4 == 0f) ? (m2LabelPoint.bottom * mp.rCLEN - sizey - 0.125f) : (flag4 ? ((m2LabelPoint.cy - num4 * (m2LabelPoint.h / 2f - 22f)) * mp.rCLEN) : ((m2LabelPoint.cy - num4 * (m2LabelPoint.h / 2f - 50f)) * mp.rCLEN - 1f)));
+						if (flag)
+						{
+							num5 = m2LabelPoint.mapfocx;
+							num6 = m2LabelPoint.mapfocy;
+						}
 						string text3 = variableContainer.Get("__sync_pos");
 						if (text3 != null)
 						{
@@ -395,21 +402,21 @@ namespace nel
 						if (num3 != 0f)
 						{
 							int num8 = (int)(m2MoverPr.mbottom + 0.52f);
-							float num9 = m2LabelPoint.Mp.getFootableY(m2MoverPr.x, num8, flag3 ? (-X.IntC(X.Mx(4f, (float)(m2LabelPoint.maph + m2LabelPoint.mapy) - m2MoverPr.mbottom))) : (-4), true, -1f, false, true, true, 0f);
+							float num9 = m2LabelPoint.Mp.getFootableY(m2MoverPr.x, num8, flag4 ? (-X.IntC(X.Mx(4f, (float)(m2LabelPoint.maph + m2LabelPoint.mapy) - m2MoverPr.mbottom))) : (-4), true, -1f, false, true, true, 0f);
 							if (num9 >= 0f)
 							{
 								m2MoverPr.moveBy(0f, num9 - m2MoverPr.mbottom, true);
 							}
 							else
 							{
-								num9 = m2LabelPoint.Mp.getFootableY(m2MoverPr.x, m2LabelPoint.mapy, flag3 ? (-m2LabelPoint.maph) : (-4), true, -1f, false, true, true, 0f);
+								num9 = m2LabelPoint.Mp.getFootableY(m2MoverPr.x, m2LabelPoint.mapy, flag4 ? (-m2LabelPoint.maph) : (-4), true, -1f, false, true, true, 0f);
 								if (num9 >= 0f)
 								{
 									m2MoverPr.moveBy(0f, num9 - m2MoverPr.mbottom, true);
 								}
 							}
 						}
-						else if ((!flag3 || !M2LpMapTransferBase.executeTransferTBWalkIn(m2MoverPr, m2LabelPoint, (int)num4)) && num4 > 0f)
+						else if ((!flag4 || !M2LpMapTransferBase.executeTransferTBWalkIn(m2MoverPr, m2LabelPoint, (int)num4)) && num4 > 0f)
 						{
 							float footableY = m2LabelPoint.Mp.getFootableY(m2LabelPoint.mapfocx, m2LabelPoint.mapy - 3, 3, true, -1f, false, false, true, 0f);
 							if (footableY >= 0f && footableY - 1f < m2MoverPr.mtop && footableY > (float)(m2LabelPoint.mapy - 4))

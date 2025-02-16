@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using evt;
 using m2d;
 using PixelLiner;
 using UnityEngine;
@@ -54,7 +53,7 @@ namespace nel
 		{
 			get
 			{
-				return MTR.preparedG && EV.material_prepared && NEL.loaded;
+				return MTR.preparedG && NEL.loaded;
 			}
 		}
 
@@ -117,7 +116,7 @@ namespace nel
 					BtnContainerRunner btnContainerRunner = this.BxTop.Get("top_categ", false) as BtnContainerRunner;
 					btnContainerRunner.BCon.RemakeT<aBtnNel>(this.Atop_btn_keys, "");
 					btnContainerRunner.BCon.setValue("-1");
-					btnContainerRunner.Get(this.selection_index).Select(false);
+					btnContainerRunner.Get(this.selection_index).Select(true);
 					if (SVD.exists_file_count == 0)
 					{
 						btnContainerRunner.Get(1).SetLocked(true, true, false);
@@ -399,7 +398,6 @@ namespace nel
 				if (MTRX.prepared && MTR.prepare1)
 				{
 					BGM.clearHalfFlag();
-					EV.loadEV();
 					SceneGame.contents_loaded = true;
 					this.state = SceneTitleTemp.STATE.EV_LOAD;
 					BGM.load("BGM_title", "grazia", false);
@@ -457,7 +455,7 @@ namespace nel
 							if (!this.DsBlack.gameObject.activeSelf)
 							{
 								this.DsBlack.gameObject.SetActive(true);
-								(this.DsBlack.Get("sensitive_ask", false) as BtnContainerRunner).Get(X.SENSITIVE ? 1 : 0).Select(false);
+								(this.DsBlack.Get("sensitive_ask", false) as BtnContainerRunner).Get(X.SENSITIVE ? 1 : 0).Select(true);
 							}
 							if (X.D)
 							{
@@ -501,7 +499,7 @@ namespace nel
 					int exists_file_count = SVD.exists_file_count;
 					this.selection_index = ((SVD.exists_file_count != 0) ? 1 : 0);
 					BGM.replace(0f, 0f, true, false);
-					BGM.setOverrideKey("maintitle");
+					BGM.setOverrideKey("maintitle", false);
 					this.t = 0f;
 					this.t_desc = (float)(-(float)this.FIRST_LOGO_DELAY);
 				}
@@ -526,7 +524,7 @@ namespace nel
 							else
 							{
 								this.BxTop.activate();
-								(this.BxTop.Get("top_categ", false) as BtnContainerRunner).Get(this.selection_index).Select(false);
+								(this.BxTop.Get("top_categ", false) as BtnContainerRunner).Get(this.selection_index).Select(true);
 								this.t_desc = X.Mx(this.t_desc, 0f);
 							}
 						}
@@ -538,7 +536,7 @@ namespace nel
 							this.changeState(SceneTitleTemp.STATE.QUIT);
 							return true;
 						}
-						(this.BxTop.Get("top_categ", false) as BtnContainerRunner).Get("&&btn_quit").Select(false);
+						(this.BxTop.Get("top_categ", false) as BtnContainerRunner).Get("&&btn_quit").Select(true);
 						SND.Ui.play("cancel", false);
 					}
 					this.runDebugKeyInput();
@@ -552,13 +550,13 @@ namespace nel
 							aBtn.PreSelected.ExecuteOnSubmitKey();
 							return true;
 						}
-						(this.BxR.Get("errorlog_bcon", false) as BtnContainerRunner).Get("&&Confirm").Select(false);
+						(this.BxR.Get("errorlog_bcon", false) as BtnContainerRunner).Get("&&Confirm").Select(true);
 						SND.Ui.play("cancel", false);
 					}
 				}
 				else if (this.state == SceneTitleTemp.STATE.CONFIG)
 				{
-					if (this.EditCfg.ui_state == CFG.STATE.KEYCON)
+					if (this.EditCfg.ui_state == UiCFG.STATE.KEYCON)
 					{
 						this.changeState(SceneTitleTemp.STATE.KEYCON);
 					}
@@ -571,18 +569,24 @@ namespace nel
 						}
 						else
 						{
-							this.SubmitBtn.Select(false);
+							this.SubmitBtn.Select(true);
 						}
 					}
 				}
 				else if (this.state == SceneTitleTemp.STATE.SVD_SELECT)
 				{
-					if (this.EditSvd.ui_state == SVD.STATE.LOAD_SUCCESS)
+					if (this.EditSvd.ui_state == UiSVD.STATE.LOAD_SUCCESS)
 					{
 						COOK.clear(false);
-						COOK.setLoadTarget(SVD.GetFile(SVD.last_focused, true), this.EditSvd.ignore_svd_cfg);
+						COOK.save_failure_announce = "";
+						COOK.setLoadTarget(SVD.GetFile(UiSVD.last_focused, true), this.EditSvd.ignore_svd_cfg);
 						this.changeState(SceneTitleTemp.STATE.START_GAME);
 						return true;
+					}
+					if (this.need_svd_fine)
+					{
+						this.need_svd_fine = false;
+						this.EditSvd.reloadLocalFiles();
 					}
 					if (!this.EditSvd.runBoxDesignerEdit(false))
 					{
@@ -593,7 +597,7 @@ namespace nel
 						}
 						else
 						{
-							this.CancelBtn.Select(false);
+							this.CancelBtn.Select(true);
 							SND.Ui.play("cancel", false);
 						}
 					}
@@ -820,7 +824,7 @@ namespace nel
 				if (state != SceneTitleTemp.STATE.SENSITIVE_ANNOUNCE)
 				{
 					this.BxTop.activate();
-					btnContainerRunner.Get(this.selection_index).Select(false);
+					btnContainerRunner.Get(this.selection_index).Select(true);
 				}
 				else
 				{
@@ -860,7 +864,7 @@ namespace nel
 					this.BxR.item_margin_x_px = 14f;
 					this.BxR.item_margin_y_px = 18f;
 					this.BxR.alignx = ALIGN.CENTER;
-					this.EditCfg = new CFG(this.BxR, this.BxDesc, this.DsBlack, true, false, null);
+					this.EditCfg = new UiCFG(this.BxR, this.BxDesc, this.DsBlack, true, false, null);
 					this.DsBlack.gameObject.SetActive(true);
 					this.DsBlack.activate();
 				}
@@ -882,7 +886,13 @@ namespace nel
 				this.BxR.positionD(170f, 90f, 0, 50f);
 				this.BxR.box_stencil_ref_mask = -1;
 				this.BxR.use_scroll = false;
-				this.EditSvd = new SVD(this.BxR, this.BxDesc, (int)MGV.last_saved, this.DsBlack, true, true, this.config_editted);
+				if (this.need_svd_fine)
+				{
+					this.need_svd_fine = false;
+					SVD.prepareList(true);
+				}
+				this.EditSvd = new UiSVD(this.BxR, this.BxDesc, (int)MGV.last_saved, this.DsBlack, true, true, this.config_editted);
+				this.EditSvd.initRevealLocalButton();
 				this.BxR.Focus();
 				this.DsBlack.gameObject.SetActive(true);
 				this.DsBlack.activate();
@@ -891,7 +901,7 @@ namespace nel
 			{
 				if (this.KC != null)
 				{
-					Object.Destroy(this.KC);
+					global::UnityEngine.Object.Destroy(this.KC);
 				}
 				this.KC = new GameObject("KC").AddComponent<KeyConDesignerNel>();
 				this.KC.gameObject.layer = LayerMask.NameToLayer(IN.gui_layer_name);
@@ -918,7 +928,7 @@ namespace nel
 				if (this.state == SceneTitleTemp.STATE.START_GAME)
 				{
 					PxlsLoader.loadSpeed = 2f;
-					BGM.setOverrideKey("_");
+					BGM.setOverrideKey("_", false);
 					BGM.stop(false, false);
 					SND.Ui.play("sd_initialize", false);
 				}
@@ -1012,7 +1022,7 @@ namespace nel
 				w = 360f,
 				h = 38f,
 				fnClick = new FnBtnBindings(this.fnClickErrorLog)
-			}).Get(first_select).Select(false);
+			}).Get(first_select).Select(true);
 		}
 
 		public static void addDiscordLink(UiBoxDesigner BxR)
@@ -1195,7 +1205,7 @@ namespace nel
 			{
 				BtnContainer<aBtn> bcon = (this.DsBlack.Get("sensitive_ask", false) as BtnContainerRunner).BCon;
 				bcon.RemakeT<aBtnNel>(this.Asensitive_btns, "");
-				bcon.Get(this.selection_index).Select(false);
+				bcon.Get(this.selection_index).Select(true);
 			}
 			if (this.state == SceneTitleTemp.STATE.ERRORLOG || this.state == SceneTitleTemp.STATE.ERRORLOG_SNDDRIVER)
 			{
@@ -1366,6 +1376,25 @@ namespace nel
 			}
 		}
 
+		private void OnApplicationFocus(bool focus)
+		{
+			if (focus)
+			{
+				this.need_svd_fine = true;
+				if (this.state == SceneTitleTemp.STATE.SVD_SELECT && this.EditSvd != null)
+				{
+					this.need_svd_fine = false;
+					this.EditSvd.reloadLocalFiles();
+					return;
+				}
+			}
+			else if (this.state == SceneTitleTemp.STATE.SVD_SELECT && this.EditSvd != null && LabeledInputField.CurFocused != null)
+			{
+				LabeledInputField.CurFocused.Blur();
+				this.EditSvd.unfocus();
+			}
+		}
+
 		private const bool no_picture = false;
 
 		private MeshDrawer MdLogo;
@@ -1389,6 +1418,8 @@ namespace nel
 		private SceneTitleTemp.STATE state;
 
 		private float t;
+
+		private bool need_svd_fine;
 
 		private bool config_editted;
 
@@ -1418,9 +1449,9 @@ namespace nel
 
 		private UiTitleDifficultyConfirm BxDiff;
 
-		private CFG EditCfg;
+		private UiCFG EditCfg;
 
-		private SVD EditSvd;
+		private UiSVD EditSvd;
 
 		private bool first_startup;
 

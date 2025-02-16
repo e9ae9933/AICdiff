@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using m2d;
+using nel.smnp;
 using UnityEngine;
 using XX;
 
 namespace nel
 {
-	public abstract class NelNGolemToy : NelEnemy, EnemySummoner.IOtherKillListener
+	public abstract class NelNGolemToy : NelEnemy, IOtherKillListener
 	{
 		public abstract int create_count_normal { get; }
 
@@ -14,7 +15,7 @@ namespace nel
 		{
 			if (this.Anm == null)
 			{
-				this.Anm = (this.AnmT = new EnemyAnimatorGolemToy(this, new EnemyAnimator.FnCreate(EnemyFrameDataBasic.Create), null));
+				this.Anm = (this.AnmT = new EnemyAnimatorGolemToy(this, EnemyFrameDataBasic.Create, null));
 			}
 			base.battleable_enemy = false;
 		}
@@ -23,7 +24,7 @@ namespace nel
 		{
 			switch (id & ENEMYID._GOLEMTOY_KIND)
 			{
-			case ENEMYID.GOLEMTOY_0:
+			case ENEMYID.GOLEMTOY_MKB:
 				return typeof(NelNGolemToyMkb);
 			case ENEMYID.GOLEMTOY_RM:
 				return typeof(NelNGolemToyRainMaker);
@@ -55,7 +56,7 @@ namespace nel
 				basicData = NOD.getBasicData("GOLEMTOY_BOW");
 				break;
 			default:
-				this.id = ENEMYID.GOLEMTOY_0;
+				this.id = ENEMYID.GOLEMTOY_MKB;
 				basicData = NOD.getBasicData("GOLEMTOY_MKB");
 				break;
 			}
@@ -67,7 +68,7 @@ namespace nel
 			this.auto_fix_notfound_pose_to_stand = false;
 			this.snd_die = "golemtoy_die";
 			this.Lig.showing_delay = 1000;
-			this.create_hummer_count = X.IntR((float)this.create_count_normal * X.NI(1f, 2.25f, base.mp_ratio));
+			this.create_hummer_count = -1;
 			this.Nai.awake_length = num;
 			this.Nai.attackable_length_x = 9f;
 			this.Nai.attackable_length_top = -5f;
@@ -77,6 +78,7 @@ namespace nel
 			this.Nai.fnOverDriveLogic = new NAI.FnNaiLogic(this.considerNormal);
 			this.absorb_weight = 3;
 			base.addF(NelEnemy.FLAG.HAS_SUPERARMOR);
+			this.Nai.can_progress_delay_if_ticket_exists = true;
 		}
 
 		public static bool countNotGolemToy(NelEnemy N)
@@ -102,8 +104,27 @@ namespace nel
 			return base.initDeathEffect();
 		}
 
+		public override bool runDie()
+		{
+			if (this.Summoner != null)
+			{
+				int num;
+				int golemToyCreatable = this.Summoner.getGolemToyCreatable(out num);
+				if (golemToyCreatable > 0 && num >= golemToyCreatable)
+				{
+					this.Summoner.LockGolemToyMax();
+				}
+			}
+			return !base.runDie();
+		}
+
 		public void addCreator(NelNGolem Glm)
 		{
+			if (this.create_hummer_count < 0)
+			{
+				this.itemdrop_enabled = false;
+				this.create_hummer_count = X.IntR((float)this.create_count_normal * X.NI(1f, 2.25f, base.mp_ratio));
+			}
 			this.ACreator.Add(Glm);
 		}
 
@@ -129,7 +150,7 @@ namespace nel
 
 		public bool progressCreate(NelNGolem Glm)
 		{
-			if (this.create_hummer_count == 0)
+			if (this.create_hummer_count <= 0)
 			{
 				return true;
 			}
@@ -153,16 +174,36 @@ namespace nel
 				if (this.hp >= this.maxhp)
 				{
 					this.hp = this.maxhp;
-					this.create_hummer_count = 0;
-					base.throw_ray = false;
-					base.PtcST("golemtoy_born", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-					base.battleable_enemy = true;
-					this.initBorn();
+					this.initBorn0(false);
 					return true;
 				}
 				Glm.PtcVar("cx", (double)(Glm.x + Glm.mpf_is_right * (this.sizex * 0.6f))).PtcVar("cy", (double)(Glm.y - Glm.sizey * 0.3f)).PtcST("golemtoy_creating", PtcHolder.PTC_HOLD.NO_HOLD, PTCThread.StFollow.NO_FOLLOW);
 			}
+			if (Glm.dropable_created_toy && !this.itemdrop_enabled)
+			{
+				Glm.dropable_created_toy = false;
+				this.itemdrop_enabled = true;
+			}
 			return false;
+		}
+
+		private void initBorn0(bool on_normal_summon = false)
+		{
+			if (this.create_hummer_count >= 0)
+			{
+				this.create_hummer_count = 0;
+			}
+			else
+			{
+				this.apply_damage_ratio_max_divide = 1f + (this.apply_damage_ratio_max_divide - 1f) * 0.4f;
+			}
+			base.battleable_enemy = true;
+			base.throw_ray = false;
+			if (!on_normal_summon)
+			{
+				base.PtcST("golemtoy_born", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+			}
+			this.initBorn();
 		}
 
 		public void otherEnemyKilled(NelEnemy Other)
@@ -193,10 +234,10 @@ namespace nel
 			{
 				return;
 			}
-			if (!this.create_finished && base.disappearing)
+			if (this.create_hummer_count > 0 && base.disappearing)
 			{
 				this.Lig.showing_t = 0;
-				if (this.t >= 120f)
+				if (this.t >= 240f)
 				{
 					this.changeStateToDie();
 					base.disappearing = true;
@@ -223,6 +264,24 @@ namespace nel
 				return false;
 			}
 			return this;
+		}
+
+		protected override bool runSummoned()
+		{
+			if (this.create_hummer_count > 0)
+			{
+				return false;
+			}
+			if (this.t <= 0f)
+			{
+				base.moveToFootablePosition();
+			}
+			bool flag = base.runSummoned();
+			if (this.walk_st == 1 && this.create_hummer_count < 0)
+			{
+				this.initBorn0(true);
+			}
+			return flag;
 		}
 
 		public override bool readTicket(NaTicket Tk)
@@ -253,6 +312,33 @@ namespace nel
 			this.Anm.setBorderMaskEnable(false);
 		}
 
+		public override float applyHpDamageRatio(AttackInfo Atk)
+		{
+			float num = base.applyHpDamageRatio(Atk);
+			if (this.sporned_normal)
+			{
+				num *= 1.3f;
+			}
+			return num;
+		}
+
+		protected override void checkDropChance()
+		{
+			if (!this.itemdrop_enabled || !this.addable_dex_defeat_count)
+			{
+				return;
+			}
+			base.checkDropChance();
+		}
+
+		public override bool addable_dex_defeat_count
+		{
+			get
+			{
+				return this.sporned_normal || this.create_finished;
+			}
+		}
+
 		public override bool canHoldMagic(MagicItem Mg)
 		{
 			return this.Nai != null && this.is_alive && Mg.kind == MGKIND.TACKLE && this.canAbsorbContinue() && this.can_hold_tackle;
@@ -262,7 +348,15 @@ namespace nel
 		{
 			get
 			{
-				return this.create_hummer_count == 0;
+				return this.create_hummer_count <= 0;
+			}
+		}
+
+		public bool sporned_normal
+		{
+			get
+			{
+				return this.create_hummer_count < 0;
 			}
 		}
 
@@ -276,14 +370,18 @@ namespace nel
 
 		public static string[] Acreate_key = new string[] { "GOLEMTOY_POD", "GOLEMTOY_BOW", "GOLEMTOY_RM", "GOLEMTOY_MKB" };
 
+		public bool itemdrop_enabled = true;
+
 		private List<NelNGolem> ACreator;
 
 		public const int toy_creatable_default = 3;
 
-		public int create_hummer_count;
+		public int create_hummer_count = -1;
 
 		protected EnemyAnimatorGolemToy AnmT;
 
 		private static NelEnemy.FnCheckEnemy FD_countNotGolemToy;
+
+		public const float hp_damage_ratio_sporn_normal = 1.3f;
 	}
 }

@@ -445,7 +445,7 @@ namespace nel
 			{
 				return true;
 			}
-			MeshDrawer meshDrawer = ((Ef == this.EfC) ? Ef.GetMeshImg("", MTRX.getMI(this.Anm.getCurrentCharacter()), BLEND.NORMAL, true) : Ef.GetMeshImg("", MTRX.MIicon, BLEND.ADD, true));
+			MeshDrawer meshDrawer = ((Ef == this.EfC) ? Ef.GetMeshImg("", MTRX.getMI(this.Anm.getCurrentCharacter(), false), BLEND.NORMAL, true) : Ef.GetMeshImg("", MTRX.MIicon, BLEND.ADD, true));
 			bool flag;
 			Vector3 vector = Ef.EF.calcMeshXY(targetter_x, num, meshDrawer, out flag);
 			meshDrawer.base_x = vector.x;

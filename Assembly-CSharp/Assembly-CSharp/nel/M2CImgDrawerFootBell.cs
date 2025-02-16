@@ -128,6 +128,10 @@ namespace nel
 			return true;
 		}
 
+		public void rewriteFootType(M2BlockColliderContainer.BCCLine Bcc, IMapDamageListener Fd, ref string s)
+		{
+		}
+
 		public bool deactivate()
 		{
 			if (this.light_on)

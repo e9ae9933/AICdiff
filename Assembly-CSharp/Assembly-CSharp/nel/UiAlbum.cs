@@ -107,14 +107,14 @@ namespace nel
 
 		public static PxlCharacter loadMaterial()
 		{
-			return MTRX.loadMtiPxc("ui_album", "EvImg/ui_album.pxls", "M2D", false, true);
+			return MTRX.loadMtiPxc("ui_album", "EvImg/ui_album.pxls", "M2D", false, true, false);
 		}
 
 		protected override void Awake()
 		{
 			base.Awake();
 			this.stabilize_key = "ALBUM" + IN.totalframe.ToString();
-			this.debug_show_all = global::XX.X.DEBUGALBUMUNLOCK;
+			this.debug_show_all = X.DEBUGALBUMUNLOCK;
 			this.BaGF = new ByteArray(0U);
 			GF.writeSvString(this.BaGF);
 			if (M2DBase.Instance != null)
@@ -143,7 +143,7 @@ namespace nel
 			BgmKind fromSheet = BgmKind.GetFromSheet(bgm_timing);
 			if (fromSheet == null)
 			{
-				global::XX.X.de("不明なBgm timing: " + bgm_timing, null);
+				X.de("不明なBgm timing: " + bgm_timing, null);
 				return;
 			}
 			if (TX.noe(bgm_cue))
@@ -194,19 +194,39 @@ namespace nel
 			}
 			this.base_z = -0.05f;
 			this.SqRightThumb = this.Pc.getPoseByName("thumbnail").getSequence(0);
-			this.MtrThumb = new Material(MTRX.ShaderGDT);
+			this.MtrThumb = new Material(MTRX.ShaderGDTST);
 			this.MtrThumbBlur = new Material(MTRX.ShaderGDTNormalBlur);
-			this.MdR = MeshDrawer.prepareMeshRenderer(base.gameObject, this.MtrThumb, 0f, -1, null, base.use_valotile, false);
+			for (int i = 0; i < 2; i++)
+			{
+				if (i != 0)
+				{
+					Material mtrThumbBlur = this.MtrThumbBlur;
+				}
+				else
+				{
+					Material mtrThumb = this.MtrThumb;
+				}
+				this.MtrThumb.SetFloat("_StencilRef", 200f);
+				this.MtrThumb.SetFloat("_StencilComp", 3f);
+			}
+			this.MtrThumbC = new Material(this.MtrThumb);
+			this.MtrThumbC.SetFloat("_StencilComp", 8f);
+			this.MdR = MeshDrawer.prepareMeshRenderer(base.gameObject, this.MtrThumbC, 0f, -1, null, base.use_valotile, false);
 			Texture image = this.Pc.getExternalTextureArray()[0].Image;
 			this.MdR.initForImgAndTexture(image);
+			this.MtrThumb.SetTexture("_MainTex", image);
 			this.MtrThumbBlur.SetTexture("_MainTex", image);
 			this.MtrThumbBlur.SetFloat("_Level", 4f);
 			this.MtrThumbBlur.SetColor("_Color", MTRX.ColBlack);
+			this.MtrThumbCBlur = new Material(this.MtrThumbBlur);
+			this.MtrThumbCBlur.SetFloat("_StencilComp", 8f);
 			this.MdR.setMaterialCloneFlag();
 			this.BxL = base.Create("BxL", this.bxrx, 0f, 746f, 484f, 0, 40f, UiBoxDesignerFamily.MASKTYPE.BOX);
 			this.BxL.margin_in_lr = 40f;
 			this.BxL.margin_in_tb = 30f;
 			this.BxL.use_scroll = true;
+			this.BxL.box_stencil_ref_mask = -1;
+			this.BxL.stencil_ref = 200;
 			this.BxL.init();
 			this.BConList = this.BxL.addRadioT<aBtnNel>(new DsnDataRadio
 			{
@@ -238,13 +258,15 @@ namespace nel
 			this.BxTab.item_margin_x_px = 44f;
 			this.BxTab.item_margin_y_px = 4f;
 			this.BxTab.init();
-			this.RTabbar = ColumnRow.CreateT<aBtn>(this.BxTab, "tab", "command", 0, this.Acateg_tab_keys, null, this.BxTab.use_w, 28f - this.BxTab.item_margin_y_px * 2f, false, false);
-			this.RTabbar.initOneBtnClmn(new ColumnRow.FnOneBtnClmn(this.changeTab));
+			string[] acateg_tab_keys = this.Acateg_tab_keys;
+			this.RTabbar = ColumnRow.CreateT<aBtn>(this.BxTab, "tab", "command", 0, X.makeToStringed<int>(X.makeCountUpArray(acateg_tab_keys.Length, 0, 1)), null, this.BxTab.use_w, 28f - this.BxTab.item_margin_y_px * 2f, false, false);
+			this.RTabbar.initOneBtnClmn(new ColumnRow.FnOneBtnClmn(this.changeTab), acateg_tab_keys);
 			this.RTabbar.LR_valotile = true;
 			this.BxConfirm = base.Create("BxConfirm", 0f, 20f, this.confw, this.confh, 1, 40f, UiBoxDesignerFamily.MASKTYPE.BOX);
 			this.BxConfirm.margin_in_lr = 60f;
 			this.BxConfirm.margin_in_tb = 40f;
 			this.BxConfirm.item_margin_y_px = 30f;
+			IN.setZ(this.BxConfirm.transform, -0.4f);
 			this.BxConfirm.Focusable(true, true, null);
 			this.BxConfirm.alignx = ALIGN.CENTER;
 			this.BxConfirm.init();
@@ -264,18 +286,41 @@ namespace nel
 			this.BConConfirm = this.BxConfirm.addButtonMultiT<aBtnNel>(new DsnDataButtonMulti
 			{
 				name = "confirm",
-				titles = new string[] { "&&Album_Play_Memory", "&&Cancel" },
+				fnGenerateKeys = new FnGenerateRemakeKeys(this.FnGenerateConfirmKeys),
 				skin = "normal",
 				clms = 2,
 				w = this.BxConfirm.use_w * 0.42f,
 				h = 28f,
+				margin_h = 10f,
 				margin_w = 10f,
-				fnClick = new FnBtnBindings(this.fnClickConfirm)
+				fnClick = new FnBtnBindings(this.fnClickConfirm),
+				APoolEvacuated = new List<aBtn>()
 			});
 			this.BxConfirm.deactivate();
 			base.setAutoActivate(this.BxConfirm, false);
 			this.reloadScript();
 			this.initTab();
+		}
+
+		public void FnGenerateConfirmKeys(BtnContainerBasic BCon, List<string> Adest)
+		{
+			if (this.BConConfirm == null || this.FocusEntry.key == null)
+			{
+				return;
+			}
+			if (this.FocusEntry.Atitles == null)
+			{
+				Adest.Add("&&Album_Play_Memory");
+			}
+			else
+			{
+				int num = this.FocusEntry.Atitles.Length;
+				for (int i = 0; i < num; i++)
+				{
+					Adest.Add(this.FocusEntry.Atitles[i].title);
+				}
+			}
+			Adest.Add("&&Cancel");
 		}
 
 		public void reloadScript()
@@ -360,6 +405,10 @@ namespace nel
 						{
 							albumEntry.title_localized = TX.Get("Album_Memory_" + index, "");
 						}
+						if (cur_categ == UiAlbum.CATEG.OSOK)
+						{
+							albumEntry.title_localized = TX.Get("Album_Osok_" + index, "");
+						}
 						if (cur_categ == UiAlbum.CATEG.FATAL)
 						{
 							albumEntry.title_localized = TX.Get("Enemy_" + index.ToUpper(), "");
@@ -432,6 +481,28 @@ namespace nel
 						{
 							curBe.ui_term = TX.Get("Album_visible_term_" + csvReader._1, "");
 						}
+						if (csvReader.cmd == "btn_titles")
+						{
+							curBe.Atitles = new UiAlbum.TitleAndTerm[csvReader.clength - 1];
+							for (int i = 1; i < csvReader.clength; i++)
+							{
+								curBe.Atitles[i - 1] = new UiAlbum.TitleAndTerm(csvReader.getIndex(i));
+							}
+						}
+						if (csvReader.cmd == "btn_titles_term")
+						{
+							if (curBe.Atitles == null)
+							{
+								csvReader.de("btn_titlesを設定してから指定すること");
+							}
+							int num2 = X.Mn(csvReader.clength - 1, curBe.Atitles.Length);
+							for (int j = 0; j < num2; j++)
+							{
+								UiAlbum.TitleAndTerm titleAndTerm = curBe.Atitles[j];
+								string index2 = csvReader.getIndex(j + 1);
+								titleAndTerm.enabled = TX.noe(index2) || TX.eval(index2, "") != 0.0;
+							}
+						}
 						list[num] = (CurBe = curBe);
 					}
 				}
@@ -450,8 +521,11 @@ namespace nel
 			{
 				this.MdR.destruct();
 				this.MdR = null;
-				Object.Destroy(this.MtrThumbBlur);
+				global::UnityEngine.Object.Destroy(this.MtrThumbBlur);
 			}
+			global::UnityEngine.Object.Destroy(this.MtrThumb);
+			global::UnityEngine.Object.Destroy(this.MtrThumbC);
+			global::UnityEngine.Object.Destroy(this.MtrThumbCBlur);
 		}
 
 		public override UiBoxDesignerFamily deactivate(bool immediate = false)
@@ -464,7 +538,7 @@ namespace nel
 			base.deactivate(immediate);
 			if (this.t >= 0f)
 			{
-				this.t = global::XX.X.Mn(-1f, -30f + this.t);
+				this.t = X.Mn(-1f, -30f + this.t);
 			}
 			this.auto_deactive_gameobject = false;
 			if (!is_temporary)
@@ -483,6 +557,10 @@ namespace nel
 				this.active = true;
 				EV.getVariableContainer().define("_scene", this.FocusEntry.key ?? "", true);
 				EV.getVariableContainer().define("_album_categ", this.curtab.ToString(), true);
+			}
+			if (this.RTabbar != null)
+			{
+				this.RTabbar.LrInput(false);
 			}
 			return this;
 		}
@@ -508,7 +586,7 @@ namespace nel
 			}
 			else if (this.stt == UiAlbum.STATE.CONFIRM && (IN.isCancelPD() || this.BxL.isFocused()))
 			{
-				this.BConConfirm.Get(1).ExecuteOnSubmitKey();
+				this.BConConfirm.Get(this.BConConfirm.Length - 1).ExecuteOnSubmitKey();
 			}
 			bool flag = false;
 			if (this.t >= 0f)
@@ -586,7 +664,7 @@ namespace nel
 				return false;
 			}
 			UiAlbum.AlbumEntry albumEntry = this.AAentry[(int)this.curtab][entryIndex];
-			(B.get_Skin() as ButtonSkinNelAlbumThumb).initAlbumThumb(albumEntry, (albumEntry.sensitive && global::XX.X.sensitive_level > 0) ? this.MtrThumbBlur : this.MtrThumb);
+			(B.get_Skin() as ButtonSkinNelAlbumThumb).initAlbumThumb(albumEntry, (albumEntry.sensitive && X.sensitive_level > 0) ? this.MtrThumbBlur : this.MtrThumb);
 			B.SetLocked(!albumEntry.visible_unlock, true, false);
 			return true;
 		}
@@ -604,7 +682,7 @@ namespace nel
 			else
 			{
 				this.TxComingSoon.gameObject.SetActive(false);
-				this.BConList.Get(this.Afirst_select[(int)this.curtab]).Select(false);
+				this.BConList.Get(this.Afirst_select[(int)this.curtab]).Select(true);
 				this.BConList.setValue(-1, false);
 			}
 			this.BxL.rowRemakeCheck(false);
@@ -613,6 +691,10 @@ namespace nel
 
 		public bool fnHoverThumbBtn(aBtn B)
 		{
+			if (this.stt != UiAlbum.STATE.MAIN)
+			{
+				return false;
+			}
 			int index = this.BConList.getIndex(B);
 			if (index >= 0)
 			{
@@ -661,17 +743,27 @@ namespace nel
 			this.stt = UiAlbum.STATE.CONFIRM;
 			this.BxConfirm.activate();
 			this.BxConfirm.Focus();
-			this.BxL.hide();
 			this.FocusEntry = this.AAentry[(int)this.curtab][cur];
+			this.BConConfirm.RemakeT<aBtnNel>(null, "");
+			this.BxConfirm.reboundCarrForBtnMulti(this.BConConfirm, true);
+			this.BxConfirm.cropBounds(this.confw, this.confh);
+			aBtn aBtn2 = this.BConConfirm.Get(this.BConConfirm.Length - 1);
+			aBtn2.click_snd = "cancel";
 			if (!this.FocusEntry.visible)
 			{
-				this.BConConfirm.Get(0).SetLocked(true, true, false);
-				this.BConConfirm.Get(1).Select(false);
+				for (int i = 0; i < this.BConConfirm.Length - 1; i++)
+				{
+					this.BConConfirm.Get(i).SetLocked(true, true, false);
+				}
+				aBtn2.Select(true);
 			}
 			else
 			{
-				this.BConConfirm.Get(0).SetLocked(false, true, false);
-				this.BConConfirm.Get(0).Select(false);
+				for (int j = 0; j < this.BConConfirm.Length - 1; j++)
+				{
+					this.BConConfirm.Get(j).SetLocked(false, true, false);
+				}
+				this.BConConfirm.Get(0).Select(true);
 			}
 			using (STB stb = TX.PopBld(null, 0))
 			{
@@ -698,9 +790,10 @@ namespace nel
 			if (meshDrawer.hasMultipleTriangle())
 			{
 				meshDrawer.chooseSubMesh(1, false, false);
-				meshDrawer.setMaterial((this.FocusEntry.sensitive && global::XX.X.sensitive_level > 0) ? this.MtrThumbBlur : this.MtrThumb, false);
+				meshDrawer.setMaterial((this.FocusEntry.sensitive && X.sensitive_level > 0) ? this.MtrThumbCBlur : this.MtrThumbC, false);
 				meshDrawer.chooseSubMesh(0, false, false);
-				meshDrawer.connectRendererToTriMulti(this.FbConfirm.getMeshRenderer());
+				MeshRenderer meshRenderer = this.FbConfirm.getMeshRenderer();
+				meshDrawer.connectRendererToTriMulti(meshRenderer);
 			}
 			this.FbConfirm.redraw_flag = true;
 			IN.clearPushDown(false);
@@ -716,7 +809,7 @@ namespace nel
 			if (!Md.hasMultipleTriangle())
 			{
 				Md.chooseSubMesh(1, false, false);
-				Md.setMaterial((this.FocusEntry.sensitive && global::XX.X.sensitive_level > 0) ? this.MtrThumbBlur : this.MtrThumb, false);
+				Md.setMaterial((this.FocusEntry.sensitive && X.sensitive_level > 0) ? this.MtrThumbCBlur : this.MtrThumbC, false);
 				Md.connectRendererToTriMulti(FI.getMeshRenderer());
 				Md.chooseSubMesh(0, false, false);
 			}
@@ -733,33 +826,28 @@ namespace nel
 				return false;
 			}
 			string title = B.title;
-			if (title != null)
+			if (title != null && title == "&&Cancel")
 			{
-				if (!(title == "&&Album_Play_Memory"))
-				{
-					if (title == "&&Cancel")
-					{
-						this.stt = UiAlbum.STATE.MAIN;
-						IN.clearPushDown(false);
-						this.BxL.bind();
-						this.BxL.Focus();
-						this.BxConfirm.deactivate();
-						this.BConList.setValue(-1, true);
-						this.BConList.Get(this.Afirst_select[(int)this.curtab]).Select(false);
-					}
-				}
-				else
-				{
-					this.deactivate(true, false);
-					this.stt = UiAlbum.STATE.PLAYING;
-				}
+				this.stt = UiAlbum.STATE.MAIN;
+				IN.clearPushDown(false);
+				this.BxL.bind();
+				this.BxL.Focus();
+				this.BxConfirm.deactivate();
+				this.BConList.setValue(-1, true);
+				this.BConList.Get(this.Afirst_select[(int)this.curtab]).Select(true);
+			}
+			else
+			{
+				this.deactivate(true, false);
+				EV.getVariableContainer().define("_scene_index", B.carr_index.ToString(), true);
+				this.stt = UiAlbum.STATE.PLAYING;
 			}
 			return true;
 		}
 
 		private void redrawRightMesh()
 		{
-			float num = ((this.t >= 0f) ? global::XX.X.ZSIN2(this.t, 30f) : global::XX.X.ZLINE(30f + this.t, 30f));
+			float num = ((this.t >= 0f) ? X.ZSIN2(this.t, 30f) : X.ZLINE(30f + this.t, 30f));
 			int num2 = (int)this.curtab;
 			float num3 = (float)(-(float)num2) * 460f - 40f;
 			int num4 = num2 - 1;
@@ -767,8 +855,8 @@ namespace nel
 			float num6 = 1f;
 			if (this.t_tab < 20f && (int)this.curtab != this.pretab)
 			{
-				num6 = global::XX.X.ZLINE(this.t_tab, 20f);
-				float num7 = (1f - global::XX.X.ZSIN2(this.t_tab, 20f)) * (float)global::XX.X.MPF((int)this.curtab > this.pretab) * 460f;
+				num6 = X.ZLINE(this.t_tab, 20f);
+				float num7 = (1f - X.ZSIN2(this.t_tab, 20f)) * (float)X.MPF((int)this.curtab > this.pretab) * 460f;
 				num3 += num7;
 				if ((int)this.curtab < this.pretab)
 				{
@@ -797,11 +885,11 @@ namespace nel
 						}
 						else if (j == (int)this.curtab)
 						{
-							this.MdR.ColGrd.multiply(global::XX.X.Scr(num6, 0.7f), true);
+							this.MdR.ColGrd.multiply(X.Scr(num6, 0.7f), true);
 						}
 						else if (j == this.pretab)
 						{
-							this.MdR.ColGrd.multiply(global::XX.X.Scr(1f - num6, 0.7f), true);
+							this.MdR.ColGrd.multiply(X.Scr(1f - num6, 0.7f), true);
 						}
 						else
 						{
@@ -834,15 +922,15 @@ namespace nel
 				this.runner_assigned = true;
 				this.activate();
 				base.bind();
-				this.RTabbar.bind(false, false);
+				this.RTabbar.LrInput(true);
 				if (this.t < 0f)
 				{
-					this.t = global::XX.X.Mx(0f, 30f + this.t);
+					this.t = X.Mx(0f, 30f + this.t);
 				}
 				this.stt = UiAlbum.STATE.MAIN;
 				this.BxL.Focus();
 				this.BConList.setValue(-1, true);
-				this.BConList.Get(this.Afirst_select[(int)this.curtab]).Select(false);
+				this.BConList.Get(this.Afirst_select[(int)this.curtab]).Select(true);
 				return true;
 			}
 			return false;
@@ -855,6 +943,10 @@ namespace nel
 		private Material MtrThumb;
 
 		private Material MtrThumbBlur;
+
+		private Material MtrThumbC;
+
+		private Material MtrThumbCBlur;
 
 		private string def_bgm_timing;
 
@@ -941,6 +1033,22 @@ namespace nel
 			DEACTIVATING
 		}
 
+		public struct TitleAndTerm
+		{
+			public TitleAndTerm(string t)
+			{
+				this.title = t;
+				this.title_localized = TX.ReplaceTX(t, false);
+				this.enabled = true;
+			}
+
+			public string title;
+
+			public string title_localized;
+
+			public bool enabled;
+		}
+
 		public struct AlbumEntry
 		{
 			public bool visible_unlock
@@ -961,6 +1069,7 @@ namespace nel
 				this.visible = Src.visible;
 				this.ui_term = Src.ui_term;
 				this.sensitive = Src.sensitive;
+				this.Atitles = Src.Atitles;
 				this.Trm = Src.Trm;
 			}
 
@@ -973,6 +1082,8 @@ namespace nel
 			public bool visible;
 
 			public bool sensitive;
+
+			public UiAlbum.TitleAndTerm[] Atitles;
 
 			private bool visible_unlock_;
 

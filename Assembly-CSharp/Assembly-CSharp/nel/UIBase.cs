@@ -317,7 +317,7 @@ namespace nel
 					float num4 = -UIBase.phh * 0.015625f;
 					float num5 = -num4;
 					float num6;
-					if (CFG.sp_uipic_lr != CFG.UIPIC_LR.R)
+					if (CFGSP.uipic_lr != CFGSP.UIPIC_LR.R)
 					{
 						num6 = (UIBase.pwh + 340f + IN.wh) * 0.015625f;
 					}
@@ -429,6 +429,7 @@ namespace nel
 		public void endS()
 		{
 			this.ReleasePoolCutinAll();
+			this.Pict.CutinMng.killBenchCutin();
 		}
 
 		public bool ui_particle_active
@@ -475,7 +476,15 @@ namespace nel
 		{
 			get
 			{
-				return (CFG.sp_uipic_lr != CFG.UIPIC_LR.NONE && !this.draw_letter_box) || this.gm_slide_t >= 0f || this.gmb_slide_t >= 0f || this.event_center_uipic;
+				return (CFGSP.uipic_lr != CFGSP.UIPIC_LR.NONE && !this.draw_letter_box) || this.gm_slide_t >= 0f || this.gmb_slide_t >= 0f || this.event_center_uipic;
+			}
+		}
+
+		public static float uiinvisible_default_pos_u
+		{
+			get
+			{
+				return (-UIBase.pwh - 340f) * 0.015625f;
 			}
 		}
 
@@ -483,7 +492,7 @@ namespace nel
 		{
 			Vector3 localPosition = this.TrsLeft.localPosition;
 			float gamemenu_slide_z = this.gamemenu_slide_z;
-			float num = ((CFG.sp_uipic_lr == CFG.UIPIC_LR.NONE) ? 0f : UIBase.uipic_mpf);
+			float num = ((CFGSP.uipic_lr == CFGSP.UIPIC_LR.NONE) ? 0f : UIBase.uipic_mpf);
 			float num2 = X.Abs(num);
 			float num3 = (float)X.MPF(num >= 0f);
 			float visib_status_z = this.visib_status_z;
@@ -549,7 +558,7 @@ namespace nel
 			}
 			Transform transform = this.GobLog.transform;
 			Vector3 localPosition = transform.localPosition;
-			localPosition.x = (-UIBase.pwh + 140f + 340f * ((CFG.sp_uipic_lr == CFG.UIPIC_LR.L) ? (tz - gmtz) : 0f)) * 0.015625f;
+			localPosition.x = (-UIBase.pwh + 140f + 340f * ((CFGSP.uipic_lr == CFGSP.UIPIC_LR.L) ? (tz - gmtz) : 0f)) * 0.015625f;
 			localPosition.y = (-UIBase.phh + X.Mx((1f - tz) * 58f, X.NI(0f, 65f, this.Status.gage_tz)) + 25f + 200f) * 0.015625f;
 			transform.localPosition = localPosition;
 			this.redraw_flag_ &= 4294705151U;
@@ -563,7 +572,7 @@ namespace nel
 			{
 				RenderTexture renderTexture = null;
 				RenderTexture renderTexture2 = null;
-				cam.getTextureForUiBg(ref renderTexture, ref renderTexture2);
+				cam.getTextureForUiBg(out renderTexture, out renderTexture2);
 				this.MtrBg.SetTexture("_MainTex", renderTexture);
 				this.MtrBg.SetTexture("_MainTex2", renderTexture2);
 				this.MtrBg.SetColor("_BaseColor", cam.transparent_color);
@@ -736,7 +745,7 @@ namespace nel
 				this.Status.run(fcnt);
 				Bench.Pend("status");
 				Bench.P("UIPict");
-				this.Pict.run(fcnt, true);
+				this.Pict.run(fcnt, 1f, true);
 				Bench.Pend("UIPict");
 				Bench.P("UI-EF");
 				this.EF.runDrawOrRedrawMesh(X.D_EF, (float)X.AF_EF, UILog.uilog_frame_base_speed);
@@ -909,19 +918,27 @@ namespace nel
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(cmd);
 				if (num <= 1159865517U)
 				{
-					if (num <= 666570639U)
+					if (num <= 701987725U)
 					{
-						if (num <= 334281426U)
+						if (num <= 463400181U)
 						{
 							if (num != 62389229U)
 							{
-								if (num == 334281426U)
+								if (num != 334281426U)
 								{
-									if (cmd == "SHOW_LOGBOX")
+									if (num == 463400181U)
 									{
-										UIBase.FlgHideLog.Rem("EVENT_READ");
-										return true;
+										if (cmd == "HIDE_LOGBOX")
+										{
+											UIBase.FlgHideLog.Add("EVENT_READ");
+											return true;
+										}
 									}
+								}
+								else if (cmd == "SHOW_LOGBOX")
+								{
+									UIBase.FlgHideLog.Rem("EVENT_READ");
+									return true;
 								}
 							}
 							else if (cmd == "UIP_PTCST_REMOVE")
@@ -934,80 +951,80 @@ namespace nel
 								return true;
 							}
 						}
-						else if (num != 463400181U)
+						else if (num != 569088426U)
 						{
-							if (num != 569088426U)
+							if (num != 666570639U)
 							{
-								if (num == 666570639U)
+								if (num == 701987725U)
 								{
-									if (cmd == "UIP_EVENT_SETFADE")
+									if (cmd == "UIP_STOP_VALOTIZE")
 									{
-										bool b = rER._B3;
-										this.event_center_uipic = true;
-										if (TX.valid(rER._1))
-										{
-											if (rER.Nm(1, -1f) == 0f)
-											{
-												this.event_center_uipic = false;
-											}
-											else
-											{
-												bool flag = false;
-												string text = rER._2 ?? "";
-												if (TX.isStart(text, '!'))
-												{
-													text = TX.slice(text, 1);
-													flag = true;
-												}
-												this.Pict.setFade(rER._1, UIPicture.Instance.getMultipleEmot(text), b, rER._B4, flag);
-											}
-										}
-										if (EV.skipping > 0 || b)
-										{
-											this.finalizeSlideFrame();
-										}
-										this.eventDamageCounterEffect(true);
+										UIBase.FlgUiEffectDisable.Add("__EVENT");
 										return true;
 									}
 								}
 							}
-							else if (cmd == "UIP_REPOSIT")
+							else if (cmd == "UIP_EVENT_SETFADE")
 							{
-								this.Pict.PosSyncSlide = new Vector3(rER.Nm(1, 0f) * 0.015625f, rER.Nm(2, 0f) * 0.015625f, rER.Nm(3, 1f));
-								this.EClear();
+								bool b = rER._B3;
+								this.event_center_uipic = true;
+								if (TX.valid(rER._1))
+								{
+									if (rER.Nm(1, -1f) == 0f)
+									{
+										this.event_center_uipic = false;
+									}
+									else
+									{
+										bool flag = false;
+										string text = rER._2 ?? "";
+										if (TX.isStart(text, '!'))
+										{
+											text = TX.slice(text, 1);
+											flag = true;
+										}
+										this.Pict.setFade(rER._1, UIPicture.Instance.getMultipleEmot(text), b, rER._B4, flag);
+									}
+								}
+								if (EV.skipping > 0 || b)
+								{
+									this.finalizeSlideFrame();
+								}
+								this.eventDamageCounterEffect(true);
 								return true;
 							}
 						}
-						else if (cmd == "HIDE_LOGBOX")
+						else if (cmd == "UIP_REPOSIT")
 						{
-							UIBase.FlgHideLog.Add("EVENT_READ");
+							this.Pict.PosSyncSlide = new Vector3(rER.Nm(1, 0f) * 0.015625f, rER.Nm(2, 0f) * 0.015625f, rER.Nm(3, 1f));
+							this.EClear();
 							return true;
 						}
 					}
-					else if (num <= 955666776U)
+					else if (num <= 958114529U)
 					{
-						if (num != 701987725U)
+						if (num != 759291017U)
 						{
-							if (num != 759291017U)
+							if (num != 955666776U)
 							{
-								if (num == 955666776U)
+								if (num == 958114529U)
 								{
-									if (cmd == "HIDE_STATUS")
+									if (cmd == "UIP_CUTIN_LAYEGG")
 									{
-										UIStatus.FlgStatusHide.Add("__EVENT");
+										this.Pict.CutinMng.applyLayingEggCutin(rER._B1, rER.Nm(2, 0f), rER._B3, rER._B4);
 										return true;
 									}
 								}
 							}
-							else if (cmd == "START_LETTERBOX")
+							else if (cmd == "HIDE_STATUS")
 							{
-								this.draw_letter_box = true;
+								UIStatus.FlgStatusHide.Add("__EVENT");
 								return true;
 							}
 						}
-						else if (cmd == "UIP_STOP_VALOTIZE")
+						else if (cmd == "START_LETTERBOX")
 						{
-							UIBase.FlgUiEffectDisable.Add("__EVENT");
+							this.draw_letter_box = true;
 							return true;
 						}
 					}
@@ -1089,7 +1106,7 @@ namespace nel
 								if (cmd == "UIP_PTCST")
 								{
 									PTCThreadRunner.PreVar(rER, 2);
-									this.PtcST(rER._1, null);
+									this.PtcST(rER._1, null, PTCThread.StFollow.NO_FOLLOW);
 									return true;
 								}
 							}
@@ -1202,6 +1219,7 @@ namespace nel
 		public void EClear()
 		{
 			this.EF.clear();
+			this.Pict.CutinMng.killBenchCutin();
 			if (UIStatus.Instance != null)
 			{
 				UIStatus.Instance.playerUiEffectClear();
@@ -1232,13 +1250,13 @@ namespace nel
 			return this.EF;
 		}
 
-		public PTCThread PtcST(string ptcst_name, IEfPInteractale Listener = null)
+		public PTCThread PtcST(string ptcst_name, IEfPInteractale Listener = null, PTCThread.StFollow _follow = PTCThread.StFollow.NO_FOLLOW)
 		{
 			if (this.EF == null)
 			{
 				return null;
 			}
-			return this.EF.PtcST(ptcst_name, Listener ?? this, PTCThread.StFollow.NO_FOLLOW, this.VarP);
+			return this.EF.PtcST(ptcst_name, Listener ?? this, _follow, this.VarP);
 		}
 
 		public void killPtc(string ptcst_name, IEfPInteractale Listener = null)
@@ -1358,7 +1376,7 @@ namespace nel
 
 		public void fineUiDmgCounterDraw()
 		{
-			if ((CFG.sp_dmgcounter_position & CFG.UIPIC_DMGCNT.UI) != CFG.UIPIC_DMGCNT.NONE)
+			if ((CFGSP.dmgcounter_position & CFGSP.UIPIC_DMGCNT.UI) != CFGSP.UIPIC_DMGCNT.NONE)
 			{
 				this.eventDamageCounterEffect(false);
 				this.EfDamageCounter.z = (float)(EV.isActive(false) ? 1 : 0);
@@ -1377,7 +1395,7 @@ namespace nel
 			{
 				M2DmgCounterContainer dmgCntCon = this.M2D.curMap.DmgCntCon;
 				dmgCntCon.runable = ((this.EfDamageCounter != null) ? (givingup ? 3 : 2) : 1);
-				if ((CFG.sp_dmgcounter_position & CFG.UIPIC_DMGCNT.MAP) == CFG.UIPIC_DMGCNT.NONE)
+				if ((CFGSP.dmgcounter_position & CFGSP.UIPIC_DMGCNT.MAP) == CFGSP.UIPIC_DMGCNT.NONE)
 				{
 					dmgCntCon.MvIgnore = this.M2D.PlayerNoel;
 				}
@@ -1422,6 +1440,14 @@ namespace nel
 			}
 			IN.setZAbs(animateCutin2.transform, -4.28f);
 			return animateCutin2;
+		}
+
+		public int cutin_act_count
+		{
+			get
+			{
+				return this.PoolCutin.count_act;
+			}
 		}
 
 		public AnimateCutin getAnimateCutin(string cutin_name)
@@ -1676,7 +1702,7 @@ namespace nel
 		{
 			get
 			{
-				return (float)((CFG.sp_uipic_lr == CFG.UIPIC_LR.R) ? (-1) : 1);
+				return (float)((CFGSP.uipic_lr == CFGSP.UIPIC_LR.R) ? (-1) : 1);
 			}
 		}
 
@@ -1706,6 +1732,8 @@ namespace nel
 
 		public const float Z_LETTERBOX = -3.15f;
 
+		public const float Z_UI_GACHA_T = -4.75f;
+
 		public bool draw_letter_box;
 
 		public float letter_box_t;
@@ -1728,7 +1756,7 @@ namespace nel
 
 		public Transform TrsLeft;
 
-		private NelM2DBase M2D;
+		public NelM2DBase M2D;
 
 		private Transform TrsMapCamera;
 

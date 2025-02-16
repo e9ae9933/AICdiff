@@ -183,7 +183,7 @@ namespace nel
 			float num2 = X.Abs(pr.y - base.y);
 			if (num + num2 <= 9f)
 			{
-				pr.EpCon.lockOazuke();
+				pr.EpCon.lockOazuke(0f);
 			}
 			return num < 4f && num2 < 2.5f;
 		}

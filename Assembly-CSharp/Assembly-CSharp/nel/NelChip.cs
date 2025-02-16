@@ -106,7 +106,8 @@ namespace nel
 			};
 			Odr["fire_place"] = delegate(ref MeshDrawer Md, int lay, M2Puts Cp, METACImg Meta, M2CImgDrawer Pre_Drawer)
 			{
-				if (lay == 2)
+				int i = Meta.GetI("fire_place", 2, 2);
+				if (lay == i)
 				{
 					return new M2CImgDrawerFirePlace(Md, lay, Cp);
 				}
@@ -146,10 +147,6 @@ namespace nel
 			};
 			Odr["house_footbell"] = delegate(ref MeshDrawer Md, int lay, M2Puts Cp, METACImg Meta, M2CImgDrawer Pre_Drawer)
 			{
-				if (lay == 3)
-				{
-					return DrDef(ref Md, lay, Cp, Meta, Pre_Drawer);
-				}
 				return new M2CImgDrawerFootBell(Md, lay, Cp);
 			};
 			Odr["drawbridge"] = (Odr["drawbridge_piece"] = delegate(ref MeshDrawer Md, int lay, M2Puts Cp, METACImg Meta, M2CImgDrawer Pre_Drawer)
@@ -167,10 +164,13 @@ namespace nel
 			};
 			Odr["door"] = delegate(ref MeshDrawer Md, int lay, M2Puts Cp, METACImg Meta, M2CImgDrawer Pre_Drawer)
 			{
-				string[] array2 = Meta.Get("door");
-				if (array2.Length >= 1 && X.NmI(array2[0], 0, false, false) == lay)
+				if (!Cp.Mp.is_submap)
 				{
-					return new M2CImgDrawerDoor(Md, lay, Cp, "door", 0);
+					string[] array2 = Meta.Get("door");
+					if (array2.Length >= 1 && X.NmI(array2[0], 0, false, false) == lay)
+					{
+						return new M2CImgDrawerDoor(Md, lay, Cp, "door", 0);
+					}
 				}
 				return DrDef(ref Md, lay, Cp, Meta, Pre_Drawer);
 			};

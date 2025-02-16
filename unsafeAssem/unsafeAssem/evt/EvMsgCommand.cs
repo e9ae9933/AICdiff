@@ -100,11 +100,11 @@ namespace evt
 			}
 		}
 
-		public void execute(int i)
+		public bool execute(int i)
 		{
 			if (!this.active)
 			{
-				return;
+				return false;
 			}
 			if (i <= 0)
 			{
@@ -114,7 +114,7 @@ namespace evt
 					this.execute(i);
 				}
 				this.clear();
-				return;
+				return true;
 			}
 			if (i < this.ACmd.Count)
 			{
@@ -124,7 +124,32 @@ namespace evt
 				if (flag)
 				{
 					EV.preserveEventExecuted(EV.readOneLine(null, this.BfReader));
+					return true;
 				}
+			}
+			return false;
+		}
+
+		public void executeProgress(int i)
+		{
+			if (!this.active)
+			{
+				return;
+			}
+			if (i <= 0)
+			{
+				this.execute(i);
+				return;
+			}
+			int count = this.ACmd.Count;
+			int num = 1;
+			while (num < count && i > 0)
+			{
+				if (this.execute(num))
+				{
+					i--;
+				}
+				num++;
 			}
 		}
 

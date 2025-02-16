@@ -155,7 +155,7 @@ namespace evt
 			if (this.BtnCurs != button)
 			{
 				this.BtnCurs = button;
-				button.Select(false);
+				button.Select(true);
 			}
 			return true;
 		}
@@ -170,7 +170,7 @@ namespace evt
 			{
 				this.BtnCurs = B;
 				this.BCon.setValue(B);
-				B.Select(false);
+				B.Select(true);
 				if (IN.use_mouse)
 				{
 					IN.clearSubmitPushDown(true);
@@ -285,6 +285,10 @@ namespace evt
 			base.use_valotile = EV.valotile_overwrite_msg || EV.use_valotile;
 			num = this.ARow.Count;
 			IN.setZAbs(base.transform, -4.925f);
+			if (CameraBidingsBehaviour.UiBind != null)
+			{
+				CameraBidingsBehaviour.UiBind.need_sort_binds = true;
+			}
 			if (!this.BtnCancel)
 			{
 				for (int i = 0; i < num; i++)
@@ -304,7 +308,7 @@ namespace evt
 				aBtn button = this.BCon.GetButton(num5);
 				if (button != null)
 				{
-					button.Select(false);
+					button.Select(true);
 				}
 			}
 		}
@@ -539,7 +543,7 @@ namespace evt
 			this.can_handle_ = true;
 			if (base.isActive() && 0 <= this.default_focus && this.default_focus < this.BCon.Length)
 			{
-				this.BCon.Get(this.default_focus).Select(false);
+				this.BCon.Get(this.default_focus).Select(true);
 			}
 		}
 

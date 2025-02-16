@@ -82,7 +82,7 @@ namespace XX
 				return;
 			}
 			this.TxBg = BLIT.Alloc(ref this.TxBg, (int)(IN.w * 0.3333f), (int)(IN.h * 0.3333f), false, RenderTextureFormat.ARGB32, 0);
-			float num = ((this.M2D != null) ? this.M2D.Cam.getScaleRev() : 1f);
+			float num = ((this.M2D != null) ? X.Mn(1f, this.M2D.Cam.getScaleRev()) : 1f);
 			float num2 = 1f + 0.2f * tz;
 			float num3 = ((this.M2D != null) ? (-this.M2D.ui_shift_x / (IN.w + 16f) * num / num2) : 0f);
 			BLIT.Blur(this.TxBg, finalizedTexture, X.IntR(6f * tz), X.IntR(6f * tz), IN.wh * 0.3333f, IN.hh * 0.3333f, 0.3333f, 1f, num3, 0f, 1f, 1f, 16777215U);
@@ -100,7 +100,7 @@ namespace XX
 				return;
 			}
 			this.Md.initForImg(this.TxBg);
-			float num = ((this.M2D != null) ? this.M2D.Cam.getScale(true) : 1f);
+			float num = ((this.M2D != null) ? X.Mx(1f, this.M2D.Cam.getScale(true)) : 1f);
 			float num2 = 1f + 0.2f * alpha;
 			this.Md.Col = this.Md.ColGrd.Set(base.Col).mulA(X.Mn(1f, 1.15f * alpha)).C;
 			this.Md.DrawScaleGraph(0f, 0f, num / 0.3333f * num2, num / 0.3333f * num2, null);

@@ -197,7 +197,7 @@ namespace nel.mgm.farm
 						}
 						int num6 = X.IntR(this.pushdown_level * (num4 + this.madded_time * 0.8f));
 						UIBase.Instance.PtcVar("cx", this.get_x(this.Ef.time)).PtcVar("cy", this.get_y() - 60f - 20f).PtcVar("grade", (float)num3)
-							.PtcST("mg_mini_fanfare", null);
+							.PtcST("mg_mini_fanfare", null, PTCThread.StFollow.NO_FOLLOW);
 						num6 = (this.Amilk[this.Ef.time] = X.Mx(1, num6));
 						this.Con.score += num6;
 						UiMgmFarmSuck.VarCon.define("_rvalue", flag3 ? "-1" : this.Aamount[this.Ef.time].ToString(), true);
@@ -214,7 +214,7 @@ namespace nel.mgm.farm
 					NelNMgmFarmCow suckTarget2 = this.Con.getSuckTarget();
 					if (!flag)
 					{
-						UIBase.Instance.PtcVar("mp_ratio", suckTarget2.mp_ratio).PtcVar("_quit", 0f).PtcST("mg_farm_milk_shot", null);
+						UIBase.Instance.PtcVar("mp_ratio", suckTarget2.mp_ratio).PtcVar("_quit", 0f).PtcST("mg_farm_milk_shot", null, PTCThread.StFollow.NO_FOLLOW);
 					}
 					if (suckTarget2.get_mp() == 0f && this.Ef.z >= 30f)
 					{

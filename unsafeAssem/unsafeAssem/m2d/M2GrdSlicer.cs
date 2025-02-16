@@ -21,9 +21,9 @@ namespace m2d
 			{
 				this.clms = Src.clms;
 				this.rows = Src.rows;
-				this.Alevel = global::XX.X.concat<float>(Src.Alevel, null, -1, -1);
-				this.Ax = global::XX.X.concat<float>(Src.Ax, null, -1, -1);
-				this.Ay = global::XX.X.concat<float>(Src.Ay, null, -1, -1);
+				this.Alevel = X.concat<float>(Src.Alevel, null, -1, -1);
+				this.Ax = X.concat<float>(Src.Ax, null, -1, -1);
+				this.Ay = X.concat<float>(Src.Ay, null, -1, -1);
 				this.alloc(false);
 			}
 			return this;
@@ -86,8 +86,8 @@ namespace m2d
 
 		public void alloc(bool save_vars = false)
 		{
-			this.clms = global::XX.X.Mx(this.clms, 2);
-			this.rows = global::XX.X.Mx(this.rows, 2);
+			this.clms = X.Mx(this.clms, 2);
+			this.rows = X.Mx(this.rows, 2);
 			int num = this.clms - 2;
 			int num2 = this.rows - 2;
 			int num3 = this.clms * this.rows;
@@ -101,7 +101,7 @@ namespace m2d
 			}
 			else if (this.Ax.Length != num)
 			{
-				float[] array3 = (save_vars ? global::XX.X.concat<float>(this.Ax, null, -1, -1) : null);
+				float[] array3 = (save_vars ? X.concat<float>(this.Ax, null, -1, -1) : null);
 				Array.Resize<float>(ref this.Ax, num);
 				if (array3 != null)
 				{
@@ -120,7 +120,7 @@ namespace m2d
 						}
 						else
 						{
-							this.Ax[i] = global::XX.X.NIL(array3[num6 - 2], array3[num6 - 1], (float)(i + 1 - (num6 - 1)), (float)(1 + num - num6));
+							this.Ax[i] = X.NIL(array3[num6 - 2], array3[num6 - 1], (float)(i + 1 - (num6 - 1)), (float)(1 + num - num6));
 						}
 					}
 				}
@@ -131,7 +131,7 @@ namespace m2d
 			}
 			else if (this.Ay.Length != num2)
 			{
-				float[] array3 = (save_vars ? global::XX.X.concat<float>(this.Ay, null, -1, -1) : null);
+				float[] array3 = (save_vars ? X.concat<float>(this.Ay, null, -1, -1) : null);
 				Array.Resize<float>(ref this.Ay, num2);
 				if (array3 != null)
 				{
@@ -150,7 +150,7 @@ namespace m2d
 						}
 						else
 						{
-							this.Ay[j] = global::XX.X.NIL(array3[num7 - 2], array3[num7 - 1], (float)(j + 1 - (num7 - 1)), (float)(1 + num2 - num7));
+							this.Ay[j] = X.NIL(array3[num7 - 2], array3[num7 - 1], (float)(j + 1 - (num7 - 1)), (float)(1 + num2 - num7));
 						}
 					}
 				}
@@ -162,7 +162,7 @@ namespace m2d
 			}
 			if (this.Alevel.Length != num3)
 			{
-				float[] array3 = ((save_vars && (num4 != this.clms || num5 != this.rows) && (array != null || array2 != null)) ? global::XX.X.concat<float>(this.Alevel, null, -1, -1) : null);
+				float[] array3 = ((save_vars && (num4 != this.clms || num5 != this.rows) && (array != null || array2 != null)) ? X.concat<float>(this.Alevel, null, -1, -1) : null);
 				Array.Resize<float>(ref this.Alevel, num3);
 				if (array3 != null)
 				{
@@ -173,7 +173,7 @@ namespace m2d
 						int num8;
 						int num9;
 						this.getPos(k, out num8, out num9);
-						this.Alevel[k] = array3[num4 * global::XX.X.Mn(num9, num5 - 1) + global::XX.X.Mn(num8, num4 - 1)];
+						this.Alevel[k] = array3[num4 * X.Mn(num9, num5 - 1) + X.Mn(num8, num4 - 1)];
 					}
 				}
 			}
@@ -188,9 +188,9 @@ namespace m2d
 				float num2;
 				float num3;
 				this.getPosLevel(i, out num2, out num3);
-				float num4 = global::XX.X.NI(lv_BL, lv_RB, num2);
-				float num5 = global::XX.X.NI(lv_LT, lv_TR, num2);
-				this.Alevel[i] = global::XX.X.NI(num4, num5, num3);
+				float num4 = X.NI(lv_BL, lv_RB, num2);
+				float num5 = X.NI(lv_LT, lv_TR, num2);
+				this.Alevel[i] = X.NI(num4, num5, num3);
 			}
 		}
 

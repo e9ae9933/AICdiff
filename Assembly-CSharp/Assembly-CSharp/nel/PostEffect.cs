@@ -21,7 +21,7 @@ namespace nel
 			: base(_M2D.GobBase, alloc_cnt)
 		{
 			this.M2D = _M2D;
-			this.AMtr = new PostEffect.PEItem[30];
+			this.AMtr = new PostEffect.PEItem[31];
 			this.ATimeFixedEffect = new PostEffect.TimeFixEf[4];
 			PostEffect.PEMaterial.FnDrawPostScreenEffect fnDrawPostScreenEffect = new PostEffect.PEMaterial.FnDrawPostScreenEffect(PostEffectItem.drawScreen_hpreduce);
 			PostEffect.PEMaterial.FnDrawPostScreenEffect fnDrawPostScreenEffect2 = new PostEffect.PEMaterial.FnDrawPostScreenEffect(PostEffectItem.drawScreen_mpreduce);
@@ -70,19 +70,28 @@ namespace nel
 			this.AMtr[11] = new PostEffect.PEInterrupt(new LightPostProcessor(MTR.getShdContainer()), new PostEffect.PEInterrupt.FnInterruptExecution(PostEffectItem.executePostBloom), PostEffect.PE_VAR.SCREEN);
 			this.AMtr[16] = new PostEffect.PEMaterial("poste/shotgun", POSTM.SHOTGUN, fnDrawPostScreenEffect4, 2, PostEffect.PE_VAR.MINMAX);
 			this.AMtr[17] = new PostEffect.PEMaterial("poste/magicselect", POSTM.MAGICSELECT, fnDrawPostScreenEffect4, 2, PostEffect.PE_VAR.MINMAX);
+			material2 = MTR.newMtrStone();
+			material2.mainTexture = MTRX.MIicon.Tx;
+			material2.SetColor("_Color", C32.d2c(4289835441U));
+			material2.SetColor("_BColor", MTRX.ColBlack);
+			material2.SetFloat("_ZTest", 8f);
+			material2.SetFloat("_ScaleX", 1f / MTRX.IconWhite.RectIUv.width * IN.w / IN.h * 3f);
+			material2.SetFloat("_ScaleY", 1f / MTRX.IconWhite.RectIUv.height * 3.8f);
+			material2.SetVector("_NoiseLevel", new Vector4(0.25f, 0.24f, 0.6f, 2.3f));
+			this.AMtr[18] = new PostEffect.PEMaterial(material2, POSTM.STONEOVER, new PostEffect.PEMaterial.FnDrawPostScreenEffect(PostEffectItem.drawScreen_stoneover), 0, PostEffect.PE_VAR.MINMAX);
 			this.AMtr[12] = new PostEffect.PEMaterial(MTRX.MtrMeshNormal, POSTM.IRISOUT, fnDrawPostScreenEffect7, 1, PostEffect.PE_VAR.ADD);
-			this.AMtr[18] = new PostEffect.PEMaterial(MTRX.MtrMeshNormal, POSTM.GO_CLOSE_EYE, fnDrawPostScreenEffect8, 3, PostEffect.PE_VAR.SCREEN);
-			this.AMtr[19] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeTsSlow), PostEffect.PE_VAR.MINMAX);
-			this.AMtr[20] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeCamZoom2), PostEffect.PE_VAR.MINMAX);
+			this.AMtr[19] = new PostEffect.PEMaterial(MTRX.MtrMeshNormal, POSTM.GO_CLOSE_EYE, fnDrawPostScreenEffect8, 3, PostEffect.PE_VAR.SCREEN);
+			this.AMtr[20] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeTsSlow), PostEffect.PE_VAR.MINMAX);
 			this.AMtr[21] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeCamZoom2), PostEffect.PE_VAR.MINMAX);
-			this.AMtr[24] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeCamComfuse), PostEffect.PE_VAR.SCREEN);
-			this.AMtr[26] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeM2dVar0), PostEffect.PE_VAR.SCREEN);
-			this.AMtr[22] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeHeartBeat), PostEffect.PE_VAR.SCREEN);
-			this.AMtr[25] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeVolumeReduce), PostEffect.PE_VAR.MINMAX);
-			this.AMtr[27] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeBgmLower), PostEffect.PE_VAR.MINMAX);
-			this.AMtr[28] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeBgmWater), PostEffect.PE_VAR.MINMAX);
-			this.AMtr[29] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeCamFinalAlpha), PostEffect.PE_VAR.SCREEN);
-			this.AMtr[23] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeRain), PostEffect.PE_VAR.MINMAX);
+			this.AMtr[22] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeCamZoom2), PostEffect.PE_VAR.MINMAX);
+			this.AMtr[25] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeCamComfuse), PostEffect.PE_VAR.SCREEN);
+			this.AMtr[27] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeM2dVar0), PostEffect.PE_VAR.SCREEN);
+			this.AMtr[23] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeHeartBeat), PostEffect.PE_VAR.SCREEN);
+			this.AMtr[26] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeVolumeReduce), PostEffect.PE_VAR.MINMAX);
+			this.AMtr[28] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeBgmLower), PostEffect.PE_VAR.MINMAX);
+			this.AMtr[29] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeBgmWater), PostEffect.PE_VAR.MINMAX);
+			this.AMtr[30] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeCamFinalAlpha), PostEffect.PE_VAR.SCREEN);
+			this.AMtr[24] = new PostEffect.PESpecial(new PostEffect.PESpecial.FnSpecialExecution(PostEffectItem.executeRain), PostEffect.PE_VAR.MINMAX);
 			this.AMtrSuppress = new PostEffect.PEItem[]
 			{
 				this.AMtr[0],
@@ -113,7 +122,7 @@ namespace nel
 
 		public void releaseMesh()
 		{
-			int num = 19;
+			int num = 20;
 			for (int i = 0; i < num; i++)
 			{
 				this.AMtr[i].releaseMesh();
@@ -139,14 +148,14 @@ namespace nel
 
 		public PostEffectItem setSlow(float z_maxt = 40f, float x_level = 0f, int saf = 0)
 		{
-			PostEffectItem postEffectItem = this.Pop(PostEffectItem.FD_fnRunDraw_pe_once, 1f - x_level, 0f, z_maxt, 19, saf);
+			PostEffectItem postEffectItem = this.Pop(PostEffectItem.FD_fnRunDraw_pe_once, 1f - x_level, 0f, z_maxt, 20, saf);
 			this.addTimeFixedEffect(postEffectItem, 1f);
 			return postEffectItem;
 		}
 
 		public PostEffectItem setSlowFading(float fade_frm = 40f, float hold_hrm = 40f, float x_level = 0f, int saf = 0)
 		{
-			PostEffectItem postEffectItem = this.Pop(PostEffectItem.FD_fnRunDraw_pe_fadeinout, 1f - x_level, fade_frm, hold_hrm, 19, saf);
+			PostEffectItem postEffectItem = this.Pop(PostEffectItem.FD_fnRunDraw_pe_fadeinout, 1f - x_level, fade_frm, hold_hrm, 20, saf);
 			this.addTimeFixedEffect(postEffectItem, 1f);
 			return postEffectItem;
 		}
@@ -218,7 +227,7 @@ namespace nel
 		public override void clear()
 		{
 			base.clear();
-			int num = 30;
+			int num = 31;
 			for (int i = 0; i < num; i++)
 			{
 				this.AMtr[i].release();
@@ -230,7 +239,7 @@ namespace nel
 
 		public void quitGame()
 		{
-			int num = 30;
+			int num = 31;
 			for (int i = 0; i < num; i++)
 			{
 				this.AMtr[i].destruct();
@@ -244,11 +253,17 @@ namespace nel
 			float num = IN.w + 16f;
 			float num2 = IN.h + 16f;
 			this.VecUiShift = new Vector4(this.M2D.ui_shift_x / num, 0f, (IN.w - this.M2D.ui_shift_x) / num, IN.h / num2);
-			int num3 = 30;
+			int num3 = 31;
 			for (int i = 0; i < num3; i++)
 			{
 				this.AMtr[i].fineUiShift(this.VecUiShift);
 			}
+		}
+
+		public void animateScaleTo(float lvl, int time = 40)
+		{
+			this.camera_scale_base = lvl;
+			this.M2D.Cam.animateScaleTo(lvl, time);
 		}
 
 		public override void runDraw(float fcnt, bool runsetter = true)
@@ -284,7 +299,8 @@ namespace nel
 			this.activated = false;
 			this.restrict_activated = 0;
 			this.PosMainMoverShift_.z = 0f;
-			this.buf_timescale = (this.buf_cam_scale = 1f);
+			this.buf_timescale = 1f;
+			this.buf_cam_scale = this.camera_scale_base;
 			this.buf_m2d_var0 = (this.buf_effect_confuse = 0f);
 			this.buf_render_alpha = byte.MaxValue;
 			BGM.BusChn.clear(false);
@@ -311,7 +327,7 @@ namespace nel
 			PostEffectItem.PE = null;
 			if (this.activated || flag)
 			{
-				int num9 = 30;
+				int num9 = 31;
 				for (i = 0; i < num9; i++)
 				{
 					this.AMtr[i].fineAlpha(this, true);
@@ -344,7 +360,7 @@ namespace nel
 
 		public void redrawOnlyMesh()
 		{
-			int num = 19;
+			int num = 20;
 			for (int i = 0; i < num; i++)
 			{
 				this.AMtr[i].redrawOnlyMesh(this);
@@ -353,7 +369,7 @@ namespace nel
 
 		public void refineMaterialAlpha()
 		{
-			int num = 30;
+			int num = 31;
 			for (int i = 0; i < num; i++)
 			{
 				this.AMtr[i].fineAlpha(this, false);
@@ -392,7 +408,7 @@ namespace nel
 
 		public void addMapCamZoom(float a01)
 		{
-			this.buf_cam_scale += a01;
+			this.buf_cam_scale += a01 * this.camera_scale_base;
 			this.activated = true;
 		}
 
@@ -491,6 +507,8 @@ namespace nel
 		private Vector4 VecUiShift;
 
 		private Vector3 PosMainMoverShift_;
+
+		public float camera_scale_base = 1f;
 
 		private float buf_timescale = 1f;
 
@@ -738,9 +756,13 @@ namespace nel
 				}
 			}
 
-			public void fineScale()
+			public void fineScale(float _scale = -1f)
 			{
-				this.scale = this.Cam.getScale(true);
+				if (_scale < 0f)
+				{
+					_scale = X.Mx(1f, this.Cam.getScale(true));
+				}
+				this.scale = _scale;
 				this.Mtr.SetFloat("_Scale", this.scale);
 				float num = 1f / this.scale;
 				this.Mtr.SetFloat("_Scale_r", num);
@@ -785,7 +807,7 @@ namespace nel
 					this.layer = ((this.top_flag > 0) ? this.Cam.getFinalRenderedLayer() : this.Cam.getFinalSourceRenderedLayer());
 					this.createMesh();
 					this.alpha = this.depalpha;
-					this.fineScale();
+					this.fineScale(-1f);
 				}
 				else
 				{
@@ -801,9 +823,10 @@ namespace nel
 							cam.assignRenderFunc(this, this.layer, false, null);
 						}
 					}
-					if (this.Cam.getScale(true) != this.scale)
+					float num = X.Mx(1f, this.Cam.getScale(true));
+					if (num != this.scale)
 					{
-						this.fineScale();
+						this.fineScale(num);
 					}
 					if (this.alpha != this.depalpha)
 					{
@@ -859,7 +882,7 @@ namespace nel
 			{
 				if (X.DEBUGSTABILIZE_DRAW)
 				{
-					this.Md = this.Cam.createMeshDrawer(this.Cam.getCameraComponentForLayer(1U << this.layer), FEnum<POSTM>.ToStr(this.type), this.Mtr, this.layer, 0f, true);
+					this.Md = this.Cam.createMeshDrawer(this.Cam.getCameraComponentForLayer(1U << this.layer), FEnum<POSTM>.ToStr(this.type), this.Mtr, this.layer, 0f, true, 440f);
 					this.Mrd = this.Cam.GetMeshRendererFromCamera(this.Md);
 				}
 				else
@@ -885,6 +908,7 @@ namespace nel
 				CameraComponentCollecter cameraComponentCollecter = XCon as CameraComponentCollecter;
 				if (cameraComponentCollecter != null)
 				{
+					num *= X.Mx(1f, cameraComponentCollecter.Container.getScaleRev());
 					if (cameraComponentCollecter.already_mutual_replaced && !this.adjust_wh_by_scale)
 					{
 						num *= this.scale;
@@ -901,7 +925,14 @@ namespace nel
 				M2Camera cam = PostEffect.IT.M2D.Cam;
 				Matrix4x4 cameraProjectionTransformed = JCon.CameraProjectionTransformed;
 				Vector3 posMainTransform = cam.PosMainTransform;
-				BLIT.RenderToGLMtr(this.Md, posMainTransform.x, posMainTransform.y, num, this.Mtr, cameraProjectionTransformed, this.Md.getTriMax(), false, false);
+				if (this.Md.hasMultipleTriangle())
+				{
+					BLIT.RenderToGLMtrTriMulti(this.Md, posMainTransform.x, posMainTransform.y, num, cameraProjectionTransformed, 0f);
+				}
+				else
+				{
+					BLIT.RenderToGLMtr(this.Md, posMainTransform.x, posMainTransform.y, num, this.Mtr, cameraProjectionTransformed, this.Md.getTriMax(), false, false);
+				}
 				return true;
 			}
 

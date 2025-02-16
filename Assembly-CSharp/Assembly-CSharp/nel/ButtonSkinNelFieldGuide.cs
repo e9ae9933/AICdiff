@@ -49,6 +49,7 @@ namespace nel
 			this.TargetMp = null;
 			this.TargetWM = null;
 			this.FSmn = null;
+			this.enid = (ENEMYID)0U;
 			this.fine_flag = true;
 			this.text_alpha = 1f;
 			this.RecipeIng = null;
@@ -59,7 +60,7 @@ namespace nel
 			this.Tx.max_swidth_px = this.w * 64f - (float)this.row_left_px - 30f;
 			this.Tx.line_spacing = 0.93f;
 			this.Md.clear(false, false);
-			this.rpi_ef = RecipeManager.RPI_EFFECT.NONE;
+			this.rpi_ef = RCP.RPI_EFFECT.NONE;
 			this.TxR.enabled = false;
 			this.Itm = null;
 			this.MdR.clear(false, false);
@@ -102,11 +103,11 @@ namespace nel
 				if (!ignore_obtain_count && !flag)
 				{
 					this.Itm = NelItem.Unknown;
-					stb.Set(NelItem.Unknown.getLocalizedName(0, null));
+					stb.Set(NelItem.Unknown.getLocalizedName(0));
 				}
 				else
 				{
-					stb.Set(TX.Get(this.IR.tx_key, ""));
+					TX.ReplaceTX(stb, this.IR.tx_key, false);
 					if (flag)
 					{
 						this.initLeftDummyButton(TX.Get("catalog_jump", ""));
@@ -168,12 +169,12 @@ namespace nel
 						this.text_alpha = 0.6f;
 					}
 				}
-				base.setTitleTextS(stb);
+				this.setTitleTextS(stb);
 			}
 			this.fine_flag = true;
 		}
 
-		public void initRpiEffect(NelItem SrcItm, RecipeManager.RPI_EFFECT rpi, float f, int grade)
+		public void initRpiEffect(NelItem SrcItm, RCP.RPI_EFFECT rpi, float f, int grade)
 		{
 			this.Tx.size = 12f;
 			this.rpi_ef = rpi;
@@ -182,16 +183,16 @@ namespace nel
 				using (STB stb2 = TX.PopBld(null, 0))
 				{
 					NelItem.GrdVariation gradeVariation = SrcItm.getGradeVariation(grade, null);
-					stb.AddTxA("recipe_effect_" + FEnum<RecipeManager.RPI_EFFECT>.ToStr(rpi).ToLower(), false);
+					stb.AddTxA("recipe_effect_" + FEnum<RCP.RPI_EFFECT>.ToStr(rpi).ToLower(), false);
 					stb.Add(" : ");
-					RecipeManager.getRPIEffectDescriptionTo(stb, rpi, gradeVariation.getDetailTo(stb2.Clear(), f / SrcItm.max_grade_enpower, "\n", false), 1);
+					RCP.getRPIEffectDescriptionTo(stb, rpi, gradeVariation.getDetailTo(stb2.Clear(), f / SrcItm.max_grade_enpower, "\n", false), 1);
 					this.Tx.Txt(stb);
 				}
 			}
 			this.initLeftDummyButton(TX.Get("catalog_pickup", ""));
 		}
 
-		public void initRecipeIngredient(RecipeManager.RecipeIngredient Ing)
+		public void initRecipeIngredient(RCP.RecipeIngredient Ing)
 		{
 			this.fine_flag = true;
 			this.RecipeIng = null;
@@ -217,7 +218,7 @@ namespace nel
 			if (Ing.target_ni_category > NelItem.CATEG.OTHER)
 			{
 				this.row_left_px += 25;
-				this.PF = MTR.AItemIcon[RecipeManager.RecipeIngredient.getToolIcon(Ing.target_ni_category)];
+				this.PF = MTR.AItemIcon[RCP.RecipeIngredient.getToolIcon(Ing.target_ni_category)];
 			}
 			else
 			{
@@ -245,7 +246,7 @@ namespace nel
 				}
 				else
 				{
-					stb.Add(Itm.getLocalizedName(grade, null));
+					Itm.getLocalizedName(stb, grade);
 				}
 				if (count > 1)
 				{
@@ -256,7 +257,7 @@ namespace nel
 					stb.Add(" ");
 					NelItem.getGradeMeshTxTo(stb, grade, 1, 64);
 				}
-				base.setTitleTextS(stb);
+				this.setTitleTextS(stb);
 				if (!flag)
 				{
 					this.text_alpha = 0.6f;
@@ -295,7 +296,7 @@ namespace nel
 					stb.AddTxA("catalog_price_sell", false).Add(this.Store.sellPrice(Itm, grade));
 				}
 				stb.Add("</font>");
-				base.setTitleTextS(stb);
+				this.setTitleTextS(stb);
 			}
 		}
 
@@ -317,7 +318,7 @@ namespace nel
 			using (STB stb = TX.PopBld(null, 0))
 			{
 				stb.Add(M2D.getMapTitle(Mp, this.TargetWM, true));
-				base.setTitleTextS(stb);
+				this.setTitleTextS(stb);
 			}
 		}
 
@@ -337,7 +338,28 @@ namespace nel
 			using (STB stb = TX.PopBld(null, 0))
 			{
 				stb.Add(this.FSmn.Summoner.name_localized);
-				base.setTitleTextS(stb);
+				this.setTitleTextS(stb);
+			}
+		}
+
+		public void initEnemy(ENEMYID id)
+		{
+			if (id == (ENEMYID)0U)
+			{
+				this.initItem(null, 1, 0, true, null);
+				return;
+			}
+			if (this.enid != id)
+			{
+				this.enid = id;
+				this.initLeftDummyButton(TX.Get("catalog_jump", ""));
+			}
+			this.row_left_px += 25;
+			this.PF = MTR.AItemIcon[74];
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				stb.Add(NDAT.getEnemyName(id, true));
+				this.setTitleTextS(stb);
 			}
 		}
 
@@ -378,6 +400,13 @@ namespace nel
 				this.Md.RotaPF(num, 0f, 1f, 1f, 0f, this.PF, false, false, false, uint.MaxValue, false, 0);
 				this.Md.chooseSubMesh(0, false, false);
 			}
+			else if (this.enid > (ENEMYID)0U)
+			{
+				this.Md.chooseSubMesh(1, false, false);
+				this.Md.Col = this.Md.ColGrd.Set(4283780170U).mulA(this.alpha_).C;
+				this.Md.RotaPF(num, 0f, 1f, 1f, 0f, this.PF, false, false, false, uint.MaxValue, false, 0);
+				this.Md.chooseSubMesh(0, false, false);
+			}
 			base.RowFineAfter(w, h);
 		}
 
@@ -400,6 +429,15 @@ namespace nel
 			return this;
 		}
 
+		public void triggerHover(FieldGuideWmController WmSkin)
+		{
+			if (this.FSmn != null && this.FDCon != null && this.FDCon.M2D != null)
+			{
+				WmDeperture deperture = this.FSmn.GetDeperture(this.FDCon.M2D);
+				WmSkin.reveal(deperture, true);
+			}
+		}
+
 		private UiFieldGuide FDCon;
 
 		public ReelManager.ItemReelContainer IR;
@@ -418,7 +456,9 @@ namespace nel
 
 		public WholeMapItem TargetWM;
 
-		public RecipeManager.RPI_EFFECT rpi_ef;
+		public ENEMYID enid;
+
+		public RCP.RPI_EFFECT rpi_ef;
 
 		private PxlFrame PF;
 
@@ -426,7 +466,7 @@ namespace nel
 
 		public const float BTN_DEFAULT_H = 30f;
 
-		public RecipeManager.RecipeIngredient RecipeIng;
+		public RCP.RecipeIngredient RecipeIng;
 
 		public ButtonSkinNormalNel.NNColor nncolor = ButtonSkinNormalNel.NNColor.NNcolor_default;
 	}

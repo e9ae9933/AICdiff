@@ -8,42 +8,60 @@ namespace nel
 		public aBtnNelRowSkill setContainer(UiSkillManageBox _Con)
 		{
 			this.Con = _Con;
-			if (this.UseCheck == null && this.Sk != null && !this.Sk.always_enable)
+			return this;
+		}
+
+		public override ButtonSkin makeButtonSkin(string key)
+		{
+			if (this.SkS == null)
 			{
-				this.UseCheck = IN.CreateGob(this, "-Check").AddComponent<aBtnNel>();
-				this.UseCheck.title = this.title + "-check";
-				this.UseCheck.w = this.Skin.sheight * 1.8f;
-				this.UseCheck.h = this.Skin.sheight;
+				this._SkinRow = (this.SkS = new ButtonSkinNelRowSkill(this, this.w, this.h));
+				this.Skin = this._SkinRow;
+			}
+			return this.Skin;
+		}
+
+		public override ButtonSkin initializeSkin(string _skin, string _title = "")
+		{
+			base.initializeSkin(_skin, _title);
+			this.Sk = SkillManager.Get(this.title);
+			if (this.SkS != null)
+			{
+				this.SkS.initSkill(this.Sk);
+			}
+			if (this.Sk != null && !this.Sk.always_enable)
+			{
+				if (this.UseCheck == null)
+				{
+					this.UseCheck = IN.CreateGob(this, "-Check").AddComponent<aBtnNel>();
+					this.UseCheck.w = this.Skin.sheight * 1.8f;
+					this.UseCheck.h = this.Skin.sheight;
+					this.UseCheck.addClickFn(new FnBtnBindings(this.fnCheckClick));
+					this.UseCheck.Container = this.Container;
+					this.UseCheck.hover_to_select = (this.UseCheck.click_to_select = false);
+					this.UseCheck.secureNavi();
+				}
 				this.UseCheck.SetChecked(this.Sk.enabled, true);
-				this.UseCheck.addClickFn(new FnBtnBindings(this.fnCheckClick));
-				this.UseCheck.Container = this.Container;
-				this.UseCheck.hover_to_select = (this.UseCheck.click_to_select = false);
+				this.UseCheck.title = this.title + "-check";
 				this.UseCheck.initializeSkin("checkbox", this.UseCheck.title);
-				this.UseCheck.secureNavi();
 				Designer.initSkinTitle(this.UseCheck, this.UseCheck.title, "&&CheckBox_Use");
 				(this.UseCheck.get_Skin() as ButtonSkinCheckBox).setScale(1f);
 				if (base.isActive())
 				{
 					this.UseCheck.bind();
 				}
+				else
+				{
+					this.UseCheck.hide();
+				}
+				this.UseCheck.gameObject.SetActive(true);
 				IN.PosP(this.UseCheck.transform, this.Skin.swidth / 2f - this.Skin.sheight * 1.8f / 2f, 0f, -0.2f);
 			}
-			return this;
-		}
-
-		public override ButtonSkin makeButtonSkin(string key)
-		{
-			if (this.Sk == null)
+			else if (this.UseCheck != null)
 			{
-				this.Sk = SkillManager.Get(this.title);
+				this.UseCheck.hide();
+				this.UseCheck.gameObject.SetActive(false);
 			}
-			if (this.Sk == null)
-			{
-				return base.makeButtonSkin(key);
-			}
-			this._SkinRow = (this.SkS = new ButtonSkinNelRowSkill(this, this.w, this.h));
-			this.Skin = this._SkinRow;
-			bool new_icon = this.Sk.new_icon;
 			return this.Skin;
 		}
 
@@ -62,7 +80,7 @@ namespace nel
 
 		private bool fnCheckClick(aBtn Check)
 		{
-			if (this.Con == null)
+			if (this.Con == null || this.Sk == null)
 			{
 				return false;
 			}

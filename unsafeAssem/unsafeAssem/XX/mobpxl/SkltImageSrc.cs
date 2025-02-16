@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Better;
 using PixelLiner;
 using PixelLiner.PixelLinerLib;
@@ -87,6 +88,58 @@ namespace XX.mobpxl
 			get
 			{
 				return this.follow_to == PARTS_TYPE.FACE && this.atc == ATC_TYPE._OTHER;
+			}
+		}
+
+		public string palette_key_default
+		{
+			get
+			{
+				if (TX.valid(this.name))
+				{
+					return this.name;
+				}
+				if (this.palette_key_default_ == null)
+				{
+					if (this.is_skin)
+					{
+						this.palette_key_default_ = this.Source.name;
+					}
+					else
+					{
+						this.palette_key_default_ = this.Source.name;
+						string[] abuf_atc_header_name = MobGenerator.Abuf_atc_header_name;
+						for (int i = abuf_atc_header_name.Length - 1; i >= 0; i--)
+						{
+							if (TX.isStart(this.palette_key_default_, abuf_atc_header_name[i], 0))
+							{
+								this.palette_key_default_ = TX.slice(this.palette_key_default_, abuf_atc_header_name[i].Length);
+								break;
+							}
+						}
+						if (MobGenerator.name2PT(this.palette_key_default_, 0) != PARTS_TYPE._OTHER)
+						{
+							int num = this.palette_key_default_.IndexOf("_");
+							if (num >= 0)
+							{
+								this.palette_key_default_ = TX.slice(this.palette_key_default_, num + 1);
+							}
+							else
+							{
+								this.palette_key_default_ = "_";
+							}
+						}
+						if (REG.match(this.palette_key_default, SkltImageSrc.RegLRSuffix))
+						{
+							this.palette_key_default_ = REG.leftContext;
+						}
+					}
+					if (this.palette_key_default_ == "")
+					{
+						this.palette_key_default_ = "_";
+					}
+				}
+				return this.palette_key_default_;
 			}
 		}
 
@@ -249,9 +302,13 @@ namespace XX.mobpxl
 
 		private BDic<string, SkltImageSrc.ISrcPat> OPat;
 
+		private string palette_key_default_;
+
 		public string first_ptype = "";
 
 		public uint parts_use_bits;
+
+		public static Regex RegLRSuffix = new Regex("_([LRB])$");
 
 		public struct ISrcPat
 		{

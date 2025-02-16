@@ -116,7 +116,8 @@ namespace nel
 					Mg.wind_apply_s_level = 1.35f;
 					if (!Mg.exploded)
 					{
-						Mg.explode(false);
+						Mg.MnSetRay(Mg.Ray, 1, Mg.sa, Mg.t);
+						Mg.explodeManaToRay(0.66f);
 					}
 				}
 			}
@@ -137,6 +138,10 @@ namespace nel
 				}
 				if ((hittype & HITTYPE.WALL_AND_BREAK) != HITTYPE.NONE)
 				{
+					if (!Mg.exploded)
+					{
+						Mg.explode(false);
+					}
 					Mg.wind_apply_s_level = 0f;
 					if ((hittype & HITTYPE.HITTED_WATER) != HITTYPE.NONE)
 					{
@@ -316,5 +321,7 @@ namespace nel
 		public const float whitearrow_bow_shift = -28f;
 
 		public const float whitearrow_bow_pull_shift = -40f;
+
+		private const float mana_explode_ratio_on_head = 0.66f;
 	}
 }

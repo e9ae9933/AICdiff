@@ -6,7 +6,7 @@ namespace XX
 	{
 		public override Designer addTab(string name, float _w = 0f, float _h = 0f, float min_w = 0f, float min_h = 0f, bool use_scroll = false)
 		{
-			DesignerWhite designerWhite = base.addTabT<DesignerWhite>(name, _w, _h, min_w, min_h, use_scroll) as DesignerWhite;
+			DesignerWhite designerWhite = base.addTabT<DesignerWhite>(name, _w, _h, min_w, min_h, use_scroll);
 			designerWhite.scroll_normal_color = this.scroll_normal_color;
 			designerWhite.scroll_push_color = this.scroll_push_color;
 			this.initScrollBoxColor(designerWhite.getScrollBox());

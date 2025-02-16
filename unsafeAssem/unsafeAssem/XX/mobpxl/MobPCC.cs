@@ -20,7 +20,7 @@ namespace XX.mobpxl
 			if (MdForPc != null)
 			{
 				GL.PushMatrix();
-				BLIT.JustPaste(Src, Dest);
+				BLIT.JustPaste(Src, Dest, false);
 				GL.PopMatrix();
 				Graphics.SetRenderTarget(Dest);
 				int vertexMax = MdForPc.getVertexMax();

@@ -118,7 +118,7 @@ namespace nel
 						Map2d map2d = this.M2D.Get(index, true);
 						if (map2d == null)
 						{
-							global::XX.X.de("whole map 対象 " + index + " がありません", null);
+							X.de("whole map 対象 " + index + " がありません", null);
 						}
 						else
 						{
@@ -177,6 +177,10 @@ namespace nel
 					else if (csvReader.cmd == "%DARK")
 					{
 						wholeMapItem.dark_area = true;
+					}
+					else if (csvReader.cmd == "%GQ_ENABLE")
+					{
+						wholeMapItem.enable_gq_type = csvReader._1;
 					}
 					else if (csvReader.cmd == "%ZX_EVT")
 					{
@@ -308,7 +312,7 @@ namespace nel
 
 		public WholeMapItem getWholeMapDescription(Map2d WholeMap)
 		{
-			return global::XX.X.Get<string, WholeMapItem>(this.OWm, WholeMap.key);
+			return X.Get<string, WholeMapItem>(this.OWm, WholeMap.key);
 		}
 
 		public WholeMapItem GetWholeDescriptionByName(string _key, bool find_with_text_key = false)
@@ -423,7 +427,7 @@ namespace nel
 			}
 		}
 
-		public void GetWMItem(string wm_key, string wmi_key, ref WholeMapItem Wm, ref WholeMapItem.WMItem Wmi, ref WholeMapItem.WMSpecialIcon WmSpIco)
+		public void GetWMItem(string wm_key, string wmi_key, ref WholeMapItem Wm, ref WholeMapItem.WMItem Wmi, ref WMSpecialIcon WmSpIco)
 		{
 			wm_key = "__whole_" + wm_key;
 			Wm = this.GetWholeDescriptionByName(wm_key, false);
@@ -478,7 +482,7 @@ namespace nel
 			return bdic;
 		}
 
-		public void readBinaryFrom(ByteArray Ba_first, int sf_version)
+		public void readBinaryFrom(ByteReader Ba_first, int sf_version)
 		{
 			this.clearAccess();
 			ByteArray byteArray = Ba_first.readExtractBytesShifted(4);
@@ -488,15 +492,17 @@ namespace nel
 				string text = byteArray.readString("utf-8", false);
 				if (!(text == ""))
 				{
-					ByteArray byteArray2 = byteArray.readExtractBytes(2);
-					WholeMapItem wholeMapItem;
-					if (this.OWm.TryGetValue(text, out wholeMapItem))
+					using (ByteReader byteReader = byteArray.readExtractBytes(2))
 					{
-						wholeMapItem.readBinaryFrom(byteArray2, sf_version);
-					}
-					else
-					{
-						global::XX.X.de("不明な WM: " + text, null);
+						WholeMapItem wholeMapItem;
+						if (this.OWm.TryGetValue(text, out wholeMapItem))
+						{
+							wholeMapItem.readBinaryFrom(byteReader, sf_version);
+						}
+						else
+						{
+							X.de("不明な WM: " + text, null);
+						}
 					}
 				}
 			}
@@ -574,15 +580,15 @@ namespace nel
 			if (Mg.t * (1f + (float)this.M2D.default_mist_pose * 0.7f) >= Mg.sz)
 			{
 				Mg.t = 0f;
-				float num = global::XX.X.NIXP(0.5f, 1.75f);
+				float num = X.NIXP(0.5f, 1.75f);
 				float x = Mg.Cen.x;
 				float y = Mg.Cen.y;
 				float num2 = num;
 				float da = Mg.da;
 				Mg.da = da + 1f;
 				Vector4 vector = new Vector4(x, y, num2, da);
-				vector.x = (this.M2D.Cam.x * Mg.Mp.rCLEN + global::XX.X.XORSPS() * IN.wh * Mg.Mp.rCLENB * 1.25f - (float)Mg.Mp.clms * 0.5f) / num * Mg.Mp.CLENB;
-				vector.y = -(this.M2D.Cam.y * Mg.Mp.rCLEN + global::XX.X.XORSPS() * IN.hh * Mg.Mp.rCLENB * 1.25f - (float)Mg.Mp.rows * 0.5f) / num * Mg.Mp.CLENB;
+				vector.x = (this.M2D.Cam.x * Mg.Mp.rCLEN + X.XORSPS() * IN.wh * Mg.Mp.rCLENB * 1.25f - (float)Mg.Mp.clms * 0.5f) / num * Mg.Mp.CLENB;
+				vector.y = -(this.M2D.Cam.y * Mg.Mp.rCLEN + X.XORSPS() * IN.hh * Mg.Mp.rCLENB * 1.25f - (float)Mg.Mp.rows * 0.5f) / num * Mg.Mp.CLENB;
 				List<Vector4> list = Mg.Other as List<Vector4>;
 				if (list != null)
 				{
@@ -602,8 +608,8 @@ namespace nel
 			{
 				Vector4 vector = A[i];
 				float num = Mg.Mp.floort - vector.w * Mg.sz;
-				uint ran = global::XX.X.GETRAN2((int)vector.w, 13 + ((int)vector.w & 7));
-				float num2 = global::XX.X.ZLINE(num, global::XX.X.NI(min_maxt, max_maxt, global::XX.X.RAN(ran, 796)));
+				uint ran = X.GETRAN2((int)vector.w, 13 + ((int)vector.w & 7));
+				float num2 = X.ZLINE(num, X.NI(min_maxt, max_maxt, X.RAN(ran, 796)));
 				if (num2 >= 1f)
 				{
 					A.RemoveAt(i);
@@ -612,15 +618,15 @@ namespace nel
 				{
 					meshImg.Identity();
 					meshImg.TranslateP(vector.x - posMainTransform.x * 64f, vector.y - posMainTransform.y * 64f, false).Scale(vector.z, vector.z, false).TranslateP(posMainTransform.x * 64f, posMainTransform.y * 64f, false);
-					float num3 = global::XX.X.RAN(ran, 1744) * 6.2831855f;
-					float num4 = (global::XX.X.ZLINE(num2, 0.4f) - global::XX.X.ZLINE(num2 - 0.6f, 0.4f)) * global::XX.X.NI(min_alpha, max_alpha, global::XX.X.RAN(ran, 1401));
-					float num5 = global::XX.X.NI(min_zm, max_zm, global::XX.X.RAN(ran, 727));
-					float num6 = global::XX.X.NI(80, 140, global::XX.X.RAN(ran, 1437)) * num5 / 65f * num2;
-					float num7 = global::XX.X.Cos(num3) * num6;
-					float num8 = global::XX.X.Sin(num3) * num6;
+					float num3 = X.RAN(ran, 1744) * 6.2831855f;
+					float num4 = (X.ZLINE(num2, 0.4f) - X.ZLINE(num2 - 0.6f, 0.4f)) * X.NI(min_alpha, max_alpha, X.RAN(ran, 1401));
+					float num5 = X.NI(min_zm, max_zm, X.RAN(ran, 727));
+					float num6 = X.NI(80, 140, X.RAN(ran, 1437)) * num5 / 65f * num2;
+					float num7 = X.Cos(num3) * num6;
+					float num8 = X.Sin(num3) * num6;
 					while (num4 > 0f)
 					{
-						meshImg.Col = meshImg.ColGrd.Set(col).mulA(global::XX.X.Mn(1f, num4)).C;
+						meshImg.Col = meshImg.ColGrd.Set(col).mulA(X.Mn(1f, num4)).C;
 						meshImg.Rect(num7, num8, num5, num5, false);
 						num4 -= 1f;
 					}
@@ -699,15 +705,15 @@ namespace nel
 			if (Mg.t >= Mg.sz)
 			{
 				Mg.t = 0f;
-				float num = global::XX.X.NIXP(0.5f, 2.15f);
+				float num = X.NIXP(0.5f, 2.15f);
 				float x = Mg.Cen.x;
 				float y = Mg.Cen.y;
 				float num2 = num;
 				float da = Mg.da;
 				Mg.da = da + 1f;
 				Vector4 vector = new Vector4(x, y, num2, da);
-				vector.x = (this.M2D.Cam.x * Mg.Mp.rCLEN + global::XX.X.XORSPS() * IN.wh * Mg.Mp.rCLENB * 1.25f - (float)Mg.Mp.clms * 0.5f) / num * Mg.Mp.CLENB;
-				vector.y = -(this.M2D.Cam.y * Mg.Mp.rCLEN + global::XX.X.XORSPS() * IN.hh * Mg.Mp.rCLENB * 1.25f - (float)Mg.Mp.rows * 0.5f) / num * Mg.Mp.CLENB;
+				vector.x = (this.M2D.Cam.x * Mg.Mp.rCLEN + X.XORSPS() * IN.wh * Mg.Mp.rCLENB * 1.25f - (float)Mg.Mp.clms * 0.5f) / num * Mg.Mp.CLENB;
+				vector.y = -(this.M2D.Cam.y * Mg.Mp.rCLEN + X.XORSPS() * IN.hh * Mg.Mp.rCLENB * 1.25f - (float)Mg.Mp.rows * 0.5f) / num * Mg.Mp.CLENB;
 				vhld_Sacred.A.Add(vector);
 			}
 			PR pr = mp.Pr as PR;
@@ -717,7 +723,7 @@ namespace nel
 				Mg.dz = 10f;
 				if (pr != null)
 				{
-					Mg.dy = global::XX.X.ZLINE(global::XX.X.LENGTHXYS(Mg.sx, Mg.sy, pr.x, pr.y) - 25f, 52f);
+					Mg.dy = X.ZLINE(X.LENGTHXYS(Mg.sx, Mg.sy, pr.x, pr.y) - 25f, 52f);
 				}
 			}
 			if (pr != null)
@@ -778,18 +784,18 @@ namespace nel
 			}
 			if (vhld_Sacred.PeBurst != null)
 			{
-				vhld_Sacred.PeZm2.x = global::XX.X.VALWALK(vhld_Sacred.PeZm2.x, (float)((Mg.dy < 0.25f && this.can_handle && !global::XX.X.DEBUGNODAMAGE) ? 1 : 0), fcnt * 0.0045454544f);
-				float num3 = global::XX.X.NI(0.55f, 1f, vhld_Sacred.PeZm2.x);
-				float num4 = global::XX.X.Scr(Mg.dy, 1f - num3);
-				vhld_Sacred.PeBloom.x = global::XX.X.MULWALK(vhld_Sacred.PeBloom.x, global::XX.X.NI(0.5f, 0.15f, num4), 0.008f);
-				vhld_Sacred.PeAlpha.x = global::XX.X.MULWALK(vhld_Sacred.PeAlpha.x, global::XX.X.NI(0.78f, 0.02f, global::XX.X.ZSIN(num4)), 0.012f);
-				vhld_Sacred.PeBurst.x = global::XX.X.MULWALK(vhld_Sacred.PeBurst.x, global::XX.X.NI(1f, 0.4f, num4), 0.008f);
-				vhld_Sacred.PeNoise.x = global::XX.X.MULWALK(vhld_Sacred.PeNoise.x, global::XX.X.saturate(global::XX.X.NI(1f, -0.2f, global::XX.X.ZSIN(num4))), 0.012f);
+				vhld_Sacred.PeZm2.x = X.VALWALK(vhld_Sacred.PeZm2.x, (float)((Mg.dy < 0.25f && this.can_handle && !X.DEBUGNODAMAGE) ? 1 : 0), fcnt * 0.0045454544f);
+				float num3 = X.NI(0.55f, 1f, vhld_Sacred.PeZm2.x);
+				float num4 = X.Scr(Mg.dy, 1f - num3);
+				vhld_Sacred.PeBloom.x = X.MULWALK(vhld_Sacred.PeBloom.x, X.NI(0.5f, 0.15f, num4), 0.008f);
+				vhld_Sacred.PeAlpha.x = X.MULWALK(vhld_Sacred.PeAlpha.x, X.NI(0.78f, 0.02f, X.ZSIN(num4)), 0.012f);
+				vhld_Sacred.PeBurst.x = X.MULWALK(vhld_Sacred.PeBurst.x, X.NI(1f, 0.4f, num4), 0.008f);
+				vhld_Sacred.PeNoise.x = X.MULWALK(vhld_Sacred.PeNoise.x, X.saturate(X.NI(1f, -0.2f, X.ZSIN(num4))), 0.012f);
 				if (vhld_Sacred.PeZm2.x >= 0.75f && Mg.dy < 0.25f)
 				{
 					if (pr != null && !pr.isBurstState())
 					{
-						if (pr.hp_crack > 0 && UIStatus.PrIs(pr))
+						if (pr.DMG.hp_crack > 0 && UIStatus.PrIs(pr))
 						{
 							UIStatus.showHold(90, false);
 						}
@@ -797,7 +803,7 @@ namespace nel
 						{
 							if (Mg.dx < 0f)
 							{
-								Mg.sa += fcnt * ((pr.hp_crack == 5) ? 0.3f : 1f);
+								Mg.sa += fcnt * ((pr.DMG.hp_crack == 5) ? 0.3f : 1f);
 							}
 							else
 							{
@@ -806,20 +812,20 @@ namespace nel
 							if (Mg.sa >= 80f)
 							{
 								Mg.sa = -180f;
-								pr.setHpCrack(pr.hp_crack + 1);
+								pr.DMG.setHpCrack(pr.DMG.hp_crack + 1);
 							}
 						}
 					}
 				}
 				else if (Mg.sa > 0f)
 				{
-					Mg.sa = global::XX.X.VALWALK(Mg.sa, 0f, fcnt);
+					Mg.sa = X.VALWALK(Mg.sa, 0f, fcnt);
 				}
 			}
 			else
 			{
-				vhld_Sacred.PeBloom.x = global::XX.X.MULWALK(vhld_Sacred.PeBloom.x, global::XX.X.NI(0.3f, 0.15f, Mg.dy), 0.008f);
-				vhld_Sacred.PeAlpha.x = global::XX.X.MULWALK(vhld_Sacred.PeAlpha.x, global::XX.X.NI(0.5f, 0.24f, global::XX.X.ZSIN(Mg.dy)), 0.012f);
+				vhld_Sacred.PeBloom.x = X.MULWALK(vhld_Sacred.PeBloom.x, X.NI(0.3f, 0.15f, Mg.dy), 0.008f);
+				vhld_Sacred.PeAlpha.x = X.MULWALK(vhld_Sacred.PeAlpha.x, X.NI(0.5f, 0.24f, X.ZSIN(Mg.dy)), 0.012f);
 			}
 			if (Mg.sa < 0f)
 			{

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 using m2d;
 using UnityEngine;
 using XX;
@@ -158,6 +159,14 @@ namespace nel
 			}
 		}
 
+		public static void getRegexForSummonerAppearList(ENEMYID id, ref Regex RegForSummonerScript)
+		{
+			if (NDAT.isMechGolem(id))
+			{
+				RegForSummonerScript = new Regex("\\n[ \\,\\t\\s]*%PUPPETREVENGE[ \\,\\t\\s]+");
+			}
+		}
+
 		public static bool efDraw(EffectItem Ef)
 		{
 			uint num = X.GETRAN2(Ef.f0, (int)((Ef.index & 7U) + 7U));
@@ -170,7 +179,7 @@ namespace nel
 			}
 			if (PuppetRevenge.EpHalo == null)
 			{
-				PuppetRevenge.EpHalo = new EfParticleOnce("summon_activate_sudden_puppetrevenge_halo", EFCON_TYPE.UI);
+				PuppetRevenge.EpHalo = new EfParticleOnce("summon_activate_sudden_puppetrevenge_halo", EFCON_TYPE.NORMAL);
 			}
 			Ef.x = M2DBase.Instance.Cam.x * curMap.rCLEN;
 			Ef.y = M2DBase.Instance.Cam.y * curMap.rCLEN;

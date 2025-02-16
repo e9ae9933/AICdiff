@@ -13,7 +13,7 @@ namespace nel
 			this.Sdr = new SlotDrawer(MTR.SqAlchemyRowSlot.getFrame(0), 0, -6);
 		}
 
-		public virtual void setItem(UiCraftBase _Con, List<List<UiCraftBase.IngEntryRow>> _AARie, RecipeManager.Recipe _Rcp, RecipeManager.RecipeIngredient _Ing, ItemStorage _Storage)
+		public virtual void setItem(UiCraftBase _Con, List<List<UiCraftBase.IngEntryRow>> _AARie, RCP.Recipe _Rcp, RCP.RecipeIngredient _Ing, ItemStorage _Storage)
 		{
 			this.Con = _Con;
 			this.Ing = _Ing;
@@ -32,36 +32,31 @@ namespace nel
 				this.ItmRow = new ItemStorage.IRow(this.Ing.Target, this.TempObt = new ItemStorage.ObtainInfo(), false);
 			}
 			base.setItem(null, _Storage, this.ItmRow);
-			this.row_left_px = ((_Ing.target_category != (RecipeManager.RPI_CATEG)0) ? 30 : (_Ing.is_tool ? 100 : 73));
+			this.row_left_px = ((_Ing.target_category != (RCP.RPI_CATEG)0) ? 30 : (_Ing.is_tool ? 100 : 73));
 		}
 
-		protected override string getTitleString()
+		protected override STB getTitleString(STB Stb)
 		{
 			if (this.Ing == null)
 			{
-				return "";
+				return Stb;
 			}
-			string text;
-			using (STB stb = TX.PopBld(null, 0))
+			this.Ing.ingredientDescTo(Stb, true, true);
+			if (this.Ing.is_tool)
 			{
-				this.Ing.ingredientDescTo(stb, true, true);
-				if (this.Ing.is_tool)
+				List<UiCraftBase.IngEntryRow> list = this.AARie[this.Ing.index];
+				using (STB stb = TX.PopBld(null, 0))
 				{
-					List<UiCraftBase.IngEntryRow> list = this.AARie[this.Ing.index];
-					using (STB stb2 = TX.PopBld(null, 0))
+					int count = list.Count;
+					for (int i = 0; i < count; i++)
 					{
-						int count = list.Count;
-						for (int i = 0; i < count; i++)
-						{
-							stb2.Append(list[i].Itm.getLocalizedName(list[i].grade, null), ", ");
-						}
-						stb.Add(" - ");
-						stb.Add(stb2);
+						stb.Append(list[i].Itm.getLocalizedName(list[i].grade), ", ");
 					}
+					Stb.Add(" - ");
+					Stb.Add(stb);
 				}
-				text = stb.ToString();
 			}
-			return text;
+			return Stb;
 		}
 
 		protected override STB getCountString(STB Stb)
@@ -106,7 +101,7 @@ namespace nel
 				}
 				else
 				{
-					Stb.AddTxA((this.Rcp.categ == RecipeManager.RP_CATEG.COOK) ? "alchemy_tool_is_infinity_cook" : "alchemy_tool_is_infinity", false);
+					Stb.AddTxA((this.Rcp.categ == RCP.RP_CATEG.COOK) ? "alchemy_tool_is_infinity_cook" : "alchemy_tool_is_infinity", false);
 				}
 			}
 			else
@@ -129,7 +124,7 @@ namespace nel
 		{
 			get
 			{
-				return this.Ing.is_tool || (this.Rcp.Completion == null && this.Rcp.categ != RecipeManager.RP_CATEG.ALOMA);
+				return this.Ing.is_tool || (this.Rcp.Completion == null && this.Rcp.categ != RCP.RP_CATEG.ALOMA);
 			}
 		}
 
@@ -181,7 +176,11 @@ namespace nel
 					this.count_r++;
 				}
 				this.fine_title_string = false;
-				this.Tx.text_content = this.getTitleString();
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					this.getTitleString(stb);
+					this.Tx.Txt(stb);
+				}
 				if (!this.Ing.is_tool && this.count_r != num)
 				{
 					if (this.Ing.allloc_over_quantity)
@@ -261,7 +260,7 @@ namespace nel
 			}
 			else if (this.Ing.target_ni_category > NelItem.CATEG.OTHER && this.Ing.is_tool)
 			{
-				this.drawToolIcon(x, y, RecipeManager.RecipeIngredient.getToolIcon(this.Ing.target_ni_category));
+				this.drawToolIcon(x, y, RCP.RecipeIngredient.getToolIcon(this.Ing.target_ni_category));
 			}
 			this.Md.chooseSubMesh(1, false, false);
 			this.Md.Col = C32.MulA(this.Tx.TextColor, this.alpha_);
@@ -312,9 +311,9 @@ namespace nel
 
 		private UiCraftBase Con;
 
-		private RecipeManager.Recipe Rcp;
+		private RCP.Recipe Rcp;
 
-		private RecipeManager.RecipeIngredient Ing;
+		private RCP.RecipeIngredient Ing;
 
 		private ItemStorage.ObtainInfo TempObt;
 

@@ -16,18 +16,32 @@ namespace XX
 
 		public virtual void OnEnable()
 		{
-			if (!this.runner_assigned)
-			{
-				this.runner_assigned = true;
-				IN.addRunner(this);
-			}
+			this.runner_assigned = true;
 		}
 
 		public virtual void OnDisable()
 		{
-			if (this.runner_assigned)
+			this.runner_assigned = false;
+		}
+
+		public bool runner_assigned
+		{
+			get
 			{
-				this.runner_assigned = false;
+				return this.runner_assigned_;
+			}
+			set
+			{
+				if (this.runner_assigned == value)
+				{
+					return;
+				}
+				this.runner_assigned_ = value;
+				if (value)
+				{
+					IN.addRunner(this);
+					return;
+				}
 				IN.remRunner(this);
 			}
 		}
@@ -41,7 +55,7 @@ namespace XX
 		{
 			if (!this.runIRD(fcnt))
 			{
-				this.runner_assigned = false;
+				this.runner_assigned_ = false;
 				return false;
 			}
 			return true;
@@ -54,7 +68,7 @@ namespace XX
 			this.OnDisable();
 		}
 
-		private bool runner_assigned;
+		private bool runner_assigned_;
 
 		private string _tostring;
 	}

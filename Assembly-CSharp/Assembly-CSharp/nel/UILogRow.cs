@@ -244,12 +244,12 @@ namespace nel
 
 		public UILogRow activateGetItem(STB StbActKey, NelItemManager IMNG, NelItem Itm, int count = 1, int grade = 0)
 		{
-			return this.activateForItem(UILogRow.TYPE.GETITEM, StbActKey, Itm, count, grade, IMNG.countItem(Itm));
+			return this.activateForItem(UILogRow.TYPE.GETITEM, StbActKey, Itm, count, grade, IMNG.countItem(Itm, -1, false, false));
 		}
 
 		public UILogRow activateForItem(UILogRow.TYPE type, STB StbActKey, NelItem Itm, int count, int grade, int rest_count)
 		{
-			this.activate(type, StbActKey.ToString(), Itm.getLocalizedName(grade, null));
+			this.activate(type, StbActKey.ToString(), Itm.getLocalizedName(grade));
 			this.a_count = count;
 			this.a_count_a = rest_count;
 			bool flag = TX.isEnglishLang();

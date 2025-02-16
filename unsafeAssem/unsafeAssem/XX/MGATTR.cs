@@ -32,6 +32,7 @@ namespace XX
 		CURE_MP,
 		MUD,
 		ACME,
+		STONE,
 		PEE
 	}
 }

@@ -21,9 +21,14 @@ namespace m2d
 			return key - NDMG.MAPDAMAGE_LAVA <= 4U || key - NDMG.GRAB_PENETRATE <= 2U;
 		}
 
+		public static bool isPenetrateShutterAttr(NDMG key)
+		{
+			return key == NDMG.MAPDAMAGE_LAVA || key == NDMG.MAPDAMAGE_THUNDER_A;
+		}
+
 		public M2NoDamageManager AddBurstPrevent(float _time)
 		{
-			for (int i = 12; i >= 0; i--)
+			for (int i = 13; i >= 0; i--)
 			{
 				NDMG ndmg = (NDMG)i;
 				if (!M2NoDamageManager.isPenetrateDefault(ndmg) || ndmg == NDMG.MAPDAMAGE_THUNDER)
@@ -36,7 +41,7 @@ namespace m2d
 
 		public M2NoDamageManager AddAll(float _time, uint ignore_bits = 0U)
 		{
-			for (int i = 12; i >= 0; i--)
+			for (int i = 13; i >= 0; i--)
 			{
 				if ((ignore_bits & (1U << i)) == 0U)
 				{
@@ -50,13 +55,16 @@ namespace m2d
 		{
 			this.Ond = new BDic<NDMG, M2NoDamageManager.NDItm>(2);
 			this.initS(Mp);
-			this.Add(0f);
 		}
 
 		public M2NoDamageManager initS(Map2d _Mp)
 		{
 			this.Mp = _Mp;
 			this.Clear();
+			if (this.Mp != null)
+			{
+				this.Add(0f);
+			}
 			return this;
 		}
 
@@ -88,7 +96,7 @@ namespace m2d
 			this.Ond[key] = nditm;
 			if (_time > 0f)
 			{
-				this.active_bits |= ((key == NDMG.DEFAULT) ? 8191U : (1U << (int)key));
+				this.active_bits |= ((key == NDMG.DEFAULT) ? 16383U : (1U << (int)key));
 			}
 			return this;
 		}
@@ -103,7 +111,7 @@ namespace m2d
 
 		public bool isActive()
 		{
-			uint num = 13U;
+			uint num = 14U;
 			if (this.active_bits == 0U)
 			{
 				return false;
@@ -147,7 +155,7 @@ namespace m2d
 
 		public bool isActiveDefault()
 		{
-			if ((this.active_bits & 4096U) == 0U)
+			if ((this.active_bits & 8192U) == 0U)
 			{
 				return false;
 			}
@@ -155,7 +163,7 @@ namespace m2d
 			bool flag = this.Ond.TryGetValue(NDMG.DEFAULT, out nditm) && nditm.time > this.Mp.floort;
 			if (!flag)
 			{
-				this.active_bits &= 4294963199U;
+				this.active_bits &= 4294959103U;
 			}
 			return flag;
 		}

@@ -180,110 +180,113 @@ namespace XX
 				{
 					this.italic = true;
 				}
-				else if (tag.TagNameIs("rb"))
+				else if (!tag.TagNameIs("s"))
 				{
-					lock_auto_wrap = true;
-				}
-				else
-				{
-					if (tag.TagNameIs("font"))
+					if (tag.TagNameIs("rb"))
 					{
-						using (STB stb = TX.PopBld(null, 0))
+						lock_auto_wrap = true;
+					}
+					else
+					{
+						if (tag.TagNameIs("font"))
 						{
-							if (tag.getVarContent("size", stb.Clear()))
+							using (STB stb = TX.PopBld(null, 0))
 							{
-								int num;
-								int num3;
-								if ((num = stb.IndexOf("%", 0, -1)) >= 0)
+								if (tag.getVarContent("size", stb.Clear()))
 								{
-									int num2;
-									if (stb.Nm(0, out num2, num, false) != STB.PARSERES.ERROR)
+									int num;
+									int num3;
+									if ((num = stb.IndexOf("%", 0, -1)) >= 0)
 									{
-										this.size = (float)(STB.parse_result_double / 100.0 * (double)this.size);
+										int num2;
+										if (stb.Nm(0, out num2, num, false) != STB.PARSERES.ERROR)
+										{
+											this.size = (float)(STB.parse_result_double / 100.0 * (double)this.size);
+										}
+									}
+									else if (stb.Nm(0, out num3, -1, false) != STB.PARSERES.ERROR)
+									{
+										this.size = (float)STB.parse_result_double;
 									}
 								}
-								else if (stb.Nm(0, out num3, -1, false) != STB.PARSERES.ERROR)
+								int num4;
+								if (tag.getVarContent("color", stb.Clear()) && stb.Nm(0, out num4, -1, false) == STB.PARSERES.INT)
 								{
-									this.size = (float)STB.parse_result_double;
-								}
-							}
-							int num4;
-							if (tag.getVarContent("color", stb.Clear()) && stb.Nm(0, out num4, -1, false) == STB.PARSERES.INT)
-							{
-								this.MyCol = C32.d2c((uint)STB.parse_result_int);
-								if (this.TargetRenderer != null)
-								{
-									this.TargetRenderer.color_arranged = true;
-								}
-							}
-							if (tag.getVarContent("alpha", stb.Clear()))
-							{
-								int num5;
-								if (stb.Nm(0, out num5, -1, false) != STB.PARSERES.ERROR)
-								{
-									this.alpha = this.FirstStyle.alpha * (float)STB.parse_result_double;
+									this.MyCol = C32.d2c((uint)STB.parse_result_int);
 									if (this.TargetRenderer != null)
 									{
-										this.TargetRenderer.color_arranged = (this.TargetRenderer.alpha_arranged = true);
+										this.TargetRenderer.color_arranged = true;
 									}
 								}
-								else
+								if (tag.getVarContent("alpha", stb.Clear()))
 								{
-									this.alpha = this.FirstStyle.alpha;
+									int num5;
+									if (stb.Nm(0, out num5, -1, false) != STB.PARSERES.ERROR)
+									{
+										this.alpha = this.FirstStyle.alpha * (float)STB.parse_result_double;
+										if (this.TargetRenderer != null)
+										{
+											this.TargetRenderer.color_arranged = (this.TargetRenderer.alpha_arranged = true);
+										}
+									}
+									else
+									{
+										this.alpha = this.FirstStyle.alpha;
+									}
 								}
+								if (tag.getVarContent("letterspacing", stb.Clear()))
+								{
+									int num6;
+									if (stb.Nm(0, out num6, -1, false) != STB.PARSERES.ERROR)
+									{
+										this.letterSpacing = this.FirstStyle.letterSpacing * (float)STB.parse_result_double;
+									}
+									else
+									{
+										this.letterSpacing = this.FirstStyle.letterSpacing;
+									}
+								}
+								if (tag.getVarContent("linespacing", stb.Clear()))
+								{
+									int num7;
+									if (stb.Nm(0, out num7, -1, false) != STB.PARSERES.ERROR)
+									{
+										this.lineSpacing = this.FirstStyle.lineSpacing * (float)STB.parse_result_double;
+									}
+									else
+									{
+										this.lineSpacing = this.FirstStyle.lineSpacing;
+									}
+								}
+								goto IL_0314;
 							}
-							if (tag.getVarContent("letterspacing", stb.Clear()))
+						}
+						if (tag.TagNameIs("align"))
+						{
+							if (tag.getVarContent("left", null))
 							{
-								int num6;
-								if (stb.Nm(0, out num6, -1, false) != STB.PARSERES.ERROR)
-								{
-									this.letterSpacing = this.FirstStyle.letterSpacing * (float)STB.parse_result_double;
-								}
-								else
-								{
-									this.letterSpacing = this.FirstStyle.letterSpacing;
-								}
+								this.alignx = ALIGN.LEFT;
 							}
-							if (tag.getVarContent("linespacing", stb.Clear()))
+							else if (tag.getVarContent("center", null))
 							{
-								int num7;
-								if (stb.Nm(0, out num7, -1, false) != STB.PARSERES.ERROR)
-								{
-									this.lineSpacing = this.FirstStyle.lineSpacing * (float)STB.parse_result_double;
-								}
-								else
-								{
-									this.lineSpacing = this.FirstStyle.lineSpacing;
-								}
+								this.alignx = ALIGN.CENTER;
 							}
-							goto IL_0304;
+							else if (tag.getVarContent("right", null))
+							{
+								this.alignx = ALIGN.RIGHT;
+							}
+							else
+							{
+								this.alignx = this.FirstStyle.alignx;
+							}
 						}
-					}
-					if (tag.TagNameIs("align"))
-					{
-						if (tag.getVarContent("left", null))
+						else if (this.TargetRenderer != null)
 						{
-							this.alignx = ALIGN.LEFT;
+							this.TargetRenderer.ReconsiderSpecialTag(TMem, this, tag);
 						}
-						else if (tag.getVarContent("center", null))
-						{
-							this.alignx = ALIGN.CENTER;
-						}
-						else if (tag.getVarContent("right", null))
-						{
-							this.alignx = ALIGN.RIGHT;
-						}
-						else
-						{
-							this.alignx = this.FirstStyle.alignx;
-						}
-					}
-					else if (this.TargetRenderer != null)
-					{
-						this.TargetRenderer.ReconsiderSpecialTag(TMem, this, tag);
 					}
 				}
-				IL_0304:;
+				IL_0314:;
 			}
 			this.ApplyTo(null, null);
 			if (this.TargetRenderer != null)
@@ -503,7 +506,7 @@ namespace XX
 						{
 							meshDrawer.Col = this.MyCol;
 						}
-						MTRX.DrawMeshIcon(meshDrawer, num8 + num * 1.8f, num7, num * 1.8f, "lock", 0f);
+						Shape.DrawMeshIcon(meshDrawer, num8 + num * 1.8f, num7, num * 1.8f, 0, 0f);
 						drawx += num * 0.7f;
 					}
 					else if (Tg.HasVar("borderrect"))
@@ -578,19 +581,19 @@ namespace XX
 								if (i >= inputCount)
 								{
 									flag6 = true;
-									goto IL_0A4D;
+									goto IL_0A49;
 								}
 								string inputName = IN.getInputName(i);
 								if (Tg.HasVar(inputName))
 								{
 									pxlImage3 = IN.getKeyAssignIcon(inputName, ref num20, ref num17, num19);
 									flag6 = pxlImage3 != null && pxlImage3 != pxlImage2;
-									goto IL_0A4D;
+									goto IL_0A49;
 								}
-								IL_13C7:
+								IL_13C3:
 								i++;
 								continue;
-								IL_0A4D:
+								IL_0A49:
 								if (flag6 && stb2.Length > 0)
 								{
 									float num21 = 0f;
@@ -769,9 +772,9 @@ namespace XX
 									}
 								}
 								pxlImage2 = pxlImage3;
-								goto IL_13C7;
+								goto IL_13C3;
 							}
-							goto IL_1429;
+							goto IL_1425;
 						}
 					}
 					if (this.TargetRenderer == null || (!this.TargetRenderer.ParseSpecialTag(TMem, this, Tg, ref drawx, ref margin) && !this.TargetRenderer.do_not_error_unknown_tag))
@@ -779,7 +782,7 @@ namespace XX
 						X.de("Unknown tag:" + Tg.getTagName(), null);
 					}
 				}
-				IL_1429:
+				IL_1425:
 				if (this.TargetRenderer != null)
 				{
 					this.TargetRenderer.initMeshSub(TextRenderer.MESH_TYPE.TX);

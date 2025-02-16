@@ -69,7 +69,7 @@ namespace nel
 			});
 			this.CancelBtn.setNaviL(this.BConSlider.Get(this.BConSlider.Length - 1), true, true);
 			this.CancelBtn.setNaviR(this.BConSlider.Get(0), true, true);
-			this.BConSlider.Get(0).Select(false);
+			this.BConSlider.Get(0).Select(true);
 			return this;
 		}
 

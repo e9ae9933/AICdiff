@@ -80,7 +80,6 @@ namespace XX
 			{
 				return;
 			}
-			CsvReader csvReader = new CsvReader(data_text, CsvReader.RegSpace, true);
 			bool flag = false;
 			bool flag2 = false;
 			if (EfParticleManager.APtcO == null)
@@ -98,178 +97,185 @@ namespace XX
 			EfSetterP efSetterP = null;
 			AttackGhostDrawer attackGhostDrawer = null;
 			bool flag3 = true;
-			CsvVariableContainer csvVariableContainer = null;
-			for (;;)
+			CsvReader csvReader = new CsvReader(null, CsvReader.RegSpace, true);
+			csvReader.no_replace_quote = false;
+			csvReader.no_write_varcon = 0;
+			CsvVariableContainer varCon = csvReader.VarCon;
+			StbReader stbReader = new StbReader(64, data_text);
+			using (STB stb = TX.PopBld(null, 0))
 			{
+				stb.EnsureCapacity(512);
+				using (STB stb2 = TX.PopBld(null, 0))
+				{
+					int num;
+					int num2;
+					while (stbReader.readCorrectlyNoEmpty(out num, out num2, true))
+					{
+						if (stbReader.IsSectionHeader(num, stb2, num2))
+						{
+							flag3 = true;
+							if (efParticleLoader != null)
+							{
+								efParticleLoader.addScript(stb, 0, -1);
+								efParticleLoader.endCR();
+								efParticleLoader = null;
+							}
+							if (efSetterP != null)
+							{
+								efSetterP.ScriptAdd(stb, 0, -1);
+								EfSetterP.scriptConvert(efSetterP);
+								efSetterP = null;
+							}
+							attackGhostDrawer = ((attackGhostDrawer != null) ? attackGhostDrawer.endCR() : null);
+							stb.Clear();
+							if (stb2.isStart("SETTER.", 0))
+							{
+								string text = stb2.ToString("SETTER.".Length, stb2.Length - "SETTER.".Length);
+								efSetterP = new EfSetterP(text);
+								EfParticleManager.OPtcSetter[text] = efSetterP;
+							}
+							else if (stb2.isStart("AGD.", 0))
+							{
+								string text = stb2.ToString("AGD.".Length, stb2.Length - "AGD.".Length);
+								attackGhostDrawer = (EfParticleManager.OAgd[text] = new AttackGhostDrawer(csvReader));
+							}
+							else if (stb2.IsWholeWMatch(0, -1))
+							{
+								string text = stb2.ToString();
+								efParticleLoader = new EfParticleLoader(text);
+								EfParticleManager.APtcO.Add(efParticleLoader);
+							}
+							else
+							{
+								X.de("不正なパーティクルキー:" + stb2.ToString(), null);
+							}
+						}
+						else
+						{
+							int num3;
+							stbReader.ScrollFirstWord(num, out num3, stb2, num2);
+							if (efParticleLoader != null)
+							{
+								if (!stb2.Equals("{") && !stb2.Equals("}"))
+								{
+									if (stb2.Equals("%CLONE"))
+									{
+										int num4;
+										stbReader.ScrollFirstWord(num3, out num4, stb2, num2);
+										efParticleLoader.clone_from = stb2.ToString();
+									}
+									else if (stb2.Equals("%MERGE"))
+									{
+										int num5;
+										stbReader.ScrollFirstWord(num3, out num5, stb2, num2);
+										efParticleLoader.merge_from = stb2.ToString();
+									}
+									else
+									{
+										stb2.Clear();
+										if (csvReader.CopyWithReplacingVar(stbReader, num, num2, stb2, " "))
+										{
+											stb.Add(stb2).Ret("\n");
+										}
+									}
+								}
+							}
+							else if (efSetterP != null)
+							{
+								if (stb2.Equals("%CLONE"))
+								{
+									int num6;
+									stbReader.ScrollFirstWord(num3, out num6, stb2, num2);
+									string text2 = stb2.ToString();
+									EfSetterP efSetterP2 = X.Get<string, EfSetterP>(EfParticleManager.OPtcSetter, text2);
+									if (efSetterP2 != null)
+									{
+										efSetterP2.CopyTo(stb.Clear());
+									}
+									else
+									{
+										X.de("不明な PST キー: " + text2, null);
+									}
+								}
+								else if (stb2.Equals("%MERGE"))
+								{
+									int num7;
+									stbReader.ScrollFirstWord(num3, out num7, stb2, num2);
+									string text3 = stb2.ToString();
+									EfSetterP efSetterP3 = X.Get<string, EfSetterP>(EfParticleManager.OPtcSetter, text3);
+									if (efSetterP3 != null)
+									{
+										efSetterP3.CopyTo(stb);
+									}
+									else
+									{
+										X.de("不明な PST キー: " + text3, null);
+									}
+								}
+								else
+								{
+									stb.Add(stbReader, num, num2 - num).Ret("\n");
+								}
+							}
+							else if (attackGhostDrawer != null)
+							{
+								if (stb2.Equals("%CLONE"))
+								{
+									int num8;
+									stbReader.ScrollFirstWord(num3, out num8, stb2, num2);
+									string text4 = stb2.ToString();
+									AttackGhostDrawer attackGhostDrawer2 = X.Get<string, AttackGhostDrawer>(EfParticleManager.OAgd, text4);
+									if (attackGhostDrawer2 == null)
+									{
+										stbReader.tError("不明なAGDキー: " + text4);
+									}
+									else
+									{
+										attackGhostDrawer.copyFrom(attackGhostDrawer2);
+									}
+								}
+								else if (csvReader.readInner(stbReader, num, num2))
+								{
+									attackGhostDrawer.readCR(csvReader);
+								}
+							}
+							else if (stbReader.isStart("@", num))
+							{
+								stbReader.ScrollFirstWord(num + 1, out num3, stb2, num2);
+								string text5 = X.noext(stb2.ToString());
+								if (!EfParticleManager.do_not_access_other_file || (EfParticleManager.Aaccessable_other_file != null && EfParticleManager.Aaccessable_other_file.IndexOf(text5) != -1))
+								{
+									if (Aother_load == null)
+									{
+										Aother_load = new List<string>(1);
+									}
+									Aother_load.Add(text5);
+								}
+							}
+							else if (flag3)
+							{
+								X.de("curPtc/curPSt/CurAgd がない状態でのコマンドです: " + stbReader.ToString(num, num2 - num), null);
+								flag3 = false;
+							}
+						}
+					}
+				}
+				if (efParticleLoader != null)
+				{
+					efParticleLoader.addScript(stb, 0, -1);
+					efParticleLoader.endCR();
+					efParticleLoader = null;
+				}
 				if (efSetterP != null)
 				{
-					if (!csvReader.readCorrectly())
-					{
-						break;
-					}
-					if (TX.noe(csvReader.getLastStr()))
-					{
-						continue;
-					}
-					if (!csvReader.stringsInput(csvReader.getLastStr()))
-					{
-						continue;
-					}
+					efSetterP.ScriptAdd(stb, 0, -1);
+					EfSetterP.scriptConvert(efSetterP);
+					efSetterP = null;
 				}
-				else if (!csvReader.read())
+				if (attackGhostDrawer != null)
 				{
-					break;
+					attackGhostDrawer = attackGhostDrawer.endCR();
 				}
-				if (csvReader.cmd.IndexOf("@") == 0)
-				{
-					string text = X.noext(TX.slice(csvReader.cmd, 1));
-					if (!EfParticleManager.do_not_access_other_file || (EfParticleManager.Aaccessable_other_file != null && EfParticleManager.Aaccessable_other_file.IndexOf(text) != -1))
-					{
-						if (Aother_load == null)
-						{
-							Aother_load = new List<string>(1);
-						}
-						Aother_load.Add(text);
-					}
-				}
-				else if (csvReader.cmd == "/*" || csvReader.cmd == "/*___")
-				{
-					string text2 = csvReader.getIndex((csvReader.cmd == "/*") ? 2 : 1);
-					flag3 = true;
-					if (efParticleLoader != null)
-					{
-						efParticleLoader.endCR();
-						efParticleLoader = null;
-					}
-					if (efSetterP != null)
-					{
-						EfSetterP.scriptConvert(efSetterP);
-						efSetterP = null;
-					}
-					attackGhostDrawer = ((attackGhostDrawer != null) ? attackGhostDrawer.endCR() : null);
-					if (EfParticleManager.RegSetter.Match(text2).Success)
-					{
-						text2 = text2.Substring(7);
-						efSetterP = new EfSetterP(text2);
-						csvReader.no_replace_quote = true;
-						csvReader.no_write_varcon = 2;
-						EfParticleManager.OPtcSetter[text2] = efSetterP;
-						if (csvVariableContainer == null)
-						{
-							csvVariableContainer = csvReader.VarCon;
-							csvReader.VarCon = null;
-						}
-					}
-					else if (EfParticleManager.RegAgd.Match(text2).Success)
-					{
-						text2 = text2.Substring(4);
-						attackGhostDrawer = (EfParticleManager.OAgd[text2] = new AttackGhostDrawer(csvReader));
-					}
-					else
-					{
-						csvReader.no_replace_quote = false;
-						csvReader.no_write_varcon = 0;
-						if (csvVariableContainer != null)
-						{
-							csvReader.VarCon = csvVariableContainer;
-							csvVariableContainer = null;
-						}
-						if (EfParticleManager.RegW.Match(text2).Success)
-						{
-							efParticleLoader = new EfParticleLoader(text2);
-							EfParticleManager.APtcO.Add(efParticleLoader);
-						}
-						else
-						{
-							X.de("不正なパーティクルキー:" + text2, null);
-						}
-					}
-				}
-				else if (efParticleLoader != null)
-				{
-					if (!(csvReader.cmd == "{") && !(csvReader.cmd == "}"))
-					{
-						if (csvReader.cmd == "%CLONE")
-						{
-							efParticleLoader.clone_from = csvReader._1;
-						}
-						else if (csvReader.cmd == "%MERGE")
-						{
-							efParticleLoader.merge_from = csvReader._1;
-						}
-						else
-						{
-							efParticleLoader.addScript(csvReader);
-						}
-					}
-				}
-				else if (efSetterP != null)
-				{
-					if (csvReader.cmd == "%CLONE")
-					{
-						EfSetterP efSetterP2 = X.Get<string, EfSetterP>(EfParticleManager.OPtcSetter, csvReader._1);
-						if (efSetterP2 != null)
-						{
-							efSetterP.ScriptSet(efSetterP2);
-						}
-						else
-						{
-							X.de("不明な PST キー: " + csvReader._1, null);
-						}
-					}
-					else if (csvReader.cmd == "%MERGE")
-					{
-						EfSetterP efSetterP3 = X.Get<string, EfSetterP>(EfParticleManager.OPtcSetter, csvReader._1);
-						if (efSetterP3 != null)
-						{
-							efSetterP.ScriptAdd(efSetterP3);
-						}
-						else
-						{
-							X.de("不明な PST キー: " + csvReader._1, null);
-						}
-					}
-					else
-					{
-						efSetterP.ScriptAdd(csvReader.getLastStr());
-					}
-				}
-				else if (attackGhostDrawer != null)
-				{
-					if (csvReader.cmd == "%CLONE")
-					{
-						AttackGhostDrawer attackGhostDrawer2 = X.Get<string, AttackGhostDrawer>(EfParticleManager.OAgd, csvReader._1);
-						if (attackGhostDrawer2 == null)
-						{
-							csvReader.tError("不明なAGDキー: " + csvReader._1);
-						}
-						else
-						{
-							attackGhostDrawer.copyFrom(attackGhostDrawer2);
-						}
-					}
-					else
-					{
-						attackGhostDrawer.readCR(csvReader);
-					}
-				}
-				else if (flag3)
-				{
-					X.de("curPtc/curPSt/CurAgd がない状態でのコマンドです: " + csvReader.cmd, null);
-					flag3 = false;
-				}
-			}
-			if (efParticleLoader != null)
-			{
-				efParticleLoader.endCR();
-			}
-			if (efSetterP != null)
-			{
-				EfSetterP.scriptConvert(efSetterP);
-			}
-			if (attackGhostDrawer != null)
-			{
-				attackGhostDrawer = attackGhostDrawer.endCR();
 			}
 			if (Aother_load != null)
 			{
@@ -461,8 +467,8 @@ namespace XX
 
 		public static readonly Regex RegW = new Regex("^\\w+$");
 
-		private static readonly Regex RegSetter = new Regex("^SETTER\\.\\w+$", RegexOptions.IgnoreCase);
+		private const string SETTER_header = "SETTER.";
 
-		private static readonly Regex RegAgd = new Regex("^AGD\\.\\w+$", RegexOptions.IgnoreCase);
+		private const string AGD_header = "AGD.";
 	}
 }

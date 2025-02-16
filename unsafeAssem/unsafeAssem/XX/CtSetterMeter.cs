@@ -8,7 +8,10 @@ namespace XX
 			: base(_Meter.transform.parent.gameObject, "-CtSetter")
 		{
 			this.Meter = _Meter;
-			this.fineValue(this.Meter.getValue().ToString(), false);
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				this.fineValue(stb.Add(this.Meter.getValue()), false);
+			}
 			if (this.Meter.Container != null)
 			{
 				base.stencil_ref = this.Meter.Container.stencil_ref;
@@ -19,7 +22,10 @@ namespace XX
 
 		private bool fnMeterChange(aBtnMeter _B, float pre_value, float cur_value)
 		{
-			this.fineValue(cur_value.ToString(), false);
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				this.fineValue(stb.Add(cur_value), false);
+			}
 			return true;
 		}
 
@@ -46,15 +52,21 @@ namespace XX
 		protected override void deactivateAndSelect()
 		{
 			base.deactivate();
-			((this.SelectedOverride == null) ? this.Meter : this.SelectedOverride).Select(false);
+			((this.SelectedOverride == null) ? this.Meter : this.SelectedOverride).Select(true);
 		}
 
-		public override void fineValue(string val, bool set_to_element = false)
+		public override void fineValue(STB Stb, bool set_to_element = false)
 		{
-			base.fineValue(this.Meter.getDescForValue(X.Nm(val, 0f, false)), set_to_element);
-			if (set_to_element)
+			STB.PARSERES parseres;
+			if (Stb.Nm(out parseres))
 			{
-				this.Meter.setValue(val);
+				float num = (float)STB.NmRes(parseres, -1.0);
+				this.Meter.getDescForValue(Stb, num);
+				base.fineValue(Stb, set_to_element);
+				if (set_to_element)
+				{
+					this.Meter.setValue(num, false);
+				}
 			}
 		}
 

@@ -41,7 +41,7 @@ namespace m2d
 			{
 				return null;
 			}
-			if (Sm.order == SMORDER.SKY && update_flag == 8192)
+			if (Sm.order == SMORDER.SKY && update_flag == 16384)
 			{
 				RenderTexture renderTexture = new RenderTexture(Rd.width, Rd.height, Rd.depth, Rd.format);
 				int num = 15;

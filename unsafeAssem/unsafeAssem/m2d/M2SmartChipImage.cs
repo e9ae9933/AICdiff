@@ -54,7 +54,7 @@ namespace m2d
 			}
 		}
 
-		public static M2SmartChipImage readFromBytes(ByteArray Ba, byte load_ver, M2ImageContainer IMGS, string dirname, bool create = true)
+		public static M2SmartChipImage readFromBytes(ByteReader Ba, byte load_ver, M2ImageContainer IMGS, string dirname, bool create = true)
 		{
 			Ba.readPascalString("utf-8", false);
 			Ba.readByte();
@@ -375,7 +375,7 @@ namespace m2d
 				{
 					if (!((i < 4) ? ((num & (1 << i)) == 0) : (this.kind_ > M2SmartChipImage.SMI_KIND.A8)))
 					{
-						M2Pt pointPuts = Lay.Mp.getPointPuts(x + global::XX.CAim._XD(i, 1) * this.iclms, y - global::XX.CAim._YD(i, 1) * this.irows, false, false);
+						M2Pt pointPuts = Lay.Mp.getPointPuts(x + CAim._XD(i, 1) * this.iclms, y - CAim._YD(i, 1) * this.irows, false, false);
 						if (pointPuts != null && pointPuts.getSmartChipFamily(this, Lay) != null)
 						{
 							if (i < 4)
@@ -413,7 +413,7 @@ namespace m2d
 				}
 				else if (!FEnum<M2SmartChipImage.SC>.TryParse(((num > 0) ? ("S" + num.ToString()) : "") + ((num2 > 0) ? ("C" + num2.ToString()) : ""), out sc, true))
 				{
-					global::XX.X.dl("不明な SC タイプ:+key", null, false, false);
+					X.dl("不明な SC タイプ:+key", null, false, false);
 				}
 				else
 				{
@@ -436,11 +436,11 @@ namespace m2d
 							m2Chip.pattern = this.chip_id;
 							list.Add(m2Chip);
 						}
-						num5 += global::XX.X.Mx(1, num7);
+						num5 += X.Mx(1, num7);
 						if (num5 >= x + this.iclms)
 						{
 							num5 = x;
-							num6 += global::XX.X.Mx(1, num8);
+							num6 += X.Mx(1, num8);
 							if (num6 >= y + this.irows)
 							{
 								break;
@@ -514,7 +514,7 @@ namespace m2d
 			if (this.getFirstImage() == null)
 			{
 				this.ACon[j].Add(firstImage.chip_id, 0, false);
-				global::XX.X.dl("イメージが消滅するので消去不可", null, false, false);
+				X.dl("イメージが消滅するので消去不可", null, false, false);
 			}
 		}
 

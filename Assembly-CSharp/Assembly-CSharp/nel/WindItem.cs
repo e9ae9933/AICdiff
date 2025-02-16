@@ -54,7 +54,7 @@ namespace nel
 		public void fineEffCount()
 		{
 			this.eff_one_maxt = X.Abs(this.max_lgt) / this.apply_velocity;
-			this.eff_cnt = (int)X.Mx(2f, this.radius * 8f) * ((this.maxt < 0f) ? 1 : 2);
+			this.eff_cnt = (int)X.Mx(2f, this.radius * X.NIL(8f, 2.5f, this.radius, 45f)) * ((this.maxt < 0f) ? 1 : 2);
 		}
 
 		public bool need_fine_length
@@ -235,54 +235,55 @@ namespace nel
 				{
 					break;
 				}
+				int num9 = (int)num8 / (int)this.eff_one_maxt % 6 * 100 + i % 100;
 				num8 %= this.eff_one_maxt;
-				uint ran = X.GETRAN2((uint)((ulong)(this.id * 13U) + (ulong)((long)(i * 7))), (uint)(2L + (long)(i * 3)));
+				uint ran = X.GETRAN2((uint)((ulong)(this.id * 13U) + (ulong)((long)(i * 7))), (uint)(num9 + i * 3));
 				Md.Col = Md.ColGrd.White().setA1(num * X.ZLINE(num8, num7) * X.ZLINE(this.eff_one_maxt - num8, num7)).mulA(((this.maxt < 0f) ? 0.33f : 1f) * X.NI(0.5f, 1f, X.RAN(ran, 1235)))
 					.C;
-				float num9 = (X.RAN(ran, 461) * 1.1f - 0.3f) * this.radius * clenb;
-				float num10 = this.radius * clenb * X.RANS(ran, 1369);
+				float num10 = (X.RAN(ran, 461) * 1.1f - 0.3f) * this.radius * clenb;
+				float num11 = this.radius * clenb * (X.RANS(ran, 1569 + num9 * 3) * 0.33f + X.RANS(ran, 3125 + num9 * 2) * 0.33f + X.RANS(ran, 315 + num9 * 5) * 0.33f);
 				bool flag = (i & 1) == 1;
-				float num11 = num6 * X.ZLINE(num8, flag ? this.eff_one_maxt : X.Mx(this.eff_one_maxt * 0.65f, this.eff_one_maxt - 50f)) * X.NI(1f, 0.88f, X.RAN(ran, 1661));
+				float num12 = num6 * X.ZLINE(num8, flag ? this.eff_one_maxt : X.Mx(this.eff_one_maxt * 0.65f, this.eff_one_maxt - 50f)) * X.NI(1f, 0.88f, X.RAN(ran, 1661));
 				if (flag)
 				{
 					if (this.cur_lgt < num4)
 					{
-						float num12 = clenb * this.cur_lgt;
-						float num13 = num9 + num11;
-						if (num13 > num12)
+						float num13 = clenb * this.cur_lgt;
+						float num14 = num10 + num12;
+						if (num14 > num13)
 						{
-							Md.Col = Md.ColGrd.mulA(1f - X.ZLINE(num13 - num12, 40f)).C;
+							Md.Col = Md.ColGrd.mulA(1f - X.ZLINE(num14 - num13, 40f)).C;
 							if (Md.Col.a <= 0)
 							{
-								goto IL_0442;
+								goto IL_0493;
 							}
 						}
 					}
 					Md.initForImg(MTRX.EffBlurCircle245, 0);
-					float num14 = X.NI(10, 27, X.RAN(ran, 883));
-					Md.Rect((num9 + num11) * num3, num10, num14 * num3, num14, false);
+					float num15 = X.NI(10, 27, X.RAN(ran, 883));
+					Md.Rect((num10 + num12) * num3, num11, num15 * num3, num15, false);
 				}
 				else
 				{
-					float num15 = num6 * X.NI(0.4f, 0.7f, X.RAN(ran, 690)) * X.ZLINE(this.eff_one_maxt - num8, this.eff_one_maxt * 0.3f);
-					float num16 = X.Mx(0f, num11 - num15);
+					float num16 = num6 * X.NI(0.4f, 0.7f, X.RAN(ran, 690)) * X.ZLINE(this.eff_one_maxt - num8, this.eff_one_maxt * 0.3f);
+					float num17 = X.Mx(0f, num12 - num16);
 					if (this.cur_lgt < num4)
 					{
-						float num17 = clenb * this.cur_lgt;
-						float num18 = num9 + num16 + num11;
-						if (num18 > num17)
+						float num18 = clenb * this.cur_lgt;
+						float num19 = num10 + num17 + num12;
+						if (num19 > num18)
 						{
-							num11 -= num18 - num17;
-							if (num11 <= 0f)
+							num12 -= num19 - num18;
+							if (num12 <= 0f)
 							{
-								goto IL_0442;
+								goto IL_0493;
 							}
 						}
 					}
-					float num19 = X.NI(3, 12, X.RAN(ran, 883));
-					MTRX.kadomaruRectExtImg(Md, (num9 + num16 + num11 * 0.5f) * num3, num10, num11 * num3, num19 * 2f, num19, MTRX.EffBlurCircle245, false);
+					float num20 = X.NI(3, 12, X.RAN(ran, 883));
+					Shape.kadomaruRectExtImg(Md, (num10 + num17 + num12 * 0.5f) * num3, num11, num12 * num3, num20 * 2f, num20, MTRX.EffBlurCircle245, false);
 				}
-				IL_0442:;
+				IL_0493:;
 			}
 			Md.Identity();
 		}

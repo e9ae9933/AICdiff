@@ -11,7 +11,7 @@ namespace nel
 		public static void initScript()
 		{
 			SkillManager.PPose = PxlsLoader.getPxlCharacter("_icons_l").getPoseByName("nel_skill");
-			SkillManager.OSk = new NDic<PrSkill>("PrSkill", 0);
+			SkillManager.OSk = new NDic<PrSkill>("PrSkill", 0, 0);
 			CsvReaderA csvReaderA = new CsvReaderA(TX.getResource("Data/skill", ".csv", false), true);
 			PrSkill prSkill = null;
 			NelItem nelItem = null;
@@ -23,7 +23,7 @@ namespace nel
 				{
 					if (prSkill != null && SkillManager.GetById(prSkill.id, prSkill) != null)
 					{
-						global::XX.X.de(string.Concat(new string[]
+						X.de(string.Concat(new string[]
 						{
 							"重複ID: ",
 							prSkill.id.ToString(),
@@ -37,7 +37,7 @@ namespace nel
 					nelItem = null;
 					if (prSkill != null)
 					{
-						global::XX.X.de("重複キー: " + index, null);
+						X.de("重複キー: " + index, null);
 						prSkill = null;
 					}
 					else
@@ -46,9 +46,9 @@ namespace nel
 						nelItem = NelItem.CreateItemEntry("skillbook_" + index, new NelItem("skillbook_" + index, 0, 300, 1)
 						{
 							category = (NelItem.CATEG)2097153U,
-							FnGetName = new FnGetItemDetail(NelItem.fnGetNameSkillBook),
-							FnGetDesc = new FnGetItemDetail(NelItem.fnGetDescSkillBook),
-							FnGetDetail = new FnGetItemDetail(NelItem.fnGetDetailSkillBook),
+							FnGetName = NelItem.fnGetNameSkillBook,
+							FnGetDesc = NelItem.fnGetDescSkillBook,
+							FnGetDetail = NelItem.fnGetDetailSkillBook,
 							specific_icon_id = (TX.isStart(index, "sp_map_", 0) ? 35 : 18),
 							SpecificColor = C32.d2c(4294914161U)
 						}, num2++, false);
@@ -142,7 +142,7 @@ namespace nel
 			SkillManager.OSk.scriptFinalize();
 			if (prSkill != null && SkillManager.GetById(prSkill.id, prSkill) != null)
 			{
-				global::XX.X.de(string.Concat(new string[]
+				X.de(string.Concat(new string[]
 				{
 					"重複ID: ",
 					prSkill.id.ToString(),
@@ -217,7 +217,7 @@ namespace nel
 		public static bool isEnabled(string key)
 		{
 			PrSkill prSkill = SkillManager.Get(key);
-			return prSkill != null && (prSkill.visible || prSkill.first_visible || global::XX.X.DEBUGALLSKILL) && prSkill.enabled;
+			return prSkill != null && (prSkill.visible || prSkill.first_visible || X.DEBUGALLSKILL) && prSkill.enabled;
 		}
 
 		public static void Validate()
@@ -237,7 +237,7 @@ namespace nel
 			return SkillManager.OSk;
 		}
 
-		public static void readBinaryFrom(ByteArray Ba, int svd_ver)
+		public static void readBinaryFrom(ByteReader Ba, int svd_ver)
 		{
 			SkillManager.newGame();
 			for (;;)
@@ -329,7 +329,8 @@ namespace nel
 			sp_difficulty0,
 			dashpunch,
 			airpunch,
-			shield_counter
+			shield_counter,
+			smash
 		}
 	}
 }

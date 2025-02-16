@@ -24,14 +24,17 @@ namespace nel
 			this.Nai.attackable_length_top = -9f;
 			this.Nai.attackable_length_x = 9f;
 			this.Nai.attackable_length_bottom = 9f;
-			if (NelNGolemToyMisPod.FD_MgRun == null)
-			{
-				NelNGolemToyMisPod.FD_MgRun = (MagicItem Mg, float fcnt) => NelNGolemToyMisPod.MgRun(Mg, fcnt, 3, 8f);
-				NelNGolemToyMisPod.FD_MgDraw = (MagicItem Mg, float fcnt) => NelNGolemToyMisPod.MgDraw(Mg, fcnt, NelNGolemToyMisPod.SqMis, NelNGolemToyMisPod.MI);
-			}
+			this.FD_MgRun = (MagicItem Mg, float fcnt) => NelNGolemToyMisPod.MgRun(Mg, this, fcnt, 3, 8f);
+			this.FD_MgDraw = (MagicItem Mg, float fcnt) => NelNGolemToyMisPod.MgDraw(Mg, this, fcnt, NelNGolemToyMisPod.SqMis, NelNGolemToyMisPod.MI);
 			this.SqPod = this.Anm.getCurrentCharacter().getPoseByName("mispod").getSequence(0);
 			this.SqPodClose = this.Anm.getCurrentCharacter().getPoseByName("mispod_close").getSequence(0);
 			NelNGolemToyMisPod.SqMis = this.Anm.getCurrentCharacter().getPoseByName("missile").getSequence(0);
+			this.AtkMissile.Prepare(this, true);
+			if (base.nattr_has_mattr)
+			{
+				this.AtkMissile.hpdmg0 /= 2;
+			}
+			this.Nai.can_progress_delay_if_ticket_exists = true;
 		}
 
 		protected override void initBorn()
@@ -314,7 +317,7 @@ namespace nel
 					this.walk_time = 0f;
 					this.walk_st = 0;
 				}
-				this.Phy.walk_xspeed = base.VALWALK(this.Phy.walk_xspeed, 0f, 0.0036f);
+				this.setWalkXSpeed(base.VALWALK(this.Phy.walk_xspeed, 0f, 0.0036f), true, false);
 				if (Tk.prog == PROG.ACTIVE && Tk.Progress(ref this.t, 24, true) && this.walk_st == 1 && X.XORSP() < 0.2f && !this.Nai.HasF(NAI.FLAG.ABSORB_FINISHED, false))
 				{
 					this.walk_st = 22 + (int)(X.XORSP() * 40f);
@@ -328,7 +331,7 @@ namespace nel
 					this.t = 0f;
 					this.createSndWalk();
 				}
-				this.Phy.walk_xspeed = base.VALWALK(this.Phy.walk_xspeed, mpf_is_right * this.dep_xspeed, 0.0018f);
+				this.setWalkXSpeed(base.VALWALK(this.Phy.walk_xspeed, mpf_is_right * this.dep_xspeed, 0.0018f), true, false);
 				AIM aim = this.aim;
 				if (base.wallHittedA())
 				{
@@ -389,16 +392,16 @@ namespace nel
 			{
 				if (base.x < this.Nai.target_x)
 				{
-					this.Phy.walk_xspeed = base.VALWALK(this.Phy.walk_xspeed, -this.dep_xspeed, 0.0072f);
+					this.setWalkXSpeed(base.VALWALK(this.Phy.walk_xspeed, -this.dep_xspeed, 0.0072f), true, false);
 				}
 				else
 				{
-					this.Phy.walk_xspeed = base.VALWALK(this.Phy.walk_xspeed, this.dep_xspeed, 0.0072f);
+					this.setWalkXSpeed(base.VALWALK(this.Phy.walk_xspeed, this.dep_xspeed, 0.0072f), true, false);
 				}
 			}
 			else if (this.through_front || Tk.prog >= PROG.PROG1)
 			{
-				this.Phy.walk_xspeed = base.VALWALK(this.Phy.walk_xspeed, 0f, 0.00036f);
+				this.setWalkXSpeed(base.VALWALK(this.Phy.walk_xspeed, 0f, 0.00036f), true, false);
 				flag = false;
 			}
 			else
@@ -407,15 +410,15 @@ namespace nel
 				{
 					this.setAim((X.XORSP() < 0.5f) ? AIM.L : AIM.R, false);
 				}
-				this.Phy.walk_xspeed = base.VALWALK(base.mpf_is_right * this.dep_xspeed, 0f, 0.0018f);
+				this.setWalkXSpeed(base.VALWALK(base.mpf_is_right * this.dep_xspeed, 0f, 0.0018f), true, false);
 				if (base.wallHitted(AIM.R))
 				{
-					this.Phy.walk_xspeed = -0.0018f;
+					this.setWalkXSpeed(-0.0018f, true, false);
 					this.setAim(AIM.L, false);
 				}
 				else if (base.wallHitted(AIM.L))
 				{
-					this.Phy.walk_xspeed = 0.0018f;
+					this.setWalkXSpeed(0.0018f, true, false);
 					this.setAim(AIM.R, false);
 				}
 			}
@@ -536,7 +539,7 @@ namespace nel
 			vector *= base.scaleY * this.Mp.rCLEN;
 			float num = (this.drawx + this.getSpShiftX()) * this.Mp.rCLEN + vector.x;
 			float num2 = (this.drawy - this.getSpShiftY()) * this.Mp.rCLEN - vector.y;
-			MagicItem magicItem = base.nM2D.MGC.setMagic(this, MGKIND.BASIC_SHOT, base.mg_hit | MGHIT.IMMEDIATE).initFunc(NelNGolemToyMisPod.FD_MgRun, NelNGolemToyMisPod.FD_MgDraw);
+			MagicItem magicItem = base.nM2D.MGC.setMagic(this, MGKIND.BASIC_SHOT, base.mg_hit | MGHIT.IMMEDIATE).initFunc(this.FD_MgRun, this.FD_MgDraw);
 			magicItem.sx = num;
 			magicItem.sy = num2;
 			magicItem.dx = (magicItem.dy = 0f);
@@ -562,7 +565,7 @@ namespace nel
 				.PtcST("golemtoy_missile_launched", PTCThread.StFollow.FOLLOW_S, false);
 		}
 
-		public static bool MgRun(MagicItem Mg, float fcnt, int rot_count = 3, float rotate_recheck_interval = 8f)
+		public static bool MgRun(MagicItem Mg, NelEnemy En, float fcnt, int rot_count = 3, float rotate_recheck_interval = 8f)
 		{
 			if (Mg.phase == 0)
 			{
@@ -667,27 +670,33 @@ namespace nel
 				if (flag)
 				{
 					Mg.PtcVar("sx", (double)Mg.sx).PtcVar("sy", (double)Mg.sy).PtcST("missile_bomb", PTCThread.StFollow.NO_FOLLOW, false);
+					EnemyAttr.Splash(En, Mg.sa, Mg.sy, 0.25f, 0.5f, 0.66f);
 					return false;
 				}
 			}
 			return true;
 		}
 
-		public static bool MgDraw(MagicItem Mg, float fcnt, PxlSequence SqMis, MImage MI)
+		public static bool MgDraw(MagicItem Mg, NelEnemy En, float fcnt, PxlSequence SqMis, MImage MI)
 		{
 			int num = ((Mg.da < 0f) ? 8 : 4);
 			PxlFrame frame = SqMis.getFrame(1 + X.ANM((int)Mg.t, 4, (float)num));
-			MeshDrawer mesh = Mg.Ef.GetMesh("missile", MI.getMtr(BLEND.NORMAL, -1), false);
+			MeshDrawer mesh = Mg.Ef.GetMesh("missile", MI.getMtr(BLEND.NORMALP3, -1), false);
 			MeshDrawer mesh2 = Mg.Ef.GetMesh("", MI.getMtr(BLEND.ADD, -1), false);
 			mesh.Col = MTRX.ColWhite;
-			mesh2.Col = MTRX.ColWhite;
+			mesh2.Col = mesh2.ColGrd.Set(EnemyAttr.get_mcolor(En, 4293923293U)).C;
+			Color32 color = MTRX.ColTrnsp;
+			color = mesh.ColGrd.Set(EnemyAttr.get_mcolor(En, 4293717228U)).mulA(0f).multiply(0.8f, true)
+				.C;
 			if (mesh.draw_triangle_count == 0)
 			{
 				mesh.base_z = mesh2.base_z - 0.001f;
 			}
 			float dz = Mg.dz;
-			mesh.RotaPF(0f, 0f, dz, dz, Mg.sa, frame, false, false, false, 4294967294U, false, 0);
-			mesh2.RotaPF(0f, 0f, dz, dz, Mg.sa, frame, false, false, false, 1U, false, 0);
+			mesh.allocUv23(4, false);
+			mesh.RotaPF(0f, 0f, dz, dz, Mg.sa, frame, false, false, false, 4294967290U, false, 0);
+			mesh.Uv23(color, false).allocUv23(0, true);
+			mesh2.RotaPF(0f, 0f, dz, dz, Mg.sa, frame, false, false, false, 5U, false, 0);
 			return true;
 		}
 
@@ -918,9 +927,9 @@ namespace nel
 
 		private M2SoundPlayerItem SndRot;
 
-		private static MagicItem.FnMagicRun FD_MgRun;
+		private MagicItem.FnMagicRun FD_MgRun;
 
-		private static MagicItem.FnMagicRun FD_MgDraw;
+		private MagicItem.FnMagicRun FD_MgDraw;
 
 		private static MImage MI;
 
@@ -928,7 +937,7 @@ namespace nel
 
 		private const float MISSILE_SHOT_DELAY = 100f;
 
-		protected NelAttackInfo AtkMissile = new NelAttackInfo
+		protected EnAttackInfo AtkMissile = new EnAttackInfo(0.015f, 0.11f)
 		{
 			hpdmg0 = 12,
 			split_mpdmg = 7,
@@ -938,7 +947,7 @@ namespace nel
 			Beto = BetoInfo.Lava.Pow(55, false),
 			shield_break_ratio = -30f,
 			parryable = true
-		}.Torn(0.015f, 0.11f);
+		};
 
 		protected NelAttackInfo AtkMySelf = new NelAttackInfo
 		{

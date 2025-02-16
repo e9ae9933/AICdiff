@@ -79,7 +79,7 @@ namespace m2d
 			{
 				return base.getSrcMeshForPicture(layer, pattern_for_picture);
 			}
-			return this.Parent.getSourceMesh(layer);
+			return this.Parent.getSourceMeshForPicture(layer);
 		}
 
 		public override bool isWithinOnPicture(float px_x, float px_y)

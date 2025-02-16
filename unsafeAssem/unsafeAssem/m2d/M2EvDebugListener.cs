@@ -150,95 +150,89 @@ namespace m2d
 			if (text != null)
 			{
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(text);
-				if (num <= 1138742780U)
+				if (num <= 1343120305U)
 				{
-					if (num != 609853201U)
+					if (num <= 731006985U)
 					{
-						if (num != 731006985U)
+						if (num != 609853201U)
 						{
-							if (num == 1138742780U)
+							if (num == 731006985U)
 							{
-								if (text == "MAXFPS")
+								if (text == "LOAD_SND")
 								{
-									QualitySettings.vSyncCount = 0;
 									if (Acmd.Length >= 2)
 									{
-										Application.targetFrameRate = X.NmI(Acmd[1], 144, false, false);
-									}
-									else
-									{
-										Application.targetFrameRate = 144;
-									}
-									if (!IN.enable_vsync)
-									{
-										IN.enable_vsync = true;
+										this.M2D.loadMaterialSnd(Acmd[1]);
 									}
 								}
 							}
 						}
-						else if (text == "LOAD_SND")
+						else if (text == "MAP")
 						{
-							if (Acmd.Length >= 2)
+							if (Acmd.Length >= 2 && this.M2D.Get(Acmd[1], false) != null && this.M2D.curMap != null && this.M2D.curMap.key != Acmd[1])
 							{
-								this.M2D.loadMaterialSnd(Acmd[1]);
+								EV.stack("_DEBUG_GOTO_MAP", 0, -1, new string[] { Acmd[1] }, null);
+							}
+							return false;
+						}
+					}
+					else if (num != 1138742780U)
+					{
+						if (num == 1343120305U)
+						{
+							if (text == "EXPORT_IMAGE")
+							{
+								if (Acmd.Length >= 2)
+								{
+									int num2 = X.NmI(Acmd[1], 0, false, false);
+									M2EvDebugListener.exportImage(this.M2D, "MdMap_" + this.M2D.curMap.key + "_" + num2.ToString(), this.M2D.curMap.get_MMRD().getUnsitabilizeMesh(num2).TxSimplified);
+								}
+								else
+								{
+									M2EvDebugListener.saveAtlasToPng(this.M2D);
+								}
 							}
 						}
 					}
-					else if (text == "MAP")
+					else if (text == "MAXFPS")
 					{
-						if (Acmd.Length >= 2 && this.M2D.Get(Acmd[1], false) != null && this.M2D.curMap != null && this.M2D.curMap.key != Acmd[1])
-						{
-							EV.stack("_DEBUG_GOTO_MAP", 0, -1, new string[] { Acmd[1] }, null);
-						}
-						return false;
-					}
-				}
-				else if (num <= 2190495519U)
-				{
-					if (num != 1343120305U)
-					{
-						if (num == 2190495519U)
-						{
-							if (text == "REMAKE_MAP")
-							{
-								this.M2D.curMap.reloadWholePxls(true);
-							}
-						}
-					}
-					else if (text == "EXPORT_IMAGE")
-					{
+						QualitySettings.vSyncCount = 0;
 						if (Acmd.Length >= 2)
 						{
-							int num2 = X.NmI(Acmd[1], 0, false, false);
-							M2MeshContainer mmrd = this.M2D.curMap.get_MMRD();
-							string text2 = Application.dataPath + "/../Capture";
-							if (!Directory.Exists(text2))
-							{
-								Directory.CreateDirectory(text2);
-							}
-							DateTime now = DateTime.Now;
-							string text3 = string.Concat(new string[]
-							{
-								text2,
-								"/MdMap_",
-								this.M2D.curMap.key,
-								"_",
-								num2.ToString(),
-								"_",
-								now.ToString("yyMMdd_HHmmss"),
-								".png"
-							});
-							byte[] pngBytesS = EvPerson.getPngBytesS(mmrd.getUnsitabilizeMesh(num2).TxSimplified);
-							File.WriteAllBytes(text3, pngBytesS);
-							X.dl(text3 + " にマップ画像キャプチャイメージを保存", null, false, true);
+							Application.targetFrameRate = X.NmI(Acmd[1], 144, false, false);
 						}
 						else
 						{
-							M2EvDebugListener.saveAtlasToPng(this.M2D);
+							Application.targetFrameRate = 144;
+						}
+						if (!IN.enable_vsync)
+						{
+							IN.enable_vsync = true;
 						}
 					}
 				}
-				else if (num != 3288762887U)
+				else if (num <= 3288762887U)
+				{
+					if (num != 2190495519U)
+					{
+						if (num == 3288762887U)
+						{
+							if (text == "PXL_PROGRESS")
+							{
+								if (Acmd.Length >= 2)
+								{
+									PxlsLoader.loadSpeed = X.Nm(Acmd[1], 1f, false);
+								}
+								X.dl("現在の Pxls LoadSpeed: " + PxlsLoader.loadSpeed.ToString(), null, false, false);
+							}
+						}
+					}
+					else if (text == "REMAKE_MAP")
+					{
+						this.M2D.curMap.reloadWholePxls(true);
+					}
+				}
+				else if (num != 3727667089U)
 				{
 					if (num == 4217973635U)
 					{
@@ -272,16 +266,41 @@ namespace m2d
 						}
 					}
 				}
-				else if (text == "PXL_PROGRESS")
+				else if (text == "EXPORT_CAM_IMAGE")
 				{
-					if (Acmd.Length >= 2)
+					RenderTexture renderTexture = null;
+					if (Acmd.Length >= 2 && Acmd[1] == "MV")
 					{
-						PxlsLoader.loadSpeed = X.Nm(Acmd[1], 1f, false);
+						renderTexture = this.M2D.Cam.getMoverTexture();
 					}
-					X.dl("現在の Pxls LoadSpeed: " + PxlsLoader.loadSpeed.ToString(), null, false, false);
+					if (renderTexture != null)
+					{
+						M2EvDebugListener.exportImage(this.M2D, "CAM_" + Acmd[1], renderTexture);
+					}
 				}
 			}
 			return true;
+		}
+
+		private static void exportImage(M2DBase M2D, string name, RenderTexture Tx)
+		{
+			string text = Application.dataPath + "/../Capture";
+			if (!Directory.Exists(text))
+			{
+				Directory.CreateDirectory(text);
+			}
+			string text2 = string.Concat(new string[]
+			{
+				text,
+				"/",
+				name,
+				"_",
+				DateTime.Now.ToString("yyMMdd_HHmmss"),
+				".png"
+			});
+			byte[] pngBytesS = EvPerson.getPngBytesS(Tx);
+			File.WriteAllBytes(text2, pngBytesS);
+			X.dl(text2 + " にマップ画像キャプチャイメージを保存", null, false, true);
 		}
 
 		public static bool saveAtlasToPng(M2DBase M2D)

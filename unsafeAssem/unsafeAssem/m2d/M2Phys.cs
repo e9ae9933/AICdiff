@@ -97,6 +97,7 @@ namespace m2d
 		{
 			this.Mv.killSpeedForce(true, true, false);
 			this.clearLock();
+			this.t_ice = 0f;
 			this.no_play_footsnd_animator = false;
 			this.Mp.assignPhysicsObject(this);
 			this.wall_stuck_count.Clear();
@@ -187,9 +188,16 @@ namespace m2d
 			}
 			if (footres != FOOTRES.FOOTED)
 			{
-				if (footres - FOOTRES.JUMPED <= 1 && this.auto_air_mvhitting)
+				if (footres - FOOTRES.JUMPED <= 1)
 				{
-					this.addLockMoverHitting(HITLOCK.AIR, -1f);
+					if (this.auto_air_mvhitting)
+					{
+						this.addLockMoverHitting(HITLOCK.AIR, -1f);
+					}
+					if (this.t_ice > 0f && !this.hold_ice_on_air)
+					{
+						this.t_ice = 0f;
+					}
 				}
 			}
 			else
@@ -507,6 +515,10 @@ namespace m2d
 			{
 				this.snd_t = X.VALWALK(this.snd_t, 0f, this.Mv.TS);
 			}
+			if (this.t_ice > 0f && (!this.hold_ice_on_air || this.hasFoot()))
+			{
+				this.t_ice = X.VALWALK(this.t_ice, 0f, this.Mv.TS);
+			}
 			if (this.Rgd != null && !this.Rgd.freezeRotation && this.hasFoot())
 			{
 				this.Rgd.angularVelocity = X.VALWALK(this.Rgd.angularVelocity, 0f, 4f * this.Mv.TS);
@@ -530,6 +542,10 @@ namespace m2d
 			}
 		}
 
+		private void deactivateFoc(int i, float last_x)
+		{
+		}
+
 		private bool considerVelocity(float fcnt, ref float vx, ref float vy, ref float drawx_, ref float drawy_)
 		{
 			bool flag = this.Mv.considerFricOnVelocityCalc();
@@ -547,7 +563,7 @@ namespace m2d
 			bool flag4 = this.AFoc.Count > 0;
 			if (flag && num2 != 0f && this.fric_reduce_x != 0f)
 			{
-				num2 = X.VALWALK(num2, 0f, this.fric_reduce_x);
+				num2 = X.VALWALK(num2, 0f, this.fric_reduce_x * ((this.t_ice > 0f) ? 0.015f : 1f));
 				flag4 = true;
 			}
 			this.force_velocity_x = (this.force_velocity_y = 0f);
@@ -697,7 +713,7 @@ namespace m2d
 						{
 							if (((p2Foc.foctype & FOCTYPE._FRIC_STRICT) != (FOCTYPE)0U) ? this.hasFoot() : flag)
 							{
-								p2Foc.t_fric += fcnt * num7;
+								p2Foc.t_fric += fcnt * num7 * ((this.t_ice > 0f && p2Foc.t_fric >= (float)p2Foc.fric_ignore) ? 0.015f : 1f);
 								if (p2Foc.t_fric >= (float)(p2Foc.fric_ignore + p2Foc.fric_time))
 								{
 									p2Foc.deactivate();
@@ -717,47 +733,18 @@ namespace m2d
 			}
 			if (flag7 && this.FootD != null && this.FootD.hasFoot())
 			{
-				M2BlockColliderContainer.BCCLine footBCC = this.FootD.get_FootBCC();
-				if (footBCC != null && !footBCC.isWall())
-				{
-					M2BlockColliderContainer.BCCLine bccline = ((this.force_velocity_x < 0f) ? footBCC.SideL : footBCC.SideR);
-					if (bccline == null || !bccline.isUseableDir(this.FootD))
-					{
-						float num15 = this.force_velocity_x;
-						float num16;
-						float num17;
-						footBCC.BCC.getBaseShift(out num16, out num17);
-						if (this.force_velocity_x < 0f)
-						{
-							this.force_velocity_x = X.Mx(this.force_velocity_x, footBCC.x - num16 - this.mleft);
-						}
-						else
-						{
-							this.force_velocity_x = X.Mn(this.force_velocity_x, footBCC.right - num16 - this.mright);
-						}
-						if (this.force_velocity_x != num15)
-						{
-							bool is_lift = footBCC.is_lift;
-							M2BlockColliderContainer.BCCLine bccline2;
-							footBCC.BCC.isFallable((float)X.MPF(num15 > 0f) * (this.Mv.sizex + 0.35f) + this.x, this.Mv.mbottom, 0.001f, 0.25f, out bccline2, is_lift, !is_lift, -1f);
-							if (bccline2 != null && bccline2 != footBCC)
-							{
-								this.force_velocity_x = num15;
-							}
-						}
-					}
-				}
+				this.FootD.CliffStopCrop(ref this.force_velocity_x);
 			}
 			if (flag5 && this.force_velocity_x != 0f)
 			{
 				if (Map2d.can_handle)
 				{
-					float num18 = (float)X.Mx(this.Mp.crop - 2, 0) + 0.04f;
-					if (this.force_velocity_x < 0f && this.mleft + this.force_velocity_x < num18)
+					float num15 = (float)X.Mx(this.Mp.crop - 2, 0) + 0.04f;
+					if (this.force_velocity_x < 0f && this.mleft + this.force_velocity_x < num15)
 					{
 						this.force_velocity_x = 0f;
 					}
-					if (this.force_velocity_x > 0f && this.mright + this.force_velocity_x > (float)this.Mp.clms - num18)
+					if (this.force_velocity_x > 0f && this.mright + this.force_velocity_x > (float)this.Mp.clms - num15)
 					{
 						this.force_velocity_x = 0f;
 					}
@@ -801,23 +788,23 @@ namespace m2d
 			if (flag5 || flag6)
 			{
 				bool flag9 = false;
-				float num19 = vx;
-				float num20 = vy;
+				float num16 = vx;
+				float num17 = vy;
 				if (flag5)
 				{
-					M2BlockColliderContainer.BCCLine bccline3;
-					flag9 = this.checkSideLRBCC(ref num19, flag2, out bccline3) || flag9;
+					M2BlockColliderContainer.BCCLine bccline;
+					flag9 = this.checkSideLRBCC(ref num16, flag2, out bccline) || flag9;
 				}
 				if (flag6)
 				{
-					M2BlockColliderContainer.BCCLine bccline3;
-					flag9 = this.checkSideTBBCC(ref num20, flag2, out bccline3) || flag9;
+					M2BlockColliderContainer.BCCLine bccline;
+					flag9 = this.checkSideTBBCC(ref num17, flag2, out bccline) || flag9;
 				}
 				if (flag9)
 				{
-					vx = num19;
+					vx = num16;
 					this.force_velocity_x = vx - num2;
-					vy = num20;
+					vy = num17;
 					this.force_velocity_y = vy - num - this.v_gravity;
 					flag4 = true;
 				}
@@ -843,7 +830,7 @@ namespace m2d
 			}
 			if (vx == 0f)
 			{
-				float num21 = vy;
+				float num18 = vy;
 			}
 			return flag4;
 		}
@@ -862,6 +849,17 @@ namespace m2d
 			if (!this.Mv.canGoToSideLB(out HitBcc, out num2, aim, num, -0.01f, false, false, false))
 			{
 				flag = this.checkSideLRBCC(ref __vx, ref num, HitBcc, X.Abs(num2), has_foot, aim);
+				if (this.is_on_ice)
+				{
+					if (aim == AIM.R && this.walk_xspeed_ > 0f)
+					{
+						this.walk_xspeed_ = 0f;
+					}
+					if (aim == AIM.L && this.walk_xspeed_ < 0f)
+					{
+						this.walk_xspeed_ = 0f;
+					}
+				}
 			}
 			foreach (KeyValuePair<M2BlockColliderContainer, FloatCounter<M2BlockColliderContainer>.FloatCounterItem> keyValuePair in this.CheckBCC.getRawObject())
 			{
@@ -982,7 +980,7 @@ namespace m2d
 
 		public void clipWalkXSpeed()
 		{
-			if (this.walk_xspeed_manageable_air >= 0f)
+			if (this.walk_xspeed_manageable_air >= 0f && this.t_ice == 0f)
 			{
 				this.walk_xspeed_ = X.MMX(-this.walk_xspeed_manageable_air, this.walk_xspeed_, this.walk_xspeed_manageable_air);
 			}
@@ -1002,14 +1000,43 @@ namespace m2d
 
 		public void setWalkXSpeed(float value, bool consider_water_scale = true, bool force_onfoot = false)
 		{
-			if (force_onfoot || this.FootD == null || this.FootD.canStartRunning() || this.walk_xspeed_manageable_air < 0f || X.BTWW(-this.walk_xspeed_manageable_air, value, this.walk_xspeed_manageable_air))
+			if (value != 0f)
 			{
-				this.walk_xspeed_ = value * ((consider_water_scale && this.isin_water) ? this.water_speed_scale : 1f);
+				this.walk_xspeed_assigned = true;
+			}
+			bool flag = this.FootD == null || this.FootD.canStartRunning() || this.walk_xspeed_manageable_air < 0f || X.BTWW(-this.walk_xspeed_manageable_air, value, this.walk_xspeed_manageable_air);
+			if (!this.ignore_web_reduce && consider_water_scale && this.is_on_web)
+			{
+				value *= 0.33f;
+			}
+			if (this.t_ice <= 0f || (this.isin_water && X.Abs(this.walk_xspeed_) > X.Abs(value)))
+			{
+				if (force_onfoot || flag)
+				{
+					this.walk_xspeed_ = value * ((consider_water_scale && this.isin_water) ? this.water_speed_scale : 1f);
+					return;
+				}
+				float num = X.Mn(-this.walk_xspeed_manageable_air, this.walk_xspeed_);
+				float num2 = X.Mx(this.walk_xspeed_manageable_air, this.walk_xspeed_);
+				this.walk_xspeed_ = X.MMX(num, value * ((consider_water_scale && this.isin_water) ? this.water_speed_scale : 1f), num2);
 				return;
 			}
-			float num = X.Mn(-this.walk_xspeed_manageable_air, this.walk_xspeed_);
-			float num2 = X.Mx(this.walk_xspeed_manageable_air, this.walk_xspeed_);
-			this.walk_xspeed_ = X.MMX(num, value * ((consider_water_scale && this.isin_water) ? this.water_speed_scale : 1f), num2);
+			else
+			{
+				if (force_onfoot)
+				{
+					this.walk_xspeed_ = value * ((consider_water_scale && this.isin_water) ? this.water_speed_scale : 1f);
+					return;
+				}
+				if (!flag && value != 0f)
+				{
+					float num3 = X.Mn(-this.walk_xspeed_manageable_air, this.walk_xspeed_);
+					float num4 = X.Mx(this.walk_xspeed_manageable_air, this.walk_xspeed_);
+					value = X.MMX(num3, value, num4);
+				}
+				this.walk_xspeed_ = X.VALWALK(this.walk_xspeed_, value, this.Mv.TS * ((!this.hasFoot()) ? 0.002631579f : ((value == 0f) ? 0.0009090909f : 0.00125f)));
+				return;
+			}
 		}
 
 		public void runPre()
@@ -1050,6 +1077,14 @@ namespace m2d
 			}
 			else
 			{
+				if (this.walk_xspeed_assigned)
+				{
+					this.walk_xspeed_assigned = false;
+				}
+				else if (this.walk_xspeed_ != 0f)
+				{
+					this.setWalkXSpeed(0f, true, false);
+				}
 				num = this.prey - this.Mv.y;
 				this.hit_mover = 0;
 				this.hit_mover_friction_ = false;
@@ -1664,6 +1699,22 @@ namespace m2d
 			return this;
 		}
 
+		public void addOnIce()
+		{
+			if (this.hasFoot() && this.t_ice >= 0f)
+			{
+				this.t_ice = X.Mx(this.t_ice, 3f);
+			}
+		}
+
+		public void removeOnIce()
+		{
+			if (this.t_ice >= 0f)
+			{
+				this.t_ice = 0f;
+			}
+		}
+
 		public M2Phys killSpeedForce(bool x_flag = true, bool y_flag = true, bool apply_to_mv = true, bool use_clamp = false, bool kill_phy_translate_stack = false)
 		{
 			if (x_flag)
@@ -2086,6 +2137,10 @@ namespace m2d
 
 		public bool releaseVelocity(FOCTYPE type, bool is_y)
 		{
+			if (!is_y)
+			{
+				return (this.t_ice > 0f && (type & (FOCTYPE.HIT | FOCTYPE.KNOCKBACK)) != (FOCTYPE)0U) || (type & (FOCTYPE.DAMAGE | FOCTYPE._RELEASE)) > (FOCTYPE)0U;
+			}
 			return (type & (FOCTYPE.DAMAGE | FOCTYPE._RELEASE)) > (FOCTYPE)0U;
 		}
 
@@ -2518,6 +2573,26 @@ namespace m2d
 			}
 		}
 
+		public bool is_on_ice
+		{
+			get
+			{
+				return this.t_ice > 0f;
+			}
+		}
+
+		public bool is_on_web
+		{
+			get
+			{
+				return this.FootD != null && this.FootD.is_on_web;
+			}
+		}
+
+		private const float FRIC_TS_ON_ICE = 0.015f;
+
+		public const float web_xspeed_scale = 0.33f;
+
 		public static bool fixed_updating;
 
 		public readonly M2Mover Mv;
@@ -2570,6 +2645,8 @@ namespace m2d
 
 		public bool always_rewrite_velocity;
 
+		public bool ignore_web_reduce;
+
 		public bool carrying_no_collider_lock;
 
 		protected float snd_t;
@@ -2585,6 +2662,10 @@ namespace m2d
 		public FOCTYPE pre_x_attached;
 
 		public FOCTYPE pre_y_attached;
+
+		private float t_ice;
+
+		public bool hold_ice_on_air;
 
 		private float fric_t;
 
@@ -2667,6 +2748,14 @@ namespace m2d
 		public uint corner_slip_alloc_bits = 15U;
 
 		private bool temporary_no_clear_v_gravity;
+
+		public const float ICE_MOVESPEED_WALKSPEED = 0.00125f;
+
+		public const float ICE_MOVESPEED_STOP_WALKSPEED = 0.0009090909f;
+
+		public const float ICE_MOVESPEED_ON_AIR = 0.002631579f;
+
+		public bool walk_xspeed_assigned;
 
 		private static Func<M2Mover, Rigidbody2D, M2Phys> FD_createPhys_;
 

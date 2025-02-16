@@ -53,7 +53,7 @@ namespace m2d
 				M2ChipPattern.PatData[] apd = this.APd;
 				if (this.pre_pclms != 0)
 				{
-					this.APd = global::XX.X.copyTwoDimensionArray<M2ChipPattern.PatData>(new M2ChipPattern.PatData[this.len], this.pclms, this.prows, apd, this.pre_pclms, this.pre_prows, false);
+					this.APd = X.copyTwoDimensionArray<M2ChipPattern.PatData>(new M2ChipPattern.PatData[this.len], this.pclms, this.prows, apd, this.pre_pclms, this.pre_prows, false);
 				}
 				else
 				{
@@ -144,7 +144,7 @@ namespace m2d
 			}
 			if (num <= 1)
 			{
-				global::XX.X.de("パターン内で使用するイメージがなくなるような操作はできません", null);
+				X.de("パターン内で使用するイメージがなくなるような操作はできません", null);
 				return;
 			}
 			this.is_bg = -1;
@@ -156,10 +156,10 @@ namespace m2d
 		{
 			if (Img == this)
 			{
-				global::XX.X.dl("このパターン自身を writeAt しようとしました", null, false, false);
+				X.dl("このパターン自身を writeAt しようとしました", null, false, false);
 				return;
 			}
-			if (!global::XX.X.BTW(0f, (float)j, (float)this.len))
+			if (!X.BTW(0f, (float)j, (float)this.len))
 			{
 				return;
 			}
@@ -178,6 +178,10 @@ namespace m2d
 
 		public override IM2CLItem spoitImageAt(int j, ref int rotation, ref bool flip)
 		{
+			if (j < 0 || j >= this.APd.Length)
+			{
+				return null;
+			}
 			M2ChipPattern.PatData patData = this.APd[j];
 			if (!patData.valid || patData.Img == null)
 			{
@@ -226,9 +230,9 @@ namespace m2d
 					int num16 = i % this.pclms;
 					int num17 = i / this.pclms;
 					Vector2Int clmsAndRows = patData.Img.getClmsAndRows(INPUT_CR.SNAP);
-					clmsAndRows.x = global::XX.X.IntC((float)clmsAndRows.x / (float)this.iclms);
-					clmsAndRows.y = global::XX.X.IntC((float)clmsAndRows.y / (float)this.irows);
-					if (global::XX.X.BTW((float)num16, (float)num13, (float)(num16 + clmsAndRows.x)) && global::XX.X.BTW((float)num17, (float)num14, (float)(num17 + clmsAndRows.y)))
+					clmsAndRows.x = X.IntC((float)clmsAndRows.x / (float)this.iclms);
+					clmsAndRows.y = X.IntC((float)clmsAndRows.y / (float)this.irows);
+					if (X.BTW((float)num16, (float)num13, (float)(num16 + clmsAndRows.x)) && X.BTW((float)num17, (float)num14, (float)(num17 + clmsAndRows.y)))
 					{
 						M2ChipPattern.PatDataInput patDataInput = new M2ChipPattern.PatDataInput
 						{
@@ -238,8 +242,8 @@ namespace m2d
 						};
 						Vector3 vector2 = new Vector3((float)num16 + (float)clmsAndRows.x * 0.5f - (float)this.pclms * 0.5f, (float)num17 + (float)clmsAndRows.y * 0.5f - (float)this.prows * 0.5f);
 						Vector3 vector3 = (Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, (float)(rot * 90))) * matrix4x).MultiplyPoint3x4(vector2);
-						patDataInput.mapx = global::XX.X.IntR(vector3.x * (float)num + num9 - (float)((flag ? clmsAndRows.y : clmsAndRows.x) + (num - 1)) * 0.5f);
-						patDataInput.mapy = global::XX.X.IntR(vector3.y * (float)num2 + num10 - (float)((flag ? clmsAndRows.x : clmsAndRows.y) + (num2 - 1)) * 0.5f);
+						patDataInput.mapx = X.IntR(vector3.x * (float)num + num9 - (float)((flag ? clmsAndRows.y : clmsAndRows.x) + (num - 1)) * 0.5f);
+						patDataInput.mapy = X.IntR(vector3.y * (float)num2 + num10 - (float)((flag ? clmsAndRows.x : clmsAndRows.y) + (num2 - 1)) * 0.5f);
 						A.Add(patDataInput);
 					}
 				}
@@ -380,7 +384,7 @@ namespace m2d
 			{
 				return null;
 			}
-			int num = global::XX.X.xors(this.len);
+			int num = X.xors(this.len);
 			for (int i = this.len - 1; i >= 0; i--)
 			{
 				M2ChipPattern.PatData patData = this.APd[(i + num) % this.len];
@@ -418,7 +422,7 @@ namespace m2d
 			return randomImage.MakePicture(Lay, x, y, opacity, rotation + num * 90, flip != flag);
 		}
 
-		public static M2ChipPattern readFromBytes(ByteArray Ba, byte load_ver, M2ImageContainer IMGS, string dirname, bool create = true)
+		public static M2ChipPattern readFromBytes(ByteReader Ba, byte load_ver, M2ImageContainer IMGS, string dirname, bool create = true)
 		{
 			Ba.readPascalString("utf-8", false);
 			Ba.readByte();

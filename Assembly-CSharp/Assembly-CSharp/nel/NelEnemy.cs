@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using evt;
 using m2d;
+using nel.smnp;
 using PixelLiner;
 using UnityEngine;
 using XX;
@@ -10,6 +11,22 @@ namespace nel
 {
 	public abstract class NelEnemy : M2Attackable, M2MagicCaster, NelM2Attacker, IWindApplyable
 	{
+		protected float walkspd_default
+		{
+			get
+			{
+				if (this.isOverDrive())
+				{
+					return this.walkspd_od;
+				}
+				if (!this.is_awaken)
+				{
+					return this.walkspd_sleep;
+				}
+				return this.walkspd_awake;
+			}
+		}
+
 		public bool disappearing
 		{
 			get
@@ -23,6 +40,16 @@ namespace nel
 					return;
 				}
 				this.disappearing_ = value;
+				if (this.ANested != null)
+				{
+					for (int i = this.ANested.Count - 1; i >= 0; i--)
+					{
+						if (this.ANested[i].sync_disappear)
+						{
+							this.ANested[i].disappearing = value;
+						}
+					}
+				}
 			}
 		}
 
@@ -30,7 +57,7 @@ namespace nel
 		{
 			if (this.Anm == null)
 			{
-				this.Anm = new EnemyAnimator(this, new EnemyAnimator.FnCreate(EnemyFrameDataBasic.Create), null);
+				this.Anm = new EnemyAnimator(this, EnemyFrameDataBasic.Create, null, true);
 			}
 		}
 
@@ -90,9 +117,15 @@ namespace nel
 			this.finePositionFromTransform();
 			this.x0 = base.x;
 			this.y0 = base.y;
+			int num;
+			int num2;
+			this.nM2D.NightCon.summoner_nattr_extend_mp(this, out num, out num2);
+			this.maxhp += num;
+			this.hp += num;
+			this.maxmp += num2;
 			this.mp = X.MMX(0, X.IntR(((this.first_mp_ratio < 0f) ? 0.3f : this.first_mp_ratio) * (float)this.maxmp), this.maxmp);
 			this.Ser = new M2Ser(this, this, false);
-			this.Ser.Regist = EnemyData.getSerRegist(this.id.ToString(), null, true);
+			this.Ser.Regist = NDAT.getSerRegist(this.id.ToString(), this.nattr, null, true);
 			M2PxlAnimatorRT m2PxlAnimatorRT = null;
 			if (this.anim_chara_name != "")
 			{
@@ -116,12 +149,13 @@ namespace nel
 			this.Lig.follow_speed = 0.1f;
 			this.Lig.Col.Set(2864408976U);
 			this.Lig.radius = this.sizex * base.CLEN * 3.5f;
-			this.Mp.addLight(this.Lig);
+			this.Mp.addLight(this.Lig, -1);
 			if (this.Nai == null)
 			{
 				this.Nai = new NAI(this);
 			}
 			this.flags &= (NelEnemy.FLAG)(-2);
+			EnemyAttr.appearEnemy(this);
 		}
 
 		public override void appear(Map2d _Mp)
@@ -155,6 +189,17 @@ namespace nel
 			{
 				this.SizeW(B.sizew_x, (B.sizew_y > 0f) ? B.sizew_y : B.sizew_x, ALIGN.CENTER, ALIGNY.MIDDLE);
 			}
+			if (NDAT.isOverdriveable(this.id, false))
+			{
+				if (B.sizew_od_x > 0 && B.sizew_od_y > 0)
+				{
+					this.Od = new OverDriveManager(this, B.sizew_od_x / 2, B.sizew_od_y / 2);
+				}
+				else
+				{
+					X.de("オーバードライブ可能な敵は NOD でsizew_od を設定する必要があります", null);
+				}
+			}
 			if (B.anim_chara_name != null)
 			{
 				this.anim_chara_name = B.anim_chara_name;
@@ -183,6 +228,10 @@ namespace nel
 			{
 				this.mana_desire_multiple = B.mana_desire_multiple;
 			}
+			if (B.nattr_delay_extend_ratio >= 0f)
+			{
+				this.nattr_delay_extend_ratio = B.nattr_delay_extend_ratio;
+			}
 			return B;
 		}
 
@@ -195,6 +244,10 @@ namespace nel
 			if (B.enlarge_anim_scale_max > 0f)
 			{
 				this.enlarge_anim_scale_max = B.enlarge_anim_scale_max;
+			}
+			if (B.enlarge_anim_scale_min > 0f)
+			{
+				this.enlarge_anim_scale_min = B.enlarge_anim_scale_min;
 			}
 			if (B.enlarge_publish_damage_ratio > 0f)
 			{
@@ -214,12 +267,13 @@ namespace nel
 			}
 			if (B.ser_resist_key != null)
 			{
-				this.Ser.Regist = EnemyData.getSerRegist(B.ser_resist_key, this.Ser.Regist, true);
+				this.Ser.Regist = NDAT.getSerRegist(B.ser_resist_key, this.nattr, this.Ser.Regist, true);
 			}
-			if (B.drop_ratio_normal100 > 0 && this.NCXORSP(324) * 100f < (float)B.drop_ratio_normal100)
+			if (B.drop_ratio_normal100 >= 0)
 			{
-				this.DropItem = B.DropItemNormal;
+				this.drop_ratio_normal100 = B.drop_ratio_normal100;
 			}
+			this.DropItem = B.DropItemNormal;
 			if (this.Od != null)
 			{
 				if (B.enlarge_od_anim_scale_min > 0f)
@@ -234,10 +288,12 @@ namespace nel
 				{
 					this.Od.od_killed_mana_splash = B.od_killed_mana_splash;
 				}
-				if (B.drop_ratio_od100 > 0 && this.NCXORSP(578) * 100f < (float)B.drop_ratio_od100)
+				if (B.drop_ratio_od100 >= 0)
 				{
-					this.Od.DropItem = B.DropItemOd;
+					this.Od.drop_ratio_od100 = B.drop_ratio_od100;
 				}
+				this.Od.DropItemOd = B.DropItemOd;
+				this.Od.enlarge_on_transforming = B.od_enlarge_on_transforming;
 			}
 			return B;
 		}
@@ -274,10 +330,10 @@ namespace nel
 			}
 			this.killAllNestedChildren();
 			this.nM2D.MGC.Notf.RemoveCaster(this);
-			if (this.MdHpMpBar != null)
+			if (this.HpMpBar != null)
 			{
-				this.MdHpMpBar.destruct();
-				this.MdHpMpBar = null;
+				this.HpMpBar.destruct();
+				this.HpMpBar = null;
 			}
 			if (this.TeCon != null)
 			{
@@ -366,9 +422,9 @@ namespace nel
 							if (!this.runOverDriveActivate())
 							{
 								this.changeStateToNormal();
-								goto IL_0351;
+								goto IL_0371;
 							}
-							goto IL_0351;
+							goto IL_0371;
 						}
 					}
 					else
@@ -384,20 +440,24 @@ namespace nel
 						if (this.Ser.has(SER.TIRED))
 						{
 							num3 = 0f;
-							goto IL_0351;
+							goto IL_0371;
 						}
 						if (this.Absorb == null || !this.runAbsorb())
 						{
 							this.changeStateToNormal();
 							this.stunCheck();
-							goto IL_0351;
+							goto IL_0371;
 						}
 						if (this.absorb_pos_fix_maxt >= 0 && this.Absorb != null)
 						{
 							this.Absorb.walkPublishPos(ts, (float)this.absorb_pos_fix_maxt);
-							goto IL_0351;
 						}
-						goto IL_0351;
+						if (this.Absorb.no_wall_hit_ignore_on_torture && this.Absorb.isTortureUsing())
+						{
+							this.fixTortureRepositionFromWall();
+							goto IL_0371;
+						}
+						goto IL_0371;
 					}
 				}
 				else
@@ -406,9 +466,9 @@ namespace nel
 					{
 						this.Ser.Cure(SER.EATEN);
 						this.changeStateToNormal();
-						goto IL_0351;
+						goto IL_0371;
 					}
-					goto IL_0351;
+					goto IL_0371;
 				}
 			}
 			else if (state <= NelEnemy.STATE.DAMAGE_HUTTOBI)
@@ -420,9 +480,9 @@ namespace nel
 						if (!this.runDamageHuttobi())
 						{
 							this.changeStateToNormal();
-							goto IL_0351;
+							goto IL_0371;
 						}
-						goto IL_0351;
+						goto IL_0371;
 					}
 				}
 				else
@@ -430,14 +490,14 @@ namespace nel
 					if (!this.is_alive)
 					{
 						this.changeState(NelEnemy.STATE.DIE);
-						goto IL_0351;
+						goto IL_0371;
 					}
 					if (!this.runDamageSmall())
 					{
 						this.changeStateToNormal();
-						goto IL_0351;
+						goto IL_0371;
 					}
-					goto IL_0351;
+					goto IL_0371;
 				}
 			}
 			else if (state != NelEnemy.STATE.DIE)
@@ -447,9 +507,9 @@ namespace nel
 					if (!this.runSummoned())
 					{
 						this.changeStateToNormal();
-						goto IL_0351;
+						goto IL_0371;
 					}
-					goto IL_0351;
+					goto IL_0371;
 				}
 			}
 			else
@@ -458,7 +518,7 @@ namespace nel
 				{
 					return;
 				}
-				goto IL_0351;
+				goto IL_0371;
 			}
 			if (!this.isMoveScriptActive(false))
 			{
@@ -475,7 +535,7 @@ namespace nel
 					this.Nai.consider(ts);
 				}
 			}
-			IL_0351:
+			IL_0371:
 			if (this.t < 0f)
 			{
 				this.t = X.Mn(this.t + num3, 0f);
@@ -505,7 +565,7 @@ namespace nel
 					this.Od.volumeActivate(this.Absorb == null);
 				}
 			}
-			if (this.Summoner != null && !base.hasFoot() && !this.Summoner.checkRingOut(this))
+			if (this.Summoner != null && !this.Summoner.checkRingOut(this))
 			{
 				this.changeStateToDie();
 				return;
@@ -545,6 +605,11 @@ namespace nel
 				}
 			}
 			base.runPhysics(fcnt);
+		}
+
+		public virtual void setWalkXSpeed(float value, bool consider_water_scale = true, bool force_onfoot = false)
+		{
+			this.Phy.setWalkXSpeed(value, consider_water_scale, force_onfoot);
 		}
 
 		protected virtual void ticketRefined()
@@ -595,6 +660,10 @@ namespace nel
 
 		public virtual void quitTicket(NaTicket Tk)
 		{
+			if (Tk != null)
+			{
+				EnemyAttr.quitTicket(this, Tk);
+			}
 		}
 
 		public virtual void runAppeal()
@@ -612,6 +681,36 @@ namespace nel
 			return false;
 		}
 
+		public void fixTortureRepositionFromWall()
+		{
+			if (this.Absorb == null || !this.Absorb.no_wall_hit_ignore_on_torture || this.Phy == null)
+			{
+				return;
+			}
+			M2Attackable targetMover = this.Absorb.getTargetMover();
+			if (targetMover != null && targetMover.hit_wall_collider)
+			{
+				float num = 0f;
+				float num2 = 0f;
+				if (X.Abs(targetMover.drawx * this.Mp.rCLEN - targetMover.x) > 0.08f)
+				{
+					num = X.absMn(targetMover.x - targetMover.drawx * this.Mp.rCLEN, 0.08f);
+				}
+				if (X.Abs(targetMover.drawy * this.Mp.rCLEN - targetMover.y) > 0.08f)
+				{
+					num2 = X.absMn(targetMover.y - targetMover.drawy * this.Mp.rCLEN, 0.08f);
+				}
+				if (num2 < 0f && this.Phy.hasFoot())
+				{
+					num2 = 0f;
+				}
+				if (num != 0f || num2 != 0f)
+				{
+					this.Phy.addTranslateStack(num, num2);
+				}
+			}
+		}
+
 		public void absorbEffect()
 		{
 			this.setDmgBlinkFading(MGATTR.CURE_MP, 27f, 0.46f, 0);
@@ -624,6 +723,7 @@ namespace nel
 				return this;
 			}
 			this.t = -1f;
+			NelEnemy.STATE state = this.state;
 			if (this.state == NelEnemy.STATE.STUN)
 			{
 				base.killPtc(PtcHolder.PTC_HOLD.ACT);
@@ -647,7 +747,9 @@ namespace nel
 			}
 			if (st != NelEnemy.STATE.STAND)
 			{
+				this.state = st;
 				this.Nai.clearTicket(-1, false);
+				this.state = state;
 				this.can_hold_tackle = false;
 				this.Phy.remLockMoverHitting(HITLOCK.SPECIAL_ATTACK);
 				this.Phy.remLockGravity(HITLOCK.SPECIAL_ATTACK);
@@ -725,6 +827,24 @@ namespace nel
 			return this;
 		}
 
+		public virtual void changeStateDamageFromNest()
+		{
+			if (this.getState() != NelEnemy.STATE.DAMAGE)
+			{
+				this.changeState(NelEnemy.STATE.DAMAGE);
+				this.SpSetPose(this.posename_damage, -1, null, false);
+			}
+		}
+
+		public virtual void changeStateDamageHuttobiFromNest()
+		{
+			if (this.getState() != NelEnemy.STATE.DAMAGE_HUTTOBI)
+			{
+				this.changeState(NelEnemy.STATE.DAMAGE_HUTTOBI);
+				this.SpSetPose(this.posename_damage, -1, null, false);
+			}
+		}
+
 		protected void changeStateToNormal()
 		{
 			this.AimToPlayer();
@@ -751,16 +871,27 @@ namespace nel
 			{
 				return null;
 			}
+			if (MDI.kind == MAPDMG.SPIKE && this.kind == ENEMYKIND.MACHINE)
+			{
+				return null;
+			}
 			if (!apply_execute || this.NoDamage.isActive(nelAttackInfo.ndmg))
 			{
 				return nelAttackInfo;
 			}
 			nelAttackInfo.shuffleHpMpDmg(this, 1f, 1f, -1000, -1000);
-			if (this.applyDamage(nelAttackInfo, false) <= 0)
+			bool flag = this.isDamagingOrKo();
+			if (this.applyDamage(nelAttackInfo, false) > 0)
 			{
-				return null;
+				if (flag && !this.cannot_move && base.hasFoot())
+				{
+					float num = 0.013f + 0.08f * X.saturate(1f / base.weight);
+					float num2 = 1.5707964f + X.XORSPS() * 0.3f * 3.1415927f;
+					this.Phy.addFoc(FOCTYPE.JUMP, num * X.Cos(num2), -num * X.Sin(num2), -1f, 0, 3, 8, 4, 5);
+				}
+				return nelAttackInfo;
 			}
-			return nelAttackInfo;
+			return null;
 		}
 
 		public override bool setWaterDunk(int water_id, int misttype)
@@ -775,6 +906,16 @@ namespace nel
 				this.Phy.addFoc(FOCTYPE.JUMP | FOCTYPE._RELEASE, (float)X.MPFXP() * X.NIXP(0.15f, 0.35f), 0f, -1f, 0, 30, 0, -1, 0);
 			}
 			return true;
+		}
+
+		protected void moveToFootablePosition()
+		{
+			SummonedInfo summonedInfo = ((this.Summoner != null) ? this.Summoner.getSummonedInfo(this) : null);
+			if (summonedInfo == null || summonedInfo.PosInfo == null || summonedInfo.PosInfo.Lp == this.Summoner.Lp)
+			{
+				float footableY = this.Mp.getFootableY(base.x, (int)(base.mbottom - 0.125f), 12, true, -1f, false, true, true, 0f);
+				this.moveBy(0f, footableY - base.mbottom - 0.004f, true);
+			}
 		}
 
 		protected virtual bool runSummoned()
@@ -833,7 +974,7 @@ namespace nel
 			return true;
 		}
 
-		public virtual void initSummoned(EnemySummoner.SmnEnemyKind K, bool is_sudden, int _dupe_count)
+		public virtual void initSummoned(SmnEnemyKind K, bool is_sudden, int _dupe_count)
 		{
 			this.is_follower = this.Summoner.is_follower(K, null);
 			if (this.is_follower)
@@ -844,7 +985,16 @@ namespace nel
 			{
 				this.changeState(NelEnemy.STATE.SUMMONED);
 				base.PtcVar("mp_added", (double)K.mp_added).PtcVar("delay", 60.0).PtcVar("duped", (double)((_dupe_count > 0 || K.DupeConnect != null) ? 1 : 0))
-					.PtcST("en_summoned_prepare", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.FOLLOW_C);
+					.PtcST(this.Summoner.Lp.summoned_prepare_ptc_key, PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.FOLLOW_C);
+			}
+			this.fineDropItem();
+		}
+
+		public void fineDropItem()
+		{
+			if (this.dropratio1000 == 65535 && this.Summoner != null && this.Summoner.isActiveBorder())
+			{
+				this.dropratio1000 = (ushort)NightController.xors(1000);
 			}
 		}
 
@@ -867,10 +1017,10 @@ namespace nel
 			this.fineFootType();
 			if (this.Summoner != null)
 			{
-				EnemySummoner.EnemySummonedInfo summonedInfo = this.Summoner.getSummonedInfo(this);
-				if (summonedInfo != null && !summonedInfo.PosInfo.sudden_appear && !this.Summoner.isEnemyEventUsing())
+				SummonedInfo summonedInfo = this.Summoner.getSummonedInfo(this);
+				if (summonedInfo != null && (summonedInfo.PosInfo == null || !summonedInfo.PosInfo.sudden_appear) && !this.Summoner.isEnemyEventUsing())
 				{
-					base.PtcST("en_summoned", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+					base.PtcST(this.Summoner.Lp.summoned_appear_ptc_key, PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				}
 			}
 			if (this.Anm.isPoseExist("awake"))
@@ -912,9 +1062,9 @@ namespace nel
 			return true;
 		}
 
-		public override void initTortureAbsorbPoseSet(string p, int set_frame = -1, int reset_anmf = -1)
+		public override void initTortureAbsorbPoseSet(M2Attackable Another, string p, int set_frame = -1, int reset_anmf = -1)
 		{
-			base.initTortureAbsorbPoseSet(p, set_frame, reset_anmf);
+			base.initTortureAbsorbPoseSet(Another, p, set_frame, reset_anmf);
 			if (set_frame >= 0)
 			{
 				this.Anm.animReset(set_frame, false);
@@ -1034,7 +1184,7 @@ namespace nel
 			return this.Mp != null && (base.isRingOut() || base.x < (float)X.Mx(0, this.Mp.crop - 3) || base.x >= (float)X.Mn(this.Mp.clms, this.Mp.clms - this.Mp.crop + 3) || base.mtop < (float)X.Mx(0, this.Mp.crop - 3));
 		}
 
-		protected int walkThroughLift(bool init_flag, NaTicket Tk, int afterdelay = 20)
+		public int walkThroughLift(bool init_flag, NaTicket Tk, int afterdelay = 20)
 		{
 			if (CAim._YD(Tk.aim, 1) >= 0)
 			{
@@ -1103,7 +1253,7 @@ namespace nel
 			return 1;
 		}
 
-		protected void applyAbsorbDamageTo(PR Pr, NelAttackInfo Atk, bool execute_attack = true, bool mouth_damage = false, bool use_applydamage = false, float fade_key_replace_ratio01 = 0f, bool do_not_cure = false, string fade_key_replace = null, bool decline_ui_additional_effect = false)
+		public void applyAbsorbDamageTo(PR Pr, NelAttackInfo Atk, bool execute_attack = true, bool mouth_damage = false, bool use_applydamage = false, float fade_key_replace_ratio01 = 0f, bool do_not_cure = false, string fade_key_replace = null, bool decline_ui_additional_effect = false, bool nattr_replace_attr = true)
 		{
 			if (base.destructed)
 			{
@@ -1124,6 +1274,8 @@ namespace nel
 			int split_mpdmg = Atk.split_mpdmg;
 			Atk.hpdmg_current = Atk.hpdmg0;
 			Atk.mpdmg_current = Atk.mpdmg0;
+			MGATTR attr = Atk.attr;
+			float pee_apply = Atk.pee_apply100;
 			if (Atk.hpdmg_current > 0)
 			{
 				Atk.hpdmg_current = X.IntR((float)Atk._hpdmg * this.getHpDamagePublishRatio(null) * X.NIXP(1f, Atk.damage_randomize_min));
@@ -1136,18 +1288,25 @@ namespace nel
 			Atk.CenterXy(base.x, base.y, 0f);
 			this.setAbsorbHitPos(Atk, Pr);
 			float hp = Pr.get_hp();
+			EnemyAttr.absorbDamagePrepare(this, Pr, Atk, nattr_replace_attr);
 			if (use_applydamage)
 			{
-				Pr.applyDamage(Atk, true, fade_key_replace, decline_ui_additional_effect, false);
+				Pr.DMG.applyDamage(Atk, true, fade_key_replace, decline_ui_additional_effect, false);
 			}
 			else
 			{
 				Pr.applyAbsorbDamage(Atk, execute_attack, mouth_damage, fade_key_replace, decline_ui_additional_effect);
 			}
+			if (Atk.fnHitEffectAfter != null)
+			{
+				Atk.fnHitEffectAfter(Atk, Pr, HITTYPE.PR);
+			}
 			if (hp > Pr.get_hp())
 			{
 			}
 			Atk.split_mpdmg = split_mpdmg;
+			Atk.attr = attr;
+			Atk.pee_apply100 = pee_apply;
 		}
 
 		public virtual void setAbsorbHitPos(NelAttackInfo Atk, PR Pr)
@@ -1164,7 +1323,6 @@ namespace nel
 			}
 			if (this.t <= 0f)
 			{
-				this.Phy.walk_xspeed = 0f;
 				base.PtcVar("sizex", (double)(this.sizex * base.CLENM)).PtcVar("sizey", (double)(this.sizey * base.CLENM)).PtcVar("maxt", (double)X.Mx(900f, this.Ser.getRestTime(SER.EATEN)))
 					.PtcST("en_stunned", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C);
 				if (this.exist_stun_pose)
@@ -1176,14 +1334,14 @@ namespace nel
 			if (!this.exist_stun_pose || !this.Anm.poseIs("stun", false))
 			{
 				bool flag = true;
-				if (this.Anm.poseIs("damage", false))
+				if (this.Anm.poseIs(this.posename_damage, false))
 				{
 					float num = (float)this.Anm.getCurrentSequence().countFrames();
 					flag = this.Anm.cframe >= X.IntC(num * 0.7f) || this.Anm.looped_already;
 				}
 				if (flag)
 				{
-					this.Anm.setPose("damage", -1);
+					this.Anm.setPose(this.posename_damage, -1);
 				}
 			}
 			if (this.auto_rot_on_damage)
@@ -1201,13 +1359,13 @@ namespace nel
 			return true;
 		}
 
-		public bool applySerDamage(AttackInfo Atk, float apply_ratio = 1f, int maxt = -1)
+		public bool applySerDamage(FlagCounter<SER> SerDmg, float apply_ratio = 1f, int maxt = -1)
 		{
 			bool flag = false;
 			bool flag2 = this.Ser.has(SER.EATEN);
-			if (Atk.SerDmg != null)
+			if (SerDmg != null)
 			{
-				flag = this.Ser.applySerDamage(Atk.SerDmg, this.nM2D.NightCon.applySerRatio(true) * apply_ratio, maxt) || flag;
+				flag = this.Ser.applySerDamage(SerDmg, this.nM2D.NightCon.applySerRatio(true) * apply_ratio, maxt) || flag;
 			}
 			if (this.state == NelEnemy.STATE.STAND && !this.showFlashEatenEffect(false) && !flag2 && this.Ser.has(SER.EATEN))
 			{
@@ -1225,7 +1383,7 @@ namespace nel
 			}
 		}
 
-		protected override void setDamageCounter(int delta_hp, int delta_mp, M2DmgCounterItem.DC ef = M2DmgCounterItem.DC.NORMAL, M2Attackable AbsorbedBy = null)
+		public override void setDamageCounter(int delta_hp, int delta_mp, M2DmgCounterItem.DC ef = M2DmgCounterItem.DC.NORMAL, M2Attackable AbsorbedBy = null)
 		{
 			if (this.hasF(NelEnemy.FLAG.DMG_EFFECT_SHIELD))
 			{
@@ -1278,11 +1436,6 @@ namespace nel
 				{
 					num2 = 0f;
 				}
-				else if (Atk.Caster is NelEnemy)
-				{
-					NelEnemy nelEnemy = Atk.Caster as NelEnemy;
-					num2 /= (1f + nelEnemy.experience) * ((nelEnemy == this) ? 1f : (1f + this.experience));
-				}
 			}
 			else
 			{
@@ -1323,9 +1476,10 @@ namespace nel
 			bool flag5 = this.isOverDrive() || this.enlarge_level >= 2f;
 			bool flag6 = this.isAttacking();
 			num = this.applyHpDamage(num, ref num3, true, Atk);
-			this.applySerDamage(Atk, 1f, -1);
+			this.applySerDamage(Atk.SerDmg, 1f, -1);
 			float num7 = 1f;
 			float num8 = 30f;
+			float speedratio_enlarging = this.speedratio_enlarging;
 			if (force || (num > 0 && !this.hasSuperArmor(Atk)) || !this.is_alive)
 			{
 				if (Atk.PublishMagic != null && Atk.PublishMagic.padvib_enable && Atk.Caster is M2MoverPr)
@@ -1360,12 +1514,12 @@ namespace nel
 					{
 						if (this.AimPr != null)
 						{
-							num4 = this.speedratio_enlarging * ((float)X.MPF(this.AimPr.x < base.x) * 0.14f);
+							num4 = speedratio_enlarging * ((float)X.MPF(this.AimPr.x < base.x) * 0.14f);
 						}
 					}
 					else
 					{
-						num4 = this.speedratio_enlarging * X.absMx(num4, 0.14f);
+						num4 = speedratio_enlarging * X.absMx(num4, 0.14f);
 					}
 					if (flag5)
 					{
@@ -1376,25 +1530,27 @@ namespace nel
 						}
 						else
 						{
-							num5 = this.speedratio_enlarging * (num5 - num10);
+							num5 = speedratio_enlarging * (num5 - num10);
 						}
 					}
 					else
 					{
-						num5 = this.speedratio_enlarging * X.absMx((num5 == 0f) ? (-0.001f) : num5, 0.02f);
+						num5 = speedratio_enlarging * X.absMx((num5 == 0f) ? (-0.001f) : num5, 0.02f);
 					}
 					PostEffect.IT.addTimeFixedEffect(this.TeCon.setQuake(6f, 18, 4f, 0), 1f);
 					if (flag)
 					{
 						this.NoDamage.Add(4f);
 					}
-					this.SpSetPose("damage", 1, null, false);
+					this.SpSetPose(this.posename_damage, 1, null, false);
 				}
 				else
 				{
+					num4 *= speedratio_enlarging;
+					num5 *= speedratio_enlarging;
 					this.changeState(NelEnemy.STATE.DAMAGE);
 					this.t = -1f;
-					this.SpSetPose("damage", 1, null, false);
+					this.SpSetPose(this.posename_damage, 1, null, false);
 					if (flag)
 					{
 						this.NoDamage.Add(1f);
@@ -1451,7 +1607,7 @@ namespace nel
 					{
 						num7 = 0.25f;
 					}
-					int num11 = X.IntC(X.Mx((float)this.knockback_time_superarmor, Atk.tired_time_to_super_armor));
+					int num11 = ((Atk.tired_time_to_super_armor == -1000f) ? 0 : X.IntC(X.Mx((float)this.knockback_time_superarmor, Atk.tired_time_to_super_armor)));
 					this.checkTiredTime(ref num11, Atk);
 					if (num11 > 0 && this.canApplyTiredInSuperArmor(Atk))
 					{
@@ -1490,7 +1646,13 @@ namespace nel
 					if (num3 > 0)
 					{
 						this.setDamageCounter(0, -num3, M2DmgCounterItem.DC.NORMAL, null);
-						this.nM2D.Mana.AddMulti(base.x, base.y - 0.5f, X.Mx(0f, (float)num3 - (float)mpdmg * this.mp_split_reduce_ratio), (MANA_HIT)13);
+						float num12 = X.Mx(0f, (float)num3 - (float)mpdmg * this.mp_split_reduce_ratio);
+						MagicItem publishMagic = Atk.PublishMagic;
+						if (publishMagic != null && publishMagic.mana_absorb_replace)
+						{
+							publishMagic.ManaAbsorbReplace(this, MANA_HIT.PR, ref num12);
+						}
+						this.nM2D.Mana.AddMulti(base.x, base.y - 0.5f, num12, MANA_HIT.PR | MANA_HIT.FROM_DAMAGE_SPLIT | MANA_HIT.FALL, 1f);
 					}
 				}
 			}
@@ -1531,16 +1693,16 @@ namespace nel
 			if (hpdmg > 0)
 			{
 				NelAttackInfo atkSlipDmgForEn = MDAT.AtkSlipDmgForEn;
-				atkSlipDmgForEn.hpdmg0 = hpdmg;
 				atkSlipDmgForEn.attr = attr;
-				int num = this.applyHpDamage(hpdmg, ref mpdmg, true, atkSlipDmgForEn);
+				atkSlipDmgForEn.hpdmg0 = X.IntC((float)hpdmg * EnemyAttr.applyHpDamageRatio(this, attr));
+				int num = this.applyHpDamage(atkSlipDmgForEn.hpdmg0, ref mpdmg, true, atkSlipDmgForEn);
 				flag = true;
 				this.setDamageCounter(-num, 0, M2DmgCounterItem.DC.NORMAL, null);
 			}
 			if (mpdmg > 0 && this.is_evil)
 			{
 				int num2 = mpdmg;
-				mpdmg = X.Mn(this.mp, X.IntR((float)mpdmg * this.nM2D.NightCon.SpilitMpRatioEn()));
+				mpdmg = X.Mn(this.mp, X.IntR((float)mpdmg * this.nM2D.NightCon.SpilitMpRatioEn() * EnemyAttr.applyHpDamageRatio(this, attr)));
 				if (mpdmg > 0)
 				{
 					mpdmg = this.applyMpDamage(mpdmg, true, null);
@@ -1548,7 +1710,7 @@ namespace nel
 					if (mpdmg > 0)
 					{
 						this.setDamageCounter(0, -mpdmg, M2DmgCounterItem.DC.NORMAL, null);
-						this.nM2D.Mana.AddMulti(base.x, base.y - 0.5f, X.Mx(0f, (float)mpdmg - (float)num2 * 0.75f), (MANA_HIT)13);
+						this.nM2D.Mana.AddMulti(base.x, base.y - 0.5f, X.Mx(0f, (float)(mpdmg - num2) * 0.75f), MANA_HIT.PR | MANA_HIT.FROM_DAMAGE_SPLIT | MANA_HIT.FALL, 1f);
 					}
 				}
 			}
@@ -1633,7 +1795,7 @@ namespace nel
 				this.Nai.delay = 30f;
 				this.changeState(NelEnemy.STATE.DAMAGE);
 				this.Phy.remFoc(FOCTYPE.WALK | FOCTYPE.JUMP, true);
-				this.SpSetPose("damage", -1, null, false);
+				this.SpSetPose(this.posename_damage, -1, null, false);
 			}
 			if (!this.cannot_move)
 			{
@@ -1660,11 +1822,11 @@ namespace nel
 			return base.applyMpDamage(val, force, Atk);
 		}
 
-		public virtual void applyGasDamage(MistAttackInfo Atk)
+		public virtual void applyGasDamage(MistManager.MistKind K, MistAttackInfo Atk)
 		{
 			if (!this.no_apply_gas_damage)
 			{
-				this.applySerDamage(Atk, 1f, -1);
+				this.applySerDamage(Atk.SerDmg, 1f, -1);
 			}
 		}
 
@@ -1761,6 +1923,7 @@ namespace nel
 			int num = 0;
 			bool flag = true;
 			bool flag2 = Mana.from_player_damage | Mana.from_enemy_supplier;
+			bool from_absorb_supplier = Mana.from_absorb_supplier;
 			if (this.isOverDrive())
 			{
 				if (this.Od == null)
@@ -1769,18 +1932,18 @@ namespace nel
 				}
 				num = 1;
 				this.Od.addMpFromMana(val);
-				flag = flag2;
+				flag = flag2 || from_absorb_supplier;
 			}
 			if (flag)
 			{
-				float num2 = (flag2 ? DIFF.enemy_twicemana_mp_cure_ratio : 1f);
+				float num2 = ((flag2 && !this.nattr_mp_stable) ? DIFF.enemy_twicemana_mp_cure_ratio : 1f);
 				num = (int)(val * num2);
 				this.addMpFromMana(num);
-				if (flag2)
-				{
-					this.Mp.DmgCntCon.Make(this, 0, num, M2DmgCounterItem.DC.NORMAL, false);
-					this.addHpFromMana(Mana, val * DIFF.enemy_twicemana_hp_cure_ratio);
-				}
+				this.Mp.DmgCntCon.Make(this, 0, num, M2DmgCounterItem.DC.NORMAL, false);
+			}
+			if (from_absorb_supplier)
+			{
+				this.addHpFromMana(Mana, val * DIFF.enemy_twicemana_hp_cure_ratio * (this.nattr_mp_stable ? 0.25f : 0f));
 			}
 			if (num > 0)
 			{
@@ -1814,10 +1977,21 @@ namespace nel
 
 		public virtual void addHpFromMana(M2Mana Mana, float val)
 		{
-			this.addHpWithAbsorbing((int)val);
+			this.hp_cure_by_mana_stack += val;
+			if (this.hp_cure_by_mana_stack > 1f)
+			{
+				int num = (int)this.hp_cure_by_mana_stack;
+				this.hp_cure_by_mana_stack -= (float)num;
+				this.addHpWithAbsorbing(num);
+			}
 		}
 
 		public int splitMyMana(int mpdmg, float neutral_ratio = 0.125f, int releaseable = -1)
+		{
+			return this.splitMyMana(base.x, base.y, mpdmg, neutral_ratio, releaseable);
+		}
+
+		public int splitMyMana(float x, float y, int mpdmg, float neutral_ratio = 0.125f, int releaseable = -1)
 		{
 			mpdmg = this.applyMpDamage(X.IntR((float)mpdmg * this.nM2D.NightCon.SpilitMpRatioEn()), true, null);
 			if (releaseable < 0)
@@ -1831,13 +2005,13 @@ namespace nel
 			float num = (float)releaseable * neutral_ratio;
 			if (num > 0f)
 			{
-				this.nM2D.Mana.AddMulti(base.x, base.y - 0.5f, num, (MANA_HIT)11);
+				this.nM2D.Mana.AddMulti(x, y - 0.5f, num, MANA_HIT.PR | MANA_HIT.EN | MANA_HIT.FALL, 0f);
 			}
-			this.nM2D.Mana.AddMulti(base.x, base.y - 0.5f, (float)releaseable - num, (MANA_HIT)9);
+			this.nM2D.Mana.AddMulti(x, y - 0.5f, (float)releaseable - num, MANA_HIT.PR | MANA_HIT.FALL, this.nattr_mp_stable ? 0.25f : 1f);
 			return mpdmg;
 		}
 
-		public bool Useable(NOD.MpConsume _Mcs, float ratio = 1f, float add = 0f)
+		public virtual bool Useable(NOD.MpConsume _Mcs, float ratio = 1f, float add = 0f)
 		{
 			return _Mcs == null || (float)this.mp >= X.Mn((float)_Mcs.consume * this.consume_ratio * ratio, (float)this.maxmp * 0.85f) + add;
 		}
@@ -1847,7 +2021,12 @@ namespace nel
 			return this.Useable(_Tki.Mcs, ratio, 0f);
 		}
 
-		public void MpConsume(NOD.MpConsume _Mcs, MagicItem Mg = null, float ratio = 1f, float release_ratio = 1f)
+		public virtual void MpConsume(NOD.MpConsume _Mcs, MagicItem Mg = null, float ratio = 1f, float release_ratio = 1f)
+		{
+			this.MpConsume(base.x, base.y, _Mcs, Mg, ratio, release_ratio);
+		}
+
+		public virtual void MpConsume(float x, float y, NOD.MpConsume _Mcs, MagicItem Mg = null, float ratio = 1f, float release_ratio = 1f)
 		{
 			if (_Mcs == null)
 			{
@@ -1857,12 +2036,19 @@ namespace nel
 			if (Mg != null)
 			{
 				int num = this.applyMpDamage(X.IntR((float)_Mcs.consume * this.nM2D.NightCon.SpilitMpRatioEn() * ratio), true, null);
-				Mg.reduce_mp = (int)X.Mn((float)_Mcs.release * ratio, (float)num);
+				Mg.reduce_mp = (float)((int)X.Mn((float)_Mcs.release * ratio, (float)num));
 				Mg.mp_crystalize = 1f;
 				Mg.crystalize_neutral_ratio = _Mcs.neutral_ratio;
-				return;
+				if (this.nattr_mp_stable)
+				{
+					Mg.splash_fall_reduce = true;
+					return;
+				}
 			}
-			this.splitMyMana(X.IntR((float)_Mcs.consume * ratio), _Mcs.neutral_ratio, X.IntR((float)_Mcs.release * ratio * release_ratio));
+			else
+			{
+				this.splitMyMana(x, y, X.IntR((float)_Mcs.consume * ratio), _Mcs.neutral_ratio, X.IntR((float)_Mcs.release * ratio * release_ratio));
+			}
 		}
 
 		public virtual void addHpWithAbsorbing(int val)
@@ -1916,6 +2102,18 @@ namespace nel
 					this.t = 0f;
 					this.walk_time = 0f;
 					this.walk_st = 0;
+					this.SpSetPose(this.posename_damage_huttobi, -1, null, false);
+					if (this.ANested != null)
+					{
+						for (int i = this.ANested.Count - 1; i >= 0; i--)
+						{
+							NelEnemyNested nelEnemyNested = this.ANested[i];
+							if (nelEnemyNested.sync_damagestate)
+							{
+								nelEnemyNested.changeStateDamageHuttobiFromNest();
+							}
+						}
+					}
 					vector += this.Phy.releasedVelocity;
 					this.Phy.killSpeedForce(true, true, false, false, false);
 					this.Phy.remFoc(FOCTYPE.WALK | FOCTYPE.DAMAGE, true);
@@ -2042,8 +2240,23 @@ namespace nel
 				{
 					this.Anm.rotationR_speed = (float)X.MPF(base.vx < 0f) * X.Mx(0f, X.NIXP(-0.02f, 0.04f - 0.05f * X.Mx(0f, this.enlarge_level - 1f))) * 6.2831855f;
 				}
+				if (this.ANested != null)
+				{
+					for (int i = this.ANested.Count - 1; i >= 0; i--)
+					{
+						NelEnemyNested nelEnemyNested = this.ANested[i];
+						if (nelEnemyNested.sync_damagestate)
+						{
+							nelEnemyNested.changeStateDamageFromNest();
+						}
+					}
+				}
+				if (this.consider_damaging_tired_ser && this.Ser.has(SER.TIRED))
+				{
+					this.Anm.TempStop.Add("DAMAGE_TIRED");
+				}
 			}
-			if (this.t >= (float)this.knockback_time)
+			if (this.t >= (float)this.knockback_time && (!this.consider_damaging_tired_ser || !this.Ser.has(SER.TIRED)))
 			{
 				if (this.auto_rot_on_damage)
 				{
@@ -2072,7 +2285,10 @@ namespace nel
 				this.Phy.addLockMoverHitting(HITLOCK.DEATH, -1f);
 				this.Nai.clearTicket(-1, true);
 				this.blurTargettingFromPr();
-				UiEnemyDex.addDefeatCount(this.id);
+				if ((this.Summoner == null || this.Summoner.Summoner.dropable_special_item) && this.addable_dex_defeat_count)
+				{
+					UiEnemyDex.addDefeatCount(this, this.id, 1, true);
+				}
 				base.initDeath();
 			}
 		}
@@ -2103,7 +2319,7 @@ namespace nel
 			{
 				NelAttackInfo deathAtk = this.DeathAtk;
 				this.addF(NelEnemy.FLAG.INITDEATH_PARTICLE_SETTED);
-				EnemyData.killEnemy(this, deathAtk);
+				NDAT.killEnemy(this, deathAtk);
 				if (this.kind == ENEMYKIND.MACHINE)
 				{
 					if (!this.disappearing)
@@ -2160,36 +2376,19 @@ namespace nel
 		public virtual void changeStateToDie()
 		{
 			this.hp = 0;
-			this.changeState(NelEnemy.STATE.DIE);
 			if (this.Nai != null)
 			{
+				this.changeState(NelEnemy.STATE.DIE);
 				this.Nai.AimPr = null;
+				return;
 			}
+			this.state = NelEnemy.STATE.DIE;
+			this.t = 0f;
 		}
 
 		public virtual bool runDie()
 		{
-			bool flag = true;
-			if (this.DeathAtk != null && this.DeathAtk.Caster is NelEnemy && this.DeathAtk.Caster as NelEnemy != this)
-			{
-				flag = false;
-			}
-			if (flag)
-			{
-				if (this.isOverDrive())
-				{
-					if (this.Od.DropItem != null)
-					{
-						NelItemManager.NelItemDrop nelItemDrop = this.nM2D.IMNG.dropManual(this.Od.DropItem, 1, this.getItemDropGrade(), base.x, base.y, 0f, 0f, null, true, NelItemManager.TYPE.NORMAL);
-						this.Od.DropItem = null;
-					}
-				}
-				else if (this.DropItem != null)
-				{
-					NelItemManager.NelItemDrop nelItemDrop = this.nM2D.IMNG.dropManual(this.DropItem, 1, this.getItemDropGrade(), base.x, base.y, 0f, 0f, null, true, NelItemManager.TYPE.NORMAL);
-					this.DropItem = null;
-				}
-			}
+			this.checkDropChance();
 			if (!this.hasF(NelEnemy.FLAG.INITDEATH_PARTICLE_SETTED))
 			{
 				this.initDeathEffect();
@@ -2208,6 +2407,49 @@ namespace nel
 			float dangerLevel = this.nM2D.NightCon.getDangerLevel();
 			int num = (int)(dangerLevel * 0.5f);
 			return (int)((float)num + this.NCXORSP(146) * X.Mx(0f, (this.isOverDrive() ? 1f : (this.enlarge_level - 1f)) + dangerLevel - (float)num));
+		}
+
+		protected virtual void checkDropChance()
+		{
+			if (this.dropratio1000 != 65535)
+			{
+				float num = (float)this.dropratio1000 * 0.001f * 100f;
+				this.dropratio1000 = ushort.MaxValue;
+				float num2 = (float)(this.isOverDrive() ? this.Od.drop_ratio_od100 : this.drop_ratio_normal100);
+				if (this.Summoner != null)
+				{
+					float num3 = this.nM2D.NightCon.summoner_drop_item_base_ratio(this.Summoner.Summoner);
+					num2 *= num3;
+				}
+				if (this.DeathAtk != null)
+				{
+					if (this.DeathAtk.Caster is NelEnemy)
+					{
+						num2 = 0f;
+					}
+					else if (this.DeathAtk.Caster is PR)
+					{
+						float re = (this.DeathAtk.Caster as PR).getRE(RCP.RPI_EFFECT.ITEMDROP_RATIO);
+						num2 *= ((re > 0f) ? X.NI(1f, 5f, re) : (1f + re));
+					}
+				}
+				if (num < num2)
+				{
+					if (this.isOverDrive())
+					{
+						if (this.Od.DropItemOd != null)
+						{
+							NelItemManager.NelItemDrop nelItemDrop = this.nM2D.IMNG.dropManual(this.Od.DropItemOd, 1, this.getItemDropGrade(), base.x, base.y, 0f, 0f, null, true, NelItemManager.TYPE.NORMAL);
+							this.Od.DropItemOd = null;
+						}
+					}
+					else if (this.DropItem != null)
+					{
+						NelItemManager.NelItemDrop nelItemDrop = this.nM2D.IMNG.dropManual(this.DropItem, 1, this.getItemDropGrade(), base.x, base.y, 0f, 0f, null, true, NelItemManager.TYPE.NORMAL);
+						this.DropItem = null;
+					}
+				}
+			}
 		}
 
 		public void FixSizeW(float px_w, float px_h)
@@ -2244,7 +2486,7 @@ namespace nel
 				this.Anm.extend_eye_wh = X.NI(2, 7, base.mp_ratio);
 			}
 			base.Size(num3 * base.CLENM * num2, num4 * base.CLENM * num2, ALIGN.CENTER, aligny, resize_moveby);
-			base.weight = ((this.weight0 < 0f) ? this.weight0 : (base.weight * this.enlarge_level));
+			base.weight = ((this.weight0 < 0f) ? this.weight0 : (base.weight * ((this.enlarge_level - 1f) * 1.5f + 1f)));
 			if (num != this.enlarge_level)
 			{
 				if (set_effect && this.set_enlarge_bouncy_effect)
@@ -2309,7 +2551,7 @@ namespace nel
 			{
 				return r;
 			}
-			return 1f + (r - 1f) * (this.enlarge_anim_scale_max - 1f);
+			return this.enlarge_anim_scale_min + (r - 1f) * (this.enlarge_anim_scale_max - this.enlarge_anim_scale_min);
 		}
 
 		public bool initOverDrive(bool change_state = false, bool check_current_state = false)
@@ -2486,24 +2728,39 @@ namespace nel
 			if (od_blink > 0f)
 			{
 				CBuf.Set(this.col_od_blink_color);
-				float add_color_white_blend_level = EnemyMeshDrawer.add_color_white_blend_level;
-				CBuf.blend(uint.MaxValue, X.ZPOW(add_color_white_blend_level));
+				uint num3;
+				float num2 = this.blend_white_to_od_blink_color_level(out num3, CBuf);
+				CBuf.blend(num3, num2);
 				C.blend(CBuf, od_blink);
 			}
 		}
 
-		public override void jumpInit(float xlen, float ypos, float high_y, bool release_x_velocity = false)
+		public virtual float blend_white_to_od_blink_color_level(out uint _blend_col, C32 CBuf)
 		{
-			this.skip_lift_mapy = (int)(this.Nai.target_mbottom + X.Mn(ypos, 0f) + 0.125f) - 1;
-			base.jumpInit(xlen, ypos, high_y, release_x_velocity);
+			float add_color_white_blend_level = EnemyMeshDrawer.add_color_white_blend_level;
+			_blend_col = uint.MaxValue;
+			return X.ZPOW(add_color_white_blend_level);
 		}
 
-		public MagicItem tackleInit(NelAttackInfo Atk, float difx_map = 0f, float dify_map = 0f, float radius = 0.8f, bool no_consider_size = false, bool abs_pos_flag = false)
+		public override void jumpInit(Vector4 JumpVelocity, float ypos = -1000f, bool release_x_velocity = false)
 		{
-			MagicItem magicItem = (base.M2D as NelM2DBase).MGC.setMagic(this, MGKIND.TACKLE, this.mg_hit | MGHIT.IMMEDIATE);
+			if (ypos != -1000f)
+			{
+				this.skip_lift_mapy = (int)(this.Nai.target_mbottom + X.Mn(ypos, 0f) + 0.125f) - 1;
+			}
+			base.jumpInit(JumpVelocity, ypos, release_x_velocity);
+		}
+
+		public MagicItem tackleInit(NelAttackInfo Atk, float difx_map = 0f, float dify_map = 0f, float radius = 0.8f, bool no_consider_size = false, bool abs_pos_flag = false, MGHIT mg_hit = MGHIT.AUTO)
+		{
+			if (mg_hit == MGHIT.AUTO)
+			{
+				mg_hit = this.mg_hit;
+			}
+			MagicItem magicItem = (base.M2D as NelM2DBase).MGC.setMagic(this, MGKIND.TACKLE, mg_hit | MGHIT.IMMEDIATE);
 			magicItem.sx = difx_map * (no_consider_size ? 1f : this.scaleX) * base.mpf_is_right;
 			magicItem.sy = dify_map * (no_consider_size ? 1f : this.scaleY);
-			magicItem.sz = (radius + ((this.AimPr != null && !this.AimPr.is_alive) ? 0.9f : 0f)) * (float)X.MPF(!abs_pos_flag);
+			magicItem.sz = (X.Mx(0.01f, radius) + ((this.AimPr != null && !this.AimPr.is_alive) ? 0.9f : 0f)) * (float)X.MPF(!abs_pos_flag);
 			magicItem.Atk0 = Atk;
 			Atk.knockback_ratio_p = 1f;
 			Atk.burst_vx = X.Abs(Atk.burst_vx) * base.mpf_is_right;
@@ -2512,7 +2769,7 @@ namespace nel
 			return magicItem;
 		}
 
-		public MagicItem tackleInit(NelAttackInfo Atk, NOD.TackleInfo TkData)
+		public MagicItem tackleInit(NelAttackInfo Atk, NOD.TackleInfo TkData, MGHIT mg_hit = MGHIT.AUTO)
 		{
 			float num = TkData.calc_difx_map(this);
 			float num2 = TkData.calc_dify_map(this);
@@ -2522,7 +2779,16 @@ namespace nel
 				num = vector.x;
 				num2 = vector.y;
 			}
-			MagicItem magicItem = this.tackleInit(Atk, num, num2, X.Abs(TkData.radius), TkData.no_consider_size, TkData.abs_pos_flag);
+			float num3 = TkData.radius;
+			if ((TkData.radius_add_size & 1) != 0)
+			{
+				num3 += this.sizex;
+			}
+			if ((TkData.radius_add_size & 2) != 0)
+			{
+				num3 += this.sizey;
+			}
+			MagicItem magicItem = this.tackleInit(Atk, num, num2, num3, TkData.no_consider_size, TkData.abs_pos_flag, mg_hit);
 			magicItem.projectile_power = TkData.projectile_power;
 			magicItem.Ray.hittype_to_week_projectile = TkData.reflect;
 			magicItem.Ray.check_other_hit = TkData.hit_other;
@@ -2548,7 +2814,7 @@ namespace nel
 			MagicItem magicItem = null;
 			for (int i = ATkData.Length - 1; i >= 0; i--)
 			{
-				MagicItem magicItem2 = this.tackleInit(Atk, ATkData[i]);
+				MagicItem magicItem2 = this.tackleInit(Atk, ATkData[i], MGHIT.AUTO);
 				if (magicItem != null)
 				{
 					magicItem2.Ray.SyncHitLock(magicItem.Ray);
@@ -2595,17 +2861,52 @@ namespace nel
 			if (Target is NelEnemy && this.is_alive && Target != this)
 			{
 				NelEnemy nelEnemy = Target as NelEnemy;
-				float num = nelEnemy.experience + (nelEnemy.isOverDrive() ? nelEnemy.killed_add_exp_od : nelEnemy.killed_add_exp);
-				if (num > 0f)
+				bool flag = false;
+				for (int i = 0; i < 2; i++)
 				{
-					if (this.experience == 0f)
+					float num = ((i == 0) ? nelEnemy.experience_atk : nelEnemy.experience_def) + (nelEnemy.isOverDrive() ? nelEnemy.killed_add_exp_od : nelEnemy.killed_add_exp);
+					if (num > 0f)
 					{
-						base.PtcST("enemy_get_experience_loop", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+						flag = true;
+						if (i == 0)
+						{
+							this.addExperienceAtk(num);
+						}
+						else
+						{
+							this.addExperienceDef(num);
+						}
 					}
-					this.experience += num;
+				}
+				if (flag)
+				{
 					this.flags |= NelEnemy.FLAG.CHECK_ENLARGE;
 					base.PtcST("enemy_get_experience", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.FOLLOW_C);
 				}
+			}
+		}
+
+		public void addExperienceAtk(float atk)
+		{
+			if (atk > 0f)
+			{
+				if (this.experience_atk == 0f)
+				{
+					base.PtcST("enemy_get_experience_atk_loop", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+				}
+				this.experience_atk += atk;
+			}
+		}
+
+		public void addExperienceDef(float def)
+		{
+			if (def > 0f)
+			{
+				if (this.experience_def == 0f)
+				{
+					base.PtcST("enemy_get_experience_def_loop", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+				}
+				this.experience_def += def;
 			}
 		}
 
@@ -2613,7 +2914,7 @@ namespace nel
 		{
 			get
 			{
-				return 1f / (1f + this.experience);
+				return 1f / (1f + this.experience_atk) * (this.nattr_mp_stable ? (this.nattr_has_mattr ? 0.15f : 0.08f) : 1f);
 			}
 		}
 
@@ -2709,7 +3010,7 @@ namespace nel
 
 		public virtual float getHpDamagePublishRatio(MagicItem Mg)
 		{
-			return (1f + this.experience) * ((Mg == null || Mg.is_normal_attack) ? (this.Ser.AtkRate() * (this.isOverDrive() ? 3f : X.NIL(1f, this.enlarge_publish_damage_ratio, this.enlarge_level - 1f, 1f))) : this.Ser.ChantAtkRate());
+			return (1f + this.experience_atk) * ((Mg == null || Mg.is_normal_attack) ? (this.Ser.AtkRate() * (this.isOverDrive() ? 1.25f : X.NIL(1f, this.enlarge_publish_damage_ratio, this.enlarge_level - 1f, 1f))) : this.Ser.ChantAtkRate());
 		}
 
 		public virtual float getCastingTimeScale(MagicItem Mg)
@@ -2723,16 +3024,21 @@ namespace nel
 			{
 				return -1f;
 			}
+			float num;
 			if (this.isOverDrive())
 			{
-				return 0.45f;
+				num = 0.45f;
 			}
-			float num = base.mp_ratio + (float)(add_mp / this.maxmp);
-			if (num < 1f)
+			else
 			{
-				return num;
+				float num2 = base.mp_ratio + (float)(add_mp / this.maxmp);
+				num = ((num2 >= 1f) ? (-1f) : num2);
 			}
-			return -1f;
+			if (this.nattr_mp_stable)
+			{
+				num = X.Scr(num, 0.33f);
+			}
+			return num;
 		}
 
 		public virtual float getMpDesireMaxValue()
@@ -2840,7 +3146,7 @@ namespace nel
 			return false;
 		}
 
-		public virtual bool isTortureUsing()
+		public virtual bool isTortureUsingForAnim()
 		{
 			return this.Absorb != null && this.Absorb.isTortureUsing();
 		}
@@ -2899,6 +3205,17 @@ namespace nel
 					this.Anm.setAim(n, 0);
 				}
 			}
+			if (this.ANested != null)
+			{
+				for (int i = this.ANested.Count - 1; i >= 0; i--)
+				{
+					NelEnemyNested nelEnemyNested = this.ANested[i];
+					if (nelEnemyNested.sync_aim_from_parent)
+					{
+						nelEnemyNested.setAim(n, sprite_force_aim_set);
+					}
+				}
+			}
 			return this;
 		}
 
@@ -2932,7 +3249,7 @@ namespace nel
 			{
 				return base.setToDefaultPosition(no_set_camera, TargetMap);
 			}
-			EnemySummoner.EnemySummonedInfo summonedInfo = this.Summoner.getSummonedInfo(this);
+			SummonedInfo summonedInfo = this.Summoner.getSummonedInfo(this);
 			if (summonedInfo == null)
 			{
 				return base.setToDefaultPosition(no_set_camera, TargetMap);
@@ -2940,14 +3257,14 @@ namespace nel
 			this.setTo(summonedInfo.FirstPos.x, summonedInfo.FirstPos.y);
 			if (this.Phy != null && !this.Phy.isLockWallHittingActive())
 			{
-				M2LpSummon summonedArea = this.Summoner.getSummonedArea();
+				M2LpSummon lp = this.Summoner.Lp;
 				int num = 0;
-				while (summonedArea != null && base.isStuckInWall(false) && num++ < 4)
+				while (lp != null && base.isStuckInWall(false) && num++ < 4)
 				{
 					try
 					{
-						summonedArea.getWalkable(map2d, (float)(summonedArea.mapx + 1) + X.XORSP() * (float)(summonedArea.mapw - 2), (float)(summonedArea.mapy + 1) + X.XORSP() * (float)(summonedArea.maph - 2));
-						this.setTo(summonedArea.x, summonedArea.y);
+						lp.getWalkable(map2d, (float)(lp.mapx + 1) + X.XORSP() * (float)(lp.mapw - 2), (float)(lp.mapy + 1) + X.XORSP() * (float)(lp.maph - 2));
+						this.setTo(lp.x, lp.y);
 					}
 					catch
 					{
@@ -2972,7 +3289,7 @@ namespace nel
 			{
 				if (this.Summoner != null)
 				{
-					EnemySummoner.EnemySummonedInfo summonedInfo = this.Summoner.getSummonedInfo(this);
+					SummonedInfo summonedInfo = this.Summoner.getSummonedInfo(this);
 					if (summonedInfo != null)
 					{
 						float num = X.VALWALK(base.x, summonedInfo.FirstPos.x, 0.35f);
@@ -3011,39 +3328,31 @@ namespace nel
 
 		protected void prepareHpMpBarMeshInner(bool create = false)
 		{
-			if ((EnhancerManager.enhancer_bits & EnhancerManager.EH.hp_eye) == (EnhancerManager.EH)0U || this.Mp == null)
+			if (this.Mp == null)
 			{
 				return;
 			}
-			if (this.MdHpMpBar == null)
+			if (this.HpMpBar == null)
 			{
+				if ((ENHA.enhancer_bits & ENHA.EH.hp_eye) == (ENHA.EH)0U)
+				{
+					return;
+				}
 				if (!create)
 				{
 					return;
 				}
-				this.MdHpMpBar = new MeshDrawer(null, 4, 6);
-				this.MdHpMpBar.draw_gl_only = true;
-				this.MdHpMpBar.activate("hpmpbar", MTRX.MtrMeshNormal, false, MTRX.ColWhite, null);
+				this.HpMpBar = new EnemyHpMpBar(this);
 			}
-			this.MdHpMpBar.clear(false, false);
-			this.MdHpMpBar.Col = C32.d2c(2281701376U);
-			this.MdHpMpBar.BoxBL(-43f, -2f, 87f, 4f, 0f, false);
-			if (this.hp > 0)
-			{
-				this.MdHpMpBar.Col = C32.d2c(3739510374U);
-				int num = X.IntC(42f * base.hp_ratio);
-				this.MdHpMpBar.Line((float)(-(float)num), 0f, 0f, 0f, 2f, false, 0f, 0f);
-			}
-			if (this.mp > 0)
-			{
-				this.MdHpMpBar.Col = C32.d2c(3728523232U);
-				int num2 = X.IntC(42f * base.mp_ratio);
-				this.MdHpMpBar.Line(1f, 0f, (float)(1 + num2), 0f, 2f, false, 0f, 0f);
-			}
+			this.HpMpBar.fine();
 		}
 
 		public virtual bool createTicketFromEvent(StringHolder rER)
 		{
+			if (this.Nai == null)
+			{
+				return false;
+			}
 			NAI.TYPE type;
 			if (!FEnum<NAI.TYPE>.TryParse(rER._1U, out type, true))
 			{
@@ -3079,7 +3388,12 @@ namespace nel
 		{
 			get
 			{
-				return X.NI(1f, 0.45f, X.ZPOW(this.enlarge_level - 1f));
+				if (this.cannot_move)
+				{
+					return 0f;
+				}
+				float num = X.Abs(base.weight);
+				return 1.5f / (num + 0.5f);
 			}
 		}
 
@@ -3097,6 +3411,11 @@ namespace nel
 			string cmd = rER.cmd;
 			if (cmd != null)
 			{
+				if (cmd == "%HIDDEN")
+				{
+					rER.Def("hidden", (float)((this.Anm.alpha == 0f || this.disappearing) ? 1 : 0));
+					return true;
+				}
 				if (cmd == "%ENLARGE")
 				{
 					rER.Def("enlarge_level", this.enlarge_level);
@@ -3165,14 +3484,15 @@ namespace nel
 				return 0f;
 			}
 			float num = 1f;
-			float apply_hp_dmg_ratio_enlg = this.apply_hp_dmg_ratio_enlg;
+			float num2 = this.apply_hp_dmg_ratio_enlg;
+			num2 *= EnemyAttr.applyHpDamageRatio(this, Atk);
 			if (Atk != null && Atk is NelAttackInfo)
 			{
 				M2Attackable m2Attackable = (Atk as NelAttackInfo).Caster as M2Attackable;
 				if (m2Attackable != null)
 				{
 					NelEnemy nelEnemy = m2Attackable as NelEnemy;
-					if (this.Summoner != null && !EnemySummoner.isActiveBorder() && !this.Summoner.getSummonedArea().isContainingMover(m2Attackable, 12f))
+					if (this.Summoner != null && !EnemySummoner.isActiveBorder() && !this.Summoner.Lp.isContainingMover(m2Attackable, 12f))
 					{
 						return 0f;
 					}
@@ -3186,7 +3506,11 @@ namespace nel
 						{
 							num *= 0.25f;
 						}
-						num *= 1f - X.ZLINE(this.experience * 0.66f);
+						num *= 1f - X.ZLINE(X.Mx(this.experience_def, this.experience_atk), 1.75f);
+					}
+					else
+					{
+						num *= 1f - 0.75f * X.ZLINE(this.experience_def, 2.5f);
 					}
 					if (this.isOverDrive() && m2Attackable is PR)
 					{
@@ -3194,7 +3518,7 @@ namespace nel
 					}
 				}
 			}
-			return num * apply_hp_dmg_ratio_enlg;
+			return num * num2;
 		}
 
 		public override int ratingHpDamageVal(float ratio)
@@ -3214,6 +3538,10 @@ namespace nel
 			{
 				num = 1.5f;
 			}
+			if (this.nattr_mp_stable && !this.Ser.has(SER.EATEN))
+			{
+				num *= 0.05f;
+			}
 			return X.Mn(X.IntC((float)X.IntC((float)val * num)), val);
 		}
 
@@ -3222,7 +3550,7 @@ namespace nel
 			return this.Nai.isNoticePlayer();
 		}
 
-		public M2MoverPr AimPr
+		public M2Attackable AimPr
 		{
 			get
 			{
@@ -3297,7 +3625,7 @@ namespace nel
 
 		protected override bool noHitableAttack()
 		{
-			return this.disappearing || this.throw_ray || (this.Od != null && !this.isOverDrive() && this.Od.thunder_overdrive) || this.state == NelEnemy.STATE.OD_ACTIVATE || this.state == NelEnemy.STATE.DAMAGE_HUTTOBI;
+			return this.disappearing || this.throw_ray || (this.Od != null && !this.isOverDrive() && this.Od.thunder_overdrive) || this.state == NelEnemy.STATE.OD_ACTIVATE || (this.state == NelEnemy.STATE.DAMAGE_HUTTOBI && this.walk_st < 1);
 		}
 
 		protected virtual bool canCheckEnlargeState(NelEnemy.STATE state)
@@ -3358,6 +3686,11 @@ namespace nel
 				return (RAYHIT)3;
 			}
 			return RAYHIT.NONE;
+		}
+
+		public override float auto_target_priority(M2Mover CalcFrom)
+		{
+			return 10f;
 		}
 
 		public virtual bool canApplyTiredInSuperArmor(NelAttackInfo Atk)
@@ -3432,7 +3765,11 @@ namespace nel
 		{
 			get
 			{
-				return "m2d.enemy." + this.index.ToString();
+				if (this.snd_key_ == null)
+				{
+					this.snd_key_ = "m2d.enemy." + this.index.ToString();
+				}
+				return this.snd_key_;
 			}
 		}
 
@@ -3480,7 +3817,7 @@ namespace nel
 			return this.Nai.hasPriorityTicket(_priority, remove_if_after_delaying, only_active);
 		}
 
-		public virtual void fineTargetPos(M2MoverPr Pr, ref float target_x, ref float target_y)
+		public virtual void fineTargetPos(M2Attackable Pr, ref float target_x, ref float target_y)
 		{
 			target_x = Pr.x;
 			target_y = Pr.y;
@@ -3546,6 +3883,30 @@ namespace nel
 				this.fineFootType();
 			}
 			return this;
+		}
+
+		public bool nattr_invisible
+		{
+			get
+			{
+				return (this.nattr & ENATTR.INVISIBLE) > ENATTR.NORMAL;
+			}
+		}
+
+		public bool nattr_mp_stable
+		{
+			get
+			{
+				return (this.nattr & ENATTR.MP_STABLE) > ENATTR.NORMAL;
+			}
+		}
+
+		public bool nattr_has_mattr
+		{
+			get
+			{
+				return (this.nattr & ENATTR._MATTR) > ENATTR.NORMAL;
+			}
 		}
 
 		public override bool is_alive
@@ -3641,6 +4002,18 @@ namespace nel
 			}
 		}
 
+		public virtual float invisible_cosi
+		{
+			get
+			{
+				if (this.Mp != null)
+				{
+					return X.COSI(this.Mp.floort + (float)(this.index % 43 * 6), (float)(81 + this.index % 13 * 7)) * 0.5f + X.COSI(this.Mp.floort + (float)((this.index + 24) % 43 * 6), 1.6f + (float)((this.index + 5) % 13) * 0.25f) * 0.25f;
+				}
+				return 0f;
+			}
+		}
+
 		public float NIel(float a, float b)
 		{
 			return X.NIL(a, b, this.enlarge_level - 1f, 1f);
@@ -3649,6 +4022,18 @@ namespace nel
 		public bool canApplyMistDamage()
 		{
 			return this.is_alive;
+		}
+
+		public virtual float nattr_splash_ratio
+		{
+			get
+			{
+				if (!this.nattr_has_mattr || this.isOverDrive())
+				{
+					return 1f;
+				}
+				return X.NI(0.4f, 1f, base.mp_ratio);
+			}
 		}
 
 		public virtual bool showFlashEatenEffect(bool for_effect = false)
@@ -3682,6 +4067,19 @@ namespace nel
 			return this.is_alive && !this.Ser.has(SER.EATEN);
 		}
 
+		public NelEnemy.STATE getState()
+		{
+			return this.state;
+		}
+
+		public virtual bool addable_dex_defeat_count
+		{
+			get
+			{
+				return true;
+			}
+		}
+
 		public float base_TS = 1f;
 
 		public EnemyAnimator Anm;
@@ -3690,17 +4088,27 @@ namespace nel
 
 		protected ENEMYKIND kind;
 
-		public EnemySummoner Summoner;
+		public ENATTR nattr;
+
+		public SummonerPlayer Summoner;
 
 		public bool is_follower;
 
 		public float smn_xorsp = -1000f;
+
+		public ushort dropratio1000 = ushort.MaxValue;
+
+		public byte drop_ratio_normal100;
 
 		public bool exist_fall_pose;
 
 		public bool exist_land_pose;
 
 		public bool exist_stun_pose;
+
+		public string posename_damage = "damage";
+
+		public string posename_damage_huttobi = "damage";
 
 		private bool battleable_enemy_ = true;
 
@@ -3742,7 +4150,11 @@ namespace nel
 
 		public float killed_add_exp_od = 1f;
 
-		public float experience;
+		public float experience_atk;
+
+		public float experience_def;
+
+		private float hp_cure_by_mana_stack;
 
 		public float stun_time = 200f;
 
@@ -3800,7 +4212,7 @@ namespace nel
 
 		public float basic_stun_ratio = 1f;
 
-		public const float overdrive_publish_damage_ratio = 3f;
+		public const float overdrive_publish_damage_ratio = 1.25f;
 
 		public float overdrive_hp_multiple = 12f;
 
@@ -3812,11 +4224,15 @@ namespace nel
 
 		public float flashbang_time_ratio = 1f;
 
+		public float enlarge_anim_scale_min = 1f;
+
 		public float enlarge_anim_scale_max = 2.3f;
 
 		public bool can_hold_tackle;
 
 		public uint col_od_blink_color = 4294901760U;
+
+		public bool consider_damaging_tired_ser;
 
 		protected NAI Nai;
 
@@ -3827,6 +4243,10 @@ namespace nel
 		protected int absorb_pos_fix_maxt = -1;
 
 		public bool red_eye_blink;
+
+		public float absorb_nattr_ser_apply = 0.5f;
+
+		public float nattr_delay_extend_ratio = 1f;
 
 		private static int enemy_layer;
 
@@ -3848,9 +4268,7 @@ namespace nel
 
 		public const int SUMMON_DELAY = 60;
 
-		private const int HPBAR_W = 42;
-
-		public MeshDrawer MdHpMpBar;
+		private EnemyHpMpBar HpMpBar;
 
 		public NelAttackInfo DeathAtk;
 
@@ -3859,6 +4277,8 @@ namespace nel
 		private NelItem DropItem;
 
 		public bool do_not_shuffle_on_cheat;
+
+		private string snd_key_;
 
 		public delegate bool FnCheckEnemy(NelEnemy N);
 

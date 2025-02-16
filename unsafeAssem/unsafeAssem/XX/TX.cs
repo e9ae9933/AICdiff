@@ -518,60 +518,67 @@ namespace XX
 
 		public static string ReplaceTX(string src, bool no_error = false)
 		{
+			string text;
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				TX.ReplaceTX(stb, src, no_error);
+				text = stb.ToString();
+			}
+			return text;
+		}
+
+		public static STB ReplaceTX(STB StbD, string src, bool no_error = false)
+		{
 			if (src.IndexOf("&&") == -1)
 			{
-				return src;
+				StbD.Add(src);
+				return StbD;
 			}
 			int num = 0;
-			string text2;
 			using (STB stb = TX.PopBld(src, 0))
 			{
-				using (STB stb2 = TX.PopBld(null, 0))
+				for (;;)
 				{
-					for (;;)
+					int num2 = stb.IndexOf("&&", num, -1);
+					if (num2 < 0)
 					{
-						int num2 = stb.IndexOf("&&", num, -1);
-						if (num2 < 0)
+						break;
+					}
+					StbD.Add(stb, num, num2 - num);
+					num2 += 2;
+					int num3;
+					stb.Scroll(num2, out num3, TX.FnIsWMatch, -1);
+					StbD.AddTxA(stb.ToString(num2, num3 - num2), true);
+					while (stb.Is('[', num3))
+					{
+						num2 = num3 + 1;
+						if (stb.isStart("&&", num2))
 						{
-							break;
-						}
-						stb2.Add(stb, num, num2 - num);
-						num2 += 2;
-						int num3;
-						stb.Scroll(num2, out num3, TX.FnIsWMatch, -1);
-						stb2.AddTxA(stb.ToString(num2, num3 - num2), true);
-						while (stb.Is('[', num3))
-						{
-							num2 = num3 + 1;
-							if (stb.isStart("&&", num2))
+							num2 += 2;
+							stb.Scroll(num2, out num3, TX.FnIsWMatch, -1);
+							string text = stb.ToString(num2, num3 - num2);
+							TX tx = TX.getTX(text, true, true, null);
+							if (tx != null)
 							{
-								num2 += 2;
-								stb.Scroll(num2, out num3, TX.FnIsWMatch, -1);
-								string text = stb.ToString(num2, num3 - num2);
-								TX tx = TX.getTX(text, true, true, null);
-								if (tx != null)
-								{
-									stb2.TxRpl(tx.text);
-								}
-								else
-								{
-									stb2.TxRpl(text);
-								}
+								StbD.TxRpl(tx.text);
 							}
 							else
 							{
-								stb.Scroll(num2, out num3, TX.FnIsWMatch, -1);
-								stb2.TxRpl(stb.ToString(num2, num3 - num2));
+								StbD.TxRpl(text);
 							}
-							num3 += (stb.Is(']', num3) ? 1 : 0);
 						}
-						num = num3;
+						else
+						{
+							stb.Scroll(num2, out num3, TX.FnIsWMatch, -1);
+							StbD.TxRpl(stb.ToString(num2, num3 - num2));
+						}
+						num3 += (stb.Is(']', num3) ? 1 : 0);
 					}
-					stb2.Add(stb, num, stb.Length - num);
-					text2 = stb2.ToString();
+					num = num3;
 				}
+				StbD.Add(stb, num, stb.Length - num);
 			}
-			return text2;
+			return StbD;
 		}
 
 		public static string Get(string title, string default_str = "")
@@ -1998,7 +2005,7 @@ namespace XX
 
 		public static bool isStart(string str, string compare, int start_index = 0)
 		{
-			if (str == null || compare == null)
+			if (str == null || compare == null || start_index < 0)
 			{
 				return false;
 			}
@@ -2108,6 +2115,22 @@ namespace XX
 		public static bool isStart(string str, char c)
 		{
 			return TX.valid(str) && str[0] == c;
+		}
+
+		public static bool isStart(string str, List<string> A)
+		{
+			if (A == null)
+			{
+				return false;
+			}
+			for (int i = A.Count - 1; i >= 0; i--)
+			{
+				if (TX.isStart(str, A[i], 0))
+				{
+					return true;
+				}
+			}
+			return false;
 		}
 
 		public static int evalI(string tx)
@@ -2246,13 +2269,13 @@ namespace XX
 							{
 								if (t == "BLACK")
 								{
-									return TX.Acolors[1];
+									return 4278190080U | TX.Acolors[1];
 								}
 							}
 						}
 						else if (t == "SKY")
 						{
-							return TX.Acolors[6];
+							return 4278190080U | TX.Acolors[6];
 						}
 					}
 					else if (num != 2211354620U)
@@ -2267,7 +2290,7 @@ namespace XX
 					}
 					else if (t == "RED")
 					{
-						return TX.Acolors[2];
+						return 4278190080U | TX.Acolors[2];
 					}
 				}
 				else if (num <= 2856149510U)
@@ -2278,13 +2301,13 @@ namespace XX
 						{
 							if (t == "WHITE")
 							{
-								return TX.Acolors[0];
+								return 4278190080U | TX.Acolors[0];
 							}
 						}
 					}
 					else if (t == "PURPLE")
 					{
-						return TX.Acolors[7];
+						return 4278190080U | TX.Acolors[7];
 					}
 				}
 				else if (num != 2875364188U)
@@ -2293,13 +2316,13 @@ namespace XX
 					{
 						if (t == "YELLOW")
 						{
-							return TX.Acolors[5];
+							return 4278190080U | TX.Acolors[5];
 						}
 					}
 				}
 				else if (t == "GREEN")
 				{
-					return TX.Acolors[4];
+					return 4278190080U | TX.Acolors[4];
 				}
 			}
 			if (t.IndexOf("0x") == 0)
@@ -2432,7 +2455,7 @@ namespace XX
 			{
 				return false;
 			}
-			int num = c.IndexOf(s);
+			int num = c.LastIndexOf(s);
 			return num >= 0 && num == c.Length - s.Length;
 		}
 
@@ -2988,7 +3011,7 @@ namespace XX
 					this.Mti = Pre_Fam.Mti;
 					this.BannerIcon_ = Pre_Fam.BannerIcon_;
 				}
-				this.OTx = new NDic<TX>("TX_" + _key, capacity);
+				this.OTx = new NDic<TX>("TX_" + _key, capacity, 0);
 			}
 
 			public void scriptFinalize()

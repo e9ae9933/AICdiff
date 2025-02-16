@@ -375,11 +375,12 @@ namespace m2d
 					{
 						array = new Material[subMeshCount];
 					}
-					for (int j = 0; j < subMeshCount; j++)
+					int num2 = 0;
+					while (num2 < subMeshCount && num2 != 2)
 					{
 						if (subMeshCount > 1)
 						{
-							mdMap.chooseSubMesh(j, false, false);
+							mdMap.chooseSubMesh(num2, false, false);
 						}
 						Material material = mdMap.getMaterial();
 						if (material != null)
@@ -387,9 +388,10 @@ namespace m2d
 							this.Mp.fineMaterialSubMapAttribute(mdMap, material, CheckSub, false);
 							if (array != null)
 							{
-								array[j] = material;
+								array[num2] = material;
 							}
 						}
+						num2++;
 					}
 					if (subMeshCount > 1)
 					{

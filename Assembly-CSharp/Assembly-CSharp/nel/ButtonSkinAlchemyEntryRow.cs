@@ -23,7 +23,7 @@ namespace nel
 			}
 		}
 
-		public void setItem(UiCraftBase.IngEntryRow _Rie, RecipeManager.Recipe _Rcp, ItemStorage _Storage)
+		public void setItem(UiCraftBase.IngEntryRow _Rie, RCP.Recipe _Rcp, ItemStorage _Storage)
 		{
 			this.Rie = _Rie;
 			this.TempObt = null;
@@ -38,7 +38,7 @@ namespace nel
 			{
 				this.ItmRow = null;
 			}
-			RecipeManager.Recipe recipe = ((this.ItmRow == null) ? this.Rie.Source.TargetRecipe : null);
+			RCP.Recipe recipe = ((this.ItmRow == null) ? this.Rie.Source.TargetRecipe : null);
 			if (this.Rcp != recipe)
 			{
 				this.Rcp = recipe;
@@ -62,17 +62,17 @@ namespace nel
 			return base.setTitle((this.Rie == null) ? "" : str);
 		}
 
-		protected override string getTitleString()
+		protected override STB getTitleString(STB Stb)
 		{
 			if (this.Rie == null)
 			{
-				return "";
+				return Stb;
 			}
 			if (this.Rcp != null)
 			{
-				return this.Rcp.title;
+				return Stb.Add(this.Rcp.title);
 			}
-			return base.getTitleString();
+			return base.getTitleString(Stb);
 		}
 
 		protected override STB getCountString(STB Stb)
@@ -124,7 +124,7 @@ namespace nel
 			return base.Fine();
 		}
 
-		private RecipeManager.Recipe Rcp;
+		private RCP.Recipe Rcp;
 
 		private UiCraftBase.IngEntryRow Rie;
 

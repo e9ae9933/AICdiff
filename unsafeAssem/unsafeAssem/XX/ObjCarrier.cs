@@ -7,7 +7,7 @@ namespace XX
 	{
 		public float Calc(float t, Transform Trans, bool reverse = false)
 		{
-			float num = ((this.start_shift_maxt <= 0f) ? ((float)((t >= 0f) ? 0 : 1)) : this.Fn_shift.Get(null, t / this.start_shift_maxt));
+			float num = ((this.start_shift_maxt <= 0f) ? ((float)((t >= 0f) ? 0 : 1)) : this.Fn_shift.Get(-1f, t / this.start_shift_maxt, false));
 			if (reverse)
 			{
 				num = 1f - num;

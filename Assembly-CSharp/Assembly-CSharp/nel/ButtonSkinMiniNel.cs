@@ -31,12 +31,26 @@ namespace nel
 			float num2 = (float)(X.IntR(this.h * 64f * 0.5f) * 2);
 			this.Md.clear(false, false);
 			this.MdStripe.clear(false, false);
+			if ((this.bg_color & 4278190080U) != 0U)
+			{
+				this.Md.Col = this.Md.ColGrd.Set(this.bg_color).mulA(this.alpha_).C;
+				this.Md.Box(0f, 0f, num + 2f, num2 + 2f, 0f, false);
+			}
 			if (base.isChecked())
 			{
 				this.drawChecked();
 			}
 			if (this.PF != null || base.isChecked())
 			{
+				if (this.icon_fix_color)
+				{
+					this.MdIco.ColGrd.White().mulA(base.isLocked() ? 0.66f : 1f);
+					this.MdIco.Col = this.MdIco.ColGrd.mulA(this.alpha_).C;
+					if (this.PF != null)
+					{
+						this.MdIco.RotaPF(0f, 0f, 1f, 1f, 0f, this.PF, false, false, false, uint.MaxValue, false, 0);
+					}
+				}
 				this.MdIco.ColGrd.Set(this.main_color);
 				if (base.isLocked())
 				{
@@ -50,8 +64,8 @@ namespace nel
 				{
 					this.MdIco.ColGrd.blend(this.main_color_locked, 0.3f + 0.3f * X.COSIT(40f));
 				}
-				this.MdIco.Col = this.MdIco.ColGrd.C;
-				if (this.PF != null)
+				this.MdIco.Col = this.MdIco.ColGrd.mulA(this.alpha_).C;
+				if (!this.icon_fix_color && this.PF != null)
 				{
 					this.MdIco.RotaPF(0f, 0f, 1f, 1f, 0f, this.PF, false, false, false, uint.MaxValue, false, 0);
 				}
@@ -125,6 +139,8 @@ namespace nel
 
 		protected MeshDrawer MdStripe;
 
+		public bool icon_fix_color;
+
 		public const float DEFAULT_W = 28f;
 
 		public const float DEFAULT_W_WIDE = 246f;
@@ -140,6 +156,8 @@ namespace nel
 		public float left_daia_size = 1f;
 
 		public uint check_fill_color = 4294966715U;
+
+		public uint bg_color;
 
 		public uint main_color = 4283780170U;
 

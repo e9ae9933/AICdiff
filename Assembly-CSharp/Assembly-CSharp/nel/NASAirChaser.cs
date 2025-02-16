@@ -11,7 +11,7 @@ namespace nel
 		public NASAirChaser(NelEnemy _En, NASAirChaser.FnProgressWalk _fnProgressWalk)
 			: base(_En)
 		{
-			this.WRC_Air = this.En.Summoner.getRegionCheckerAir();
+			this.WRC_Air = this.En.Summoner.Summoner.getRegionCheckerAir();
 			this.Cs = new M2ChaserAir(this.En, this.WRC_Air);
 			this.fnProgressWalk = _fnProgressWalk;
 			this.ADepert = new List<Vector2>(2);

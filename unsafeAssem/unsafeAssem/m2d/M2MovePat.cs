@@ -3,11 +3,12 @@ using XX;
 
 namespace m2d
 {
-	internal abstract class M2MovePat
+	public abstract class M2MovePat
 	{
 		public M2MovePat(M2EventItem _Mv, M2EventItem.MOV_PAT _type)
 		{
 			this.Mv = _Mv;
+			this.Mp = this.Mv.Mp;
 			this.type = _type;
 		}
 
@@ -42,7 +43,7 @@ namespace m2d
 				if (!(MPat is M2MovePatWalkAround))
 				{
 					Mv.destructMovePat();
-					MPat = new M2MovePatWalkAround(Mv);
+					MPat = new M2MovePatWalkAround(Mv, M2EventItem.MOV_PAT.WALKAROUND_LR);
 				}
 				else
 				{
@@ -54,6 +55,17 @@ namespace m2d
 				{
 					Mv.destructMovePat();
 					MPat = new M2MovePatWalkMapAround(Mv);
+				}
+				else
+				{
+					MPat.evQuit();
+				}
+				break;
+			case M2EventItem.MOV_PAT.CRAWLAROUND_LR:
+				if (!(MPat is M2MovePatCrawlAround))
+				{
+					Mv.destructMovePat();
+					MPat = new M2MovePatCrawlAround(Mv);
 				}
 				else
 				{
@@ -90,9 +102,12 @@ namespace m2d
 			}
 		}
 
-		public virtual void assignMoveScript()
+		public virtual void assignMoveScript(bool soft_touch)
 		{
-			this.Mv.no_foot_sound = false;
+			if (!soft_touch)
+			{
+				this.Mv.no_foot_sound = false;
+			}
 		}
 
 		public virtual void evQuit()
@@ -108,17 +123,12 @@ namespace m2d
 		{
 		}
 
-		public Map2d Mp
+		public virtual void SpSetPose(string nPose, int reset_anmf = -1, string fix_change = null, bool sprite_force_aim_set = false)
 		{
-			get
+			if (TX.valid(nPose))
 			{
-				return this.Mv.Mp;
+				this.Mv.SpSetPose(nPose, reset_anmf, fix_change, sprite_force_aim_set);
 			}
-		}
-
-		public void SpSetPose(string nPose, int reset_anmf = -1, string fix_change = null, bool sprite_force_aim_set = false)
-		{
-			this.Mv.SpSetPose(nPose, reset_anmf, fix_change, sprite_force_aim_set);
 		}
 
 		public M2MovePat setAim(AIM n, bool sprite_force_aim_set = false)
@@ -167,6 +177,8 @@ namespace m2d
 		}
 
 		public readonly M2EventItem Mv;
+
+		public readonly Map2d Mp;
 
 		public readonly M2EventItem.MOV_PAT type;
 	}

@@ -11,8 +11,8 @@ namespace nel
 		{
 			if (M2CImgDrawerPlantAura.PtcDB == null)
 			{
-				M2CImgDrawerPlantAura.PtcDB = new EfParticleOnce("grazia_plant_aura_big", EFCON_TYPE.UI);
-				M2CImgDrawerPlantAura.PtcDS = new EfParticleOnce("grazia_plant_aura_sml", EFCON_TYPE.UI);
+				M2CImgDrawerPlantAura.PtcDB = new EfParticleOnce("grazia_plant_aura_big", EFCON_TYPE.FIXED);
+				M2CImgDrawerPlantAura.PtcDS = new EfParticleOnce("grazia_plant_aura_sml", EFCON_TYPE.FIXED);
 			}
 			this.ptc_count = X.IntR((float)Meta.GetI("plant_aura", 10, 0) * X.NIXP(0.6f, 1f));
 			this.ptc_size = (float)X.IntR(Meta.GetNm("plant_aura", (float)this.Cp.Img.iwidth * 0.5f, 1) * X.NIXP(0.68f, 1.2f));

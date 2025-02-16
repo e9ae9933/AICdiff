@@ -33,7 +33,7 @@ namespace nel.gm
 		internal override void initEdit()
 		{
 			this.MagSel.bind();
-			this.MagSel.Select(false);
+			this.MagSel.Select(true);
 		}
 
 		internal override void quitEdit()

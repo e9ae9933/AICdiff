@@ -51,7 +51,7 @@ namespace nel
 						for (int k = 0; k < count; k++)
 						{
 							M2Puts m2Puts = pointPuts[k];
-							if (m2Puts.Lay == this.Lay && base.isContainingMapXy((float)m2Puts.mapx, (float)m2Puts.mapy, (float)((int)m2Puts.mright), (float)((int)m2Puts.mbottom)))
+							if (m2Puts.Lay == this.Lay && base.isContainingMapXy((float)m2Puts.mapx, (float)m2Puts.mapy, (float)((int)m2Puts.mright), (float)((int)m2Puts.mbottom), 0f))
 							{
 								if (this.APuts == null)
 								{

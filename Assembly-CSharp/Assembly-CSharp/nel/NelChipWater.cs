@@ -62,13 +62,13 @@ namespace nel
 			return mistKind;
 		}
 
-		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdL, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
+		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdLB, MeshDrawer MdLT, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
 		{
 			if (this.no_draw && !Map2d.editor_decline_lighting)
 			{
 				return 0;
 			}
-			return base.entryChipMesh(MdB, MdG, MdT, MdL, MdTT, sx, sy, _zm, _rotR);
+			return base.entryChipMesh(MdB, MdG, MdT, MdLB, MdLT, MdTT, sx, sy, _zm, _rotR);
 		}
 
 		public override void initAction(bool normal_map)

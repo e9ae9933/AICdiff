@@ -4,18 +4,18 @@ using UnityEngine;
 
 namespace XX
 {
-	public class NDic<T> : BDic<string, T> where T : class
+	public class NDic<T> : BDic<string, T>
 	{
-		public NDic(string _name, int _max, out int _capacity)
+		public NDic(string _name, int _max, out int _capacity, int margin = 0)
 			: base(_capacity = X.Mx(_max, PlayerPrefs.GetInt("__NDic__" + _name)))
 		{
 			this.name = "__NDic__" + _name;
 		}
 
-		public NDic(string _name, int _max = 0)
+		public NDic(string _name, int _max = 0, int margin = 0)
 		{
 			int num;
-			this..ctor(_name, _max, out num);
+			this..ctor(_name, _max, out num, margin);
 		}
 
 		public void scriptFinalize()

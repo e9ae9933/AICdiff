@@ -46,8 +46,8 @@ namespace XX
 			{
 				IN.ValotBounds.connectUI();
 				IN.ValotBounds.OnEnable();
-				Object.Destroy(base.gameObject);
-				Object.Destroy(this);
+				global::UnityEngine.Object.Destroy(base.gameObject);
+				global::UnityEngine.Object.Destroy(this);
 				Logger.fineTimeStampViewer();
 				return;
 			}
@@ -60,7 +60,7 @@ namespace XX
 			if (!IN.checkLocalFileAvailable())
 			{
 				SceneManager.LoadScene("SceneCannotLaunch");
-				Object.Destroy(base.gameObject);
+				global::UnityEngine.Object.Destroy(base.gameObject);
 				return;
 			}
 			REG.initReg();
@@ -170,7 +170,7 @@ namespace XX
 					IN.clearCursDown();
 				}
 				IN.KA.FnSwitchedDevice();
-				IN.fineMousePosition(Pointer.current);
+				IN.fineMousePosition(global::UnityEngine.InputSystem.Pointer.current);
 			}
 		}
 
@@ -217,13 +217,16 @@ namespace XX
 			return File.Exists(Path.Combine(Application.streamingAssetsPath, text));
 		}
 
-		public static void initKeyAndTextLocalization(bool if_not_loaded = false)
+		public static void initKeyAndTextLocalization(bool if_not_loaded = false, bool reload_tx = true)
 		{
 			if (if_not_loaded && TX.isInitted)
 			{
 				return;
 			}
-			TX.reloadTx(false);
+			if (reload_tx)
+			{
+				TX.reloadTx(false);
+			}
 			if (IN.KA == null)
 			{
 				IN.createKeyInstanceInner();
@@ -377,7 +380,7 @@ namespace XX
 
 		private void Start()
 		{
-			Object.DontDestroyOnLoad(base.gameObject);
+			global::UnityEngine.Object.DontDestroyOnLoad(base.gameObject);
 		}
 
 		public static GameObject CreateGob(MonoBehaviour Parent, string append_name = "-child")
@@ -411,7 +414,7 @@ namespace XX
 
 		public static GameObject AttachZero(GameObject _S, Transform Parent = null)
 		{
-			GameObject gameObject = Object.Instantiate<GameObject>(_S, Vector3.zero, Quaternion.identity);
+			GameObject gameObject = global::UnityEngine.Object.Instantiate<GameObject>(_S, Vector3.zero, Quaternion.identity);
 			if (Parent != null)
 			{
 				gameObject.transform.SetParent(Parent);
@@ -791,11 +794,11 @@ namespace XX
 			return flag;
 		}
 
-		public static void DestroyOne(Object _S)
+		public static void DestroyOne(global::UnityEngine.Object _S)
 		{
 			if (_S != null)
 			{
-				Object.Destroy(_S);
+				global::UnityEngine.Object.Destroy(_S);
 			}
 		}
 
@@ -804,7 +807,7 @@ namespace XX
 			if (_S != null)
 			{
 				_S.enabled = false;
-				Object.Destroy(_S);
+				global::UnityEngine.Object.Destroy(_S);
 			}
 		}
 
@@ -813,7 +816,7 @@ namespace XX
 			if (_S != null)
 			{
 				_S.SetActive(false);
-				Object.Destroy(_S);
+				global::UnityEngine.Object.Destroy(_S);
 			}
 		}
 
@@ -951,7 +954,7 @@ namespace XX
 				}
 				IN.checkKeyPressPD(IN.PB.SUBMIT, IN.KA.mvSUBMIT, ref IN.press_mvSubmit, run_fcnt, true, true);
 				IN.checkKeyPressPD(IN.PB.CANCEL, IN.KA.mvCANCEL, ref IN.press_mvCancel, run_fcnt, true, true);
-				Pointer current = Pointer.current;
+				global::UnityEngine.InputSystem.Pointer current = global::UnityEngine.InputSystem.Pointer.current;
 				if (current != null)
 				{
 					IN.fineMousePosition(current);
@@ -1006,12 +1009,6 @@ namespace XX
 				Bench.P("Storage");
 				MTRX.checkStorage();
 				Bench.Pend("Storage");
-				Bench.P("ActiveDebugger");
-				if (ActiveDebugger.Instance != null)
-				{
-					ActiveDebugger.Instance.runActiveDebugger();
-				}
-				Bench.Pend("ActiveDebugger");
 				if ((IN.totalframe & 15) == 0)
 				{
 					int width = Screen.width;
@@ -1123,7 +1120,7 @@ namespace XX
 		{
 		}
 
-		private static void fineMousePosition(Pointer PtC)
+		private static void fineMousePosition(global::UnityEngine.InputSystem.Pointer PtC)
 		{
 			if (PtC == null)
 			{
@@ -1894,6 +1891,24 @@ namespace XX
 			return IN.KA.mvCANCEL < 0f && -1024f < IN.KA.mvCANCEL;
 		}
 
+		public static float skippingTS()
+		{
+			float num = 1f;
+			if (IN.isMenuO(0))
+			{
+				num *= 3f;
+			}
+			if (IN.isCancelOn(0))
+			{
+				num *= 2f;
+			}
+			if (IN.isSubmitOn(0))
+			{
+				num *= 2f;
+			}
+			return X.Mn(6f, num);
+		}
+
 		public static float getBAOnTime()
 		{
 			return IN.KA.mvBA;
@@ -2207,9 +2222,9 @@ namespace XX
 			return IN.KA.mvMBA > (float)press;
 		}
 
-		public static bool isMousePushDown()
+		public static bool isMousePushDown(int alloc_pd = 1)
 		{
-			return IN.mvMouse == 1f;
+			return X.BTWW(1f, IN.mvMouse, (float)alloc_pd);
 		}
 
 		public static bool isMouseOn()
@@ -2229,7 +2244,7 @@ namespace XX
 
 		public static bool ketteiM3()
 		{
-			return IN.kettei3() || IN.isMousePushDown();
+			return IN.kettei3() || IN.isMousePushDown(1);
 		}
 
 		public static bool getKD(Key name, int modifiers = -1)
@@ -2269,7 +2284,7 @@ namespace XX
 		{
 			PlayerInput orAdd = IN.GetOrAdd<PlayerInput>(Gob);
 			PlayerInput playerCon = IN.KA.PlayerCon;
-			orAdd.actions = (actions_clone ? Object.Instantiate<InputActionAsset>(playerCon.actions) : playerCon.actions);
+			orAdd.actions = (actions_clone ? global::UnityEngine.Object.Instantiate<InputActionAsset>(playerCon.actions) : playerCon.actions);
 			orAdd.defaultControlScheme = playerCon.defaultControlScheme;
 			orAdd.neverAutoSwitchControlSchemes = playerCon.neverAutoSwitchControlSchemes;
 			orAdd.camera = playerCon.camera;
@@ -2337,17 +2352,17 @@ namespace XX
 				IN.use_mouse = false;
 				return true;
 			}
-			return IN.isMousePushDown();
+			return IN.isMousePushDown(1);
 		}
 
-		public static bool ketteiPD()
+		public static bool ketteiPD(int alloc_pd = 1)
 		{
-			if (IN.isSubmitPD(1))
+			if (IN.isSubmitPD(alloc_pd))
 			{
 				IN.use_mouse = false;
 				return true;
 			}
-			return IN.isMousePushDown();
+			return IN.isMousePushDown(alloc_pd);
 		}
 
 		public static bool ketteiOn()
@@ -2444,7 +2459,7 @@ namespace XX
 			IN.Pauser.Assign(R2D);
 		}
 
-		public static void DeassignPauseable(Object O)
+		public static void DeassignPauseable(global::UnityEngine.Object O)
 		{
 			IN.Pauser.Deassign(O);
 		}
@@ -2640,7 +2655,7 @@ namespace XX
 
 		public const string dll_name = ",unsafeAssem";
 
-		public static uint MainDarkColor = 267386880U;
+		public static uint MainDarkColor = 4278190080U;
 
 		private static int runner_running_i = -1;
 

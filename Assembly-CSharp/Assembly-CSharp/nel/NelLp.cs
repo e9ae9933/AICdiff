@@ -1,6 +1,8 @@
 ﻿using System;
 using m2d;
 using nel.mgm.farm;
+using nel.mgm.smncr;
+using nel.mgm.sneaking;
 using XX;
 
 namespace nel
@@ -73,6 +75,8 @@ namespace nel
 		public const string head_LpMuseumEvacuator = "MuseumEvac";
 
 		public const string head_LpSacredMist = "SacredMist";
+
+		public const string head_LpSneakingMG = "SneakingMG";
 
 		public static M2LabelPoint.FnCreateLp NelCreateLabelPoint = delegate(string cmd, M2MapLayer Lay)
 		{
@@ -207,6 +211,14 @@ namespace nel
 					if (TX.headerIs(cmd, "SacredMist", 0, '_', true))
 					{
 						return new M2LpSacredMistEffector(cmd, 0, Lay);
+					}
+					if (TX.isStart(cmd, "SmnC_", 0))
+					{
+						return new M2LpUiSmnCreator(cmd, 0, Lay);
+					}
+					if (TX.headerIs(cmd, "SneakingMG", 0, '_', true))
+					{
+						return new M2LpSneakingMG(cmd, 0, Lay);
 					}
 				}
 			}

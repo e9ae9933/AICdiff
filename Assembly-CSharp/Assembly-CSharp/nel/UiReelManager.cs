@@ -32,8 +32,8 @@ namespace nel
 				{
 					this.basex_u = nelM2DBase.ui_shift_x * 0.015625f;
 				}
-				float value = nelM2DBase.IMNG.StmNoel.getValue(RecipeManager.RPI_EFFECT.REEL_SPEED);
-				this.reel_speed = X.NI(1f, 0.35f, X.ZPOWV(value));
+				float value = nelM2DBase.IMNG.StmNoel.getValue(RCP.RPI_EFFECT.REEL_SPEED);
+				this.reel_speed_rcp = value;
 			}
 			this.MdBg = MeshDrawer.prepareMeshRenderer(base.gameObject, MTRX.MtrMeshNormal, 0f, -1, null, false, false);
 			this.MrdBack = base.gameObject.GetComponent<MeshRenderer>();
@@ -301,6 +301,7 @@ namespace nel
 				this.FlgMainStabilize.Rem("_STATE");
 				break;
 			case ReelManager.MSTATE.REMOVE_REELS:
+				this.reel_speed_rcp = 0f;
 				this.Con.destructExecuterReels(true);
 				this.AReel.Clear();
 				break;
@@ -396,6 +397,11 @@ namespace nel
 				break;
 			}
 			int count = this.AReel.Count;
+			float num3 = 0.1f;
+			float num4 = this.reel_speed_rcp;
+			float num5 = X.Mn(num4, num3 * 2f);
+			num4 -= num5;
+			float num6 = num5 / (num3 * 2f);
 			for (int i = 0; i < count; i++)
 			{
 				ReelExecuter reelExecuter = this.AReel[i];
@@ -408,6 +414,9 @@ namespace nel
 				{
 					reelExecuter.rotateInit();
 				}
+				num5 = X.Mn(num4, num3);
+				num4 -= num5;
+				reelExecuter.fineSpeed(num5 / num3);
 				num2 += num;
 			}
 			if (this.AIrbox != null)
@@ -418,6 +427,7 @@ namespace nel
 			{
 				this.rotate_decide_id = -1;
 				this.ReelIK.initReelContent(this.Con.getCurrentItemReel());
+				this.ReelIK.fineSpeed(num6);
 				this.initSnd("slot_loop");
 			}
 			else if (this.Snd != null)
@@ -695,7 +705,7 @@ namespace nel
 							this.BxConfirm = null;
 							if (aBtn != null)
 							{
-								aBtn.Select(false);
+								aBtn.Select(true);
 							}
 						}
 						else if (this.FocusIR != null && !IN.isUiSortPD() && !this.M2D.isRbkPD())
@@ -731,7 +741,7 @@ namespace nel
 									BtnContainer<aBtn> btnContainer = this.selectDetailIR(num4);
 									if (btnContainer.Length > 0)
 									{
-										btnContainer.Get(0).Select(false);
+										btnContainer.Get(0).Select(true);
 									}
 								}
 							}
@@ -814,16 +824,9 @@ namespace nel
 						{
 							aBtn.PreSelected.ExecuteOnSubmitKey();
 						}
-						else
+						else if (this.rltab == UiReelManager.RLTAB.ITEM && this.SelectedIR != null && (IN.isL() || IN.isR()))
 						{
-							if (this.LTabBar.carr_hiding_running)
-							{
-								this.LTabBar.runLRInput(-2);
-							}
-							if (this.rltab == UiReelManager.RLTAB.ITEM && this.SelectedIR != null && (IN.isL() || IN.isR()))
-							{
-								this.initFocusIR(0);
-							}
+							this.initFocusIR(0);
 						}
 					}
 					break;
@@ -839,7 +842,7 @@ namespace nel
 							aBtn aBtn2 = (this.BxL.getTab("L_scr").Get("list", false) as BtnContainerRunner).BCon.Get(num6);
 							if (aBtn2 != null)
 							{
-								aBtn2.Select(false);
+								aBtn2.Select(true);
 								if (this.rltab == UiReelManager.RLTAB.ITEM && num5 >= 0)
 								{
 									this.initFocusIR(num5);
@@ -887,7 +890,7 @@ namespace nel
 						this.changeState(ReelManager.MSTATE.DETAIL_REEL, false);
 						this.playSnd("enter_small");
 					}
-					else if ((IN.ketteiPD() || IN.isMenuPD(1)) && this.Con.getCurrentItemReel() != null)
+					else if ((IN.ketteiPD(1) || IN.isMenuPD(1)) && this.Con.getCurrentItemReel() != null)
 					{
 						this.changeState(ReelManager.MSTATE.OPENING, false);
 						this.playSnd((this.mstt == ReelManager.MSTATE.OPENING) ? "enter" : "enter_small");
@@ -945,7 +948,7 @@ namespace nel
 					{
 						num = X.Mx(3, num);
 					}
-					if (this.decide_delay > 0f && (IN.ketteiPD() || IN.isMenuPD(1) || (flag3 && this.decide_delay < 8f)))
+					if (this.decide_delay > 0f && (IN.ketteiPD(1) || IN.isMenuPD(1) || (flag3 && this.decide_delay < 8f)))
 					{
 						this.decide_delay = 0f;
 					}
@@ -1065,7 +1068,7 @@ namespace nel
 				}
 				if (!(this.TxKD != null) || !this.need_txkd_fine)
 				{
-					goto IL_106E;
+					goto IL_1055;
 				}
 				using (STB stb = TX.PopBld(null, 0))
 				{
@@ -1132,7 +1135,7 @@ namespace nel
 						break;
 					}
 					this.TxKD.Txt(stb);
-					goto IL_106E;
+					goto IL_1055;
 				}
 			}
 			if (this.Con == null)
@@ -1146,7 +1149,7 @@ namespace nel
 				this.Con.destructGob();
 				return false;
 			}
-			IL_106E:
+			IL_1055:
 			this.EF.runDrawOrRedrawMesh(X.D_EF, (float)X.AF_EF, 1f);
 			this.EF.setEffectMatrix(base.transform.localToWorldMatrix * ValotileRenderer.Mx_z_zero);
 			if (this.material_fine_flag)
@@ -1413,6 +1416,7 @@ namespace nel
 				this.BxDesc.WHanim(420f, num2, true, true);
 				this.BxL.stencil_ref = (this.BxL.box_stencil_ref_mask = (this.BxDesc.stencil_ref = (this.BxDesc.box_stencil_ref_mask = (this.BxDialog.stencil_ref = (this.BxDialog.box_stencil_ref_mask = -1)))));
 				this.BxDialog.WHanim(520f, num2, true, true);
+				this.FD_fnIRContentRowFocused = new FnBtnBindings(this.fnIRContentRowFocused);
 				flag = true;
 			}
 			else
@@ -1465,7 +1469,7 @@ namespace nel
 				swidth = this.BxDesc.use_w - 4f
 			}, false);
 			this.BxDesc.Br();
-			this.BxDesc.addTab("R_info", this.BxDesc.use_w, this.BxDesc.use_h, this.BxDesc.use_w, this.BxDesc.use_h, false);
+			UiReelManager.prepareDescTabList(this.BxDesc.addTab("R_info", this.BxDesc.use_w, this.BxDesc.use_h, this.BxDesc.use_w, this.BxDesc.use_h, false), null);
 			this.BxDesc.endTab(true);
 			if (flag)
 			{
@@ -1475,7 +1479,7 @@ namespace nel
 				this.BxDialog.margin_in_tb = 22f;
 				this.BxDialog.init();
 				BtnContainerRadio<aBtn> btnContainerRadio;
-				UiItemManageBox.createItemDescDesigner(this.BxDialog, false, true, out btnContainerRadio, out this.FbDialogDesc);
+				UiItemManageBox.createItemDescDesignerBasic(this.BxDialog, false, true, out btnContainerRadio, out this.FbDialogDesc);
 				this.BxDialog.posSetDA(-this.basex_u * 64f + this.detail_bounds_w * 0.5f - this.BxDialog.w * 0.5f, 0f, 0, 150f, true);
 			}
 			this.BxDialog.deactivate();
@@ -1487,6 +1491,80 @@ namespace nel
 			return NEL.error_img + TX.GetA("Reel_need_subtract", 8.ToString(), (this.AReelCon.Count - 8 - ((this.Adiscard_ir != null) ? this.Adiscard_ir.Count : 0)).ToString());
 		}
 
+		public static void prepareDescTabList(Designer TabR, Designer AddTo = null)
+		{
+			TabR.Smallest();
+			TabR.init();
+			Designer designer = ((AddTo == null) ? TabR : AddTo);
+			DsnDataRadio dsnDataRadio = new DsnDataRadio();
+			dsnDataRadio.name = "list";
+			dsnDataRadio.keys = new string[0];
+			dsnDataRadio.w = TabR.use_w - 24f;
+			dsnDataRadio.h = 32f;
+			dsnDataRadio.navi_loop = 2;
+			dsnDataRadio.unselectable = 2;
+			dsnDataRadio.fnChanged = (BtnContainerRadio<aBtn> _BCon, int pre, int cur) => false;
+			dsnDataRadio.SCA = new ScrollAppend(239, TabR.use_w, TabR.use_h, 4f, 6f, 0);
+			dsnDataRadio.APoolEvacuated = new List<aBtn>(8);
+			designer.addRadioT<aBtnNel>(dsnDataRadio.RowMode("reel_pict"));
+		}
+
+		public static void prepareDescTabList(Designer TabR, ReelExecuter.ETYPE etype)
+		{
+			string[] aeffect = ReelManager.OAreel_content[(int)etype].Aeffect;
+			BtnContainer<aBtn> bcon = (TabR.Get("list", false) as BtnContainerRunner).BCon;
+			bcon.default_h = 32f;
+			if (bcon.OuterScrollBox != null)
+			{
+				bcon.OuterScrollBox.item_h = bcon.default_h;
+			}
+			string text = "reel_pict";
+			if (text != bcon.skin_default)
+			{
+				bcon.Destroy();
+				bcon.skin_default = text;
+			}
+			bcon.RemakeT<aBtnNel>(aeffect, text);
+		}
+
+		public static BtnContainer<aBtn> prepareDescTabList(Designer TabR, ReelManager.ItemReelContainer IR, FnBtnBindings FnHover = null)
+		{
+			BtnContainer<aBtn> bcon = (TabR.Get("list", false) as BtnContainerRunner).BCon;
+			bcon.default_h = 48f;
+			if (bcon.OuterScrollBox != null)
+			{
+				bcon.OuterScrollBox.item_h = bcon.default_h;
+			}
+			string text = "row";
+			if (text != bcon.skin_default)
+			{
+				bcon.Destroy();
+				bcon.skin_default = text;
+			}
+			bcon.RemakeT<aBtnNel>(X.makeToStringed<int>(X.makeCountUpArray(IR.Count, 0, 1)), text);
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				NelM2DBase nelM2DBase = M2DBase.Instance as NelM2DBase;
+				for (int i = 0; i < IR.Count; i++)
+				{
+					ButtonSkinNelUi buttonSkinNelUi = bcon.Get(i).get_Skin() as ButtonSkinNelUi;
+					if (buttonSkinNelUi != null)
+					{
+						stb.Clear();
+						IR.getOneRowDetail(stb, i, "\n", nelM2DBase.IMNG, true);
+						buttonSkinNelUi.fix_text_size = 14f;
+						buttonSkinNelUi.setTitle(stb.ToString());
+						buttonSkinNelUi.getBtn().hover_snd = "cursor";
+						if (FnHover != null)
+						{
+							buttonSkinNelUi.getBtn().addHoverFn(FnHover);
+						}
+					}
+				}
+			}
+			return bcon;
+		}
+
 		public void initDetailL()
 		{
 			Designer tab = this.BxL.getTab("L_scr");
@@ -1494,26 +1572,11 @@ namespace nel
 			tab.Smallest();
 			tab.init();
 			this.BConEfReel = null;
-			Designer tab2 = this.BxDesc.getTab("R_info");
-			tab2.Clear();
-			tab2.Smallest();
-			tab2.init();
 			this.reel_list_listl_index = -1;
 			this.SelectedIR = (this.FocusIR = null);
 			this.IRContentLastSelected = null;
 			if (this.rltab == UiReelManager.RLTAB.EFFECT)
 			{
-				Designer designer = tab2;
-				DsnDataRadio dsnDataRadio = new DsnDataRadio();
-				dsnDataRadio.name = "list";
-				dsnDataRadio.keys = new string[0];
-				dsnDataRadio.w = tab2.use_w - 24f;
-				dsnDataRadio.h = 32f;
-				dsnDataRadio.navi_loop = 2;
-				dsnDataRadio.unselectable = 2;
-				dsnDataRadio.fnChanged = (BtnContainerRadio<aBtn> _BCon, int pre, int cur) => false;
-				dsnDataRadio.SCA = new ScrollAppend(239, tab2.use_w, tab2.use_h, 4f, 6f, 0);
-				designer.addRadioT<aBtnNel>(dsnDataRadio.RowMode("reel_pict"));
 				string[] array = X.makeToStringed<int>(X.makeCountUpArray(this.AReelCon.Count, 0, 1));
 				this.BConEfReel = tab.addRadioT<aBtnNel>(new DsnDataRadio
 				{
@@ -1531,41 +1594,19 @@ namespace nel
 			}
 			else
 			{
-				Designer designer2 = tab2;
-				DsnDataRadio dsnDataRadio2 = new DsnDataRadio();
-				dsnDataRadio2.name = "list";
-				dsnDataRadio2.keys = new string[0];
-				dsnDataRadio2.w = tab2.use_w - 24f;
-				dsnDataRadio2.h = 48f;
-				dsnDataRadio2.navi_loop = 2;
-				dsnDataRadio2.click_snd = "";
-				dsnDataRadio2.fnChanged = (BtnContainerRadio<aBtn> _BCon, int pre, int cur) => false;
-				dsnDataRadio2.fnHover = new FnBtnBindings(this.fnIRContentRowFocused);
-				dsnDataRadio2.fnMaking = delegate(BtnContainer<aBtn> _BCon, aBtn B)
-				{
-					ButtonSkinNelUi buttonSkinNelUi = B.get_Skin() as ButtonSkinNelUi;
-					if (buttonSkinNelUi != null)
-					{
-						buttonSkinNelUi.fix_text_size = 14f;
-					}
-					B.hover_snd = "cursor";
-					return true;
-				};
-				dsnDataRadio2.SCA = new ScrollAppend(239, tab2.use_w, tab2.use_h, 4f, 6f, 0);
-				designer2.addRadioT<aBtnNel>(dsnDataRadio2.RowMode("row"));
 				string[] array2 = X.makeToStringed<int>(X.makeCountUpArray(this.AIrbox.Count, 0, 1));
-				Designer designer3 = tab;
-				DsnDataRadio dsnDataRadio3 = new DsnDataRadio();
-				dsnDataRadio3.name = "list";
-				dsnDataRadio3.keys = array2;
-				dsnDataRadio3.fnChanged = (BtnContainerRadio<aBtn> _BCon, int pre, int cur) => cur < 0;
-				dsnDataRadio3.w = tab.use_w - 24f;
-				dsnDataRadio3.h = 38f;
-				dsnDataRadio3.navi_loop = 2;
-				dsnDataRadio3.z_push_click = false;
-				dsnDataRadio3.fnHover = new FnBtnBindings(this.fineReelDetail);
-				dsnDataRadio3.fnMaking = new BtnContainer<aBtn>.FnBtnMakingBindings(this.fnMakingReelDetail);
-				dsnDataRadio3.fnClick = delegate(aBtn B)
+				Designer designer = tab;
+				DsnDataRadio dsnDataRadio = new DsnDataRadio();
+				dsnDataRadio.name = "list";
+				dsnDataRadio.keys = array2;
+				dsnDataRadio.fnChanged = (BtnContainerRadio<aBtn> _BCon, int pre, int cur) => cur < 0;
+				dsnDataRadio.w = tab.use_w - 24f;
+				dsnDataRadio.h = 38f;
+				dsnDataRadio.navi_loop = 2;
+				dsnDataRadio.z_push_click = false;
+				dsnDataRadio.fnHover = new FnBtnBindings(this.fineReelDetail);
+				dsnDataRadio.fnMaking = new BtnContainer<aBtn>.FnBtnMakingBindings(this.fnMakingReelDetail);
+				dsnDataRadio.fnClick = delegate(aBtn B)
 				{
 					if (this.BxDialog.isActive())
 					{
@@ -1577,8 +1618,8 @@ namespace nel
 					}
 					return true;
 				};
-				dsnDataRadio3.SCA = new ScrollAppend(239, tab.use_w, tab.use_h, 4f, 6f, 0);
-				designer3.addRadioT<aBtnItemRow>(dsnDataRadio3.RowMode("normal"));
+				dsnDataRadio.SCA = new ScrollAppend(239, tab.use_w, tab.use_h, 4f, 6f, 0);
+				designer.addRadioT<aBtnItemRow>(dsnDataRadio.RowMode("normal"));
 			}
 			this.selectDetailBox();
 		}
@@ -1588,7 +1629,7 @@ namespace nel
 			BtnContainer<aBtn> bcon = (this.BxL.getTab("L_scr").Get("list", false) as BtnContainerRunner).BCon;
 			if (bcon.Length > 0)
 			{
-				bcon.Get(0).Select(false);
+				bcon.Get(0).Select(true);
 				return;
 			}
 			aBtn.PreSelected = null;
@@ -1627,8 +1668,7 @@ namespace nel
 				{
 					Designer tab = this.BxDesc.getTab("R_info");
 					ReelExecuter.ETYPE etype = this.AReelCon[num].getEType();
-					string[] array = ReelManager.OAreel_content[(int)etype];
-					(tab.Get("list", false) as BtnContainerRunner).BCon.RemakeT<aBtnNel>(array, "reel_pict");
+					UiReelManager.prepareDescTabList(tab, etype);
 					if (this.reel_overhold && this.reel_effect_hold != 0)
 					{
 						ButtonSkinNelReelInfo buttonSkinNelReelInfo = B.get_Skin() as ButtonSkinNelReelInfo;
@@ -1676,27 +1716,12 @@ namespace nel
 				num = X.NmI(this.IRContentLastSelected.title, -1, false, false);
 			}
 			this.IRContentLastSelected = null;
-			BtnContainer<aBtn> bcon = (tab.Get("list", false) as BtnContainerRunner).BCon;
-			bcon.RemakeT<aBtnNel>(X.makeToStringed<int>(X.makeCountUpArray(reelMBoxDrawer.IR.Count, 0, 1)), "row");
-			using (STB stb = TX.PopBld(null, 0))
+			BtnContainer<aBtn> btnContainer = UiReelManager.prepareDescTabList(tab, reelMBoxDrawer.IR, new FnBtnBindings(this.fnIRContentRowFocused));
+			if (num >= 0 && btnContainer.Length > 0)
 			{
-				NelM2DBase nelM2DBase = M2DBase.Instance as NelM2DBase;
-				for (int j = 0; j < reelMBoxDrawer.IR.Count; j++)
-				{
-					ButtonSkinNelUi buttonSkinNelUi = bcon.Get(j).get_Skin() as ButtonSkinNelUi;
-					if (buttonSkinNelUi != null)
-					{
-						stb.Clear();
-						reelMBoxDrawer.IR.getOneRowDetail(stb, j, "\n", nelM2DBase.IMNG, true);
-						buttonSkinNelUi.setTitle(stb.ToString());
-					}
-				}
+				this.IRContentLastSelected = btnContainer.Get(X.MMX(0, num, btnContainer.Length - 1));
 			}
-			if (num >= 0 && bcon.Length > 0)
-			{
-				this.IRContentLastSelected = bcon.Get(X.MMX(0, num, bcon.Length - 1));
-			}
-			return bcon;
+			return btnContainer;
 		}
 
 		private bool fnIRContentRowFocused(aBtn B)
@@ -1722,7 +1747,7 @@ namespace nel
 			if (X.BTW(0f, (float)num4, (float)this.FocusIR.IR.Count))
 			{
 				NelItemEntry nelItemEntry = this.FocusIR.IR[num4];
-				UiItemManageBox.fineItemDetailS(this.BxDialog, this.FbDialogDesc, nelM2DBase.IMNG.getHouseInventory(), nelItemEntry.Data, null, (int)nelItemEntry.grade, true, true, true, new UiItemManageBox.FnDescAddition(this.fnDescAdditionDetailItem), null);
+				UiItemManageBox.fineItemDetailS(this.BxDialog, this.FbDialogDesc, nelM2DBase.IMNG.getHouseInventory(), nelItemEntry.Data, null, (int)nelItemEntry.grade, true, true, true, new UiItemManageBox.FnDescAddition(this.fnDescAdditionDetailItem), null, true, true);
 			}
 			return true;
 		}
@@ -1731,7 +1756,7 @@ namespace nel
 		{
 			if (this.IRContentLastSelected != null)
 			{
-				this.IRContentLastSelected.Select(false);
+				this.IRContentLastSelected.Select(true);
 				return;
 			}
 			Designer tab = this.BxDesc.getTab("R_info");
@@ -1741,7 +1766,7 @@ namespace nel
 				BtnContainer<aBtn> bcon = (tab.Get("list", false) as BtnContainerRunner).BCon;
 				if (bcon != null && bcon.Length > 0)
 				{
-					bcon.Get(X.MMX(0, def_index, bcon.Length - 1)).Select(false);
+					bcon.Get(X.MMX(0, def_index, bcon.Length - 1)).Select(true);
 				}
 				this.need_txkd_fine = true;
 			}
@@ -1774,7 +1799,7 @@ namespace nel
 			int num = this.AIrbox.IndexOf(this.SelectedIR);
 			if (num >= 0)
 			{
-				btnContainerRadio.Get(num).Select(false);
+				btnContainerRadio.Get(num).Select(true);
 				return;
 			}
 			this.quitIRContentRowFocused(false);
@@ -1944,6 +1969,7 @@ namespace nel
 					array = new NelItemEntry[] { this.ReelIK.IKRow };
 				}
 			}
+			this.digest_reel_count++;
 			if (this.fnItemReelProgressing != null)
 			{
 				this.fnItemReelProgressing(this.Con.getCurrentItemReel());
@@ -1975,7 +2001,11 @@ namespace nel
 			if (this.after_clearreels)
 			{
 				this.after_clearreels = false;
-				this.Con.clearReels(false, false);
+				this.Con.clearReels(false, false, true);
+			}
+			if (TX.valid(this.digest_var_name))
+			{
+				EV.getVariableContainer().define(this.digest_var_name, this.digest_reel_count.ToString(), true);
 			}
 			this.rotate_decide_id = -1;
 			this.tstate = -1;
@@ -2119,6 +2149,11 @@ namespace nel
 			return this.EF;
 		}
 
+		public void AddReelSpeedRecipeEffect(float l01)
+		{
+			this.reel_speed_rcp = X.MMX(-1f, this.reel_speed_rcp + l01, 1f);
+		}
+
 		public bool ReelObtainAnimating()
 		{
 			if (this.AReel != null)
@@ -2234,7 +2269,7 @@ namespace nel
 
 		public bool autodecide_progressable = true;
 
-		public float reel_speed = 1f;
+		private float reel_speed_rcp;
 
 		private UiReelManager.RLTAB rltab;
 
@@ -2272,6 +2307,10 @@ namespace nel
 
 		private const int MAX_OBTAIN = 8;
 
+		public string digest_var_name;
+
+		public int digest_reel_count;
+
 		public bool redraw_mdadd;
 
 		private const float PREPARE_IR_X_INTV = 240f;
@@ -2284,7 +2323,11 @@ namespace nel
 
 		private const float desc_w = 420f;
 
-		private enum RLTAB : byte
+		private FnBtnBindings FD_fnIRContentRowFocused;
+
+		public const float DETAIL_BTN_H = 38f;
+
+		public enum RLTAB : byte
 		{
 			ITEM,
 			EFFECT

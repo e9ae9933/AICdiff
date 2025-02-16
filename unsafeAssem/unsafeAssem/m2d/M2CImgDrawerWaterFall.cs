@@ -54,7 +54,7 @@ namespace m2d
 			{
 				int targetLayer = base.Mp.getEffectForChip().getTargetLayer(false);
 				this.is_submap_layer = !base.Mp.M2D.Cam.isFinalizeLayer(targetLayer);
-				this.Ed = (this.is_submap_layer ? base.Mp.setEDC("WaterFall", new M2DrawBinder.FnEffectBind(this.edDraw), 0f) : ((base.Mp.SubMapData != null) ? base.Mp.SubMapData.getBaseMap() : base.Mp).setED("WaterFall", new M2DrawBinder.FnEffectBind(this.edDraw), 0f));
+				this.Ed = (this.is_submap_layer ? base.Mp.setEDC("WaterFall", new M2DrawBinder.FnEffectBind(this.edDraw), 0f) : ((base.Mp.SubMapData != null) ? base.Mp.SubMapData.getBaseMap() : base.Mp).setEDC("WaterFall", new M2DrawBinder.FnEffectBind(this.edDraw), 0f));
 			}
 			if (base.Mp.mode == MAPMODE.NORMAL)
 			{
@@ -86,10 +86,6 @@ namespace m2d
 			vector.y /= IN.h;
 			base.Mp.Dgn.DGN.MtrWaterFall.SetVector("_CamPos", vector);
 			meshDrawer.Col = C32.d2c(3719674821U);
-			if (!this.is_submap_layer)
-			{
-				meshDrawer.Scale(2f, 2f, false);
-			}
 			meshDrawer.TriRectBL(0);
 			if (this.Cp.flip)
 			{

@@ -109,7 +109,7 @@ namespace m2d
 			}
 			catch
 			{
-				global::XX.X.dl("ストック復元に失敗: " + this.Mp.ToString(), null, false, false);
+				X.dl("ストック復元に失敗: " + this.Mp.ToString(), null, false, false);
 			}
 			if (flag || !this.Mp.opened)
 			{
@@ -133,7 +133,7 @@ namespace m2d
 				if (!flag)
 				{
 					this.Mp.need_reentry_flag = true;
-					this.Mp.addUpdateMesh(16384, false);
+					this.Mp.addUpdateMesh(32768, false);
 					this.Mp.drawCheck(0f);
 				}
 				else
@@ -147,12 +147,12 @@ namespace m2d
 							this.Mp.need_reentry_flag = true;
 						}
 					}
-					if (!global::XX.X.DEBUGSTABILIZE_DRAW && !Map2d.editor_decline_lighting)
+					if (!X.DEBUGSTABILIZE_DRAW && !Map2d.editor_decline_lighting)
 					{
 						this.MMRD.ValotConnetcable = M2DBase.Instance.Cam;
 						this.MMRD.valotile_clip = true;
 					}
-					this.Mp.addUpdateMesh(2048, false);
+					this.Mp.addUpdateMesh(4096, false);
 				}
 			}
 			else
@@ -164,7 +164,7 @@ namespace m2d
 				if (this.MMRD == null)
 				{
 					this.MMRD = this.TempGob.AddComponent<MultiMeshRenderer>();
-					if (!global::XX.X.DEBUGSTABILIZE_DRAW && !Map2d.editor_decline_lighting)
+					if (!X.DEBUGSTABILIZE_DRAW && !Map2d.editor_decline_lighting)
 					{
 						this.MMRD.ValotConnetcable = M2DBase.Instance.Cam;
 						this.MMRD.valotile_clip = true;
@@ -502,8 +502,8 @@ namespace m2d
 
 		public bool isinCamera(float mapl, float mapt, float mapr, float mapb, float extend_pixel)
 		{
-			float num = global::XX.X.Abs(this.scalex);
-			float num2 = global::XX.X.Abs(this.scaley);
+			float num = X.Abs(this.scalex);
+			float num2 = X.Abs(this.scaley);
 			float num3 = extend_pixel * num * this.Mp.rCLEN;
 			float num4 = extend_pixel * num2 * this.Mp.rCLEN;
 			Transform transform;
@@ -617,6 +617,12 @@ namespace m2d
 				{
 					blurDrawerContainer.deactivate(false);
 				}
+				M2EventContainer eventContainer = this.Mp.getEventContainer();
+				if (eventContainer != null)
+				{
+					eventContainer.clear(false);
+				}
+				this.Mp.releaseSubmapMovRender();
 				this.M2D.stockSubMap(this);
 				flag = true;
 			}
@@ -807,9 +813,9 @@ namespace m2d
 			this.reposit_flag = false;
 			this.difx = num5;
 			this.dify = num6;
-			float num7 = num + num5 * (1f - this.scrollx) - global::XX.X.Abs(this.scalex) * (float)this.Mp.width * (float)(this.repeatx - 1) * 0.5f * this.repeat_intvx;
-			float num8 = num2 + num6 * (1f - this.scrolly) - global::XX.X.Abs(this.scaley) * (float)this.Mp.height * (float)(this.repeaty - 1) * 0.5f * this.repeat_intvy;
-			this.fineBoundsLT(num7 - num3 * global::XX.X.Abs(this.scalex), num8 - num4 * global::XX.X.Abs(this.scaley));
+			float num7 = num + num5 * (1f - this.scrollx) - X.Abs(this.scalex) * (float)this.Mp.width * (float)(this.repeatx - 1) * 0.5f * this.repeat_intvx;
+			float num8 = num2 + num6 * (1f - this.scrolly) - X.Abs(this.scaley) * (float)this.Mp.height * (float)(this.repeaty - 1) * 0.5f * this.repeat_intvy;
+			this.fineBoundsLT(num7 - num3 * X.Abs(this.scalex), num8 - num4 * X.Abs(this.scaley));
 		}
 
 		private void fineBoundsLT(float pixelx, float pixely)
@@ -818,8 +824,8 @@ namespace m2d
 			this.bounds_y_ = pixely;
 			if (this.MyTrs != null)
 			{
-				this.Pos.x = this.Base.pixel2ux(this.bounds_x_ + (float)(this.Mp.width / 2) * global::XX.X.Abs(this.scalex));
-				this.Pos.y = this.Base.pixel2uy(this.bounds_y_ + (float)(this.Mp.height / 2) * global::XX.X.Abs(this.scaley));
+				this.Pos.x = this.Base.pixel2ux(this.bounds_x_ + (float)(this.Mp.width / 2) * X.Abs(this.scalex));
+				this.Pos.y = this.Base.pixel2uy(this.bounds_y_ + (float)(this.Mp.height / 2) * X.Abs(this.scaley));
 				if (this.stabilize_draw)
 				{
 					this.MyTrs.localPosition = this.Pos;
@@ -868,7 +874,7 @@ namespace m2d
 		{
 			get
 			{
-				return (float)this.Mp.width * global::XX.X.Abs(this.scalex) * this.repeat_intvx;
+				return (float)this.Mp.width * X.Abs(this.scalex) * this.repeat_intvx;
 			}
 		}
 
@@ -876,7 +882,7 @@ namespace m2d
 		{
 			get
 			{
-				return (float)this.Mp.height * global::XX.X.Abs(this.scaley) * this.repeat_intvy;
+				return (float)this.Mp.height * X.Abs(this.scaley) * this.repeat_intvy;
 			}
 		}
 
@@ -912,7 +918,7 @@ namespace m2d
 				{
 					return 0f;
 				}
-				return ((float)this.Mp.clms + (float)(this.Mp.clms * (this.repeatx - 1)) * this.repeat_intvx) * global::XX.X.Abs(this.scalex);
+				return ((float)this.Mp.clms + (float)(this.Mp.clms * (this.repeatx - 1)) * this.repeat_intvx) * X.Abs(this.scalex);
 			}
 		}
 
@@ -924,7 +930,7 @@ namespace m2d
 				{
 					return 0f;
 				}
-				return ((float)this.Mp.rows + (float)(this.Mp.rows * (this.repeaty - 1)) * this.repeat_intvy) * global::XX.X.Abs(this.scaley);
+				return ((float)this.Mp.rows + (float)(this.Mp.rows * (this.repeaty - 1)) * this.repeat_intvy) * X.Abs(this.scaley);
 			}
 		}
 
@@ -981,11 +987,11 @@ namespace m2d
 				}
 				if (this.order == SMORDER.BACK || this.order == SMORDER.SKY)
 				{
-					return global::XX.X.Mn(this.scrollx - 1f, this.scrolly - 1f) * 1.2f + 1f;
+					return X.Mn(this.scrollx - 1f, this.scrolly - 1f) * 1.2f + 1f;
 				}
 				if (this.order == SMORDER.TOP)
 				{
-					return global::XX.X.Mx(this.scrollx - 1f, this.scrolly - 1f) * 1.5f + 1f;
+					return X.Mx(this.scrollx - 1f, this.scrolly - 1f) * 1.5f + 1f;
 				}
 				return (this.scrollx + this.scrolly) / 2f;
 			}
@@ -1020,10 +1026,10 @@ namespace m2d
 			float num7 = Ba.readFloat();
 			float num8 = Ba.readFloat();
 			SMORDER smorder = (SMORDER)Ba.readByte();
-			int num9 = global::XX.X.Mx(Ba.readByte(), 1);
-			int num10 = global::XX.X.Mx(Ba.readByte(), 1);
-			float num11 = global::XX.X.Mx(Ba.readFloat(), 0f);
-			float num12 = global::XX.X.Mx(Ba.readFloat(), 0f);
+			int num9 = X.Mx(Ba.readByte(), 1);
+			int num10 = X.Mx(Ba.readByte(), 1);
+			float num11 = X.Mx(Ba.readFloat(), 0f);
+			float num12 = X.Mx(Ba.readFloat(), 0f);
 			float num13 = -1f;
 			if (vers >= 3)
 			{
@@ -1247,7 +1253,7 @@ namespace m2d
 
 			public void bindToCamera()
 			{
-				if (!global::XX.X.DEBUGSTABILIZE_DRAW)
+				if (!X.DEBUGSTABILIZE_DRAW)
 				{
 					Dungeon dgn = this.SM.Mp.Dgn;
 					this.unbindToCamera();

@@ -90,7 +90,7 @@ namespace m2d
 
 		public float getFarLength()
 		{
-			return -10000f;
+			return 31.203f;
 		}
 
 		public override string ToString()

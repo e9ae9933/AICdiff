@@ -166,7 +166,7 @@ namespace XX
 		{
 			if (X.isinC<DsPrmp>(DsPrmp.APrmp, this, DsPrmp.prompt_count) == -1)
 			{
-				Object.Destroy(base.gameObject);
+				global::UnityEngine.Object.Destroy(base.gameObject);
 				return;
 			}
 			base.gameObject.SetActive(false);
@@ -193,10 +193,11 @@ namespace XX
 				this.Tm.TxCol = MTRX.ColWhite;
 				this.Tm.alignx = ALIGN.CENTER;
 				this.Tm.Col = base.bgcol;
-				this.Tm.margin_x = 26f;
-				this.Tm.margin_y = 8f;
+				this.Tm.margin_x = 28f;
+				this.Tm.margin_y = 10f;
 				this.Tm.radius = 100f;
 				this.Tm.size = 14f;
+				this.Tm.StartFb(" ", null, true);
 				this.title_string = this.title;
 				this.textReposit();
 				GameObject gameObject = new GameObject(base.name + "-Screen-Collider");
@@ -275,7 +276,7 @@ namespace XX
 				}
 				if (this.DefSel != null)
 				{
-					this.DefSel.Select(false);
+					this.DefSel.Select(true);
 				}
 			}
 			if (this.need_show)

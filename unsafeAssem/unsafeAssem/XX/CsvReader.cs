@@ -201,6 +201,57 @@ namespace XX
 			return true;
 		}
 
+		public bool CopyWithReplacingVar(STB Stb, int lcs, int lce, STB StbCopyTo, string after_delimiter = " ")
+		{
+			bool flag = false;
+			if (this.VarCon != null)
+			{
+				if (this.VarCon.read(Stb, lcs, ref lce, out flag, this.no_write_varcon == 0, this.no_replace_quote))
+				{
+					if (this.no_write_varcon != 2)
+					{
+						return false;
+					}
+				}
+				else if (this.no_replace_quote)
+				{
+					flag = Stb.IndexOf('$', 0, -1) >= 0;
+				}
+			}
+			if (lcs >= lce)
+			{
+				this.last_input = (this.last_str = "");
+				return false;
+			}
+			if (!flag)
+			{
+				StbCopyTo.Add(Stb, lcs, lce - lcs);
+				return true;
+			}
+			if (base.stringsInput(Stb, lcs, lce))
+			{
+				this.last_str = this.last_input;
+				if (this.readAfterForVarCon(this.tilde_replace))
+				{
+					this.last_str_ = null;
+					for (int i = 0; i < base.clength; i++)
+					{
+						if (i > 0)
+						{
+							StbCopyTo.Add(after_delimiter);
+						}
+						StbCopyTo.Add(this.Acmds[i]);
+					}
+				}
+				else
+				{
+					StbCopyTo.Add(this.last_input);
+				}
+				return true;
+			}
+			return false;
+		}
+
 		public bool readAfterForVarCon(bool tilde_replace)
 		{
 			return this.VarCon != null && this.VarCon.read_after(this.Acmds, base.clength, tilde_replace);

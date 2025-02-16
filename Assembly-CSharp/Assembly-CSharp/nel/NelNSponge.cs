@@ -49,6 +49,15 @@ namespace nel
 			base.addF(NelEnemy.FLAG.NO_AUTO_LANDFALL_POSE_SET);
 			this.FD_MgRunNormalShot = new MagicItem.FnMagicRun(this.MgRunNormalShot);
 			this.FD_MgDrawNormalShot = new MagicItem.FnMagicRun(NelNSponge.MgDrawNormalShot);
+			this.AtkShotHit.Prepare(this, true);
+			this.AtkAttack.Prepare(this, true);
+			if (base.nattr_has_mattr)
+			{
+				this.AtkAttack.SerDmg = null;
+				this.AtkAttack.Beto = EnemyAttr.beto_attr(this, null);
+				this.McsAttack = NOD.getMpConsume("sponge_attack_nattr");
+			}
+			this.TkiAttack.Mcs = this.McsAttack;
 		}
 
 		public override void runPre()
@@ -63,16 +72,16 @@ namespace nel
 
 		private bool considerNormal(NAI Nai)
 		{
-			if (Nai.fnAwakeBasicHead(Nai))
+			if (Nai.fnAwakeBasicHead(Nai, NAI.TYPE.GAZE))
 			{
 				return true;
 			}
 			if (!Nai.hasPriorityTicket(200, false, false))
 			{
-				if (this.mp >= this.shot_consume + this.TkiAttack.mp_consume + 8 && !Nai.hasTypeLock(NAI.TYPE.PUNCH) && Nai.target_sxdif <= 2.5f + Nai.RANtk(482) * 1.2f && Nai.isTargetYCovering(X.NI(0.33f, 1f, this.enlarge_level - 1f) * this.TkiAttack.calc_dify_map(this) - this.TkiAttack.radius + 0.2f, 3f, false))
+				if (this.mp >= this.shot_consume + this.McsAttack.consume + 8 && !Nai.hasTypeLock(NAI.TYPE.PUNCH) && Nai.target_sxdif <= 2.5f + Nai.RANtk(482) * 1.2f && Nai.isTargetYCovering(X.NI(0.33f, 1f, this.enlarge_level - 1f) * this.TkiAttack.calc_dify_map(this) - this.TkiAttack.radius + 0.2f, 3f, false))
 				{
 					bool flag = Nai.HasF(NAI.FLAG.ATTACKED, false);
-					if (Nai.RANtk(3477) < (flag ? 0.85f : (0.2f + ((Nai.isPrMagicChanting(1f) || Nai.isPrAttacking()) ? 0.45f : 0f))))
+					if (Nai.RANtk(3477) < (flag ? 0.85f : (0.2f + ((Nai.isPrMagicChanting(1f) || Nai.isPrAttacking(1f)) ? 0.45f : 0f))))
 					{
 						Nai.AddTicket(NAI.TYPE.PUNCH, 200, true);
 						return true;
@@ -140,7 +149,6 @@ namespace nel
 			{
 				this.Phy.quitSoftFall(100f);
 				base.killPtc("sponge_attack_act", true);
-				this.Phy.walk_xspeed = 0f;
 			}
 			if (this.SndLoopAtk != null)
 			{
@@ -255,6 +263,7 @@ namespace nel
 			Mg.calced_aim_pos = false;
 			Mg.phase = 1;
 			Mg.mp_crystalize = 0f;
+			Mg.dz = (float)this.nattr;
 			Mg.sy = base.y - this.sizey * 0.4f;
 			Mg.createDropper(X.absMn((Target.x - base.x) / 90f, 0.08f), X.NIXP(-0.08f, -0.15f), 0.3f, -1f, -1f);
 			Mg.Dro.gravity_scale = 0.07f;
@@ -265,7 +274,7 @@ namespace nel
 			int num = base.splitMyMana(this.shot_consume, 0f, 0);
 			if (num > 0)
 			{
-				Mg.reduce_mp = X.IntC((float)num * 0.4f);
+				Mg.reduce_mp = (float)X.IntC((float)num * 0.7f);
 			}
 			Mg.PtcST("sponge_shot_splash", PTCThread.StFollow.NO_FOLLOW, false);
 			this.EnemyLock.Add(Target, 160f);
@@ -315,7 +324,7 @@ namespace nel
 			Mg.calcAimPos(false);
 			Mg.MnSetRay(Mg.Ray, 0, Mg.aim_agR, 0f);
 			Mg.Ray.LenM(0.015f);
-			if ((Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0.BurstDir(Mg.Dro.vx), HITTYPE.NONE) & (HITTYPE)4292640) != HITTYPE.NONE || Mg.t >= 160f)
+			if ((Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0.BurstDir(Mg.Dro.vx), HITTYPE.NONE) & (HITTYPE.REFLECTED | HITTYPE.BREAK | HITTYPE.KILLED | HITTYPE.REFLECT_BROKEN)) != HITTYPE.NONE || Mg.t >= 160f)
 			{
 				Mg.phase = 100;
 			}
@@ -324,13 +333,20 @@ namespace nel
 				Mg.Ray.RadiusM(1.1f);
 				Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0.BurstDir(Mg.Dro.vx), HITTYPE.NONE);
 				Mg.PtcST("sponge_shot_explode", PTCThread.StFollow.NO_FOLLOW, false);
-				base.nM2D.Mana.AddMulti(Mg.sx, Mg.sy - 0.5f, (float)Mg.reduce_mp, (MANA_HIT)8202);
+				base.nM2D.Mana.AddMulti(Mg.sx, Mg.sy - 0.5f, Mg.reduce_mp, MANA_HIT.EN | MANA_HIT.FALL | MANA_HIT.FROM_SUPPLIER | MANA_HIT.FROM_ABSORB_SPLIT, 1f);
 				return false;
 			}
 			return true;
 		}
 
 		public static bool MgDrawNormalShot(MagicItem Mg, float fcnt)
+		{
+			ENATTR enattr = (ENATTR)((int)Mg.dz);
+			NelNSponge.MgDrawNormalShot(Mg, EnemyAttr.get_mcolor2(enattr, 4294957282U), EnemyAttr.get_mcolor_sub(enattr, 4282280576U), EnemyAttr.get_mcolor(enattr, 4284880165U), EnemyAttr.get_mcolor(enattr, 4294957282U), 2916365698U, 4281588422U, 4280697453U);
+			return true;
+		}
+
+		public static MeshDrawer MgDrawNormalShot(MagicItem Mg, uint coln, uint colsub, uint coladd, uint poly0, uint poly1, uint subborder0, uint subborder1)
 		{
 			Map2d mp = Mg.Mp;
 			BLEND blend;
@@ -340,44 +356,45 @@ namespace nel
 			case 1:
 			case 3:
 				blend = BLEND.SUB;
-				num = 4282280576U;
+				num = colsub;
 				break;
 			case 2:
 				blend = BLEND.NORMAL;
-				num = 4294957282U;
+				num = coln;
 				break;
 			default:
 				blend = BLEND.ADD;
-				num = 4284880165U;
+				num = coladd;
 				break;
 			}
 			MeshDrawer meshImg = Mg.Ef.GetMeshImg("", MTRX.MIicon, blend, false);
-			object obj = ((blend == BLEND.SUB) ? meshImg : Mg.Ef.GetMeshImg("", MTRX.MIicon, BLEND.SUB, false));
+			object obj = ((blend == BLEND.SUB) ? meshImg : Mg.Ef.GetMeshImg("", MTRX.MIicon, blend, false));
 			float num2 = 0.5f + 0.33f * X.COSI(mp.floort, 11.3f) + 0.04f * X.COSI(mp.floort, 2.9f);
 			float num3 = 1f + X.COSI(mp.floort, 1.57f) * 0.13f + X.COSI(mp.floort, 4.13f) * 0.13f;
 			object obj2 = obj;
-			obj2.Col = obj2.ColGrd.Set(4281588422U).blend(4280697453U, num2).C;
+			obj2.Col = obj2.ColGrd.Set(subborder0).blend(subborder1, num2).C;
 			obj2.initForImg(MTRX.EffBlurCircle245, 0).Rect(0f, 0f, 66f * num3, 66f * num3, false);
 			meshImg.Col = C32.d2c(num);
 			Mg.calcAimPos(false);
 			meshImg.RotaPF(0f, 0f, num3, num3, Mg.aim_agR, NelNSponge.PFStone, false, false, false, uint.MaxValue, false, 0);
-			MeshDrawer mesh = Mg.Ef.GetMesh("sponge_mdc", uint.MaxValue, BLEND.NORMAL, false);
-			if (mesh.getTriMax() == 0)
+			bool flag;
+			MeshDrawer meshDrawer = Mg.Ef.EF.MeshInit("sponge_mdc", Mg.Ef.x, Mg.Ef.y, uint.MaxValue, out flag, BLEND.NORMAL, false);
+			if (flag)
 			{
-				mesh.base_z -= 0.1f;
-				mesh.Col = mesh.ColGrd.Set(4294901760U).blend(2916365698U, 0.5f + 0.3f * X.COSI(mp.floort, 23f)).C;
-				uint ran = X.GETRAN2(Mg.id, 13);
-				for (int i = 0; i < 2; i++)
-				{
-					float num4 = X.RAN(ran, 1839 + i * 431) * 6.2831855f;
-					float num5 = X.NI(50, 90, X.RAN(ran, 502 + i * 94)) / 6.2831855f;
-					float num6 = X.RAN(ran, 1771 + i * 344) * 6.2831855f;
-					float num7 = X.NI(50, 90, X.RAN(ran, 435 + i * 88)) / 6.2831855f;
-					mesh.Identity().Scale(1f, X.Abs(X.Cos(num6 + mp.floort / num7)), false).Rotate(num4 + mp.floort / num5, false);
-					mesh.Poly(0f, 0f, 45f * num3, 0f, 20, 2f, false, 0f, 0f);
-				}
+				meshDrawer.base_z -= 0.1f;
 			}
-			return true;
+			meshDrawer.Col = meshDrawer.ColGrd.Set(poly0).blend(poly1, 0.5f + 0.3f * X.COSI(mp.floort, 23f)).C;
+			uint ran = X.GETRAN2(Mg.id, 13);
+			for (int i = 0; i < 2; i++)
+			{
+				float num4 = X.RAN(ran, 1839 + i * 431) * 6.2831855f;
+				float num5 = X.NI(50, 90, X.RAN(ran, 502 + i * 94)) / 6.2831855f;
+				float num6 = X.RAN(ran, 1771 + i * 344) * 6.2831855f;
+				float num7 = X.NI(50, 90, X.RAN(ran, 435 + i * 88)) / 6.2831855f;
+				meshDrawer.Identity().Scale(1f, X.Abs(X.Cos(num6 + mp.floort / num7)), false).Rotate(num4 + mp.floort / num5, false);
+				meshDrawer.Poly(0f, 0f, 45f * num3, 0f, 20, 2f, false, 0f, 0f);
+			}
+			return meshImg;
 		}
 
 		public bool runSpongeAttack(bool init_flag, NaTicket Tk)
@@ -401,10 +418,12 @@ namespace nel
 			{
 				float dify_map = this.TkiAttack.dify_map;
 				this.TkiAttack.dify_map *= X.NI(0.33f, 1f, this.enlarge_level - 1f);
-				base.tackleInit(this.AtkAttack, this.TkiAttack);
+				MagicItem magicItem = base.tackleInit(this.AtkAttack, this.TkiAttack, MGHIT.AUTO);
+				this.MpConsume(this.McsAttack, magicItem, 1f, 1f);
 				base.PtcVar("reach", (double)this.TkiAttack.calc_dify_map(this)).PtcVar("scl", (double)this.Anm.scaleX).PtcST("sponge_attack_act", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				this.TkiAttack.dify_map = dify_map;
 				this.Phy.initSoftFall(0.14f, 0f);
+				this.walk_time = 0f;
 			}
 			if (Tk.prog == PROG.PROG0)
 			{
@@ -423,12 +442,22 @@ namespace nel
 				}
 				else
 				{
-					this.Phy.walk_xspeed = X.VALWALK(this.Phy.walk_xspeed, 0.032f * (float)X.MPF(base.x < this.Nai.target_x), 0.0005f);
+					if (base.nattr_has_mattr)
+					{
+						this.walk_time += this.TS;
+						if (this.walk_time >= 22f)
+						{
+							this.walk_time = 0f;
+							float num = this.TkiAttack.dify_map * X.NI(0.33f, 1f, this.enlarge_level - 1f);
+							EnemyAttr.SplashSOnAir(this, base.x, base.y, X.Abs(num), 1.5707964f, this.sizex * 0.3f, 0f, 1f, 1, 1f);
+						}
+					}
+					this.setWalkXSpeed(X.VALWALK(this.Phy.walk_xspeed, 0.032f * (float)X.MPF(base.x < this.Nai.target_x), 0.0005f), true, false);
 				}
 			}
 			if (Tk.prog == PROG.PROG1)
 			{
-				this.Phy.walk_xspeed = X.VALWALK(this.Phy.walk_xspeed, 0f, 0.0005f);
+				this.setWalkXSpeed(X.VALWALK(this.Phy.walk_xspeed, 0f, 0.0005f), true, false);
 				if (this.t >= 80f)
 				{
 					this.Phy.quitSoftFall(100f);
@@ -596,15 +625,15 @@ namespace nel
 			return 1f + (float)((int)(X.ZLINE(mp_ratio, this.enlarge_maximize_mp_ratio) * 8f)) / 8f;
 		}
 
-		protected NelAttackInfo AtkShotHit = new NelAttackInfo
+		protected EnAttackInfo AtkShotHit = new EnAttackInfo(0.005f, 0.01f)
 		{
 			hpdmg0 = 9,
 			burst_vx = 0.03f,
 			huttobi_ratio = -100f,
 			parryable = true
-		}.Torn(0.005f, 0.01f);
+		};
 
-		protected NelAttackInfo AtkAttack = new NelAttackInfo
+		protected EnAttackInfo AtkAttack = new EnAttackInfo(0.03f, 0.11f)
 		{
 			hpdmg0 = 2,
 			mpdmg0 = 5,
@@ -615,9 +644,11 @@ namespace nel
 			SerDmg = new FlagCounter<SER>(4).Add(SER.CONFUSE, 30f),
 			Beto = BetoInfo.TORNADO,
 			parryable = false
-		}.Torn(0.03f, 0.11f);
+		};
 
 		private NOD.TackleInfo TkiAttack = NOD.getTackle("sponge_attack");
+
+		private NOD.MpConsume McsAttack = NOD.getMpConsume("sponge_attack");
 
 		private const int ball_count = 8;
 
@@ -631,7 +662,7 @@ namespace nel
 
 		public int shot_consume;
 
-		public const float shot_supply_ratio = 0.4f;
+		public const float shot_supply_ratio = 0.7f;
 
 		private FlagCounterR<NelEnemy> EnemyLock;
 

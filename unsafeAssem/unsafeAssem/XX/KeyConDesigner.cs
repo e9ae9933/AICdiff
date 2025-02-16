@@ -82,7 +82,7 @@ namespace XX
 			}
 			aBtn aBtn = base.Get((IN.isPadMode() ? "p" : "k") + "_input_" + this.KA.getInputName(0), false) as aBtn;
 			aBtn aBtn2 = base.Get((IN.isPadMode() ? "p" : "k") + "_input_" + this.KA.getInputName(IN.getInputCount() - 1), false) as aBtn;
-			aBtn.Select(false);
+			aBtn.Select(true);
 			DesignerRowMem rowManager = this.MainScb.getRowManager();
 			IDesignerBlock designerBlock = base.Get("underbtn", false) as IDesignerBlock;
 			List<aBtn> list = new List<aBtn>();
@@ -249,31 +249,39 @@ namespace XX
 		public void createConfigColumnHeader()
 		{
 			base.XSh(this.ROWHEADER_W + 65f);
-			base.addP(new DsnDataP("", false)
+			using (STB stb = TX.PopBld(null, 0))
 			{
-				text = TX.Get("Keyconfig_column_header_keyboard", ""),
-				swidth = 38f + this.INPUT_W + this.SELECTOR_W + base.item_margin_x_px * 2f - 20f,
-				sheight = this.COLUMNHEADER_H,
-				alignx = ALIGN.CENTER,
-				aligny = ALIGNY.BOTTOM,
-				TxCol = this.TextColor,
-				size = 18f,
-				TxBorderCol = this.TextBorderColor,
-				html = true
-			}, false);
-			base.XSh(this.KEY_AND_PAD_MARGIN + 0f);
-			base.addP(new DsnDataP("", false)
-			{
-				text = TX.Get("Keyconfig_column_header_pad", ""),
-				swidth = 38f + this.INPUT_W + this.SELECTOR_W + base.item_margin_x_px,
-				sheight = this.COLUMNHEADER_H,
-				alignx = ALIGN.CENTER,
-				aligny = ALIGNY.BOTTOM,
-				TxCol = this.TextColor,
-				size = 18f,
-				TxBorderCol = this.TextBorderColor,
-				html = true
-			}, false);
+				stb.AddTxA("Keyconfig_column_header_keyboard", false);
+				stb.Add("<fiximg mesh=\"KC_keyboard\" tx_color alpha=\"0.4\" margin=\"-10\" behind=\"1\" x=\"0\" y=\"-16\"/>");
+				base.addP(new DsnDataP("", false)
+				{
+					Stb = stb,
+					swidth = 38f + this.INPUT_W + this.SELECTOR_W + base.item_margin_x_px * 2f - 20f,
+					sheight = this.COLUMNHEADER_H,
+					alignx = ALIGN.CENTER,
+					aligny = ALIGNY.MIDDLE,
+					TxCol = this.TextColor,
+					size = 18f,
+					TxBorderCol = this.TextBorderColor,
+					html = true
+				}, false);
+				stb.Clear();
+				stb.AddTxA("Keyconfig_column_header_keyboard", false);
+				stb.Add("<fiximg mesh=\"KC_pad\" tx_color alpha=\"0.4\" margin=\"-10\" behind=\"1\" x=\"0\" y=\"-16\"/>");
+				base.XSh(this.KEY_AND_PAD_MARGIN + 0f);
+				base.addP(new DsnDataP("", false)
+				{
+					Stb = stb,
+					swidth = 38f + this.INPUT_W + this.SELECTOR_W + base.item_margin_x_px,
+					sheight = this.COLUMNHEADER_H,
+					alignx = ALIGN.CENTER,
+					aligny = ALIGNY.MIDDLE,
+					TxCol = this.TextColor,
+					size = 18f,
+					TxBorderCol = this.TextBorderColor,
+					html = true
+				}, false);
+			}
 			base.Br();
 		}
 
@@ -508,7 +516,7 @@ namespace XX
 				{
 					if (_st == KeyConDesigner<T>.STATE.NORMAL)
 					{
-						this.CurSelector.Select(false);
+						this.CurSelector.Select(true);
 					}
 					this.CurSelector.SetChecked(false, true);
 					this.CurSelector = null;
@@ -532,7 +540,7 @@ namespace XX
 				{
 					if (_st == KeyConDesigner<T>.STATE.NORMAL)
 					{
-						this.CurMenuTarget.Select(false);
+						this.CurMenuTarget.Select(true);
 					}
 					this.CurMenuTarget.SetChecked(false, true);
 					this.CurMenuTarget = null;
@@ -556,7 +564,7 @@ namespace XX
 				{
 					this.DsnResetPrompt.deactivate();
 				}
-				this.ResetBtn.Select(false);
+				this.ResetBtn.Select(true);
 			}
 			else if (this.state != KeyConDesigner<T>.STATE.RESET_PROMPT && _st == KeyConDesigner<T>.STATE.RESET_PROMPT)
 			{
@@ -607,7 +615,7 @@ namespace XX
 			this.IconMenu.setValue((1 << this.KA.getKeyboardIconNum(B.title)).ToString());
 			this.IconMenu.showBottom(B, null);
 			this.changeState(KeyConDesigner<T>.STATE.ICONMENU_KB);
-			this.IconMenu.Get(X.MMX(0, keyboardIconNum, this.IconMenu.Length - 1)).Select(false);
+			this.IconMenu.Get(X.MMX(0, keyboardIconNum, this.IconMenu.Length - 1)).Select(true);
 			return true;
 		}
 
@@ -696,7 +704,7 @@ namespace XX
 			this.IconMenu.setValue((1 << padIconNum).ToString());
 			this.IconMenu.showBottom(B, null);
 			this.changeState(KeyConDesigner<T>.STATE.ICONMENU_PAD);
-			this.IconMenu.Get(X.MMX(0, padIconNum, this.IconMenu.Length - 1)).Select(false);
+			this.IconMenu.Get(X.MMX(0, padIconNum, this.IconMenu.Length - 1)).Select(true);
 			return true;
 		}
 
@@ -805,7 +813,7 @@ namespace XX
 				aBtn.setNaviR(aBtn2, true, i < 2);
 				aBtn.setNaviL(aBtn2, true, i < 2);
 			}
-			(IN.isPadMode() ? btnContainerRadio2 : btnContainerRadio).Get(0).Select(false);
+			(IN.isPadMode() ? btnContainerRadio2 : btnContainerRadio).Get(0).Select(true);
 			return Dsn;
 		}
 
@@ -967,7 +975,7 @@ namespace XX
 						else
 						{
 							SND.Ui.play("cancel", false);
-							aBtn.Select(false);
+							aBtn.Select(true);
 						}
 					}
 				}

@@ -112,7 +112,7 @@ namespace nel
 			this.Phy.angleSpeedR = X.absMn(rotspdR, 0.012566372f);
 		}
 
-		protected bool RenderPrepareMesh(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected bool RenderPrepareMesh(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			if (draw_id == 0)
 			{

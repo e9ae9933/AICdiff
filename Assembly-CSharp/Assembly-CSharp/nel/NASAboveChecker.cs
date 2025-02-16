@@ -21,7 +21,7 @@ namespace nel
 
 		public bool run(float fcnt)
 		{
-			M2MoverPr aimPr = base.Nai.AimPr;
+			M2Attackable aimPr = base.Nai.AimPr;
 			if (aimPr == null)
 			{
 				return true;

@@ -58,7 +58,7 @@ namespace nel
 				}
 				else
 				{
-					B.setSkinTitle(byId.getLocalizedName(0, null));
+					B.setSkinTitle(byId.getLocalizedName(0));
 				}
 				return true;
 			};
@@ -152,14 +152,14 @@ namespace nel
 				{
 					flag = true;
 				}
-				else if ((Itm.RecipeInfo.categ & RecipeManager.RPI_CATEG._NOT_FOR_COOKING) != (RecipeManager.RPI_CATEG)0)
+				else if ((Itm.RecipeInfo.categ & RCP.RPI_CATEG._NOT_FOR_COOKING) != (RCP.RPI_CATEG)0)
 				{
 					flag = true;
 				}
 			}
 			if ((val & UiItemWholeSelector.WCATEG.INGREDIENT) != UiItemWholeSelector.WCATEG.ALL)
 			{
-				flag = flag || (!Itm.is_tool && Itm.RecipeInfo != null && (Itm.RecipeInfo.categ & RecipeManager.RPI_CATEG._FOR_COOKING) > (RecipeManager.RPI_CATEG)0);
+				flag = flag || (!Itm.is_tool && Itm.RecipeInfo != null && (Itm.RecipeInfo.categ & RCP.RPI_CATEG._FOR_COOKING) > (RCP.RPI_CATEG)0);
 			}
 			if ((val & UiItemWholeSelector.WCATEG.WATER) != UiItemWholeSelector.WCATEG.ALL)
 			{
@@ -284,51 +284,58 @@ namespace nel
 					num = 36;
 				}
 			}
-			else if (val <= UiItemWholeSelector.WCATEG.SKILL)
+			else if (val <= UiItemWholeSelector.WCATEG.REEL)
 			{
-				if (val != UiItemWholeSelector.WCATEG.TOOL)
+				if (val <= UiItemWholeSelector.WCATEG.ENHANCER)
 				{
-					if (val != UiItemWholeSelector.WCATEG.ENHANCER)
+					if (val != UiItemWholeSelector.WCATEG.TOOL)
 					{
-						if (val == UiItemWholeSelector.WCATEG.SKILL)
+						if (val == UiItemWholeSelector.WCATEG.ENHANCER)
 						{
-							num = 18;
+							num = 19;
 						}
 					}
 					else
 					{
-						num = 19;
+						num = 51;
 					}
 				}
-				else
+				else if (val != UiItemWholeSelector.WCATEG.SKILL)
 				{
-					num = 51;
-				}
-			}
-			else if (val <= UiItemWholeSelector.WCATEG.RECIPE)
-			{
-				if (val != UiItemWholeSelector.WCATEG.REEL)
-				{
-					if (val == UiItemWholeSelector.WCATEG.RECIPE)
+					if (val == UiItemWholeSelector.WCATEG.REEL)
 					{
-						num = 28;
+						num = 56;
 					}
 				}
 				else
 				{
-					num = 56;
+					num = 18;
 				}
 			}
-			else if (val != UiItemWholeSelector.WCATEG.SPCONFIG)
+			else if (val <= UiItemWholeSelector.WCATEG.SPCONFIG)
 			{
-				if (val == UiItemWholeSelector.WCATEG._ALL)
+				if (val != UiItemWholeSelector.WCATEG.RECIPE)
 				{
-					num = 29;
+					if (val == UiItemWholeSelector.WCATEG.SPCONFIG)
+					{
+						num = 62;
+					}
+				}
+				else
+				{
+					num = 28;
+				}
+			}
+			else if (val != UiItemWholeSelector.WCATEG._ALL)
+			{
+				if (val == UiItemWholeSelector.WCATEG.ENEMY)
+				{
+					num = 74;
 				}
 			}
 			else
 			{
-				num = 62;
+				num = 29;
 			}
 			if (num >= 0)
 			{
@@ -349,10 +356,10 @@ namespace nel
 						int num = X.beki_cntC(524288U);
 						for (int i = 0; i < num; i++)
 						{
-							RecipeManager.RPI_CATEG rpi_CATEG = (RecipeManager.RPI_CATEG)(1 << i);
-							if ((rpi_CATEG & RecipeManager.RPI_CATEG._NOT_FOR_COOKING) != (RecipeManager.RPI_CATEG)0)
+							RCP.RPI_CATEG rpi_CATEG = (RCP.RPI_CATEG)(1 << i);
+							if ((rpi_CATEG & RCP.RPI_CATEG._NOT_FOR_COOKING) != (RCP.RPI_CATEG)0)
 							{
-								ASub.Add(FEnum<RecipeManager.RPI_CATEG>.ToStr(rpi_CATEG));
+								ASub.Add(FEnum<RCP.RPI_CATEG>.ToStr(rpi_CATEG));
 							}
 						}
 					}
@@ -371,8 +378,8 @@ namespace nel
 					int num = 5;
 					for (int j = 0; j < num; j++)
 					{
-						RecipeManager.RP_CATEG rp_CATEG = (RecipeManager.RP_CATEG)j;
-						ASub.Add(FEnum<RecipeManager.RP_CATEG>.ToStr(rp_CATEG));
+						RCP.RP_CATEG rp_CATEG = (RCP.RP_CATEG)j;
+						ASub.Add(FEnum<RCP.RP_CATEG>.ToStr(rp_CATEG));
 					}
 				}
 			}
@@ -381,10 +388,10 @@ namespace nel
 				int num = X.beki_cntC(524288U);
 				for (int k = 0; k < num; k++)
 				{
-					RecipeManager.RPI_CATEG rpi_CATEG2 = (RecipeManager.RPI_CATEG)(1 << k);
-					if ((rpi_CATEG2 & RecipeManager.RPI_CATEG._FOR_COOKING) != (RecipeManager.RPI_CATEG)0)
+					RCP.RPI_CATEG rpi_CATEG2 = (RCP.RPI_CATEG)(1 << k);
+					if ((rpi_CATEG2 & RCP.RPI_CATEG._FOR_COOKING) != (RCP.RPI_CATEG)0)
 					{
-						ASub.Add(FEnum<RecipeManager.RPI_CATEG>.ToStr(rpi_CATEG2));
+						ASub.Add(FEnum<RCP.RPI_CATEG>.ToStr(rpi_CATEG2));
 					}
 				}
 			}
@@ -399,6 +406,10 @@ namespace nel
 			if (val == UiItemWholeSelector.WCATEG.PRECIOUS)
 			{
 				return "Item_Tab_precious";
+			}
+			if (val == UiItemWholeSelector.WCATEG.ENEMY)
+			{
+				return "Catalog_categ_enemy";
 			}
 			return "Catalog_categ_item_" + UiItemWholeSelector.WCATEG_ToStr(val).ToLower();
 		}
@@ -432,8 +443,8 @@ namespace nel
 				}
 				return TX.Get("recipe_categ_" + sub_key.ToLower(), "");
 			}
-			RecipeManager.RPI_CATEG rpi_CATEG;
-			if (FEnum<RecipeManager.RPI_CATEG>.TryParse(sub_key, out rpi_CATEG, true))
+			RCP.RPI_CATEG rpi_CATEG;
+			if (FEnum<RCP.RPI_CATEG>.TryParse(sub_key, out rpi_CATEG, true))
 			{
 				return TX.Get("recipe_item_categ_" + sub_key.ToLower(), "");
 			}
@@ -489,16 +500,16 @@ namespace nel
 				{
 					return false;
 				}
-				RecipeManager.Recipe recipeAllType = UiCraftBase.getRecipeAllType(Itm);
-				RecipeManager.RP_CATEG rp_CATEG;
-				if (recipeAllType != null && FEnum<RecipeManager.RP_CATEG>.TryParse(sub_key, out rp_CATEG, true))
+				RCP.Recipe recipeAllType = UiCraftBase.getRecipeAllType(Itm);
+				RCP.RP_CATEG rp_CATEG;
+				if (recipeAllType != null && FEnum<RCP.RP_CATEG>.TryParse(sub_key, out rp_CATEG, true))
 				{
 					return recipeAllType.categ == rp_CATEG;
 				}
 				return false;
 			}
-			RecipeManager.RPI_CATEG rpi_CATEG;
-			return Itm.RecipeInfo != null && FEnum<RecipeManager.RPI_CATEG>.TryParse(sub_key, out rpi_CATEG, true) && (Itm.RecipeInfo.categ & rpi_CATEG) > (RecipeManager.RPI_CATEG)0;
+			RCP.RPI_CATEG rpi_CATEG;
+			return Itm.RecipeInfo != null && FEnum<RCP.RPI_CATEG>.TryParse(sub_key, out rpi_CATEG, true) && (Itm.RecipeInfo.categ & rpi_CATEG) > (RCP.RPI_CATEG)0;
 		}
 
 		public enum WCATEG : uint
@@ -521,7 +532,8 @@ namespace nel
 			SPCONFIG = 16384U,
 			_ALL = 32768U,
 			SUMMONER = 32768U,
-			_ALL_FD = 65536U
+			ENEMY = 65536U,
+			_ALL_FD = 131072U
 		}
 
 		public enum WSCATEG : byte

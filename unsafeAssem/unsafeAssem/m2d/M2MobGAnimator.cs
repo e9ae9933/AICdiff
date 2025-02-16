@@ -15,10 +15,11 @@ namespace m2d
 			}
 		}
 
-		public M2MobGAnimator(M2EventItem _Mv, string _sklt_name)
+		public M2MobGAnimator(M2EventItem _Mv, string _sklt_name, string _colvari_key = "_")
 		{
 			this.Mv = _Mv;
 			bool instance_prepared = M2MobGenerator.instance_prepared;
+			this.colvari_key = (TX.noe(_colvari_key) ? "_" : _colvari_key);
 			this.MdFin = new MeshDrawer(null, 4, 6);
 			this.MdFin.draw_gl_only = true;
 			this.MdFin.activate(this.Mv.ToString(), MTRX.MIicon.getMtr(BLEND.NORMAL, -1), false, MTRX.ColWhite, null);
@@ -64,7 +65,7 @@ namespace m2d
 				}
 				return false;
 			}
-			if (this.finatlas_created && ((float)this.FinAtlas.width != base.Sklt.Size.width || (float)this.FinAtlas.height != base.Sklt.Size.height))
+			if (this.finatlas_created && (this.FinAtlas.width != this.sklt_atlas_w || this.FinAtlas.height != this.sklt_atlas_h))
 			{
 				M2MobGAnimator.MOBG.need_refine_fin_atlas = true;
 			}
@@ -74,12 +75,56 @@ namespace m2d
 			return true;
 		}
 
+		public int sklt_atlas_w
+		{
+			get
+			{
+				return (int)((this.replace_size_w > 0) ? ((float)this.replace_size_w) : ((base.Sklt != null) ? base.Sklt.Size.width : 100f));
+			}
+		}
+
+		public int sklt_atlas_h
+		{
+			get
+			{
+				return (int)((this.replace_size_h > 0) ? ((float)this.replace_size_h) : ((base.Sklt != null) ? base.Sklt.Size.height : 200f));
+			}
+		}
+
 		public void recreateSkltAtlas()
 		{
-			if (base.Sklt != null && !base.Sklt.atlas_created)
+			if (this.SklTicket == null || !this.SklTicket.atlas_created)
 			{
-				M2MobGAnimator.MOBG.createSkltAtlas(this.Mp, base.Sklt);
+				SkltColVari curColVari = M2MobGAnimator.MOBG.CurColVari;
+				if (TX.noe(this.colvari_key_))
+				{
+					this.colvari_key_ = "_";
+				}
+				M2MobGAnimator.MOBG.CurColVari = ((this.colvari_key_ == "_") ? null : base.Sklt.GetColVari(this.colvari_key_, true));
+				this.SklTicket = M2MobGAnimator.MOBG.createSkltAtlas(this.Mp, base.Sklt, this.colvari_key_);
+				M2MobGAnimator.MOBG.CurColVari = curColVari;
 				this.changed = true;
+			}
+		}
+
+		public string colvari_key
+		{
+			get
+			{
+				return this.colvari_key_;
+			}
+			set
+			{
+				if (this.colvari_key_ == value)
+				{
+					return;
+				}
+				this.colvari_key_ = value;
+				if (this.SklTicket != null)
+				{
+					this.SklTicket = null;
+					this.recreateSkltAtlas();
+				}
 			}
 		}
 
@@ -101,10 +146,10 @@ namespace m2d
 			}
 			float num = Lp.bottom * this.Mp.rCLEN;
 			float num2 = Lp.y * this.Mp.rCLEN;
-			float num3 = this.Mv.mbottom - base.Sklt.Size.height * this.Mp.rCLENB;
-			float num4 = this.Mv.x + base.Sklt.Size.width * 0.5f * this.Mp.rCLENB;
+			float num3 = this.Mv.mbottom - (float)this.sklt_atlas_h * this.Mp.rCLENB;
+			float num4 = this.Mv.x + (float)this.sklt_atlas_w * 0.5f * this.Mp.rCLENB;
 			float num5 = Lp.x * this.Mp.rCLEN;
-			float num6 = this.Mv.x - base.Sklt.Size.width * 0.5f * this.Mp.rCLENB;
+			float num6 = this.Mv.x - (float)this.sklt_atlas_h * 0.5f * this.Mp.rCLENB;
 			float num7 = Lp.right * this.Mp.rCLEN;
 			if (X.isCovering(num5, num7, num6, num4, 0f))
 			{
@@ -117,7 +162,7 @@ namespace m2d
 					else
 					{
 						float num8 = this.Mv.mbottom - num;
-						this.clip_b = X.IntR((num8 * this.Mp.CLENB + (base.Sklt.Size.y + base.Sklt.Size.height * 0.5f + base.Sklt.baseline)) * (float)this.prepare_scale);
+						this.clip_b = X.IntR((num8 * this.Mp.CLENB + (base.Sklt.Size.y + (float)this.sklt_atlas_h * 0.5f + base.Sklt.baseline)) * (float)this.prepare_scale);
 					}
 				}
 				else
@@ -319,7 +364,7 @@ namespace m2d
 			}
 		}
 
-		protected bool RenderPrepareMesh(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected bool RenderPrepareMesh(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			MdOut = null;
 			if (this.Mv.destructed || base.Sklt == null)
@@ -328,14 +373,16 @@ namespace m2d
 			}
 			if (draw_id == 0 && need_redraw)
 			{
-				Vector3 localPosition = this.Mv.transform.localPosition;
+				Transform transform = this.Mv.transform;
+				float num = 1f / this.Mp.base_scale;
+				Vector3 localPosition = transform.localPosition;
 				localPosition.x = this.Mv.Mp.pixel2ux_rounded(this.Mv.drawx + this.Mv.getSpShiftX()) + this.TeShift.x * 0.015625f;
 				localPosition.y = this.Mv.Mp.pixel2uy_rounded(this.Mv.drawy - this.Mv.getSpShiftY()) + this.TeShift.y * 0.015625f;
-				float x = this.TeScale.x;
-				float y = this.TeScale.y;
-				float num = localPosition.x * this.Mp.base_scale + this.offsetPixelX * 0.015625f;
-				float num2 = localPosition.y * this.Mp.base_scale + this.offsetPixelY * 0.015625f;
-				Tk.Matrix = Matrix4x4.Translate(new Vector3(num, num2, 1f)) * Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, this.rotationR / 3.1415927f * 180f)) * Matrix4x4.Scale(new Vector3(x, y, 1f));
+				float num2 = this.TeScale.x * num;
+				float num3 = this.TeScale.y * num;
+				float num4 = localPosition.x + this.offsetPixelX * 0.015625f;
+				float num5 = localPosition.y + this.offsetPixelY * 0.015625f;
+				Tk.Matrix = this.Mv.Mp.gameObject.transform.localToWorldMatrix * (Matrix4x4.Translate(new Vector3(num4, num5, 0f)) * Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, this.rotationR / 3.1415927f * 180f)) * Matrix4x4.Scale(new Vector3(num2, num3, 1f)));
 			}
 			M2MobGenerator mobg = M2MobGAnimator.MOBG;
 			if (this.need_fine_finalize_mesh)
@@ -343,30 +390,30 @@ namespace m2d
 				this.need_fine_finalize_mesh = false;
 				Rect rect = new Rect((float)this.FinAtlas.x, (float)this.FinAtlas.y, (float)this.FinAtlas.width, (float)this.FinAtlas.height);
 				int mpf_is_right = this.mpf_is_right;
-				float num3 = (float)((mpf_is_right < 0) ? this.clip_l : this.clip_r);
-				float num4 = (float)((mpf_is_right < 0) ? this.clip_r : this.clip_l);
-				float num5 = ((this.clip_b > 0) ? ((float)this.clip_b + this.Mv.getSpShiftY() * this.Mp.base_scale * (float)this.prepare_scale) : 0f);
-				if (num3 > 0f)
+				float num6 = (float)((mpf_is_right < 0) ? this.clip_l : this.clip_r);
+				float num7 = (float)((mpf_is_right < 0) ? this.clip_r : this.clip_l);
+				float num8 = ((this.clip_b > 0) ? ((float)this.clip_b + this.Mv.getSpShiftY() * this.Mp.base_scale * (float)this.prepare_scale) : 0f);
+				if (num6 > 0f)
 				{
-					rect.x += num3;
-					rect.width -= num3;
+					rect.x += num6;
+					rect.width -= num6;
 				}
-				if (num4 > 0f)
+				if (num7 > 0f)
 				{
-					rect.width -= num4;
+					rect.width -= num7;
 				}
-				if (num5 > 0f)
+				if (num8 > 0f)
 				{
-					rect.y += num5;
-					rect.height -= num5;
+					rect.y += num8;
+					rect.height -= num8;
 				}
 				if (this.clip_t > 0)
 				{
 					rect.height -= (float)this.clip_t;
 				}
-				float num6 = 1f / (float)this.prepare_scale;
-				float num7 = (num5 - (float)this.clip_t) * 0.5f * num6;
-				float num8 = (num3 - num4) * 0.5f * num6;
+				float num9 = 1f / (float)this.prepare_scale;
+				float num10 = (num8 - (float)this.clip_t) * 0.5f * num9;
+				float num11 = (num6 - num7) * 0.5f * num9;
 				this.need_fine_finalize_mesh = false;
 				this.MdFin.clearSimple();
 				this.MdFin.Identity();
@@ -374,16 +421,16 @@ namespace m2d
 				if (mpf_is_right > 0)
 				{
 					this.MdFin.Scale(-1f, 1f, false);
-					num8 = -num8;
+					num11 = -num11;
 				}
 				this.MdFin.Col = this.MulColor;
 				this.MdFin.Uv23(this.AddColor, false);
-				this.MdFin.Rect(num8, num7, rect.width * num6, rect.height * num6, false);
+				this.MdFin.Rect(num11, num10, rect.width * num9, rect.height * num9, false);
 				this.MdFin.allocUv23(0, true);
 			}
 			if (this.FnReplaceRender != null)
 			{
-				return this.FnReplaceRender(Cam, Tk, need_redraw, draw_id, out MdOut, ref paste_mesh);
+				return this.FnReplaceRender(Cam, Tk, need_redraw, draw_id, out MdOut, ref color_one_overwrite);
 			}
 			if (draw_id == 0)
 			{
@@ -485,6 +532,11 @@ namespace m2d
 			return this.MdFin.getMaterial();
 		}
 
+		public SkltRenderTicket GetRenderTicket()
+		{
+			return this.SklTicket;
+		}
+
 		public void setRendererMaterial(Material Mtr)
 		{
 			if (this.MdFin != null)
@@ -499,6 +551,10 @@ namespace m2d
 		private string sklt_name_;
 
 		private string pose_title_ = "stand";
+
+		private string colvari_key_ = "_";
+
+		private SkltRenderTicket SklTicket;
 
 		private Vector2 TeScale = Vector2.one;
 
@@ -517,6 +573,10 @@ namespace m2d
 		private int clip_t;
 
 		private int clip_b;
+
+		public int replace_size_w;
+
+		public int replace_size_h;
 
 		public M2RenderTicket.FnPrepareMd FnReplaceRender;
 

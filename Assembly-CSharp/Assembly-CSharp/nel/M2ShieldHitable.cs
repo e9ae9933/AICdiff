@@ -60,6 +60,11 @@ namespace nel
 			return HITTYPE.PR;
 		}
 
+		public float auto_target_priority(M2Mover CalcFrom)
+		{
+			return -1f;
+		}
+
 		public int applyHpDamage(int val, bool force = false, AttackInfo Atk = null)
 		{
 			if (Atk == null || !base.enabled || this.Mp.floort < this.floort_lock)

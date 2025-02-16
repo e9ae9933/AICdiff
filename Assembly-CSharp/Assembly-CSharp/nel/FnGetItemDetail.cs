@@ -1,6 +1,7 @@
 ﻿using System;
+using XX;
 
 namespace nel
 {
-	public delegate string FnGetItemDetail(NelItem I, int grade, string default_name);
+	public delegate void FnGetItemDetail(STB Stb, NelItem I, int grade);
 }

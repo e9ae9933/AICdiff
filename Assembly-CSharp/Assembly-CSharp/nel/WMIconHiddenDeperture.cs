@@ -4,7 +4,7 @@ using PixelLiner.PixelLinerLib;
 
 namespace nel
 {
-	public sealed class WMIconHiddenDeperture
+	public struct WMIconHiddenDeperture
 	{
 		public WMIconHiddenDeperture(Map2d _DestMap, int _x, int _y)
 		{
@@ -13,7 +13,7 @@ namespace nel
 			this.y = (ushort)_y;
 		}
 
-		public WMIconHiddenDeperture(ByteArray Ba, M2DBase M2D)
+		public WMIconHiddenDeperture(ByteReader Ba, M2DBase M2D)
 		{
 			this.DestMap = M2D.Get(Ba.readPascalString("utf-8", false), false);
 			this.x = Ba.readUShort();
@@ -27,10 +27,23 @@ namespace nel
 			Ba.writeUShort(this.y);
 		}
 
+		public bool valid
+		{
+			get
+			{
+				return this.DestMap != null;
+			}
+		}
+
+		public bool Equals(WMIconHiddenDeperture Src)
+		{
+			return this.x == Src.x && this.y == Src.y && this.DestMap == Src.DestMap;
+		}
+
 		public readonly Map2d DestMap;
 
-		public ushort x;
+		public readonly ushort x;
 
-		public ushort y;
+		public readonly ushort y;
 	}
 }

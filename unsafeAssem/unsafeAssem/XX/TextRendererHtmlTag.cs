@@ -254,10 +254,15 @@ namespace XX
 						{
 							TMem.st = TextRendererHtmlTag.STATE.VAR_NAME_WAIT;
 						}
-						if (textRendererHtmlTag.TagNameIs("rb") && !TMem.is_closer && ApplyingStyle != null && ApplyingStyle.isApplying())
+						if ((textRendererHtmlTag.TagNameIs("rb") || textRendererHtmlTag.TagNameIs("s")) && !TMem.is_closer && ApplyingStyle != null && ApplyingStyle.isApplying())
 						{
-							textRendererHtmlTag.SetVar("ver_i", ApplyingStyle.getTargetRenderer().getMeshDrawer().getVertexMax()
-								.ToString());
+							TextRenderer targetRenderer = ApplyingStyle.getTargetRenderer();
+							int vertexMax = targetRenderer.getMeshDrawer().getVertexMax();
+							if (textRendererHtmlTag.TagNameIs("s") && targetRenderer.Aline_ver_pos == null)
+							{
+								targetRenderer.Aline_ver_pos = new List<int>(vertexMax);
+							}
+							textRendererHtmlTag.SetVar("ver_i", vertexMax.ToString());
 						}
 						if (textRendererHtmlTag.can_close_once)
 						{
@@ -300,6 +305,21 @@ namespace XX
 															Aruby_start_ver_i.Add(num);
 															Aruby_start_ver_i.Add(num2);
 														}
+													}
+												}
+											}
+										}
+										if (textRendererHtmlTag.TagNameIs("s") && ApplyingStyle != null && ApplyingStyle.isApplying())
+										{
+											using (STB stb3 = TX.PopBld(null, 0))
+											{
+												if (tag.getVarContent("ver_i", stb3))
+												{
+													int num3 = stb3.NmI(0, -1, -1);
+													if (num3 >= 0)
+													{
+														int num4;
+														ApplyingStyle.getTargetRenderer().RenderSLine(ApplyingStyle, num3, out num4);
 													}
 												}
 											}

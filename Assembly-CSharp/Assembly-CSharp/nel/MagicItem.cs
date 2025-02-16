@@ -39,7 +39,7 @@ namespace nel
 			this.hittype = _hittype & (MGHIT)(-385);
 			this.fnRunMain = null;
 			this.changeRay(null);
-			this.reduce_mp = 0;
+			this.reduce_mp = 0f;
 			this.mp_crystalize = 0.5f;
 			this.projectile_power_ = -1;
 			this.crystalize_neutral_ratio = 0.35f;
@@ -128,10 +128,10 @@ namespace nel
 			{
 				return this;
 			}
-			this.reduce_mp = Mcs.consume;
-			this.mp_crystalize = ((this.reduce_mp == 0) ? 0f : ((float)Mcs.release / (float)this.reduce_mp));
+			this.reduce_mp = (float)Mcs.consume;
+			this.mp_crystalize = ((this.reduce_mp == 0f) ? 0f : ((float)Mcs.release / this.reduce_mp));
 			this.crystalize_neutral_ratio = Mcs.neutral_ratio;
-			this.reduce_mp = X.IntR((float)this.reduce_mp * ratio);
+			this.reduce_mp = (float)X.IntR(this.reduce_mp * ratio);
 			return this;
 		}
 
@@ -230,7 +230,7 @@ namespace nel
 			this.PtcHld.killPtc(false);
 		}
 
-		private void killParticle(string s)
+		public void killPtc(string s)
 		{
 			this.PtcHld.killPtc(s, false);
 		}
@@ -462,7 +462,7 @@ namespace nel
 			this.setRayStartPos(Ray);
 			if (this.Mn != null)
 			{
-				this.Mn.SetRay(Ray, id, agR, t);
+				this.Mn.SetRay(Ray, id, agR, t, 0f);
 			}
 			else
 			{
@@ -507,7 +507,18 @@ namespace nel
 				{
 					if (this.Dro != null)
 					{
-						this.Dro.addFoc(this.wind_velocity.x, this.wind_velocity.y, this.wind_velocity.z);
+						float num = this.wind_velocity.y;
+						if (this.Dro.af_ground >= 0f)
+						{
+							num *= 0f;
+						}
+						else if (num < 0f)
+						{
+							float num2 = num;
+							num *= X.NIL(1f, 0f, -this.Dro.af_ground - 200f, 200f);
+							num = X.Mn(num, X.Mx(num2, -M2DropObject.getGravityVelocity(this.Mp, 0.5f * this.Dro.gravity_scale)));
+						}
+						this.Dro.addFoc(this.wind_velocity.x, num, this.wind_velocity.z);
 						this.wind_velocity.z = 0f;
 					}
 					else
@@ -671,35 +682,45 @@ namespace nel
 				{
 					magicItem.run(1f);
 				}
-				this.reduce_mp = 0;
+				this.reduce_mp = 0f;
 				this.close();
 				return magicItem;
 			}
-			if (this.reduce_mp > 0 && this.mp_crystalize > 0f)
+			if (this.reduce_mp > 0f && this.mp_crystalize > 0f)
 			{
-				int num = X.IntC((float)this.reduce_mp * this.mp_crystalize);
-				if (num > 0)
+				float num = this.reduce_mp * this.mp_crystalize;
+				if (num > 0f)
 				{
 					this.explodeMana(this.raypos_s ? this.sx : (this.raypos_d ? this.dx : this.Cen.x), this.raypos_s ? this.sy : (this.raypos_d ? this.dy : this.Cen.y), num);
+					this.exploded = true;
 				}
 			}
 			this.exploded = true;
 			return null;
 		}
 
-		public MagicItem explodeManaToRay()
+		public MagicItem explodeManaToRay(float ratio = 1f)
 		{
-			if (this.exploded || this.reduce_mp <= 0)
+			if (this.exploded || this.reduce_mp <= 0f)
 			{
 				return this;
 			}
 			Vector2 mapPos = this.Ray.getMapPos(0.78f);
-			return this.explodeMana(mapPos.x, mapPos.y, X.IntC((float)this.reduce_mp * this.mp_crystalize));
+			this.explodeMana(mapPos.x, mapPos.y, this.reduce_mp * this.mp_crystalize * ratio);
+			if (ratio >= 1f)
+			{
+				this.exploded = true;
+			}
+			else
+			{
+				this.reduce_mp *= 1f - ratio;
+			}
+			return this;
 		}
 
-		public MagicItem explodeMana(float _x, float _y, int ret_mp)
+		public MagicItem explodeMana(float _x, float _y, float ret_mp)
 		{
-			if (this.exploded || ret_mp <= 0 || (this.Ray.hittype & HITTYPE.NO_RETURN_MANA) != HITTYPE.NONE)
+			if (this.exploded || ret_mp <= 0f || (this.Ray.hittype & HITTYPE.NO_RETURN_MANA) != HITTYPE.NONE)
 			{
 				return this;
 			}
@@ -707,16 +728,50 @@ namespace nel
 			float num;
 			if (this.Caster != null)
 			{
-				this.M2D.Mana.AddMulti(_x, _y, (float)X.IntC((float)ret_mp * (1f - this.crystalize_neutral_ratio)), ((this.Caster is PR) ? MANA_HIT.EN : MANA_HIT.NOUSE) | ((this.Caster is NelEnemy) ? MANA_HIT.PR : MANA_HIT.NOUSE) | MANA_HIT.FALL);
+				this.M2D.Mana.AddMulti(_x, _y, ret_mp * (1f - this.crystalize_neutral_ratio), this.caster_another_manahit | MANA_HIT.FALL, 1f);
 				num = this.crystalize_neutral_ratio;
 			}
 			else
 			{
 				num = 1f;
 			}
-			this.M2D.Mana.AddMulti(_x, _y, (float)X.IntC((float)ret_mp * num), (MANA_HIT)11);
-			this.exploded = true;
+			this.M2D.Mana.AddMulti(_x, _y, ret_mp * num, MANA_HIT.PR | MANA_HIT.EN | MANA_HIT.FALL, this.splash_fall_reduce ? 0.25f : 1f);
 			return this;
+		}
+
+		public void ManaAbsorbReplace(M2MagicCaster Target, MANA_HIT target_type, ref float mpdmg)
+		{
+			if (this.exploded || mpdmg <= 0f || (this.Ray.hittype & HITTYPE.NO_RETURN_MANA) != HITTYPE.NONE || this.Caster == null || this.mp_crystalize <= 0f)
+			{
+				return;
+			}
+			if ((this.caster_another_manahit & MANA_HIT.ALL) == (target_type & MANA_HIT.ALL))
+			{
+				return;
+			}
+			float num = this.reduce_mp * this.mp_crystalize;
+			float num2 = num * (1f - this.crystalize_neutral_ratio);
+			float num3 = num - num2;
+			float num4 = X.Mn(num2, mpdmg);
+			if (num4 > 0f)
+			{
+				num2 -= num4;
+				mpdmg -= num4;
+				num = num3 + num2;
+				if (num > 0f)
+				{
+					this.crystalize_neutral_ratio = num2 / num;
+				}
+				this.reduce_mp = num / this.mp_crystalize;
+			}
+		}
+
+		private MANA_HIT caster_another_manahit
+		{
+			get
+			{
+				return ((this.Caster is PR) ? MANA_HIT.EN : MANA_HIT.NOUSE) | ((this.Caster is NelEnemy) ? MANA_HIT.PR : MANA_HIT.NOUSE);
+			}
 		}
 
 		public MagicItem createNewMagic(MGKIND kind, float explode_x, float explode_y, bool auto_run = true)
@@ -950,24 +1005,24 @@ namespace nel
 								{
 									if (num != 363198355U)
 									{
-										goto IL_097B;
+										goto IL_0983;
 									}
 									if (!(cmd == "%SND"))
 									{
-										goto IL_097B;
+										goto IL_0983;
 									}
 									goto IL_03B5;
 								}
 								else if (!(cmd == "%QU_HANDSHAKE"))
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
 							}
 							else
 							{
 								if (!(cmd == "%SND_INTERVAL2_SPOS"))
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
 								if (X.DEBUGNOSND)
 								{
@@ -983,11 +1038,11 @@ namespace nel
 							{
 								if (num != 1286814321U)
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
 								if (!(cmd == "%KILLEFFECT"))
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
 								this.PtcHld.killPtc(false);
 								return true;
@@ -996,7 +1051,7 @@ namespace nel
 							{
 								if (!(cmd == "%SND_INTERVAL_SPOS"))
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
 								if (X.DEBUGNOSND)
 								{
@@ -1010,9 +1065,9 @@ namespace nel
 						{
 							if (!(cmd == "%QU_SINH2"))
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
-							goto IL_08A8;
+							goto IL_08B0;
 						}
 					}
 					else if (num <= 1750609613U)
@@ -1023,11 +1078,11 @@ namespace nel
 							{
 								if (num != 1750609613U)
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
 								if (!(cmd == "%HOLD"))
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
 								PTCThread.StFollow stFollow;
 								if (!FEnum<PTCThread.StFollow>.TryParse(rER._1, out stFollow, true))
@@ -1036,7 +1091,8 @@ namespace nel
 								}
 								else
 								{
-									this.PtcHld.changeCurrentBufferFollow(stFollow);
+									this.PtcHld.changeCurrentBufferFollow(stFollow, rER);
+									rER.follow = stFollow;
 								}
 								return true;
 							}
@@ -1044,7 +1100,7 @@ namespace nel
 							{
 								if (!(cmd == "%PHASE"))
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
 								rER.Def("phase", (float)this.phase);
 								return true;
@@ -1054,9 +1110,9 @@ namespace nel
 						{
 							if (!(cmd == "%PVIB2"))
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
-							goto IL_0941;
+							goto IL_0949;
 						}
 					}
 					else if (num != 2014939182U)
@@ -1065,11 +1121,11 @@ namespace nel
 						{
 							if (num != 2073177697U)
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
 							if (!(cmd == "%CALCPOS"))
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
 							rER.Def("cx", this.Cen.x);
 							rER.Def("cy", this.Cen.y);
@@ -1094,14 +1150,14 @@ namespace nel
 						{
 							if (!(cmd == "%QU_SINV"))
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
-							goto IL_08DA;
+							goto IL_08E2;
 						}
 					}
 					else if (!(cmd == "%QU_HANDSHAKE2"))
 					{
-						goto IL_097B;
+						goto IL_0983;
 					}
 					this.QuakeHandShake(rER.Nm(1, 0f), rER.Nm(2, 0f), rER.Nm(3, 1f), rER.Int(4, 0));
 					return true;
@@ -1116,27 +1172,27 @@ namespace nel
 							{
 								if (num != 2491796050U)
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
 								if (!(cmd == "%QU_VIB2"))
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
 							}
 							else
 							{
 								if (!(cmd == "%QU_SINH"))
 								{
-									goto IL_097B;
+									goto IL_0983;
 								}
-								goto IL_08A8;
+								goto IL_08B0;
 							}
 						}
 						else
 						{
 							if (!(cmd == "%SND_TPOS"))
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
 							if (X.DEBUGNOSND)
 							{
@@ -1153,11 +1209,11 @@ namespace nel
 						{
 							if (num != 2952609249U)
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
 							if (!(cmd == "%DATAS"))
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
 							rER.Def("sx", this.sx);
 							rER.Def("sy", this.sy);
@@ -1169,7 +1225,7 @@ namespace nel
 						{
 							if (!(cmd == "%DATAD"))
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
 							rER.Def("dx", this.dx);
 							rER.Def("dy", this.dy);
@@ -1182,7 +1238,7 @@ namespace nel
 					{
 						if (!(cmd == "%DATAC"))
 						{
-							goto IL_097B;
+							goto IL_0983;
 						}
 						rER.Def("cx", this.Cen.x);
 						rER.Def("cy", this.Cen.y);
@@ -1197,11 +1253,11 @@ namespace nel
 						{
 							if (num != 3249949017U)
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
 							if (!(cmd == "%SND_SPOS"))
 							{
-								goto IL_097B;
+								goto IL_0983;
 							}
 							if (X.DEBUGNOSND)
 							{
@@ -1212,14 +1268,14 @@ namespace nel
 						}
 						else if (!(cmd == "%QU_VIB"))
 						{
-							goto IL_097B;
+							goto IL_0983;
 						}
 					}
 					else
 					{
 						if (!(cmd == "%SND2"))
 						{
-							goto IL_097B;
+							goto IL_0983;
 						}
 						goto IL_03B5;
 					}
@@ -1230,11 +1286,11 @@ namespace nel
 					{
 						if (num != 3704915169U)
 						{
-							goto IL_097B;
+							goto IL_0983;
 						}
 						if (!(cmd == "%CALCAGR"))
 						{
-							goto IL_097B;
+							goto IL_0983;
 						}
 						this.calcAimPos(false);
 						rER.Def("agR", this.aim_agR);
@@ -1244,28 +1300,28 @@ namespace nel
 					{
 						if (!(cmd == "%QU_SINV2"))
 						{
-							goto IL_097B;
+							goto IL_0983;
 						}
-						goto IL_08DA;
+						goto IL_08E2;
 					}
 				}
 				else if (num != 3836261763U)
 				{
 					if (num != 4233139481U)
 					{
-						goto IL_097B;
+						goto IL_0983;
 					}
 					if (!(cmd == "%PVIB"))
 					{
-						goto IL_097B;
+						goto IL_0983;
 					}
-					goto IL_0941;
+					goto IL_0949;
 				}
 				else
 				{
 					if (!(cmd == "%MAGIC_CIRCLE_SET"))
 					{
-						goto IL_097B;
+						goto IL_0983;
 					}
 					STB stb = TX.PopBld(null, 0);
 					rER.CopyBaked(1, stb);
@@ -1290,20 +1346,20 @@ namespace nel
 					}
 				}
 				return true;
-				IL_08A8:
+				IL_08B0:
 				this.QuakeSinH(rER.Nm(1, 0f), (float)rER.Int(2, 1), rER.Nm(3, -1f), rER.Int(4, 0));
 				return true;
-				IL_08DA:
+				IL_08E2:
 				this.QuakeSinV(rER.Nm(1, 0f), (float)rER.Int(2, 1), rER.Nm(3, -1f), rER.Int(4, 0));
 				return true;
-				IL_0941:
+				IL_0949:
 				for (int i = 1; i < rER.clength; i++)
 				{
 					this.PadVib(rER.getIndex(i), rER.cmd == "%PVIB2", 1f);
 				}
 				return true;
 			}
-			IL_097B:
+			IL_0983:
 			return this.Mp != null && this.Mp.M2D.readPtcScript(rER);
 		}
 
@@ -1459,6 +1515,10 @@ namespace nel
 			{
 				return (this.hittype & MGHIT.EN) > (MGHIT)0;
 			}
+			set
+			{
+				this.hittype = (value ? (this.hittype | MGHIT.EN) : (this.hittype & (MGHIT)(-3)));
+			}
 		}
 
 		public bool hit_en
@@ -1466,6 +1526,10 @@ namespace nel
 			get
 			{
 				return (this.hittype & MGHIT.PR) > (MGHIT)0;
+			}
+			set
+			{
+				this.hittype = (value ? (this.hittype | MGHIT.PR) : (this.hittype & (MGHIT)(-2)));
 			}
 		}
 
@@ -1685,6 +1749,30 @@ namespace nel
 			set
 			{
 				this.flags = (value ? (this.flags | 262144) : (this.flags & -262145));
+			}
+		}
+
+		public bool splash_fall_reduce
+		{
+			get
+			{
+				return (this.flags & 524288) > 0;
+			}
+			set
+			{
+				this.flags = (value ? (this.flags | 524288) : (this.flags & -524289));
+			}
+		}
+
+		public bool mana_absorb_replace
+		{
+			get
+			{
+				return (this.flags & 1048576) > 0;
+			}
+			set
+			{
+				this.flags = (value ? (this.flags | 1048576) : (this.flags & -1048577));
 			}
 		}
 
@@ -1975,7 +2063,7 @@ namespace nel
 			}
 			if (Mg.phase == -1)
 			{
-				Mg.explodeManaToRay();
+				Mg.explodeManaToRay(1f);
 				return false;
 			}
 			if (Mg.sz >= 0f)
@@ -2004,13 +2092,13 @@ namespace nel
 			}
 			if (!Mg.Caster.canHoldMagic(Mg) || Mg.Atk0 == null)
 			{
-				Mg.explodeManaToRay();
+				Mg.explodeManaToRay(1f);
 				return false;
 			}
 			HITTYPE hittype = Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0, HITTYPE.NONE);
 			if ((hittype & HITTYPE.KILLED) != HITTYPE.NONE || ((Mg.phase & 1) == 0 && (hittype & HITTYPE.BREAK) != HITTYPE.NONE) || ((Mg.phase & 4) == 0 && (hittype & HITTYPE.REFLECTED) != HITTYPE.NONE))
 			{
-				Mg.explodeManaToRay();
+				Mg.explodeManaToRay(1f);
 				return false;
 			}
 			return true;
@@ -2340,7 +2428,7 @@ namespace nel
 
 		public float casttime;
 
-		public int reduce_mp;
+		public float reduce_mp;
 
 		public float mp_crystalize;
 

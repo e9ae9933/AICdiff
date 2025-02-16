@@ -338,89 +338,108 @@ namespace evt
 				X.de("initPosition EvDrawer ::: 場所固定", null);
 				return this;
 			}
+			EvDrawer.initPositionS(dxk, dyk, sxk, syk, out this.base_dx, out this.base_dy, out this.base_sx, out this.base_sy, out this.dx, out this.dy, out this.sx, out this.sy, def_base, this);
+			this.draw_flag |= 4U;
+			return this;
+		}
+
+		public static void initPositionS(string dxk, string dyk, string sxk, string syk, out float base_dx, out float base_dy, out float base_sx, out float base_sy, out float dx, out float dy, out float sx, out float sy, float def_base = 0f, EvDrawer Target = null)
+		{
 			if (REG.match(dxk, EvDrawer.RegCR))
 			{
-				this.base_dx = EvDrawer.getBaseVal(REG.R1);
-				this.dx = 0f;
+				base_dx = EvDrawer.getBaseVal(REG.R1);
+				dx = 0f;
 				dxk = REG.rightContext;
 			}
 			else if (REG.match(dxk, EvDrawer.RegCRXY))
 			{
 				string r = REG.R1;
-				this.dx = ((r == "D") ? this.dx_real : ((r == "S") ? this.sx_real : ((r == "X") ? this.x : this.y)));
-				this.base_dx = 0f;
+				if (Target != null)
+				{
+					dx = ((r == "D") ? Target.dx_real : ((r == "S") ? Target.sx_real : ((r == "X") ? Target.x : Target.y)));
+				}
+				else
+				{
+					dx = 0f;
+				}
+				base_dx = 0f;
 				dxk = REG.rightContext;
 			}
 			else
 			{
-				this.dx = 0f;
-				this.base_dx = def_base;
+				dx = 0f;
+				base_dx = def_base;
 			}
-			this.dx += X.Nm(dxk, 0f, true);
+			dx += X.Nm(dxk, 0f, true);
 			if (REG.match(dyk, EvDrawer.RegCR))
 			{
-				this.base_dy = EvDrawer.getBaseVal(REG.R1);
-				this.dy = 0f;
+				base_dy = EvDrawer.getBaseVal(REG.R1);
+				dy = 0f;
 				dyk = REG.rightContext;
 			}
 			else if (REG.match(dyk, EvDrawer.RegCRXY))
 			{
 				string r2 = REG.R1;
-				this.dy = ((r2 == "D") ? this.dy_real : ((r2 == "S") ? this.sy_real : ((r2 == "X") ? this.x : this.y)));
-				this.base_dy = 0f;
+				if (Target != null)
+				{
+					dy = ((r2 == "D") ? Target.dy_real : ((r2 == "S") ? Target.sy_real : ((r2 == "X") ? Target.x : Target.y)));
+				}
+				else
+				{
+					dy = 0f;
+				}
+				base_dy = 0f;
 				dyk = REG.rightContext;
 			}
 			else
 			{
-				this.dy = 0f;
-				this.base_dy = def_base;
+				dy = 0f;
+				base_dy = def_base;
 			}
-			this.dy += X.Nm(dyk, 0f, true);
-			this.base_sy = def_base;
-			this.base_sx = def_base;
+			dy += X.Nm(dyk, 0f, true);
+			base_sy = def_base;
+			base_sx = def_base;
 			if (REG.match(sxk, EvDrawer.RegCR))
 			{
-				this.base_sx = EvDrawer.getBaseVal(REG.R1);
+				base_sx = EvDrawer.getBaseVal(REG.R1);
 				sxk = REG.rightContext;
-				this.sx = 0f;
+				sx = 0f;
 			}
 			else if (REG.match(sxk, EvDrawer.RegCRP) || sxk == "")
 			{
-				this.sx = this.dx;
-				this.base_sx = this.base_dx;
+				sx = dx;
+				base_sx = base_dx;
 				sxk = REG.rightContext;
 			}
 			else
 			{
-				this.sx = 0f;
+				sx = 0f;
 			}
-			this.sx += X.Nm(sxk, 0f, true);
+			sx += X.Nm(sxk, 0f, true);
 			if (REG.match(syk, EvDrawer.RegCR))
 			{
-				this.base_sy = EvDrawer.getBaseVal(REG.R1);
+				base_sy = EvDrawer.getBaseVal(REG.R1);
 				syk = REG.rightContext;
-				this.sy = 0f;
+				sy = 0f;
 			}
 			else if (REG.match(syk, EvDrawer.RegCRP) || syk == "")
 			{
-				this.sy = this.dy;
-				this.base_sy = this.base_dy;
+				sy = dy;
+				base_sy = base_dy;
 				syk = REG.rightContext;
 			}
 			else
 			{
-				this.sy = 0f;
+				sy = 0f;
 			}
-			this.sy += X.Nm(syk, 0f, true);
-			this.draw_flag |= 4U;
-			return this;
+			sy += X.Nm(syk, 0f, true);
 		}
 
 		public virtual float sx_real
 		{
 			get
 			{
-				return (float)EV.pw * this.base_sx + this.sx;
+				return EvDrawer.realX(this.sx, this.base_sx);
 			}
 		}
 
@@ -428,15 +447,20 @@ namespace evt
 		{
 			get
 			{
-				return (float)EV.pw * this.base_dx + this.dx;
+				return EvDrawer.realX(this.dx, this.base_dx);
 			}
+		}
+
+		public static float realX(float x, float basex)
+		{
+			return (float)EV.pw * basex + x;
 		}
 
 		public virtual float sy_real
 		{
 			get
 			{
-				return (float)EV.ph * this.base_sy + this.sy;
+				return EvDrawer.realY(this.sy, this.base_sy);
 			}
 		}
 
@@ -444,8 +468,13 @@ namespace evt
 		{
 			get
 			{
-				return (float)EV.ph * this.base_dy + this.dy;
+				return EvDrawer.realY(this.dy, this.base_dy);
 			}
+		}
+
+		public static float realY(float y, float basey)
+		{
+			return (float)EV.ph * basey + y;
 		}
 
 		protected virtual EvDrawer activate(uint view_type = 0U, bool refine_mesh = false)
@@ -570,32 +599,29 @@ namespace evt
 			return this;
 		}
 
-		public void initSilhouettePic(TalkDrawer P, bool set_x = true, bool set_y = false, bool fine_flag = false)
+		public void initSilhouettePic(TalkDrawer.TkDep P, bool set_x = true, bool set_y = false, bool fine_flag = false)
 		{
-			if (P != null)
+			Vector4 v = P.V4;
+			if (set_x)
 			{
-				Vector4 definedFirstPosition = P.getDefinedFirstPosition();
-				if (set_x)
+				this.dx = v.x;
+				this.sx = v.z;
+				this.base_sx = 0f;
+				this.base_dx = 0f;
+				if (fine_flag)
 				{
-					this.dx = definedFirstPosition.x;
-					this.sx = definedFirstPosition.z;
-					this.base_sx = P.base_sx;
-					this.base_dx = P.base_dx;
-					if (fine_flag)
-					{
-						this.x = (this.isActive() ? this.dx : this.sx);
-					}
+					this.x = (this.isActive() ? this.dx : this.sx);
 				}
-				if (set_y)
+			}
+			if (set_y)
+			{
+				this.dy = v.y;
+				this.sy = v.w;
+				this.base_sy = 0f;
+				this.base_dy = 0f;
+				if (fine_flag)
 				{
-					this.dy = definedFirstPosition.y;
-					this.sy = definedFirstPosition.w;
-					this.base_sy = P.base_sy;
-					this.base_dy = P.base_dy;
-					if (fine_flag)
-					{
-						this.y = (this.isActive() ? this.dy : this.sy);
-					}
+					this.y = (this.isActive() ? this.dy : this.sy);
 				}
 			}
 		}
@@ -772,7 +798,7 @@ namespace evt
 			return true;
 		}
 
-		public void setManpu(string id, string manpu_content, string view_key = "")
+		public void setManpu(string id, string manpu_content, string view_key = "", float face_wpx = -1f, float face_hpx = -1f)
 		{
 			if (this.MdImg != null)
 			{
@@ -785,6 +811,16 @@ namespace evt
 				if (!this.OMpDr.TryGetValue(id, out manpuDrawer))
 				{
 					manpuDrawer = (this.OMpDr[id] = new ManpuDrawer(this, this.DC, id));
+				}
+				if (face_wpx >= 0f && manpuDrawer.xlen_px != face_wpx)
+				{
+					manpuDrawer.xlen_px = face_wpx;
+					manpuDrawer.finePosition();
+				}
+				if (face_hpx >= 0f && manpuDrawer.ylen_px != face_hpx)
+				{
+					manpuDrawer.ylen_px = face_hpx;
+					manpuDrawer.finePosition();
 				}
 				manpuDrawer.activateManpu(this.MMRD.GetGob(this.MdImg).transform, TX.split(manpu_content, "|"), view_key.IndexOf("I") >= 0);
 				manpuDrawer.finePosition();
@@ -803,7 +839,7 @@ namespace evt
 			return false;
 		}
 
-		public bool prepareFader(string anim_pattern, int _default_time = -1, TFKEY tf_key = TFKEY.SD2)
+		public bool prepareFader(string anim_pattern, int _default_time = -1, TFKEY tf_key = TFKEY.SD2, bool no_error = false)
 		{
 			this.releaseFader();
 			if ((this.gtype & 32768U) > 0U)
@@ -1270,6 +1306,16 @@ namespace evt
 				return this;
 			}
 			this.initPosition(dxstr, dystr, sxstr, systr, 0f);
+			this.initMove(maxt);
+			if (_movetype != "")
+			{
+				this.movetype = _movetype;
+			}
+			return this;
+		}
+
+		public void initMove(int maxt)
+		{
 			this.t = ((this.t >= 0f) ? 0f : this.t);
 			this.mt_max = maxt;
 			if (maxt <= 0)
@@ -1277,11 +1323,6 @@ namespace evt
 				this.mt_max = 1;
 				this.fine(false, true, false);
 			}
-			if (_movetype != "")
-			{
-				this.movetype = _movetype;
-			}
-			return this;
 		}
 
 		public EvDrawer moveA(string key, int time = 20)
@@ -1492,7 +1533,7 @@ namespace evt
 			{
 				MeshDrawer bufferStaticMesh = this.getBufferStaticMesh();
 				RenderTexture renderTexture = this.PrepareBufferTx(Grp.buffer_w, Grp.buffer_h, true);
-				Material mtr = MTRX.getMI(Grp.PF.pChar).getMtr(BLEND.NORMAL, -1);
+				Material mtr = MTRX.getMI(Grp.PF.pChar, false).getMtr(BLEND.NORMAL, -1);
 				bufferStaticMesh.clear(false, false);
 				bufferStaticMesh.setMaterial(mtr, false);
 				bufferStaticMesh.RotaPF(0f, 0f, 1f, 1f, 0f, Grp.PF, false, false, false, uint.MaxValue, false, 0);

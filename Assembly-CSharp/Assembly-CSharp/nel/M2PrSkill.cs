@@ -27,7 +27,7 @@ namespace nel
 			}
 		}
 
-		public M2PrSkill(PR _Pr)
+		public M2PrSkill(PR _Pr, NelM2DBase M2D)
 			: base(_Pr)
 		{
 			this.MagicSel = new MagicSelector(this.Pr, this);
@@ -37,18 +37,18 @@ namespace nel
 				AtkUnmnp = MDAT.AtkShieldLariatHit()
 			};
 			this.Shield.fnSwitchActivation = new M2Shield.FnSwitchActivation(this.fnShieldSwitchActivation);
-			this.Oeffect01 = new BDic<RecipeManager.RPI_EFFECT, float>(16);
+			this.Oeffect01 = new BDic<RCP.RPI_EFFECT, float>(16);
 			this.OcSlots = new M2PrOverChargeSlot(this.Pr);
 			this.Shield.activate_time = 10f;
 			this.Shield.deactivate_anim_time = 15f;
-			this.Cursor = new NelPlayerCursor();
+			this.Cursor = new NelPlayerCursor(M2D);
 			this.FlgSoftFall = new Flagger(delegate(FlaggerT<string> _Flg)
 			{
 				if (this.Phy == null)
 				{
 					return;
 				}
-				float num = (base.getEH(EnhancerManager.EH.falling_cat) ? this.chanting_softfall_scale_with_enhancer : 1f);
+				float num = (base.getEH(ENHA.EH.falling_cat) ? this.chanting_softfall_scale_with_enhancer : 1f);
 				this.Phy.initSoftFall(this.chanting_softfall_scale * num, 14f * num);
 			}, delegate(FlaggerT<string> _Flg)
 			{
@@ -57,7 +57,7 @@ namespace nel
 					this.Phy.quitSoftFall(0f);
 				}
 			});
-			this.SerRegist = new FlagCounter<SER>(4);
+			this.SerRegist = new M2SerResist(4);
 		}
 
 		public void destruct()
@@ -84,7 +84,6 @@ namespace nel
 			this.mp_hold = (this.mp_overhold = 0f);
 			this.mana_drain_lock_t_ = 0f;
 			this.swaysld_t = 0f;
-			this.freeze_lock_t = 0f;
 			this.CarryBox = null;
 			this.pre_chanted_magic_id = -1;
 			this.punch_decline_time_ = 0;
@@ -115,7 +114,7 @@ namespace nel
 
 		public void initDeath()
 		{
-			this.killHoldMagic(true);
+			this.killHoldMagic(true, false);
 			if (this.Shield.isActive())
 			{
 				this.Shield.breakShield(this.Pr.x, this.Pr.y, MGATTR.ENERGY, false);
@@ -139,7 +138,7 @@ namespace nel
 			this.Oeffect01.Clear();
 		}
 
-		public void readBinaryFrom(ByteArray Ba, int vers)
+		public void readBinaryFrom(ByteReader Ba, int vers)
 		{
 			this.MagicSel.readBinaryFrom(Ba, vers);
 		}
@@ -174,7 +173,6 @@ namespace nel
 			Bench.P("Shield");
 			this.Shield.run(ts, base.hasD(M2MoverPr.DECL.NO_PROGRESS_SHIELD_POWER) ? 0f : this.shield_fcnt, -1f);
 			Bench.Pend("Shield");
-			pr_MNP |= this.runFreezeGacha(num);
 			Bench.P("Other");
 			if (this.punch_decline_time_ > 0)
 			{
@@ -182,7 +180,7 @@ namespace nel
 			}
 			if (this.parry_t > 0f)
 			{
-				this.parry_t = global::XX.X.Mx(this.parry_t - num, 0f);
+				this.parry_t = X.Mx(this.parry_t - num, 0f);
 			}
 			bool flag = this.Pr.isNormalState();
 			float num2 = ts * ((this.CurMg != null) ? 0.33f : 1f);
@@ -197,17 +195,30 @@ namespace nel
 			if (this.mana_drain_lock_t_ > 0f)
 			{
 				float num3 = ts * (((flag && this.magic_t == 0f) || !base.isMagicExistState()) ? ((this.Pr.isPunchState() || this.evade_t > 0f) ? 0.5f : 1f) : 0.125f);
-				this.mana_drain_lock_t_ = global::XX.X.Mx(this.mana_drain_lock_t_ - num3, 0f);
+				this.mana_drain_lock_t_ = X.Mx(this.mana_drain_lock_t_ - num3, 0f);
 				if (this.mana_drain_lock_t_ == 0f)
 				{
-					this.NM2D.Mana.fineRecheckTarget(1f);
+					base.NM2D.Mana.fineRecheckTarget(1f);
 				}
 			}
-			if (this.mp_overused > 0f && !base.Ser.has(SER.MP_REDUCE))
+			if (this.mp_overused > 0f && !base.Ser.has(SER.MP_REDUCE) && !base.Ser.hasBit(589824UL))
 			{
-				this.mp_overused = global::XX.X.Mx(this.mp_overused - num * 0.06666667f, 0f);
+				float num4 = 0.16666667f;
+				if (base.isMagicExistState() && !base.isNormalState())
+				{
+					num4 *= 0.004f;
+				}
+				else if (this.CurMg != null)
+				{
+					num4 *= ((this.magic_t != 0f) ? 0.333f : 0.004f);
+				}
+				else if (this.Pr.isPunchState() || this.evade_t > 0f || this.Pr.isSinkState())
+				{
+					num4 *= 0.2f;
+				}
+				this.mp_overused = X.Mx(this.mp_overused - num * num4, 0f);
 			}
-			if (base.getEH(EnhancerManager.EH.singletask))
+			if (base.getEH(ENHA.EH.singletask))
 			{
 				if (base.isNormalState())
 				{
@@ -242,7 +253,7 @@ namespace nel
 			}
 			else if (this.swaysld_t < 0f)
 			{
-				this.swaysld_t = global::XX.X.Mn(this.swaysld_t + ts, 0f);
+				this.swaysld_t = X.Mn(this.swaysld_t + ts, 0f);
 			}
 			Bench.Pend("Other");
 			return pr_MNP;
@@ -277,70 +288,16 @@ namespace nel
 		{
 			bool flag = true;
 			PR.STATE state = base.state;
-			if (state <= PR.STATE.SHIELD_BUSH)
+			if (state <= PR.STATE.SMASH_SHOTGUN)
 			{
 				switch (state)
 				{
 				case PR.STATE.MAG_EXPLODE_PREPARE:
-					if (first)
-					{
-						base.SpSetPose("magic_init", -1, null, false);
-						if (this.CurMg != null)
-						{
-							this.magic_t = (float)(-(float)MDAT.ExplodePrepare(this.CurMg));
-						}
-						base.remD(M2MoverPr.DECL.STOP_ACT);
-					}
-					this.magic_t += base.TS * global::XX.X.Mx(1f, this.Pr.getCastingTimeScale(this.CurMg));
-					base.GaugeBrk.secureSplitMpHoldTime(4f);
-					if (this.magic_t < 0f)
-					{
-						goto IL_1F91;
-					}
-					this.explodeMagic();
-					if (base.state == PR.STATE.MAG_EXPLODE_PREPARE)
-					{
-						this.Pr.changeState(PR.STATE.MAG_EXPLODED);
-					}
-					goto IL_1F91;
+					this.runMagExplodePrepare(first, ref t, ref manip, ref flag);
+					goto IL_01B7;
 				case PR.STATE.MAG_EXPLODED:
-				{
-					if (first)
-					{
-						this.magic_aim_agR = 1.5707964f - (float)global::XX.CAim._XD(base.aim, 1) * 0.3926991f;
-						this.changePoseMagicHold();
-						this.magic_t = (float)(-(float)MDAT.getMagicExplodeAfterDelay(this.CurMg));
-						base.remD(M2MoverPr.DECL.STOP_ACT);
-					}
-					base.GaugeBrk.secureSplitMpHoldTime(4f);
-					bool flag2 = false;
-					if (this.CurMg != null && this.CurMg.Mn != null && this.CurMg.Mn._0.fnManipulateMagic != null)
-					{
-						flag2 = this.CurMg.Mn._0.fnManipulateMagic(this.CurMg, this.Pr, base.TS);
-					}
-					if (!flag2)
-					{
-						base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
-						this.CurMg = null;
-						this.magic_t += base.TS;
-						if (this.magic_t >= 0f)
-						{
-							this.Pr.changeState(PR.STATE.NORMAL);
-						}
-						goto IL_1F91;
-					}
-					else
-					{
-						base.remD(M2MoverPr.DECL.ABORT_BY_MOVE);
-						this.changePoseMagicHold();
-						if (this.CurMg != null)
-						{
-							this.magic_t = (float)(-(float)MDAT.getMagicExplodeAfterDelay(this.CurMg));
-						}
-						goto IL_1F91;
-					}
-					break;
-				}
+					this.runMagExploded(first, ref t, ref manip, ref flag);
+					goto IL_01B7;
 				case (PR.STATE)3:
 				case (PR.STATE)4:
 				case (PR.STATE)5:
@@ -360,684 +317,784 @@ namespace nel
 				case PR.STATE.UKEMI:
 				case PR.STATE.EVADE_SHOTGUN:
 				case PR.STATE.UKEMI_SHOTGUN:
-				{
-					bool flag3 = base.state == PR.STATE.UKEMI || base.state == PR.STATE.UKEMI_SHOTGUN;
-					bool flag4 = base.state == PR.STATE.EVADE_SHOTGUN || base.state == PR.STATE.UKEMI_SHOTGUN;
-					float num = (float)(flag4 ? 46 : 25);
-					if (first)
-					{
-						base.SpSetPose(flag4 ? "ukemi_shotgun" : (flag3 ? "ukemi" : "evade"), 1, null, false);
-						this.Pr.killSpeedForce(true, true, false);
-						this.evade_count++;
-						if (!base.hasFoot())
-						{
-							this.Anm.setAim((base.aim == global::XX.AIM.L) ? 6 : 7, 0, false);
-							base.addD(M2MoverPr.DECL.FLAG2);
-						}
-						base.addD(M2MoverPr.DECL.WEAK_THROW_RAY);
-						float num2 = this.getRE(RecipeManager.RPI_EFFECT.EVADE_NODAM_EXTEND);
-						if (base.Ser.has(SER.CLT_BROKEN) && CFG.sp_cloth_broken_debuff)
-						{
-							num2 = global::XX.X.Scr(num2, 0.5f);
-						}
-						float num3 = global::XX.X.NI(14f, num, 0.875f * num2);
-						base.TeCon.setEvadeBlink(num3);
-						this.Pr.addNoDamage(NDMG.EVADE_PREVENT, num3);
-						base.PtcVar("maxt", num3).PtcST("evade_init", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-						base.addD((M2MoverPr.DECL)10 | (base.getEH(EnhancerManager.EH.cliff_stopper) ? ((M2MoverPr.DECL)0) : M2MoverPr.DECL.DO_NOT_CARRY_BY_OTHER));
-						this.Phy.killSpeedForce(true, true, true, false, false).addLockMoverHitting(HITLOCK.EVADE, 14f);
-						if (!flag4)
-						{
-							this.Phy.addLockGravity(this, 0f, 25f);
-						}
-						if (flag4 || flag3)
-						{
-							base.addD(M2MoverPr.DECL.FLAG_HIT);
-						}
-					}
-					bool flag5 = base.state == PR.STATE.EVADE;
-					if (!base.hasD(M2MoverPr.DECL.FLAG0))
-					{
-						float num4 = (flag4 ? 0.015f : 0.06f);
-						if (t < num && (flag4 || base.hasD(M2MoverPr.DECL.INIT_A) || ((base.aim == global::XX.AIM.L) ? base.isRO() : base.isLO())))
-						{
-							float num5 = (flag4 ? 2f : (base.hasD(M2MoverPr.DECL.FLAG2) ? 2.4f : 2.6f)) * 2f / num - num4;
-							float num6 = (num4 - num5) / num;
-							float num7 = num5 + num6 * t;
-							this.Pr.walkBy(FOCTYPE.EVADE | this.foc_cliff_stopper, num7 * (float)global::XX.X.MPF(base.aim == global::XX.AIM.L), 0f, true);
-							flag5 = false;
-						}
-						else
-						{
-							if (flag4 && base.Ser.cannotEvade())
-							{
-								this.Pr.changeState(PR.STATE.ENEMY_SINK);
-								goto IL_1F91;
-							}
-							if ((t < 6f || !base.hasFoot()) && base.poseIs("evade"))
-							{
-								this.Anm.setAim((base.aim == global::XX.AIM.L) ? global::XX.AIM.BL : global::XX.AIM.RB, 0, false);
-							}
-							if (base.hasFoot())
-							{
-								this.Pr.getPhysic().addFoc(FOCTYPE.EVADE | this.foc_cliff_stopper, num4 * (float)global::XX.X.MPF(base.aim == global::XX.AIM.L), 0f, -1f, 0, 1, (int)global::XX.X.Mn(5f, num - t - 1f), -1, 0);
-							}
-							base.addD(M2MoverPr.DECL.FLAG0);
-						}
-					}
-					if (this.Pr.hasD(M2MoverPr.DECL.WEAK_THROW_RAY) && !this.Pr.isNoDamageActive(NDMG.EVADE_PREVENT))
-					{
-						this.Pr.remD((M2MoverPr.DECL)8193);
-						flag = false;
-					}
-					if (t >= 14f && this.evade_count < this.evade_count_max)
-					{
-						base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
-						this.Pr.remD(M2MoverPr.DECL.STOP_EVADE);
-					}
-					if (base.hasD(M2MoverPr.DECL.FLAG_HIT))
-					{
-						flag = true;
-						this.Pr.lockSink(16f, true);
-					}
-					if (flag5)
-					{
-						if (base.isLO())
-						{
-							if (this.Anm.mpf_is_right > 0f)
-							{
-								this.Anm.setAim(global::XX.CAim.get_aim2(0f, 0f, -1f, -1f, false), 0, false);
-							}
-						}
-						else if (base.isRO() && this.Anm.mpf_is_right < 0f)
-						{
-							this.Anm.setAim(global::XX.CAim.get_aim2(0f, 0f, 1f, -1f, false), 0, false);
-						}
-					}
-					bool flag6 = false;
-					if (flag3 && !base.Ser.cannotEvade() && t >= 14f && this.Pr.isActionPD())
-					{
-						flag6 = true;
-					}
-					if (!flag6 && t < num)
-					{
-						goto IL_1F91;
-					}
-					if (flag5)
-					{
-						this.Pr.aim = ((this.Anm.mpf_is_right > 0f) ? global::XX.AIM.R : global::XX.AIM.L);
-					}
-					this.Pr.changeState(base.Ser.cannotEvade() ? PR.STATE.ENEMY_SINK : PR.STATE.NORMAL);
-					if (!base.hasFoot())
-					{
-						base.SpSetPose("fall", 1, null, false);
-					}
-					goto IL_1F91;
-				}
+					this.runEvade(first, ref t, ref manip, ref flag);
+					goto IL_01B7;
 				case PR.STATE.PUNCH:
-					if (t < 9f)
-					{
-						float num8 = t;
-						PR.STATE punchVariation = this.getPunchVariation(false, true);
-						if (punchVariation != PR.STATE.PUNCH && punchVariation != PR.STATE.NORMAL)
-						{
-							t = num8;
-							goto IL_1F91;
-						}
-					}
-					if (first)
-					{
-						base.SpSetPose("attack1", -1, null, false);
-						if (this.CurMg != null)
-						{
-							base.Mp.playSnd("swing_pr_1");
-						}
-					}
-					if (t >= 9f && !base.hasD(M2MoverPr.DECL.INIT_A))
-					{
-						base.addD(M2MoverPr.DECL.INIT_A);
-						if (this.Pr.isMoveRightOn())
-						{
-							this.Pr.setAim(global::XX.AIM.R, false);
-						}
-						else if (this.Pr.isMoveLeftOn())
-						{
-							this.Pr.setAim(global::XX.AIM.L, false);
-						}
-						base.SpSetPose("attack2", -1, null, false);
-						this.executeBasicPunch(0f);
-					}
-					if (t >= 12f)
-					{
-						base.addD(M2MoverPr.DECL.FLAG2);
-					}
-					if (t >= 20f)
-					{
-						base.remD((M2MoverPr.DECL)10);
-						base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
-					}
-					if (t >= 24f)
-					{
-						this.Pr.changeState(PR.STATE.NORMAL);
-					}
-					goto IL_1F91;
+					this.runPunch(first, ref t, ref manip, ref flag);
+					goto IL_01B7;
 				case PR.STATE.BURST:
 					break;
 				case PR.STATE.SLIDING:
-				{
-					if (!base.hasD(M2MoverPr.DECL.FLAG0))
-					{
-						this.executeSmallAttack(0, null);
-						base.PtcST("sliding_sunabokori", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-						this.Pr.addD(M2MoverPr.DECL.FLAG0);
-						t = 0f;
-						if (this.swaysld_t == 0f && base.getEH(EnhancerManager.EH.sway_sliding))
-						{
-							base.addD(M2MoverPr.DECL.INIT_A);
-							base.PtcVar("maxt", 180f).PtcVar("applyt", 100f).PtcST("sway_sliding_activate", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.FOLLOW_C);
-							base.TeCon.setColorBlinkAddFadeout(22f, 100f, 0.8f, 7766417, 0);
-							this.swaysld_t = 1f;
-						}
-					}
-					base.SpSetPose("sliding", -1, null, false);
-					if (!this.Pr.hasD(M2MoverPr.DECL.FLAG2))
-					{
-						if (!base.hasFoot() && this.Phy.gravity_added_velocity > 0.125f)
-						{
-							this.Pr.addD(M2MoverPr.DECL.FLAG2);
-						}
-					}
-					else if (base.hasFoot() || this.Pr.wallHittedA())
-					{
-						this.Pr.changeState(PR.STATE.ENEMY_SINK);
-						this.Pr.remD((M2MoverPr.DECL)10);
-						goto IL_1F91;
-					}
-					float num9 = 0.125f;
-					float num10 = (base.hasD(M2MoverPr.DECL.INIT_A) ? 4.2f : 3.2f) / 33f / (0.5f + 0.5f * num9) * global::XX.X.NI(1f, num9, global::XX.X.ZLINE(t, 33f));
-					this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._FRIC_STRICT | FOCTYPE._CHECK_WALL | FOCTYPE._INDIVIDUAL, num10 * (float)global::XX.CAim._XD(base.aim, 1), 0f, -1f, 0, 40, 30, 1, 0);
-					if (base.hasD(M2MoverPr.DECL.STOP_EVADE) && base.hasD(M2MoverPr.DECL.INIT_A) && t >= 12f)
-					{
-						this.Pr.remD(M2MoverPr.DECL.STOP_EVADE);
-					}
-					if (t >= 25f)
-					{
-						this.Pr.remD((M2MoverPr.DECL)10);
-						base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
-					}
-					if (t >= 33f && base.hasFoot())
-					{
-						this.Pr.changeState(PR.STATE.NORMAL);
-					}
-					goto IL_1F91;
-				}
+					this.runSliding(first, ref t, ref manip, ref flag);
+					goto IL_01B7;
 				case PR.STATE.WHEEL:
 				case PR.STATE.WHEEL_SHOTGUN:
-					if (!base.hasD(M2MoverPr.DECL.FLAG0))
-					{
-						this.FootD.initJump(false, true, false);
-						if (this.cyclone_attacked)
-						{
-							base.addD(M2MoverPr.DECL.INIT_A);
-						}
-						base.addD((M2MoverPr.DECL)16777352);
-						base.remD(M2MoverPr.DECL.STOP_EVADE);
-						this.Phy.killSpeedForce(true, true, true, false, false);
-						this.Anm.setPose("attack_air1", -1, false);
-						if (!this.cyclone_attacked)
-						{
-							this.Phy.addLockGravity(this, 0f, 400f);
-						}
-						this.Phy.addFoc(FOCTYPE.WALK_FS, 0.06f * this.mpf_is_right, 0f, -1f, 0, 2, 20, 1, 0);
-						this.Phy.addLockMoverHitting(HITLOCK.SPECIAL_ATTACK, -1f);
-						t = (float)(100 - (this.cyclone_attacked ? 35 : 20));
-					}
-					if (!Map2d.can_handle)
-					{
-						this.Phy.killSpeedForce(true, true, true, false, false);
-						this.Pr.changeState(PR.STATE.NORMAL);
-						goto IL_1F91;
-					}
-					if (base.hasD(M2MoverPr.DECL.FLAG2))
-					{
-						flag = false;
-						this.Pr.setBoundsToCrouch();
-						if (t >= 30f)
-						{
-							base.remD((M2MoverPr.DECL)11);
-						}
-						if (t >= 48f)
-						{
-							this.Pr.changeState(PR.STATE.NORMAL);
-						}
-					}
-					else if (t < 100f)
-					{
-						if (base.hasFoot() && !global::XX.X.DEBUGSUPERCYCLONE)
-						{
-							this.Pr.changeState(PR.STATE.ENEMY_SINK);
-							goto IL_1F91;
-						}
-						if (t < 8f && ((this.mpf_is_right > 0f) ? (!this.Pr.hasRightInput()) : (!this.Pr.hasLeftInput())))
-						{
-							float num11 = t;
-							this.Phy.remFoc(FOCTYPE.WALK, true);
-							this.Pr.changeState((!base.hasFoot() && this.isEnable(SkillManager.SKILL_TYPE.airpunch)) ? PR.STATE.AIRPUNCH : PR.STATE.PUNCH);
-							t = num11;
-							goto IL_1F91;
-						}
-					}
-					else
-					{
-						float pre_force_velocity_y = this.Phy.pre_force_velocity_y;
-						if (!base.hasD(M2MoverPr.DECL.FLAG1))
-						{
-							if (!global::XX.X.DEBUGSUPERCYCLONE && !base.hasFoot())
-							{
-								this.cyclone_attacked = true;
-							}
-							base.addD((M2MoverPr.DECL)33554442);
-							this.Anm.setPose("attack_air2", -1, false);
-							float baonTime = IN.getBAOnTime();
-							this.Phy.killSpeedForce(true, true, true, false, false);
-							this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._FRIC_STRICT | FOCTYPE._CHECK_WALL, this.Pr.mpf_is_right * 0.34f, global::XX.X.NI(0.2f, 0.41f, global::XX.X.ZLINE(baonTime, 30f)), -1f, -1, 1, 0, 1, 0);
-							this.executeSmallAttack(0, null);
-							t = 100f;
-						}
-						else
-						{
-							if (this.Phy.isin_water || CCON.isWater(base.Mp.getConfig((int)base.x, (int)base.y)))
-							{
-								this.Pr.changeState(PR.STATE.ENEMY_SINK);
-								goto IL_1F91;
-							}
-							if (this.Pr.wallHittedA())
-							{
-								this.wheelBounce(true);
-								goto IL_1F91;
-							}
-							if (!this.Pr.hit_wall_collider)
-							{
-								t = 100f;
-							}
-							else if (t >= 107f)
-							{
-								this.wheelBounce(true);
-								goto IL_1F91;
-							}
-							float num12 = global::XX.X.Mx(0.2f, this.Phy.pre_force_velocity_y);
-							if (this.Pr.isBO(0))
-							{
-								num12 += 0.0069999998f;
-							}
-							if (!base.hasFoot())
-							{
-								this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._FRIC_STRICT | FOCTYPE._CHECK_WALL, this.Pr.mpf_is_right * 0.34f, global::XX.X.Mn(num12, 0.41f), -1f, -1, 1, 0, -1, 0);
-							}
-							if (base.hasFoot() || !this.Pr.canStand((int)base.x, (int)(this.Phy.move_depert_y + 0.12f)))
-							{
-								t = 0f;
-								this.Anm.setPose("attack_air3", -1, false);
-								base.addD(M2MoverPr.DECL.FLAG2);
-								base.PtcST("wheel_ground_bump", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-								this.Phy.remLockGravity(this);
-								this.Phy.remFoc(FOCTYPE.WALK, true);
-								this.Phy.addFoc(FOCTYPE.WALK_FS | this.foc_cliff_stopper, this.Pr.mpf_is_right * 0.34f * 0.3f, 0f, -1f, 0, 0, 24, -1, 0);
-								goto IL_1F91;
-							}
-						}
-					}
-					if (base.hasD(M2MoverPr.DECL.FLAG_HIT))
-					{
-						flag = true;
-						this.Pr.lockSink(60f, true);
-					}
-					goto IL_1F91;
+					this.runWheel(first, ref t, ref manip, ref flag);
+					goto IL_01B7;
 				case PR.STATE.COMET:
 				case PR.STATE.COMET_SHOTGUN:
-					if (!base.hasD(M2MoverPr.DECL.FLAG0))
-					{
-						base.addD((M2MoverPr.DECL)16777224);
-						base.remD(M2MoverPr.DECL.STOP_EVADE);
-						base.addD(M2MoverPr.DECL.DO_NOT_CARRY_BY_OTHER);
-						this.FootD.initJump(false, true, false);
-						this.Phy.killSpeedForce(true, true, true, false, false);
-						this.Anm.setPose("attack_misogi1", -1, false);
-						this.Anm.timescale = (float)this.Anm.getDuration() / 20f;
-						this.Phy.addLockGravity(this, 0f, 40f);
-						this.Phy.addLockMoverHitting(HITLOCK.SPECIAL_ATTACK, -1f);
-					}
-					if (!Map2d.can_handle)
-					{
-						this.Phy.killSpeedForce(true, true, true, false, false);
-						this.Pr.changeState(PR.STATE.NORMAL);
-						goto IL_1F91;
-					}
-					if (base.hasD(M2MoverPr.DECL.FLAG2))
-					{
-						flag = false;
-						this.Pr.setBoundsToCrouch();
-						if (t >= 14f)
-						{
-							base.remD((M2MoverPr.DECL)11);
-						}
-						if (t >= 30f)
-						{
-							this.Pr.changeState(PR.STATE.NORMAL);
-						}
-					}
-					else if (t < 20f)
-					{
-						this.Pr.setDrawPositionShift(0f, -20f * global::XX.X.ZSIN(t, 20f), 4);
-					}
-					else
-					{
-						if (base.hasFoot() || this.Pr.hit_wall_collider || this.Pr.wallHitted(global::XX.AIM.B) || !this.Pr.canStand((int)base.x, (int)(base.mbottom + 0.03f)))
-						{
-							t = 0f;
-							this.Anm.setPose("attack_misogi3", -1, false);
-							base.addD(M2MoverPr.DECL.FLAG2);
-							base.remD(M2MoverPr.DECL.DO_NOT_CARRY_BY_OTHER);
-							base.PtcVar("by", this.Pr.mbottom).PtcST("comet_ground_bump", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-							this.Phy.remFoc(FOCTYPE.WALK, true);
-							this.Phy.killSpeedForce(false, true, true, true, false);
-							this.Phy.remLockGravity(this);
-							goto IL_1F91;
-						}
-						float pre_force_velocity_y2 = this.Phy.pre_force_velocity_y;
-						if (!base.hasD(M2MoverPr.DECL.FLAG1))
-						{
-							base.addD((M2MoverPr.DECL)33554442);
-							this.Pr.fineDrawPosition();
-							this.Anm.setPose("attack_misogi2", -1, false);
-							this.Phy.killSpeedForce(true, true, true, false, false);
-							this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._FRIC_STRICT | FOCTYPE._RELEASE | FOCTYPE._CHECK_WALL, 0f, 0.34f, -1f, 0, 6000, 0, 1, 0);
-							this.executeSmallAttack(0, null);
-							base.TeCon.setEvadeBlink(14f);
-							t = 20f;
-							this.Pr.addNoDamage(NDMG.DEFAULT, base.TS + 1f);
-						}
-						else
-						{
-							this.Pr.addNoDamage(NDMG.DEFAULT, base.TS);
-						}
-					}
-					if (base.hasD(M2MoverPr.DECL.FLAG_HIT))
-					{
-						flag = true;
-						this.Pr.lockSink(60f, true);
-					}
-					goto IL_1F91;
+					this.runComet(first, ref t, ref manip, ref flag);
+					goto IL_01B7;
 				case PR.STATE.DASHPUNCH:
 				case PR.STATE.DASHPUNCH_SHOTGUN:
-					if (!base.hasD(M2MoverPr.DECL.FLAG0))
-					{
-						base.addD((M2MoverPr.DECL)16777226);
-						this.Phy.killSpeedForce(true, true, true, false, false);
-						t = 0f;
-						this.Anm.setPose("attack_dash", -1, false);
-						this.Phy.addFoc(FOCTYPE.WALK_FS | this.foc_cliff_stopper, this.mpf_is_right * 0.24f, 0f, -3f, 0, 4, 18, -1, 0);
-					}
-					if (!base.hasD(M2MoverPr.DECL.FLAG1) && t >= 5f)
-					{
-						base.addD(M2MoverPr.DECL.FLAG1);
-						this.executeSmallAttack(0, null);
-						this.Pr.addNoDamage(NDMG.DEFAULT, 10f);
-					}
-					if (t >= 12f)
-					{
-						base.addD(M2MoverPr.DECL.FLAG2);
-					}
-					if (t >= 30f)
-					{
-						if (base.hasD(M2MoverPr.DECL.STOP_EVADE))
-						{
-							base.remD((M2MoverPr.DECL)11);
-							base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
-						}
-					}
-					else
-					{
-						flag = true;
-					}
-					if (t >= 45f)
-					{
-						this.Pr.changeState(PR.STATE.NORMAL);
-					}
-					goto IL_1F91;
+					this.runDashPunch(first, ref t, ref manip, ref flag);
+					goto IL_01B7;
 				case PR.STATE.AIRPUNCH:
 				case PR.STATE.AIRPUNCH_SHOTGUN:
-				{
-					bool flag7 = false;
-					if (!base.hasD(M2MoverPr.DECL.FLAG0))
-					{
-						base.SpSetPose("attack_jumpslash1", -1, null, false);
-						if (this.CurMg != null)
-						{
-							base.Mp.playSnd("swing_pr_1");
-						}
-						this.Phy.initSoftFall(0.23f, 0f);
-						base.addD(M2MoverPr.DECL.FLAG0);
-						flag7 = true;
-					}
-					if (t < 13f)
-					{
-						float num13 = t;
-						if (t < 9f)
-						{
-							PR.STATE punchVariation2 = this.getPunchVariation(false, false);
-							if (this.Pr.isAirPunchState(punchVariation2) && punchVariation2 != PR.STATE.AIRPUNCH && punchVariation2 != PR.STATE.AIRPUNCH_SHOTGUN)
-							{
-								this.Pr.changeState(punchVariation2);
-								this.Phy.remFoc(FOCTYPE.WALK, true);
-								t = num13;
-								goto IL_1F91;
-							}
-						}
-						if (base.hasFoot())
-						{
-							this.Pr.changeState(PR.STATE.PUNCH);
-							this.Phy.remFoc(FOCTYPE.WALK, true);
-							t = num13;
-							goto IL_1F91;
-						}
-					}
-					if (!base.hasD(M2MoverPr.DECL.FLAG1) && !base.hasD(M2MoverPr.DECL.INIT_A))
-					{
-						if (!base.hasFoot())
-						{
-							float num14 = (1f - 0.6f * global::XX.X.ZPOW(t, 13f)) * 0.15f;
-							float num15 = 1f;
-							if (base.hasD(M2MoverPr.DECL.INIT_A))
-							{
-								num15 = 3f;
-							}
-							else if ((this.mpf_is_right > 0f && this.Pr.isMoveLeftOn()) || (this.mpf_is_right < 0f && this.Pr.isMoveRightOn()))
-							{
-								num14 *= 0.25f;
-							}
-							num14 = global::XX.X.absMn(num14 * this.mpf_is_right + this.Phy.releasedVelocity.x * 1.2f, num14);
-							if (flag7)
-							{
-								this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE.SPECIAL_ATTACK | FOCTYPE._FRIC_STRICT, num14, 0f, -1f, 0, 1, 1, 0, 0);
-							}
-							else
-							{
-								float num16 = this.Phy.calcFocVelocityX(FOCTYPE.WALK | FOCTYPE.SPECIAL_ATTACK | FOCTYPE._FRIC_STRICT, false);
-								this.Phy.remFoc(FOCTYPE.WALK | FOCTYPE.SPECIAL_ATTACK | FOCTYPE._FRIC_STRICT, false);
-								this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE.SPECIAL_ATTACK | FOCTYPE._FRIC_STRICT, global::XX.X.VALWALK(num16, num14, 0.006f * num15), 0f, -1f, 0, 1, 1, 0, 0);
-							}
-							this.Phy.walk_xspeed = global::XX.X.VALWALK(this.Phy.walk_xspeed, 0f, 0.008f);
-						}
-						else
-						{
-							base.addD(M2MoverPr.DECL.FLAG1);
-							base.SpSetPose(base.hasD(M2MoverPr.DECL.INIT_A) ? "attack2" : "attack_jumpslash2", -1, null, false);
-						}
-					}
-					if (t >= 20f)
-					{
-						base.addD(M2MoverPr.DECL.FLAG2);
-					}
-					if (t >= 13f && !base.hasD(M2MoverPr.DECL.INIT_A))
-					{
-						base.addD(M2MoverPr.DECL.INIT_A);
-						this.Phy.addFoc(FOCTYPE.WALK_FS, this.mpf_is_right * -0.14f, 0f, -1f, 0, 1, 10, 1, 0);
-						base.SpSetPose(base.hasD(M2MoverPr.DECL.FLAG1) ? "attack2" : "attack_jumpslash2", -1, null, false);
-						this.executeBasicPunch(0.6f);
-					}
-					if (t >= 32f)
-					{
-						base.remD((M2MoverPr.DECL)10);
-						base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
-					}
-					if (t >= 32f)
-					{
-						this.Pr.changeState(PR.STATE.NORMAL);
-					}
-					goto IL_1F91;
-				}
+					this.runAirPunch(first, ref t, ref manip, ref flag);
+					goto IL_01B7;
 				default:
-					if (state != PR.STATE.SHIELD_BUSH)
+					switch (state)
 					{
+					case PR.STATE.SHIELD_BUSH:
+						this.runShieldBush(first, ref t, ref manip, ref flag);
+						goto IL_01B7;
+					case PR.STATE.SHIELD_LARIAT:
+						this.runShieldLariat(first, ref t, ref manip, ref flag);
+						goto IL_01B7;
+					case PR.STATE.SHIELD_COUNTER:
+					case PR.STATE.SHIELD_COUNTER_SHOTGUN:
+						return false;
+					case PR.STATE.SMASH:
+					case PR.STATE.SMASH_SHOTGUN:
+						this.runSmash(first, ref t, ref manip, ref flag);
+						goto IL_01B7;
+					default:
 						return false;
 					}
-					if (!base.hasD(M2MoverPr.DECL.FLAG0))
-					{
-						base.remD(M2MoverPr.DECL.STOP_EVADE);
-						if (this.evade_t <= 0f)
-						{
-							this.Pr.changeState(PR.STATE.NORMAL);
-							goto IL_1F91;
-						}
-						if (!this.Shield.activate(false))
-						{
-							base.SpSetPose(this.guard_pose, -1, null, false);
-							goto IL_1F91;
-						}
-						this.Shield.deactivate(true, true);
-						this.Shield.applyDamage(90f);
-						if (base.getEH(EnhancerManager.EH.shield_cat))
-						{
-							this.FlgSoftFall.Add("MAGIC");
-						}
-						base.addD((M2MoverPr.DECL)16777290);
-						base.remD(M2MoverPr.DECL.ALLOC_SHIELD_HOLD);
-						base.SpSetPose("guard_bush", -1, null, false);
-						base.PtcVar("maxt", 70f).PtcVar("applyt", 18f).PtcVar("radius", 2.8f * base.Mp.CLENB)
-							.PtcST("guard_bush_apply", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C);
-						this.Pr.TeCon.setColorBlinkBush(4f, 18f, 1f, 345239, 0);
-						this.executeSmallAttack(0, null);
-						this.Pr.addNoDamage(NDMG.DEFAULT, 16f);
-						this.parry_t = 18f;
-						if (!this.Pr.forceCrouch(false, false))
-						{
-							this.Pr.quitCrouch(false, false, false);
-						}
-						t = 0f;
-					}
-					this.Shield.recover_lock_t = 90f;
-					if (t >= 47f)
-					{
-						base.remD(M2MoverPr.DECL.STOP_EVADE);
-						base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
-						base.SpSetPose("guard_bush2stand", -1, null, false);
-						if (this.Pr.isEvadeO(0))
-						{
-							this.runEvadeCheck(0f, false, true);
-						}
-					}
-					if (base.hasD(M2MoverPr.DECL.FLAG_HIT))
-					{
-						flag = true;
-						this.Pr.lockSink(90f, true);
-					}
-					if (t < 70f)
-					{
-						goto IL_1F91;
-					}
-					this.Pr.changeState(PR.STATE.NORMAL);
-					if (this.evade_t > 0f)
-					{
-						this.Shield.immediateGuard();
-						goto IL_1F91;
-					}
-					this.shieldBlur(false, true);
-					goto IL_1F91;
+					break;
 				}
 			}
-			else if (state != PR.STATE.SHIELD_LARIAT)
+			else if (state != PR.STATE.BURST_SCAPECAT)
 			{
-				if (state != PR.STATE.BURST_SCAPECAT)
+				if (state != PR.STATE.USE_BOMB)
 				{
-					if (state != PR.STATE.USE_BOMB)
-					{
-						return false;
-					}
-					if (!this.runItemBomb(ref t) && base.state == PR.STATE.USE_BOMB)
-					{
-						this.Pr.changeState(PR.STATE.NORMAL);
-					}
-					goto IL_1F91;
+					return false;
+				}
+				if (!this.runItemBomb(ref t) && base.state == PR.STATE.USE_BOMB)
+				{
+					this.Pr.changeState(PR.STATE.NORMAL);
+					goto IL_01B7;
+				}
+				goto IL_01B7;
+			}
+			this.runBurst(first, ref t, ref manip, ref flag);
+			IL_01B7:
+			if (flag)
+			{
+				manip |= M2MoverPr.PR_MNP.NO_SINK;
+			}
+			else
+			{
+				manip &= (M2MoverPr.PR_MNP)(-3);
+			}
+			return true;
+		}
+
+		public void runMagExplodePrepare(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			if (first)
+			{
+				base.SpSetPose("magic_init", -1, null, false);
+				if (this.CurMg != null)
+				{
+					this.magic_t = (float)(-(float)MDAT.ExplodePrepare(this.CurMg));
+				}
+				base.remD(M2MoverPr.DECL.STOP_ACT);
+			}
+			this.magic_t += base.TS * X.Mx(1f, this.Pr.getCastingTimeScale(this.CurMg));
+			base.GaugeBrk.secureSplitMpHoldTime(4f);
+			if (this.magic_t >= 0f)
+			{
+				this.explodeMagic();
+				if (base.state == PR.STATE.MAG_EXPLODE_PREPARE)
+				{
+					this.Pr.changeState(PR.STATE.MAG_EXPLODED);
+				}
+			}
+		}
+
+		public void runMagExploded(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			if (first)
+			{
+				this.magic_aim_agR = 1.5707964f - (float)CAim._XD(base.aim, 1) * 0.3926991f;
+				this.changePoseMagicHold();
+				this.magic_t = (float)(-(float)MDAT.getMagicExplodeAfterDelay(this.CurMg));
+				base.remD(M2MoverPr.DECL.STOP_ACT);
+			}
+			base.GaugeBrk.secureSplitMpHoldTime(4f);
+			bool flag = false;
+			if (this.CurMg != null && this.CurMg.Mn != null && this.CurMg.Mn._0.fnManipulateMagic != null)
+			{
+				flag = this.CurMg.Mn._0.fnManipulateMagic(this.CurMg, this.Pr, base.TS);
+			}
+			if (!flag)
+			{
+				base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
+				this.CurMg = null;
+				this.magic_t += base.TS;
+				if (this.magic_t >= 0f)
+				{
+					this.Pr.changeState(PR.STATE.NORMAL);
+					return;
 				}
 			}
 			else
 			{
-				if (!base.hasD(M2MoverPr.DECL.FLAG0))
+				base.remD(M2MoverPr.DECL.ABORT_BY_MOVE);
+				this.changePoseMagicHold();
+				if (this.CurMg != null)
 				{
-					base.remD((M2MoverPr.DECL)10);
-					if (this.evade_t <= 0f)
-					{
-						this.Pr.changeState(PR.STATE.NORMAL);
-						goto IL_1F91;
-					}
-					if (!this.Shield.changeStateLariat(base.TS, false, false))
-					{
-						base.remD((M2MoverPr.DECL)7);
-						base.SpSetPose(this.guard_pose, -1, null, false);
-						goto IL_1F91;
-					}
-					t = 1f;
-					base.addD((M2MoverPr.DECL)32775);
-					base.addD((M2MoverPr.DECL)16777288);
-					base.remD(M2MoverPr.DECL.ALLOC_SHIELD_HOLD);
-					if (base.getEH(EnhancerManager.EH.shield_cat))
-					{
-						this.FlgSoftFall.Add("MAGIC");
-					}
-					if (!this.Pr.forceCrouch(false, false))
-					{
-						this.Pr.quitCrouch(false, false, false);
-					}
-					base.SpSetPose("guard_slash", -1, null, false);
+					this.magic_t = (float)(-(float)MDAT.getMagicExplodeAfterDelay(this.CurMg));
 				}
-				if (!this.Shield.isLariatState())
+			}
+		}
+
+		public void runEvade(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			bool flag = base.state == PR.STATE.UKEMI || base.state == PR.STATE.UKEMI_SHOTGUN;
+			bool flag2 = base.state == PR.STATE.EVADE_SHOTGUN || base.state == PR.STATE.UKEMI_SHOTGUN;
+			float num = (float)(flag2 ? 46 : 25);
+			if (first)
+			{
+				base.SpSetPose(flag2 ? "ukemi_shotgun" : (flag ? "ukemi" : "evade"), 1, null, false);
+				this.Pr.killSpeedForce(true, true, false);
+				this.evade_count++;
+				if (!base.hasFoot())
 				{
-					this.Pr.changeState(PR.STATE.NORMAL);
-					goto IL_1F91;
+					base.Anm.setAim((base.aim == AIM.L) ? 6 : 7, 0, false);
+					base.addD(M2MoverPr.DECL.FLAG2);
 				}
-				this.Shield.changeStateLariat(base.TS, true, base.isAtkO() && t >= 12f);
-				if (this.Shield.isManipulatableState())
+				base.addD(M2MoverPr.DECL.WEAK_THROW_RAY);
+				float num2 = this.getRE(RCP.RPI_EFFECT.EVADE_NODAM_EXTEND);
+				if (base.Ser.has(SER.CLT_BROKEN) && CFGSP.cloth_broken_debuff)
 				{
-					goto IL_1F91;
+					num2 = X.Scr(num2, 0.5f);
 				}
-				if (!base.hasD(M2MoverPr.DECL.FLAG_HIT))
+				float num3 = X.NI(14f, num, 0.875f * num2);
+				base.TeCon.setEvadeBlink(num3);
+				this.Pr.addNoDamage(NDMG.EVADE_PREVENT, num3);
+				base.PtcVar("maxt", num3).PtcST("evade_init", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+				base.addD((M2MoverPr.DECL)10 | (base.getEH(ENHA.EH.cliff_stopper) ? ((M2MoverPr.DECL)0) : M2MoverPr.DECL.DO_NOT_CARRY_BY_OTHER));
+				this.Phy.killSpeedForce(true, true, true, false, false).addLockMoverHitting(HITLOCK.EVADE, 14f);
+				if (!flag2)
+				{
+					this.Phy.addLockGravity(this, 0f, 25f);
+				}
+				if (flag2 || flag)
 				{
 					base.addD(M2MoverPr.DECL.FLAG_HIT);
-					base.remD(M2MoverPr.DECL.FORCE_SHIELD_KEY_HOLD);
+				}
+				if (!flag)
+				{
+					this.Phy.removeOnIce();
+					this.Phy.setWalkXSpeed(0f, true, true);
+				}
+			}
+			bool flag3 = base.state == PR.STATE.EVADE;
+			if (!base.hasD(M2MoverPr.DECL.FLAG0))
+			{
+				float num4 = (flag2 ? 0.015f : 0.06f);
+				if (t < num && (flag2 || base.hasD(M2MoverPr.DECL.INIT_A) || ((base.aim == AIM.L) ? base.isRO() : base.isLO())))
+				{
+					float num5 = (flag2 ? 2f : (base.hasD(M2MoverPr.DECL.FLAG2) ? 2.4f : 2.6f)) * 2f / num - num4;
+					float num6 = (num4 - num5) / num;
+					float num7 = num5 + num6 * t;
+					if (this.Phy.is_on_web)
+					{
+						num7 *= 0.33f;
+					}
+					this.Pr.walkBy(FOCTYPE.EVADE | this.foc_cliff_stopper, num7 * (float)X.MPF(base.aim == AIM.L), 0f, true);
+					flag3 = false;
+				}
+				else
+				{
+					if (flag2 && base.Ser.cannotEvade())
+					{
+						this.Pr.changeState(PR.STATE.ENEMY_SINK);
+						return;
+					}
+					if ((t < 6f || !base.hasFoot()) && base.poseIs("evade"))
+					{
+						base.Anm.setAim((base.aim == AIM.L) ? AIM.BL : AIM.RB, 0, false);
+					}
+					float num8 = num4;
+					if (this.Phy.is_on_web)
+					{
+						num8 *= 0.33f;
+					}
+					if (base.hasFoot())
+					{
+						this.Pr.getPhysic().addFoc(FOCTYPE.EVADE | this.foc_cliff_stopper, num8 * (float)X.MPF(base.aim == AIM.L), 0f, -1f, 0, 1, (int)X.Mn(5f, num - t - 1f), -1, 0);
+					}
+					base.addD(M2MoverPr.DECL.FLAG0);
+				}
+			}
+			if (this.Pr.hasD(M2MoverPr.DECL.WEAK_THROW_RAY) && !this.Pr.isNoDamageActive(NDMG.EVADE_PREVENT))
+			{
+				this.Pr.remD((M2MoverPr.DECL)8193);
+				stop_sink = false;
+			}
+			if (t >= 14f && this.evade_count < this.evade_count_max)
+			{
+				base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
+				this.Pr.remD(M2MoverPr.DECL.STOP_EVADE);
+			}
+			if (base.hasD(M2MoverPr.DECL.FLAG_HIT))
+			{
+				stop_sink = true;
+				this.Pr.lockSink(16f, true);
+			}
+			if (flag3)
+			{
+				if (base.isLO())
+				{
+					if (base.Anm.mpf_is_right > 0f)
+					{
+						base.Anm.setAim(CAim.get_aim2(0f, 0f, -1f, -1f, false), 0, false);
+					}
+				}
+				else if (base.isRO() && base.Anm.mpf_is_right < 0f)
+				{
+					base.Anm.setAim(CAim.get_aim2(0f, 0f, 1f, -1f, false), 0, false);
+				}
+			}
+			bool flag4 = false;
+			if (flag && !base.Ser.cannotEvade() && t >= 14f && this.Pr.isActionPD())
+			{
+				flag4 = true;
+			}
+			if (flag4 || t >= num)
+			{
+				if (flag3)
+				{
+					this.Pr.aim = ((base.Anm.mpf_is_right > 0f) ? AIM.R : AIM.L);
+				}
+				this.Pr.changeState(base.Ser.cannotEvade() ? PR.STATE.ENEMY_SINK : PR.STATE.NORMAL);
+				if (!base.hasFoot())
+				{
+					base.SpSetPose("fall", 1, null, false);
+				}
+			}
+		}
+
+		public void runPunch(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			if (t < 9f)
+			{
+				float num = t;
+				PR.STATE punchVariation = this.getPunchVariation(false, true);
+				if (punchVariation != PR.STATE.PUNCH && punchVariation != PR.STATE.NORMAL)
+				{
+					t = num;
+					return;
+				}
+			}
+			if (first)
+			{
+				base.SpSetPose("attack1", -1, null, false);
+				if (this.CurMg != null)
+				{
+					base.Mp.playSnd("swing_pr_1");
+				}
+			}
+			if (t >= 9f && !base.hasD(M2MoverPr.DECL.INIT_A))
+			{
+				base.addD(M2MoverPr.DECL.INIT_A);
+				if (this.Pr.isMoveRightOn())
+				{
+					this.Pr.setAim(AIM.R, false);
+				}
+				else if (this.Pr.isMoveLeftOn())
+				{
+					this.Pr.setAim(AIM.L, false);
+				}
+				base.SpSetPose("attack2", -1, null, false);
+				this.executeBasicPunch(0f);
+			}
+			if (t >= 12f)
+			{
+				base.addD(M2MoverPr.DECL.FLAG2);
+			}
+			if (t >= 20f)
+			{
+				base.remD((M2MoverPr.DECL)10);
+				base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
+			}
+			if (t >= 24f)
+			{
+				this.Pr.changeState(PR.STATE.NORMAL);
+			}
+		}
+
+		public void runSliding(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			if (!base.hasD(M2MoverPr.DECL.FLAG0))
+			{
+				this.executeSmallAttack(0, null);
+				base.PtcST("sliding_sunabokori", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+				this.Pr.addD(M2MoverPr.DECL.FLAG0);
+				t = 0f;
+				if (this.swaysld_t == 0f && base.getEH(ENHA.EH.sway_sliding))
+				{
+					base.addD(M2MoverPr.DECL.INIT_A);
+					base.PtcVar("maxt", 180f).PtcVar("applyt", 100f).PtcST("sway_sliding_activate", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.FOLLOW_C);
+					base.TeCon.setColorBlinkAddFadeout(22f, 100f, 0.8f, 7766417, 0);
+					this.swaysld_t = 1f;
+				}
+			}
+			base.SpSetPose("sliding", -1, null, false);
+			if (!this.Pr.hasD(M2MoverPr.DECL.FLAG2))
+			{
+				if (!base.hasFoot() && this.Phy.gravity_added_velocity > 0.125f)
+				{
+					this.Pr.addD(M2MoverPr.DECL.FLAG2);
+				}
+			}
+			else if (base.hasFoot() || this.Pr.wallHittedA())
+			{
+				this.Pr.changeState(PR.STATE.ENEMY_SINK);
+				this.Pr.remD((M2MoverPr.DECL)10);
+				return;
+			}
+			float num = 0.125f;
+			float num2 = (base.hasD(M2MoverPr.DECL.INIT_A) ? 4.2f : 3.2f) / 33f / (0.5f + 0.5f * num) * this.Pr.Ser.xSpeedRate();
+			float num3 = num2 * 0.375f;
+			float num4 = num2 * X.NI(1f, num, X.ZLINE(t, 33f));
+			if (num4 > num3)
+			{
+				this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._FRIC_STRICT | FOCTYPE._CHECK_WALL, (num4 - num3) * (float)CAim._XD(base.aim, 1), 0f, -4f, -1, 1, 0, -1, 0);
+				num4 = num3;
+			}
+			this.Phy.setWalkXSpeed(num4 * (float)CAim._XD(base.aim, 1), true, false);
+			if (base.hasD(M2MoverPr.DECL.STOP_EVADE) && base.hasD(M2MoverPr.DECL.INIT_A) && t >= 12f)
+			{
+				this.Pr.remD(M2MoverPr.DECL.STOP_EVADE);
+			}
+			if (t >= 25f)
+			{
+				this.Pr.remD((M2MoverPr.DECL)10);
+				base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
+			}
+			if (t >= 33f && base.hasFoot())
+			{
+				this.Pr.changeState(PR.STATE.NORMAL);
+			}
+		}
+
+		public void runWheel(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			if (!base.hasD(M2MoverPr.DECL.FLAG0))
+			{
+				this.FootD.initJump(false, true, false);
+				if (this.cyclone_attacked)
+				{
+					base.addD(M2MoverPr.DECL.INIT_A);
+				}
+				base.addD((M2MoverPr.DECL)16777352);
+				base.remD(M2MoverPr.DECL.STOP_EVADE);
+				this.Phy.killSpeedForce(true, true, true, false, false);
+				base.Anm.setPose("attack_air1", -1, false);
+				if (!this.cyclone_attacked)
+				{
+					this.Phy.addLockGravity(this, 0f, 400f);
+				}
+				this.Phy.addFoc(FOCTYPE.WALK_FS, 0.06f * base.mpf_is_right, 0f, -1f, 0, 2, 20, 1, 0);
+				this.Phy.addLockMoverHitting(HITLOCK.SPECIAL_ATTACK, -1f);
+				t = (float)(100 - (this.cyclone_attacked ? 35 : 20));
+			}
+			if (!Map2d.can_handle)
+			{
+				this.Phy.killSpeedForce(true, true, true, false, false);
+				this.Pr.changeState(PR.STATE.NORMAL);
+				return;
+			}
+			if (base.hasD(M2MoverPr.DECL.FLAG2))
+			{
+				stop_sink = false;
+				this.Pr.setBoundsToCrouch();
+				if (t >= 30f)
+				{
+					base.remD((M2MoverPr.DECL)11);
+				}
+				if (t >= 48f)
+				{
+					this.Pr.changeState(PR.STATE.NORMAL);
+				}
+			}
+			else if (t < 100f)
+			{
+				if (base.hasFoot() && !X.DEBUGSUPERCYCLONE)
+				{
+					this.Pr.changeState(PR.STATE.ENEMY_SINK);
+					return;
+				}
+				if (t < 8f && ((base.mpf_is_right > 0f) ? (!this.Pr.hasRightInput()) : (!this.Pr.hasLeftInput())))
+				{
+					float num = t;
+					this.Phy.remFoc(FOCTYPE.WALK, true);
+					this.Pr.changeState((!base.hasFoot() && this.isEnable(SkillManager.SKILL_TYPE.airpunch)) ? PR.STATE.AIRPUNCH : PR.STATE.PUNCH);
+					t = num;
+					return;
+				}
+			}
+			else
+			{
+				float pre_force_velocity_y = this.Phy.pre_force_velocity_y;
+				if (!base.hasD(M2MoverPr.DECL.FLAG1))
+				{
+					if (!X.DEBUGSUPERCYCLONE && !base.hasFoot())
+					{
+						this.cyclone_attacked = true;
+					}
+					base.addD((M2MoverPr.DECL)33554442);
+					base.Anm.setPose("attack_air2", -1, false);
+					float baonTime = IN.getBAOnTime();
+					this.Phy.killSpeedForce(true, true, true, false, false);
+					this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._FRIC_STRICT | FOCTYPE._CHECK_WALL, this.Pr.mpf_is_right * 0.34f, X.NI(0.2f, 0.41f, X.ZLINE(baonTime, 30f)), -1f, -1, 1, 0, 1, 0);
+					this.executeSmallAttack(0, null);
+					t = 100f;
+				}
+				else
+				{
+					if (this.Phy.isin_water || CCON.isWater(base.Mp.getConfig((int)base.x, (int)base.y)))
+					{
+						this.Pr.changeState(PR.STATE.ENEMY_SINK);
+						return;
+					}
+					if (this.Pr.wallHittedA())
+					{
+						this.wheelBounce(true);
+						return;
+					}
+					if (!this.Pr.hit_wall_collider)
+					{
+						t = 100f;
+					}
+					else if (t >= 107f)
+					{
+						this.wheelBounce(true);
+						return;
+					}
+					float num2 = X.Mx(0.2f, this.Phy.pre_force_velocity_y);
+					if (this.Pr.isBO(0))
+					{
+						num2 += 0.0069999998f;
+					}
+					if (!base.hasFoot())
+					{
+						this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._FRIC_STRICT | FOCTYPE._CHECK_WALL, this.Pr.mpf_is_right * 0.34f, X.Mn(num2, 0.41f), -1f, -1, 1, 0, -1, 0);
+					}
+					if (base.hasFoot() || !this.Pr.canStand((int)base.x, (int)(this.Phy.move_depert_y + 0.12f)))
+					{
+						t = 0f;
+						base.Anm.setPose("attack_air3", -1, false);
+						base.addD(M2MoverPr.DECL.FLAG2);
+						base.PtcST("wheel_ground_bump", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+						this.Phy.remLockGravity(this);
+						this.Phy.remFoc(FOCTYPE.WALK, true);
+						this.Phy.addFoc(FOCTYPE.WALK_FS | this.foc_cliff_stopper, this.Pr.mpf_is_right * 0.34f * 0.3f, 0f, -1f, 0, 0, 24, -1, 0);
+						return;
+					}
+				}
+			}
+			if (base.hasD(M2MoverPr.DECL.FLAG_HIT))
+			{
+				stop_sink = true;
+				this.Pr.lockSink(60f, true);
+			}
+		}
+
+		public void runComet(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			if (!base.hasD(M2MoverPr.DECL.FLAG0))
+			{
+				base.addD((M2MoverPr.DECL)16777224);
+				base.remD(M2MoverPr.DECL.STOP_EVADE);
+				base.addD(M2MoverPr.DECL.DO_NOT_CARRY_BY_OTHER);
+				this.FootD.initJump(false, true, false);
+				this.Phy.killSpeedForce(true, true, true, false, false);
+				base.Anm.setPose("attack_misogi1", -1, false);
+				base.Anm.timescale = (float)base.Anm.getDuration() / 20f;
+				this.Phy.addLockGravity(this, 0f, 40f);
+				this.Phy.addLockMoverHitting(HITLOCK.SPECIAL_ATTACK, -1f);
+			}
+			if (!Map2d.can_handle)
+			{
+				this.Phy.killSpeedForce(true, true, true, false, false);
+				this.Pr.changeState(PR.STATE.NORMAL);
+				return;
+			}
+			if (base.hasD(M2MoverPr.DECL.FLAG2))
+			{
+				stop_sink = false;
+				this.Pr.setBoundsToCrouch();
+				if (t >= 14f)
+				{
+					base.remD((M2MoverPr.DECL)11);
 				}
 				if (t >= 30f)
 				{
-					base.remD((M2MoverPr.DECL)7);
+					this.Pr.changeState(PR.STATE.NORMAL);
 				}
-				goto IL_1F91;
 			}
+			else if (t < 20f)
+			{
+				this.Pr.setDrawPositionShift(0f, -20f * X.ZSIN(t, 20f), 4);
+			}
+			else
+			{
+				if (base.hasFoot() || this.Pr.hit_wall_collider || this.Pr.wallHitted(AIM.B) || !this.Pr.canStand((int)base.x, (int)(base.mbottom + 0.03f)))
+				{
+					t = 0f;
+					base.Anm.setPose("attack_misogi3", -1, false);
+					base.addD(M2MoverPr.DECL.FLAG2);
+					base.remD(M2MoverPr.DECL.DO_NOT_CARRY_BY_OTHER);
+					base.PtcVar("by", this.Pr.mbottom).PtcST("comet_ground_bump", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+					this.Phy.remFoc(FOCTYPE.WALK, true);
+					this.Phy.killSpeedForce(false, true, true, true, false);
+					this.Phy.remLockGravity(this);
+					return;
+				}
+				float pre_force_velocity_y = this.Phy.pre_force_velocity_y;
+				if (!base.hasD(M2MoverPr.DECL.FLAG1))
+				{
+					base.addD((M2MoverPr.DECL)33554442);
+					this.Pr.fineDrawPosition();
+					base.Anm.setPose("attack_misogi2", -1, false);
+					this.Phy.killSpeedForce(true, true, true, false, false);
+					this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._FRIC_STRICT | FOCTYPE._RELEASE | FOCTYPE._CHECK_WALL, 0f, 0.34f, -1f, 0, 6000, 0, 1, 0);
+					this.executeSmallAttack(0, null);
+					base.TeCon.setEvadeBlink(14f);
+					t = 20f;
+					this.Pr.addNoDamage(NDMG.DEFAULT, base.TS + 1f);
+				}
+				else
+				{
+					this.Pr.addNoDamage(NDMG.DEFAULT, base.TS);
+				}
+			}
+			if (base.hasD(M2MoverPr.DECL.FLAG_HIT))
+			{
+				stop_sink = true;
+				this.Pr.lockSink(60f, true);
+			}
+		}
+
+		public void runDashPunch(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			if (!base.hasD(M2MoverPr.DECL.FLAG0))
+			{
+				base.addD((M2MoverPr.DECL)16777226);
+				this.Phy.killSpeedForce(true, true, true, false, false);
+				t = 0f;
+				base.Anm.setPose("attack_dash", -1, false);
+				this.Phy.addFoc(FOCTYPE.WALK_FS | this.foc_cliff_stopper, base.mpf_is_right * 0.24f, 0f, -3f, 0, 4, 18, -1, 0);
+			}
+			if (!base.hasD(M2MoverPr.DECL.FLAG1) && t >= 5f)
+			{
+				base.addD(M2MoverPr.DECL.FLAG1);
+				this.executeSmallAttack(0, null);
+				this.Pr.addNoDamage(NDMG.DEFAULT, 10f);
+			}
+			if (t >= 12f)
+			{
+				base.addD(M2MoverPr.DECL.FLAG2);
+			}
+			if (t >= 30f)
+			{
+				if (base.hasD(M2MoverPr.DECL.STOP_EVADE))
+				{
+					base.remD((M2MoverPr.DECL)11);
+					base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
+				}
+			}
+			else
+			{
+				stop_sink = true;
+			}
+			if (t >= 45f)
+			{
+				this.Pr.changeState(PR.STATE.NORMAL);
+			}
+		}
+
+		public void runAirPunch(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			bool flag = false;
+			if (!base.hasD(M2MoverPr.DECL.FLAG0))
+			{
+				base.SpSetPose("attack_jumpslash1", -1, null, false);
+				if (this.CurMg != null)
+				{
+					base.Mp.playSnd("swing_pr_1");
+				}
+				this.Phy.initSoftFall(0.23f, 0f);
+				base.addD(M2MoverPr.DECL.FLAG0);
+				flag = true;
+			}
+			if (t < 13f)
+			{
+				float num = t;
+				if (t < 9f)
+				{
+					PR.STATE punchVariation = this.getPunchVariation(false, false);
+					if (this.Pr.isAirPunchState(punchVariation) && punchVariation != PR.STATE.AIRPUNCH && punchVariation != PR.STATE.AIRPUNCH_SHOTGUN)
+					{
+						this.Pr.changeState(punchVariation);
+						this.Phy.remFoc(FOCTYPE.WALK, true);
+						t = num;
+						return;
+					}
+				}
+				if (base.hasFoot())
+				{
+					this.Pr.changeState(PR.STATE.PUNCH);
+					this.Phy.remFoc(FOCTYPE.WALK, true);
+					t = num;
+					return;
+				}
+			}
+			if (!base.hasD(M2MoverPr.DECL.FLAG1) && !base.hasD(M2MoverPr.DECL.INIT_A))
+			{
+				if (!base.hasFoot())
+				{
+					float num2 = (1f - 0.6f * X.ZPOW(t, 13f)) * 0.15f;
+					float num3 = 1f;
+					if (base.hasD(M2MoverPr.DECL.INIT_A))
+					{
+						num3 = 3f;
+					}
+					else if ((base.mpf_is_right > 0f && this.Pr.isMoveLeftOn()) || (base.mpf_is_right < 0f && this.Pr.isMoveRightOn()))
+					{
+						num2 *= 0.25f;
+					}
+					num2 = X.absMn(num2 * base.mpf_is_right + this.Phy.releasedVelocity.x * 1.2f, num2);
+					if (flag)
+					{
+						this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE.SPECIAL_ATTACK | FOCTYPE._FRIC_STRICT, num2, 0f, -1f, 0, 1, 1, 0, 0);
+					}
+					else
+					{
+						float num4 = this.Phy.calcFocVelocityX(FOCTYPE.WALK | FOCTYPE.SPECIAL_ATTACK | FOCTYPE._FRIC_STRICT, false);
+						this.Phy.remFoc(FOCTYPE.WALK | FOCTYPE.SPECIAL_ATTACK | FOCTYPE._FRIC_STRICT, false);
+						this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE.SPECIAL_ATTACK | FOCTYPE._FRIC_STRICT, X.VALWALK(num4, num2, 0.006f * num3), 0f, -1f, 0, 1, 1, 0, 0);
+					}
+					this.Phy.walk_xspeed = X.VALWALK(this.Phy.walk_xspeed, 0f, 0.008f);
+				}
+				else
+				{
+					base.addD(M2MoverPr.DECL.FLAG1);
+					base.SpSetPose(base.hasD(M2MoverPr.DECL.INIT_A) ? "attack2" : "attack_jumpslash2", -1, null, false);
+				}
+			}
+			if (t >= 20f)
+			{
+				base.addD(M2MoverPr.DECL.FLAG2);
+			}
+			if (t >= 13f && !base.hasD(M2MoverPr.DECL.INIT_A))
+			{
+				base.addD(M2MoverPr.DECL.INIT_A);
+				this.Phy.addFoc(FOCTYPE.WALK_FS, base.mpf_is_right * -0.14f, 0f, -1f, 0, 1, 10, 1, 0);
+				base.SpSetPose(base.hasD(M2MoverPr.DECL.FLAG1) ? "attack2" : "attack_jumpslash2", -1, null, false);
+				this.executeBasicPunch(0.6f);
+			}
+			if (t >= 32f)
+			{
+				base.remD((M2MoverPr.DECL)10);
+				base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
+			}
+			if (t >= 32f)
+			{
+				this.Pr.changeState(PR.STATE.NORMAL);
+			}
+		}
+
+		public void runSmash(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			bool flag = base.state == PR.STATE.SMASH_SHOTGUN;
+			if (!base.hasD(M2MoverPr.DECL.FLAG0))
+			{
+				base.addD(M2MoverPr.DECL.FLAG0);
+				base.PtcVar("is_shotgun", (float)(flag ? 1 : 0));
+				base.PtcST("smash_prepare", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C);
+				base.SpSetPose("chargepunch1", -1, null, false);
+				base.remD(M2MoverPr.DECL.STOP_EVADE);
+			}
+			float num = t - 60f;
+			if (num < 0f)
+			{
+				if (t < 12f && this.punch_t < 0f && (IN.isBO(0) || this.Pr.forceCrouch(false, false)))
+				{
+					this.Pr.changeState(PR.STATE.SLIDING);
+					return;
+				}
+				if (t >= 35f)
+				{
+					base.addD(M2MoverPr.DECL.STOP_EVADE);
+					return;
+				}
+			}
+			else
+			{
+				if (!base.hasD(M2MoverPr.DECL.FLAG1))
+				{
+					if (flag)
+					{
+						PostEffect it = PostEffect.IT;
+						it.addTimeFixedEffect(it.setPEbounce(POSTM.ZOOM2, 24f, 0.1f, -5), 1f);
+						it.addTimeFixedEffect(it.setPEbounce(POSTM.FINAL_ALPHA, 30f, 0.33f, -20), 1f);
+						it.addTimeFixedEffect(it.setPEbounce(POSTM.BURST, 30f, 0.5f, -20), 1f);
+					}
+					base.addD(M2MoverPr.DECL.FLAG1);
+					MagicItem magicItem = this.executeSmallAttack(0, null);
+					if (magicItem == null)
+					{
+						this.Pr.changeState(PR.STATE.ENEMY_SINK);
+						return;
+					}
+					base.SpSetPose("chargepunch2", -1, null, false);
+					base.PtcVar("msx", X.Abs(magicItem.sx));
+					base.PtcST(flag ? "smash_shotgun_attack" : "smash_attack", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C);
+				}
+				float num2 = num - 20f;
+				if (num2 < 0f)
+				{
+					float num3 = base.mpf_is_right * (1f - X.ZSIN(num, 20f)) * 0.25f * (base.canJump() ? 1f : 0.4f);
+					this.Phy.walk_xspeed = base.CliffStopCrop(ref num3);
+					return;
+				}
+				if (!base.hasD(M2MoverPr.DECL.FLAG2))
+				{
+					if (this.CurMg != null)
+					{
+						this.killHoldMagic(MANA_HIT.EN | MANA_HIT.FALL, true);
+					}
+					base.addD(M2MoverPr.DECL.FLAG2);
+					base.SpSetPose("chargepunch3", -1, null, false);
+				}
+				float num4 = -base.mpf_is_right * (1f - X.ZSIN(num2, 40f)) * 0.09f * (base.canJump() ? 1f : 0.4f);
+				this.Phy.walk_xspeed = base.CliffStopCrop(ref num4);
+				if (num2 >= 20f)
+				{
+					base.remD((M2MoverPr.DECL)10);
+				}
+				if (num2 >= 44f)
+				{
+					this.Pr.changeState(PR.STATE.NORMAL);
+				}
+			}
+		}
+
+		public void runBurst(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
 			if (first)
 			{
 				UIStatus.showHold(60, false);
 				base.addD(M2MoverPr.DECL.DO_NOT_CARRY_BY_OTHER);
 				this.Phy.addLockMoverHitting(HITLOCK.SPECIAL_ATTACK, -1f);
-				this.killHoldMagic(false);
+				this.killHoldMagic(false, false);
 				base.SpSetPose("burst_0", 1, null, false);
 				if (this.Pr.forceCrouch(false, false))
 				{
@@ -1046,24 +1103,29 @@ namespace nel
 				PostEffect it = PostEffect.IT;
 				it.setSlow(38f, 0.25f, 0);
 				it.addTimeFixedEffect(it.setPEfadeinout(POSTM.BGM_LOWER, 43f, 110f, 1f, -29), 1f);
-				it.addTimeFixedEffect(this.Anm, 1f);
+				it.addTimeFixedEffect(base.Anm, 1f);
 				this.mana_drain_lock_t = 200f;
 				base.PtcVar("cx", base.x).PtcVar("cy", base.y).PtcVar("time", 36f);
 				base.PtcSTTimeFixed((base.state == PR.STATE.BURST) ? "burst_prepare" : "burst_scapecat_prepare", 1f, PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				it.addTimeFixedEffect(it.setPEfadeinout(POSTM.BURST, 46f, 20f, 1f, 0), 1f);
 				if (base.state == PR.STATE.BURST)
 				{
-					it.addTimeFixedEffect(this.NM2D.Cam.TeCon.setBounceZoomIn(1.25f, 38f, 108f, -2), 1f);
+					it.addTimeFixedEffect(base.NM2D.Cam.TeCon.setBounceZoomIn(1.25f, 38f, 108f, -2), 1f);
 				}
 				else
 				{
-					it.addTimeFixedEffect(this.NM2D.Cam.TeCon.setBounceZoomIn(2f, 1f, 18f, -1), 1f);
+					it.addTimeFixedEffect(base.NM2D.Cam.TeCon.setBounceZoomIn(2f, 1f, 18f, -1), 1f);
 					base.TeCon.setFadeOut_in(216f, 0f, -108);
 				}
-				this.NM2D.Cam.Qu.HandShake(2f, 40f, 14f, 0);
+				base.NM2D.Cam.Qu.HandShake(2f, 40f, 14f, 0);
 				this.FootD.initJump(false, true, false);
 				this.Phy.killSpeedForce(true, true, true, false, false).clearLock().addLockGravity(this, 0f, 9f);
 				this.Pr.getAbsorbContainer().gacha_renderable = false;
+				M2SerItem m2SerItem = base.Ser.Get(SER.ORGASM_STACK);
+				if (m2SerItem != null)
+				{
+					m2SerItem.orgasmStackLockProgress(50f);
+				}
 			}
 			this.punch_t = 0f;
 			if (!base.hasD(M2MoverPr.DECL.FLAG0))
@@ -1072,10 +1134,11 @@ namespace nel
 				if (t >= 9f)
 				{
 					base.addD(M2MoverPr.DECL.FLAG0);
-					int reduceMp = MagicSelector.getReduceMp(MGKIND.PR_BURST);
-					if (base.mp < (float)reduceMp)
+					float num = base.Ser.burstConsumeRatio();
+					int num2 = X.IntC((float)MagicSelector.getReduceMp(MGKIND.PR_BURST) * ((num == 0f) ? 6f : num));
+					if (base.mp < (float)num2)
 					{
-						this.mp_overused += global::XX.X.Mx(0f, (float)reduceMp - base.mp);
+						this.mp_overused += X.Mx(0f, (float)num2 - base.mp);
 					}
 					MagicItem magicItem = this.executeSmallAttack(0, null);
 					base.SpSetPose("burst_1", -1, null, false);
@@ -1084,21 +1147,24 @@ namespace nel
 						this.Pr.need_check_bounds = false;
 					}
 					base.PtcST((base.state == PR.STATE.BURST) ? "burst_after" : "burst_scapecat_after", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-					this.Pr.recoverGoSer();
+					this.Pr.recoverGoSer(base.state != PR.STATE.BURST, false);
+					this.Pr.Ser.Cure(SER.WEB_TRAPPED);
 					this.Phy.killSpeedForce(true, true, true, false, false);
 					base.EggCon.need_fine_mp = true;
 					base.AbsorbCon.releaseFromTarget(this.Pr);
 					PostEffect it2 = PostEffect.IT;
 					it2.addTimeFixedEffect(it2.setPEabsorbed(POSTM.FLASH, 4f, 87f, 1f, 0), 1f);
-					this.NM2D.Cam.Qu.Vib(2f, 7f, 1f, 0).SinV(9f, 28f, 0.25f, 0);
+					base.NM2D.Cam.Qu.Vib(2f, 7f, 1f, 0).SinV(9f, 28f, 0.25f, 0);
 					base.TeCon.removeSpecific(TEKIND.FADEOUT_IN);
 					PostEffect.IT.setSlow(10f, 0f, 0);
+					bool flag = false;
 					if (base.state == PR.STATE.BURST)
 					{
-						if (global::XX.X.XORSP() < this.BurstSel.fainted_ratio)
+						if (X.XORSP() < this.BurstSel.fainted_ratio || num == 0f)
 						{
 							base.Ser.Add(SER.BURST_TIRED, 320, 99, false);
 							this.checkOverrunTired(false);
+							flag = true;
 						}
 						else
 						{
@@ -1113,22 +1179,27 @@ namespace nel
 							mistApplier.cureAll();
 						}
 						this.Pr.PtcHld.killPtc("burst_scapecat_prepare", false);
-						if (this.NM2D.GameOver != null)
+						if (base.NM2D.GameOver != null)
 						{
-							this.NM2D.GameOver.executeScapecatRespawn(-1);
+							base.NM2D.GameOver.executeScapecatRespawn(-1);
 						}
 					}
-					this.NM2D.MIST.burstMistArea((int)base.x, (int)base.y, 5);
+					base.NM2D.MIST.burstMistArea((int)base.x, (int)base.y, 5);
+					this.Pr.EpCon.lockOazuke(200f);
 					M2PrMistApplier mistApplier2 = this.Pr.getMistApplier();
 					if (mistApplier2 != null && this.Pr.enemy_targetted > 0)
 					{
 						mistApplier2.cureAll();
 					}
 					this.addManaDrainLock(magicItem, 1f, 0f);
+					if (!flag)
+					{
+						this.Pr.Ser.Cure(SER.FRUSTRATED);
+					}
 				}
 				else
 				{
-					this.Phy.addFoc(FOCTYPE.SPECIAL_ATTACK, 0f, -0.05f * global::XX.X.ZSIN(t + 1f, 9f), -1f, -1, 1, 0, -1, 0);
+					this.Phy.addFoc(FOCTYPE.SPECIAL_ATTACK, 0f, -0.05f * X.ZSIN(t + 1f, 9f), -1f, -1, 1, 0, -1, 0);
 				}
 			}
 			else
@@ -1142,19 +1213,124 @@ namespace nel
 				this.Pr.changeState(PR.STATE.NORMAL);
 				this.Pr.NCM.fine_all = true;
 			}
-			IL_1F91:
-			if (flag)
-			{
-				manip |= M2MoverPr.PR_MNP.NO_SINK;
-			}
-			else
-			{
-				manip &= (M2MoverPr.PR_MNP)(-3);
-			}
-			return true;
 		}
 
-		public void wormFocApplied(global::XX.AIM a)
+		public void runShieldBush(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			if (!base.hasD(M2MoverPr.DECL.FLAG0))
+			{
+				base.remD(M2MoverPr.DECL.STOP_EVADE);
+				if (this.evade_t <= 0f)
+				{
+					this.Pr.changeState(PR.STATE.NORMAL);
+					return;
+				}
+				if (!this.Shield.activate(false))
+				{
+					base.SpSetPose(this.guard_pose, -1, null, false);
+					return;
+				}
+				this.Shield.deactivate(true, true);
+				this.Shield.applyDamage(90f);
+				if (base.getEH(ENHA.EH.shield_cat))
+				{
+					this.FlgSoftFall.Add("MAGIC");
+				}
+				base.addD((M2MoverPr.DECL)16777290);
+				base.remD(M2MoverPr.DECL.ALLOC_SHIELD_HOLD);
+				base.SpSetPose("guard_bush", -1, null, false);
+				base.PtcVar("maxt", 70f).PtcVar("applyt", 18f).PtcVar("radius", 2.8f * base.Mp.CLENB)
+					.PtcST("guard_bush_apply", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C);
+				this.Pr.TeCon.setColorBlinkBush(4f, 18f, 1f, 345239, 0);
+				this.executeSmallAttack(0, null);
+				this.Pr.addNoDamage(NDMG.DEFAULT, 16f);
+				this.parry_t = 18f;
+				if (!this.Pr.forceCrouch(false, false))
+				{
+					this.Pr.quitCrouch(false, false, false);
+				}
+				t = 0f;
+			}
+			this.Shield.recover_lock_t = 90f;
+			if (t >= 47f)
+			{
+				base.remD(M2MoverPr.DECL.STOP_EVADE);
+				base.addD(M2MoverPr.DECL.ABORT_BY_MOVE);
+				base.SpSetPose("guard_bush2stand", -1, null, false);
+				if (this.Pr.isEvadeO(0))
+				{
+					this.runEvadeCheck(0f, false, true);
+				}
+			}
+			if (base.hasD(M2MoverPr.DECL.FLAG_HIT))
+			{
+				stop_sink = true;
+				this.Pr.lockSink(90f, true);
+			}
+			if (t < 70f)
+			{
+				return;
+			}
+			this.Pr.changeState(PR.STATE.NORMAL);
+			if (this.evade_t > 0f)
+			{
+				this.Shield.immediateGuard();
+				return;
+			}
+			this.shieldBlur(false, true);
+		}
+
+		public void runShieldLariat(bool first, ref float t, ref M2MoverPr.PR_MNP manip, ref bool stop_sink)
+		{
+			if (!base.hasD(M2MoverPr.DECL.FLAG0))
+			{
+				base.remD((M2MoverPr.DECL)10);
+				if (this.evade_t <= 0f)
+				{
+					this.Pr.changeState(PR.STATE.NORMAL);
+					return;
+				}
+				if (!this.Shield.changeStateLariat(base.TS, false, false))
+				{
+					base.remD((M2MoverPr.DECL)7);
+					base.SpSetPose(this.guard_pose, -1, null, false);
+					return;
+				}
+				t = 1f;
+				base.addD((M2MoverPr.DECL)32775);
+				base.addD((M2MoverPr.DECL)16777288);
+				base.remD(M2MoverPr.DECL.ALLOC_SHIELD_HOLD);
+				if (base.getEH(ENHA.EH.shield_cat))
+				{
+					this.FlgSoftFall.Add("MAGIC");
+				}
+				if (!this.Pr.forceCrouch(false, false))
+				{
+					this.Pr.quitCrouch(false, false, false);
+				}
+				base.SpSetPose("guard_slash", -1, null, false);
+			}
+			if (!this.Shield.isLariatState())
+			{
+				this.Pr.changeState(PR.STATE.NORMAL);
+				return;
+			}
+			this.Shield.changeStateLariat(base.TS, true, base.isAtkO() && t >= 12f);
+			if (!this.Shield.isManipulatableState())
+			{
+				if (!base.hasD(M2MoverPr.DECL.FLAG_HIT))
+				{
+					base.addD(M2MoverPr.DECL.FLAG_HIT);
+					base.remD(M2MoverPr.DECL.FORCE_SHIELD_KEY_HOLD);
+				}
+				if (t >= 30f)
+				{
+					base.remD((M2MoverPr.DECL)7);
+				}
+			}
+		}
+
+		public void wormFocApplied(AIM a)
 		{
 			PR.STATE state = base.state;
 			if (state - PR.STATE.WHEEL > 1)
@@ -1176,7 +1352,7 @@ namespace nel
 		{
 			if (this.mp_overused >= 100f)
 			{
-				float num = global::XX.X.NIL(180f, 100f, (float)(base.Ser.getLevel(SER.OVERRUN_TIRED) + 1), 4f);
+				float num = X.NIL(180f, 100f, (float)(base.Ser.getLevel(SER.OVERRUN_TIRED) + 1), 4f);
 				if (this.mp_overused >= num)
 				{
 					this.mp_overused -= num;
@@ -1204,6 +1380,10 @@ namespace nel
 			if (this.Pr.isMagicState(state))
 			{
 				this.FlgSoftFall.Add("MAGIC");
+			}
+			if ((prestate == PR.STATE.SMASH_SHOTGUN || prestate == PR.STATE.SMASH) && this.CurMg != null && base.hasD(M2MoverPr.DECL.FLAG1))
+			{
+				this.killHoldMagic(true, false);
 			}
 			this.stk_magic_t = 0f;
 			if (prestate == PR.STATE.MAG_EXPLODED && state != PR.STATE.MAG_EXPLODED)
@@ -1272,7 +1452,7 @@ namespace nel
 				this.evadelock_on_jump_ = false;
 				if (this.Pr.isBenchOrGoRecoveryState(prestate))
 				{
-					this.killHoldMagic(false);
+					this.killHoldMagic(false, false);
 					this.shieldBlur(true, true);
 					IN.clearPushDown(true);
 					this.punch_t = (this.evade_t = 0f);
@@ -1392,7 +1572,7 @@ namespace nel
 		{
 			if (base.isAtkPD(26) || (this.punch_t > 0f && base.isAtkO()))
 			{
-				if (CFG.magsel_decide_type != CFG.MAGSEL_TYPE.NORMAL && this.punch_t == 0f && global::XX.X.BTWS(0f, this.magic_t, (float)this.MAGIC_CHANT_DELAY))
+				if (CFG.magsel_decide_type != CFG.MAGSEL_TYPE.NORMAL && this.punch_t == 0f && X.BTWS(0f, this.magic_t, (float)this.MAGIC_CHANT_DELAY))
 				{
 					bool flag = false;
 					switch (CFG.magsel_decide_type)
@@ -1422,7 +1602,7 @@ namespace nel
 				if (!flag3 && flag2 && TS > 0f)
 				{
 					PR.STATE punchVariation = this.getPunchVariation(true, false);
-					if (punchVariation != PR.STATE.PUNCH && punchVariation != PR.STATE.NORMAL)
+					if (punchVariation != PR.STATE.PUNCH && punchVariation != PR.STATE.NORMAL && punchVariation != PR.STATE.SLIDING)
 					{
 						if (base.Ser.punchAllow())
 						{
@@ -1440,7 +1620,7 @@ namespace nel
 					}
 					else if (this.punch_t < 143f && TS > 0f)
 					{
-						this.punch_t = global::XX.X.Mn(this.punch_t + 1f, 143f);
+						this.punch_t = X.Mn(this.punch_t + 1f, 143f);
 					}
 					if (TS > 0f && this.punch_t - 128f >= 15f)
 					{
@@ -1450,7 +1630,7 @@ namespace nel
 						}
 						if (this.CurMg != null)
 						{
-							this.killHoldMagic(false);
+							this.killHoldMagic(false, false);
 							this.punch_decline_time = 15;
 						}
 						this.magic_t = 0f;
@@ -1458,16 +1638,16 @@ namespace nel
 						{
 							this.CarryBox.deactivate(false);
 						}
-						if (!this.BurstSel.isActive() && this.NM2D.WM.CurWM != null && TX.valid(this.NM2D.WM.CurWM.zx_evt) && !PUZ.IT.barrier_active && !this.NM2D.FlgWarpEventNotInjectable.isActive())
+						if (!this.BurstSel.isActive() && base.NM2D.WM.CurWM != null && TX.valid(base.NM2D.WM.CurWM.zx_evt) && !PUZ.IT.barrier_active && !base.NM2D.FlgWarpEventNotInjectable.isActive())
 						{
 							if (this.Pr.isEventInjectable(true))
 							{
-								EV.stack(this.NM2D.WM.CurWM.zx_evt, 0, -1, null, null);
+								EV.stack(base.NM2D.WM.CurWM.zx_evt, 0, -1, null, null);
 							}
 							this.punch_t = 0f;
 							return (M2MoverPr.PR_MNP)0;
 						}
-						if (this.BurstSel.runActivating(ref this.punch_t, 143f, 1024f, base.Ser.punchAllow() && !base.hasD(M2MoverPr.DECL.STOP_BURST) && (!base.isPuzzleManagingMp() || this.temp_puzzle_mp != 0f)))
+						if (this.BurstSel.runActivating(ref this.punch_t, 143f, 1024f, base.Ser.burstConsumeRatio() > 0f && !base.hasD(M2MoverPr.DECL.STOP_BURST) && (!base.isPuzzleManagingMp() || this.temp_puzzle_mp != 0f)))
 						{
 							this.Pr.changeState(PR.STATE.BURST);
 							return M2MoverPr.PR_MNP.CHANGED_STATE;
@@ -1485,7 +1665,7 @@ namespace nel
 				else
 				{
 					this.BurstSel.runDeactivating(false);
-					this.punch_t = global::XX.X.MMX(0.125f, this.punch_t + TS, 50f);
+					this.punch_t = X.MMX(0.125f, this.punch_t + TS, 50f);
 				}
 				return ((this.punch_t < 10f) ? M2MoverPr.PR_MNP.NO_SINK : ((M2MoverPr.PR_MNP)0)) | pr_MNP;
 			}
@@ -1505,12 +1685,13 @@ namespace nel
 			{
 				return (M2MoverPr.PR_MNP)0;
 			}
-			this.punch_t = global::XX.X.Mn(this.punch_t + TS, 0f);
-			if (this.punch_decline_time_ == 0 && !this.Pr.is_crouch && !this.FootD.FootIsLadder() && base.Ser.punchAllow())
+			this.punch_t = X.Mn(this.punch_t + TS, 0f);
+			if (this.punch_decline_time_ == 0 && !this.FootD.FootIsLadder() && base.Ser.punchAllow())
 			{
 				if (TS > 0f && !base.hasD_stopact())
 				{
-					this.Pr.changeState(PR.STATE.PUNCH);
+					PR.STATE punchVariation2 = this.getPunchVariation(true, false);
+					this.Pr.changeState(punchVariation2);
 				}
 				else
 				{
@@ -1572,10 +1753,18 @@ namespace nel
 			}
 			else if (this.canGroundPunchFoot())
 			{
-				if (is_punch_check && base.canJump() && (this.Pr.forceCrouch(false, false) || this.Pr.isBO(0) || this.Pr.isCrouchingState()) && this.punch_t < 5f)
+				if (base.canJump() && (this.Pr.forceCrouch(false, false) || this.Pr.isBO(0) || this.Pr.isCrouchingState()))
 				{
-					state = PR.STATE.SLIDING;
-					flag = true;
+					if (is_punch_check && this.isEnable(SkillManager.SKILL_TYPE.smash) && this.punch_t >= 10f)
+					{
+						state = ((this.CurMg != null) ? PR.STATE.SMASH_SHOTGUN : PR.STATE.SMASH);
+						flag = true;
+					}
+					else if (is_punch_check || this.Pr.get_state_time() < 5f)
+					{
+						state = PR.STATE.SLIDING;
+						flag = true;
+					}
 				}
 				if (this.Pr.run_continue_time >= 22f && !this.Phy.isin_water && this.isEnable(SkillManager.SKILL_TYPE.dashpunch))
 				{
@@ -1610,11 +1799,11 @@ namespace nel
 			{
 				if (this.Pr.isLO(0))
 				{
-					base.setAim(global::XX.AIM.L, false);
+					base.setAim(AIM.L, false);
 				}
 				if (this.Pr.isRO(0))
 				{
-					base.setAim(global::XX.AIM.R, false);
+					base.setAim(AIM.R, false);
 				}
 			}
 			if (execution && state != PR.STATE.PUNCH)
@@ -1690,16 +1879,17 @@ namespace nel
 			bool flag = Mg.kind == MGKIND.PR_SHOTGUN || base.state == PR.STATE.WHEEL_SHOTGUN || base.state == PR.STATE.COMET_SHOTGUN;
 			if ((hittype & HITTYPE.WALL) != HITTYPE.NONE)
 			{
-				if (Mg.kind == MGKIND.PR_SLIDING && (hittype & HITTYPE.EN) == HITTYPE.NONE && this.Pr.canStand((int)(this.Pr.x + (this.Pr.sizex + 0.02f) * this.mpf_is_right), (int)base.y))
+				if (Mg.kind == MGKIND.PR_SLIDING && (hittype & HITTYPE.EN) == HITTYPE.NONE && this.Pr.canStand((int)(this.Pr.x + (this.Pr.sizex + 0.02f) * base.mpf_is_right), (int)base.y))
 				{
 					return false;
 				}
-				Mg.Ray.hittype &= (HITTYPE)(-5);
+				Mg.Ray.hittype &= ~HITTYPE.WALL;
 				if (Mg.kind != MGKIND.PR_WHEEL && Mg.kind == MGKIND.PR_COMET)
 				{
 					Mg.killEffect();
 				}
-				base.PtcVar("x", base.Mp.globaluxToMapx(HitItem.hit_ux)).PtcVar("y", base.Mp.globaluyToMapy(HitItem.hit_uy)).PtcVar("ax", (float)((Mg.sx > 0f) ? 1 : (-1)))
+				float num = base.Mp.globaluyToMapy(HitItem.hit_uy);
+				base.PtcVar("x", base.Mp.globaluxToMapx(HitItem.hit_ux)).PtcVar("y", (num - base.y) * 0.5f + base.y).PtcVar("ax", (float)((Mg.sx > 0f) ? 1 : (-1)))
 					.PtcST(flag ? "hit_shotgun_wall" : "hit_tackle_wall", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				Mg.PadVib("attack_wall", false, 1f);
 				if ((hittype & HITTYPE.EN) == HITTYPE.NONE)
@@ -1709,7 +1899,7 @@ namespace nel
 			}
 			NelEnemy nelEnemy = HitItem.Hit as NelEnemy;
 			M2Attackable m2Attackable = HitItem.Hit as M2Attackable;
-			bool flag2 = (hittype & (HITTYPE)7) == HITTYPE.EN && m2Attackable != null;
+			bool flag2 = (hittype & (HITTYPE.PR | HITTYPE.EN | HITTYPE.WALL)) == HITTYPE.EN && m2Attackable != null;
 			if ((Mg.kind == MGKIND.PR_SHOTGUN || Mg.kind == MGKIND.PR_PUNCH) && base.isPunchState() && this.CurMg != null && flag2)
 			{
 				this.parry_t = 0f;
@@ -1725,7 +1915,7 @@ namespace nel
 						this.Pr.changeState(PR.STATE.NORMAL);
 						this.wheelBounce(false);
 						this.punch_decline_time = 3;
-						this.Phy.addFoc(FOCTYPE.WALK_FS, -this.mpf_is_right * 0.14f, 0f, -1f, 0, 1, 15, 1, 0);
+						this.Phy.addFoc(FOCTYPE.WALK_FS, -base.mpf_is_right * 0.14f, 0f, -1f, 0, 1, 15, 1, 0);
 						Mg.phase = -1;
 					}
 				}
@@ -1734,7 +1924,7 @@ namespace nel
 			{
 				if (flag2 && base.isPunchState())
 				{
-					Atk.burst_vx = global::XX.X.NIXP(-0.03f, 0.03f);
+					Atk.burst_vx = X.NIXP(-0.03f, 0.03f);
 					base.addD(M2MoverPr.DECL.FLAG_HIT);
 					if (this.publishShotgunHit(Mg, HitItem, 1.5707964f, true, -1))
 					{
@@ -1746,12 +1936,12 @@ namespace nel
 					return EnemySummoner.isActiveBorder();
 				}
 			}
-			if (Mg.kind == MGKIND.PR_DASHPUNCH)
+			if (Mg.kind == MGKIND.PR_DASHPUNCH || Mg.kind == MGKIND.PR_SMASH)
 			{
 				if (flag2 && base.isPunchState())
 				{
 					base.addD(M2MoverPr.DECL.FLAG_HIT);
-					if (this.publishShotgunHit(Mg, HitItem, 0f, true, -2))
+					if (this.publishShotgunHit(Mg, HitItem, 0f, Mg.kind == MGKIND.PR_DASHPUNCH, -2))
 					{
 						return true;
 					}
@@ -1765,7 +1955,7 @@ namespace nel
 			{
 				if (flag2 && base.isPunchState())
 				{
-					if (!flag)
+					if (!flag || this.CurMg == null)
 					{
 						this.wheelBounce(true);
 						Mg.phase = -1;
@@ -1773,7 +1963,11 @@ namespace nel
 					else
 					{
 						base.addD(M2MoverPr.DECL.FLAG_HIT);
-						this.publishShotgunHit(Mg, HitItem, -0.37699112f, true, global::XX.X.Mx(5, global::XX.X.IntC((float)Mg.reduce_mp * 0.5f)));
+						MagicSelector.KindData kindData = MagicSelector.getKindData(this.CurMg.kind);
+						if (kindData != null)
+						{
+							this.publishShotgunHit(Mg, HitItem, -0.37699112f, true, X.Mx(7, X.IntC(X.Mx((float)kindData.reduce_mp * 0.2f, Mg.reduce_mp * 0.5f))));
+						}
 					}
 				}
 				return !(HitItem.Hit is M2ManaWeed) || EnemySummoner.isActiveBorder();
@@ -1797,7 +1991,7 @@ namespace nel
 			if (Mg.kind == MGKIND.PR_SHIELD_BUSH && nelEnemy != null)
 			{
 				base.addD(M2MoverPr.DECL.FLAG_HIT);
-				Atk.BurstDir((float)global::XX.X.MPF(nelEnemy.x > this.Pr.x));
+				Atk.BurstDir((float)X.MPF(nelEnemy.x > this.Pr.x));
 				return true;
 			}
 			if (Mg.kind == MGKIND.PR_SHIELD_LARIAT && flag2 && nelEnemy != null)
@@ -1807,11 +2001,17 @@ namespace nel
 					Atk.hpdmg_current = 0;
 				}
 				this.Shield.applyDamage(120f);
-				Atk.BurstDir((float)global::XX.X.MPF(nelEnemy.x > this.Pr.x));
+				Atk.BurstDir((float)X.MPF(nelEnemy.x > this.Pr.x));
 			}
 			if (Mg.kind == MGKIND.PR_BURST && nelEnemy != null)
 			{
-				Atk.BurstDir((float)global::XX.X.MPF(nelEnemy.x > this.Pr.x));
+				Atk.BurstDir((float)X.MPF(nelEnemy.x > this.Pr.x));
+			}
+			if (Mg.kind == MGKIND.FIREBALL && Atk == Mg.Atk1 && nelEnemy != null)
+			{
+				float thick = Mg.Mn._1.thick;
+				float num2 = X.LENGTHXYQ(Mg.sx, Mg.sy, base.Mp.globaluxToMapx(HitItem.hit_ux), base.Mp.globaluyToMapy(HitItem.hit_uy));
+				Mg.Atk1.tired_time_to_super_armor = X.NIL(45f, 30f, num2 - Mg.Mn._0.thick, thick - Mg.Mn._0.thick);
 			}
 			return true;
 		}
@@ -1824,7 +2024,7 @@ namespace nel
 			}
 			bool flag = reduce_mag >= 0;
 			bool flag2 = reduce_mag <= -2;
-			reduce_mag = ((reduce_mag < 0) ? ((int)this.mp_hold) : ((int)global::XX.X.Mn(this.mp_hold, (float)reduce_mag)));
+			reduce_mag = ((reduce_mag < 0) ? ((int)this.mp_hold) : ((int)X.Mn(this.mp_hold, (float)reduce_mag)));
 			PostEffect it = PostEffect.IT;
 			float num = base.Mp.globaluxToMapx(HitItem.hit_ux);
 			float num2 = base.Mp.globaluyToMapy(HitItem.hit_uy);
@@ -1841,7 +2041,7 @@ namespace nel
 				base.PtcSTTimeFixed("shotgun_pre", 1f, PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				base.Mp.DmgCntCon.draw_delay = 1f;
 			}
-			this.Pr.PtcVar("x", (double)num).PtcVar("y", (double)num2).PtcVar("agR", (double)((this.mpf_is_right > 0f) ? right_agR : (3.1415927f - right_agR)))
+			this.Pr.PtcVar("x", (double)num).PtcVar("y", (double)num2).PtcVar("agR", (double)((base.mpf_is_right > 0f) ? right_agR : (3.1415927f - right_agR)))
 				.PtcST((Mg.da >= 1f) ? "shotgun_post" : "shotgun_post_small", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 			bool flag3 = false;
 			MagicItem curMg = this.CurMg;
@@ -1853,7 +2053,7 @@ namespace nel
 				if (!base.isPuzzleManagingMp() && this.mp_hold - (float)reduce_mag < 1f)
 				{
 					num4 = this.OcSlots.clearMagic(this.CurMg, true);
-					int num5 = global::XX.X.IntC(global::XX.X.Mn(this.mp_overhold, (float)reduce_mag));
+					int num5 = X.IntC(X.Mn(this.mp_overhold, (float)reduce_mag));
 					if (num5 > 0)
 					{
 						this.mp_overused += (float)num5;
@@ -1863,11 +2063,11 @@ namespace nel
 				}
 				if (num3 > 0f)
 				{
-					int reduceableMana = this.getReduceableMana(global::XX.X.IntC((float)reduce_mag * num3), num4);
+					int reduceableMana = this.getReduceableMana(X.IntC((float)reduce_mag * num3), num4);
 					int num6 = (int)((float)reduce_mag * num3 * this.CurMg.crystalize_neutral_ratio);
 					int num7 = reduceableMana - num6;
-					this.NM2D.Mana.AddMulti(base.Mp.globaluxToMapx(HitItem.hit_ux), base.Mp.globaluyToMapy(HitItem.hit_uy), (float)num7, (MANA_HIT)10);
-					this.NM2D.Mana.AddMulti(base.Mp.globaluxToMapx(HitItem.hit_ux), base.Mp.globaluyToMapy(HitItem.hit_uy), (float)num6, (MANA_HIT)11);
+					base.NM2D.Mana.AddMulti(base.Mp.globaluxToMapx(HitItem.hit_ux), base.Mp.globaluyToMapy(HitItem.hit_uy), (float)num7, MANA_HIT.EN | MANA_HIT.FALL, 1f);
+					base.NM2D.Mana.AddMulti(base.Mp.globaluxToMapx(HitItem.hit_ux), base.Mp.globaluyToMapy(HitItem.hit_uy), (float)num6, MANA_HIT.PR | MANA_HIT.EN | MANA_HIT.FALL, 1f);
 				}
 				if (num4 == 0)
 				{
@@ -1878,20 +2078,20 @@ namespace nel
 				{
 					curMg.kill(-1f);
 				}
-				this.mp_overhold = global::XX.X.Mx(0f, global::XX.X.Mn((float)this.CurMg.reduce_mp, this.mp_overhold) - (float)reduce_mag);
-				this.mp_hold = (float)((int)global::XX.X.Mx(0f, global::XX.X.Mn((float)this.CurMg.reduce_mp, this.mp_hold) - (float)reduce_mag));
-				this.fineHoldMagicTime();
+				this.mp_overhold = X.Mx(0f, X.Mn(this.CurMg.reduce_mp, this.mp_overhold) - (float)reduce_mag);
+				this.mp_hold = (float)((int)X.Mx(0f, X.Mn(this.CurMg.reduce_mp, this.mp_hold) - (float)reduce_mag));
+				this.fineHoldMagicTime(false);
 				this.OcSlots.reserve_consume_flag = false;
 			}
 			if (this.mp_hold < 1f)
 			{
 				this.mp_hold = (this.mp_overhold = 0f);
 				Mg.phase = -1;
-				Mg.reduce_mp = 0;
+				Mg.reduce_mp = 0f;
 				this.addManaDrainLock(curMg, flag ? 0.1f : 0.5f, 30f);
 				flag3 = true;
 				this.FlgSoftFall.Rem("MAGIC");
-				this.killHoldMagic(false);
+				this.killHoldMagic(false, false);
 				if (replace_normal)
 				{
 					MagicItem magicItem = this.executeSmallAttack(0, Mg);
@@ -1916,10 +2116,6 @@ namespace nel
 
 		public void initPublishKill(M2MagicCaster Target)
 		{
-			if (this.Pr.pee_lock > 0 && Target is NelEnemy)
-			{
-				this.Pr.PeeLockReduceCheck(0.66f);
-			}
 		}
 
 		private void wheelBounce(bool check_double_wheel = true)
@@ -1955,10 +2151,10 @@ namespace nel
 				magicItem = magicItem2;
 			}
 			magicItem.defineParticlePreVariable();
-			magicItem.PtcVar("mg", (double)((this.CurMg != null) ? (this.CurMg.chant_finished ? 2 : 1) : 0)).PtcVar("lax", (double)(this.mpf_is_right * (base.getEH(EnhancerManager.EH.long_reach) ? 2.4f : 1f))).PtcVar("ax", (double)this.mpf_is_right)
+			magicItem.PtcVar("mg", (double)((this.CurMg != null) ? (this.CurMg.chant_finished ? 2 : 1) : 0)).PtcVar("lax", (double)(base.mpf_is_right * (base.getEH(ENHA.EH.long_reach) ? 2.4f : 1f))).PtcVar("ax", (double)base.mpf_is_right)
 				.PtcVar("shift", (double)_shift)
 				.PtcST("pr_cane_swing", PTCThread.StFollow.NO_FOLLOW, false);
-			this.NM2D.MIST.attachWindDirectional((int)base.x, (int)(base.mtop + 0.2f), 2, 2, base.aim, 40, 1, 0);
+			base.NM2D.MIST.attachWindDirectional((int)base.x, (int)(base.mtop + 0.2f), 2, 2, base.aim, 40, 1, 0);
 			this.parry_t = 9f;
 		}
 
@@ -1968,35 +2164,36 @@ namespace nel
 			bool flag = false;
 			bool flag2 = false;
 			bool flag3 = false;
+			bool flag4 = false;
 			PR.STATE state = base.state;
 			MGKIND mgkind;
 			switch (state)
 			{
 			case PR.STATE.BURST:
 				mgkind = MGKIND.PR_BURST;
-				goto IL_011B;
+				goto IL_013F;
 			case PR.STATE.SLIDING:
 				mgkind = MGKIND.PR_SLIDING;
-				goto IL_011B;
+				goto IL_013F;
 			case PR.STATE.WHEEL:
 			case PR.STATE.WHEEL_SHOTGUN:
 				mgkind = MGKIND.PR_WHEEL;
 				flag2 = base.state == PR.STATE.WHEEL_SHOTGUN;
 				flag = true;
-				goto IL_011B;
+				goto IL_013F;
 			case PR.STATE.COMET:
 			case PR.STATE.COMET_SHOTGUN:
 				mgkind = MGKIND.PR_COMET;
 				flag2 = true;
 				flag = true;
 				flag3 = true;
-				goto IL_011B;
+				goto IL_013F;
 			case PR.STATE.DASHPUNCH:
 			case PR.STATE.DASHPUNCH_SHOTGUN:
 				mgkind = MGKIND.PR_DASHPUNCH;
 				flag = true;
 				flag3 = true;
-				goto IL_011B;
+				goto IL_013F;
 			case PR.STATE.AIRPUNCH:
 			case PR.STATE.AIRPUNCH_SHOTGUN:
 			case (PR.STATE)32:
@@ -2011,32 +2208,40 @@ namespace nel
 			case PR.STATE.SHIELD_BUSH:
 				mgkind = MGKIND.PR_SHIELD_BUSH;
 				num = -100;
-				goto IL_011B;
+				goto IL_013F;
 			case PR.STATE.SHIELD_LARIAT:
 				mgkind = MGKIND.PR_SHIELD_LARIAT;
 				num = 100;
-				goto IL_011B;
+				flag4 = true;
+				goto IL_013F;
 			case PR.STATE.SHIELD_COUNTER:
 			case PR.STATE.SHIELD_COUNTER_SHOTGUN:
 				mgkind = MGKIND.PR_SHIELD_COUNTER;
 				flag = true;
-				goto IL_011B;
+				goto IL_013F;
+			case PR.STATE.SMASH:
+			case PR.STATE.SMASH_SHOTGUN:
+				mgkind = MGKIND.PR_SMASH;
+				flag = true;
+				flag3 = true;
+				goto IL_013F;
 			default:
 				if (state == PR.STATE.BURST_SCAPECAT)
 				{
 					mgkind = MGKIND.PR_BURST;
-					goto IL_011B;
+					flag4 = true;
+					goto IL_013F;
 				}
 				break;
 			}
-			if (id >= 2 || (id == 1 && !base.getEH(EnhancerManager.EH.long_reach)))
+			if (id >= 2 || (id == 1 && !base.getEH(ENHA.EH.long_reach)))
 			{
 				return null;
 			}
 			mgkind = ((this.CurMg == null) ? MGKIND.PR_PUNCH : MGKIND.PR_SHOTGUN);
 			flag = true;
-			IL_011B:
-			MagicItem magicItem = (this.CurSkill = this.NM2D.MGC.setMagic(this.Pr, mgkind, (MGHIT)1025));
+			IL_013F:
+			MagicItem magicItem = (this.CurSkill = base.NM2D.MGC.setMagic(this.Pr, mgkind, (MGHIT)1025));
 			if (flag && this.CurMg != null)
 			{
 				MDAT.initShotGun(magicItem, this.CurMg, this.mp_hold, (float)base.magic_returnable_mp);
@@ -2047,6 +2252,7 @@ namespace nel
 			{
 				this.prepareMagicForCooking(magicItem, null, false);
 			}
+			magicItem.mana_absorb_replace = flag4;
 			magicItem.run(0f);
 			if (magicItem.Atk0 != null && mgkind == MGKIND.PR_PUNCH)
 			{
@@ -2056,7 +2262,7 @@ namespace nel
 			{
 				magicItem.projectile_power = num;
 				magicItem.Ray.hittype_to_week_projectile = HITTYPE.REFLECTED;
-				this.NM2D.MGC.initRayCohitable(magicItem.Ray);
+				base.NM2D.MGC.initRayCohitable(magicItem.Ray);
 				if (flag3)
 				{
 					magicItem.Ray.check_other_hit = true;
@@ -2067,73 +2273,81 @@ namespace nel
 				magicItem.Atk0.attack_max0 = -1;
 			}
 			state = base.state;
-			switch (state)
+			if (state <= PR.STATE.SHIELD_LARIAT)
 			{
-			case PR.STATE.PUNCH:
-			case PR.STATE.AIRPUNCH:
-			case PR.STATE.AIRPUNCH_SHOTGUN:
-				magicItem.no_kill_effect_when_close = true;
-				if (id == 1)
+				switch (state)
 				{
-					magicItem.sx *= 2.4f;
-					magicItem.Ray.SyncHitLock(PreMagic.Ray);
-				}
-				if (base.state == PR.STATE.AIRPUNCH_SHOTGUN || base.state == PR.STATE.AIRPUNCH)
-				{
-					magicItem.sx += (float)global::XX.X.MPF(magicItem.sx > 0f) * 0.6f;
-					magicItem.sz = 0.74f;
-				}
-				break;
-			case (PR.STATE)21:
-			case PR.STATE.SLIDING:
-				break;
-			case PR.STATE.BURST:
-			{
-				int magic_returnable_mp = base.magic_returnable_mp;
-				int reduce_mp = magicItem.reduce_mp;
-				magicItem.Atk0.tired_time_to_super_armor *= global::XX.X.ZPOW((float)magic_returnable_mp, (float)reduce_mp);
-				this.Pr.applyBurstMpDamage(magicItem.reduce_mp);
-				magicItem.reduce_mp = global::XX.X.Mn(magicItem.reduce_mp, magic_returnable_mp);
-				float num2 = global::XX.X.NI(1f, 0.125f, global::XX.X.ZLINE((float)(reduce_mp - magicItem.reduce_mp), (float)reduce_mp));
-				magicItem.Atk0.hpdmg0 = (int)((float)magicItem.Atk0.hpdmg0 * num2);
-				magicItem.Atk0.mpdmg0 = (int)((float)magicItem.Atk0.mpdmg0 * num2);
-				magicItem.Atk0.split_mpdmg = (int)((float)magicItem.Atk0.split_mpdmg * num2);
-				base.EggCon.check_holded_mp += (float)magicItem.reduce_mp;
-				break;
-			}
-			case PR.STATE.WHEEL:
-			case PR.STATE.WHEEL_SHOTGUN:
-				magicItem.PtcVar("ax", (double)this.Pr.mpf_is_right).PtcST((base.state == PR.STATE.WHEEL_SHOTGUN) ? "wheel_fly_shotgun" : "wheel_fly", PTCThread.StFollow.NO_FOLLOW, false);
-				break;
-			case PR.STATE.COMET:
-			case PR.STATE.COMET_SHOTGUN:
-				magicItem.PtcST((base.state == PR.STATE.COMET_SHOTGUN) ? "comet_fly_shotgun" : "comet_fly", PTCThread.StFollow.NO_FOLLOW, false);
-				break;
-			case PR.STATE.DASHPUNCH:
-			case PR.STATE.DASHPUNCH_SHOTGUN:
-				if (PreMagic == null)
-				{
-					this.Pr.PtcST((base.state == PR.STATE.DASHPUNCH_SHOTGUN) ? "dashpunch_shotgun" : "dashpunch", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C);
-				}
-				break;
-			default:
-				if (state != PR.STATE.SHIELD_LARIAT)
-				{
-					if (state == PR.STATE.BURST_SCAPECAT)
-					{
-						MDAT.initBurstAtkForScapeCat(magicItem);
-					}
-				}
-				else
-				{
+				case PR.STATE.PUNCH:
+				case PR.STATE.AIRPUNCH:
+				case PR.STATE.AIRPUNCH_SHOTGUN:
 					magicItem.no_kill_effect_when_close = true;
 					if (id == 1)
 					{
-						magicItem.sx *= -1f;
+						magicItem.sx *= 2.4f;
+						magicItem.Ray.SyncHitLock(PreMagic.Ray);
 					}
-					magicItem.Atk0.BurstDir((float)global::XX.X.MPF(magicItem.sx > 0f));
+					if (base.state == PR.STATE.AIRPUNCH_SHOTGUN || base.state == PR.STATE.AIRPUNCH)
+					{
+						magicItem.sx += (float)X.MPF(magicItem.sx > 0f) * 0.6f;
+						magicItem.sz = 0.74f;
+					}
+					break;
+				case (PR.STATE)21:
+				case PR.STATE.SLIDING:
+					break;
+				case PR.STATE.BURST:
+				{
+					int magic_returnable_mp = base.magic_returnable_mp;
+					int num2 = (int)magicItem.reduce_mp;
+					magicItem.Atk0.tired_time_to_super_armor *= X.ZPOW((float)magic_returnable_mp, (float)num2);
+					this.Pr.applyBurstMpDamage((int)magicItem.reduce_mp);
+					magicItem.reduce_mp = X.Mn(magicItem.reduce_mp, (float)magic_returnable_mp);
+					float num3 = X.NI(1f, 0.125f, X.ZLINE((float)num2 - magicItem.reduce_mp, (float)num2));
+					magicItem.Atk0.hpdmg0 = (int)((float)magicItem.Atk0.hpdmg0 * num3);
+					magicItem.Atk0.mpdmg0 = (int)((float)magicItem.Atk0.mpdmg0 * num3);
+					magicItem.Atk0.split_mpdmg = (int)((float)magicItem.Atk0.split_mpdmg * num3);
+					base.EggCon.check_holded_mp += magicItem.reduce_mp;
+					break;
 				}
-				break;
+				case PR.STATE.WHEEL:
+				case PR.STATE.WHEEL_SHOTGUN:
+					magicItem.PtcVar("ax", (double)this.Pr.mpf_is_right).PtcST((base.state == PR.STATE.WHEEL_SHOTGUN) ? "wheel_fly_shotgun" : "wheel_fly", PTCThread.StFollow.NO_FOLLOW, false);
+					break;
+				case PR.STATE.COMET:
+				case PR.STATE.COMET_SHOTGUN:
+					magicItem.PtcST((base.state == PR.STATE.COMET_SHOTGUN) ? "comet_fly_shotgun" : "comet_fly", PTCThread.StFollow.NO_FOLLOW, false);
+					break;
+				case PR.STATE.DASHPUNCH:
+				case PR.STATE.DASHPUNCH_SHOTGUN:
+					if (PreMagic == null)
+					{
+						this.Pr.PtcST((base.state == PR.STATE.DASHPUNCH_SHOTGUN) ? "dashpunch_shotgun" : "dashpunch", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C);
+					}
+					break;
+				default:
+					if (state == PR.STATE.SHIELD_LARIAT)
+					{
+						magicItem.no_kill_effect_when_close = true;
+						if (id == 1)
+						{
+							magicItem.sx *= -1f;
+						}
+						magicItem.Atk0.BurstDir((float)X.MPF(magicItem.sx > 0f));
+					}
+					break;
+				}
+			}
+			else if (state - PR.STATE.SMASH > 1)
+			{
+				if (state == PR.STATE.BURST_SCAPECAT)
+				{
+					magicItem.reduce_mp = 0f;
+					MDAT.initBurstAtkForScapeCat(magicItem);
+				}
+			}
+			else if (base.getEH(ENHA.EH.long_reach))
+			{
+				magicItem.sx *= 1.5f;
 			}
 			return magicItem;
 		}
@@ -2182,6 +2396,9 @@ namespace nel
 					break;
 				case MGKIND.PR_SHIELD_COUNTER:
 					flag = (base.state == PR.STATE.SHIELD_COUNTER || base.state == PR.STATE.SHIELD_COUNTER_SHOTGUN) && !base.hasD(M2MoverPr.DECL.FLAG2);
+					break;
+				case MGKIND.PR_SMASH:
+					flag = (base.state == PR.STATE.SMASH || base.state == PR.STATE.SMASH_SHOTGUN) && base.hasD(M2MoverPr.DECL.FLAG1) && !base.hasD(M2MoverPr.DECL.FLAG2);
 					break;
 				default:
 					if (kind == MGKIND.PR_BURST)
@@ -2246,7 +2463,7 @@ namespace nel
 			return base.isMagicExistState();
 		}
 
-		private M2MoverPr.PR_MNP initEvade(global::XX.AIM a, bool no_need_hold = false)
+		private M2MoverPr.PR_MNP initEvade(AIM a, bool no_need_hold = false)
 		{
 			if (base.Ser.cannotEvade())
 			{
@@ -2266,7 +2483,7 @@ namespace nel
 		{
 			get
 			{
-				if (!base.getEH(EnhancerManager.EH.double_evade))
+				if (!base.getEH(ENHA.EH.double_evade))
 				{
 					return 1;
 				}
@@ -2343,22 +2560,22 @@ namespace nel
 					{
 						if (base.isLO())
 						{
-							pr_MNP |= this.initEvade(global::XX.AIM.R, false);
+							pr_MNP |= this.initEvade(AIM.R, false);
 						}
 						else if (base.isRO())
 						{
-							pr_MNP |= this.initEvade(global::XX.AIM.L, false);
+							pr_MNP |= this.initEvade(AIM.L, false);
 						}
 					}
 					else if (CFG.shield_hold_evadable)
 					{
 						if (this.Pr.isLU(15, true))
 						{
-							pr_MNP |= this.initEvade(global::XX.AIM.R, true);
+							pr_MNP |= this.initEvade(AIM.R, true);
 						}
 						else if (this.Pr.isRU(15, true))
 						{
-							pr_MNP |= this.initEvade(global::XX.AIM.L, true);
+							pr_MNP |= this.initEvade(AIM.L, true);
 						}
 					}
 					if ((pr_MNP & M2MoverPr.PR_MNP.CHANGED_STATE) != (M2MoverPr.PR_MNP)0)
@@ -2369,7 +2586,7 @@ namespace nel
 				pr_MNP |= M2MoverPr.PR_MNP.NO_SINK;
 				if (flag3)
 				{
-					this.evade_t = global::XX.X.Mx(0.125f, this.evade_t) + TS;
+					this.evade_t = X.Mx(0.125f, this.evade_t) + TS;
 					if (this.Shield.isActive())
 					{
 						pr_MNP &= (M2MoverPr.PR_MNP)(-5);
@@ -2379,7 +2596,7 @@ namespace nel
 						this.Shield.activate(false);
 						if (this.Shield.isVisibleCompletely())
 						{
-							if (this.Shield.canGuard() && base.getEH(EnhancerManager.EH.shield_cat))
+							if (this.Shield.canGuard() && base.getEH(ENHA.EH.shield_cat))
 							{
 								this.FlgSoftFall.Add("SHIELD");
 								this.Pr.jumpRaisingQuit(true);
@@ -2410,18 +2627,18 @@ namespace nel
 			}
 			if (this.evade_t < 0f)
 			{
-				this.evade_t = global::XX.X.Mn(this.evade_t + TS, 0f);
+				this.evade_t = X.Mn(this.evade_t + TS, 0f);
 				if (alloc_execute_evadion)
 				{
 					if (this.skill_on_evade && this.evade_count < this.evade_count_max)
 					{
 						if (base.isLU())
 						{
-							pr_MNP |= (this.get_evade_active ? this.initEvade(global::XX.AIM.R, true) : pr_MNP);
+							pr_MNP |= (this.get_evade_active ? this.initEvade(AIM.R, true) : pr_MNP);
 						}
 						else if (base.isRU())
 						{
-							pr_MNP |= (this.get_evade_active ? this.initEvade(global::XX.AIM.L, true) : pr_MNP);
+							pr_MNP |= (this.get_evade_active ? this.initEvade(AIM.L, true) : pr_MNP);
 						}
 					}
 					if ((pr_MNP & M2MoverPr.PR_MNP.CHANGED_STATE) != (M2MoverPr.PR_MNP)0)
@@ -2489,7 +2706,7 @@ namespace nel
 
 		private bool magicProgressable(bool ignore_punch_t = false)
 		{
-			return !base.is_crouch && !this.Pr.hasD_stopmag() && this.Pr.Ser.ChantSpeedRate() > 0f && !base.isOnBench(true) && (base.MistApply == null || base.MistApply.canOpenShield()) && (ignore_punch_t || this.punch_t <= 0f) && !global::XX.X.BTWS(0f, this.evade_t, 10f) && (this.evade_t <= 0f || base.isMagicPD(30));
+			return !base.is_crouch && !this.Pr.hasD_stopmag() && this.Pr.Ser.ChantSpeedRate() > 0f && !base.isOnBench(true) && (base.MistApply == null || base.MistApply.canOpenShield()) && (ignore_punch_t || this.punch_t <= 0f) && !X.BTWS(0f, this.evade_t, 10f) && (this.evade_t <= 0f || base.isMagicPD(30));
 		}
 
 		public bool magic_progressable
@@ -2497,7 +2714,7 @@ namespace nel
 			get
 			{
 				bool flag = false;
-				if (global::XX.X.BTWS(0f, this.magic_t, (float)this.MAGIC_CHANT_DELAY) && CFG.magsel_decide_type != CFG.MAGSEL_TYPE.NORMAL && this.Pr.isAtkPD(1))
+				if (X.BTWS(0f, this.magic_t, (float)this.MAGIC_CHANT_DELAY) && CFG.magsel_decide_type != CFG.MAGSEL_TYPE.NORMAL && this.Pr.isAtkPD(1))
 				{
 					switch (CFG.magsel_decide_type)
 					{
@@ -2540,7 +2757,7 @@ namespace nel
 					}
 					else if (this.magic_t >= (float)this.MAGIC_CHANT_DELAY)
 					{
-						this.stk_magic_t = global::XX.X.Mx(this.stk_magic_t, (float)this.MAGIC_CHANT_DELAY);
+						this.stk_magic_t = X.Mx(this.stk_magic_t, (float)this.MAGIC_CHANT_DELAY);
 						flag2 = true;
 						flag = true;
 						flag3 = false;
@@ -2581,11 +2798,11 @@ namespace nel
 						}
 						if (this.Pr.isMagicRO(0))
 						{
-							this.Pr.setAim(global::XX.AIM.R, false);
+							this.Pr.setAim(AIM.R, false);
 						}
 						else if (this.Pr.isMagicLO(0))
 						{
-							this.Pr.setAim(global::XX.AIM.L, false);
+							this.Pr.setAim(AIM.L, false);
 						}
 					}
 				}
@@ -2596,7 +2813,7 @@ namespace nel
 					{
 						this.stk_magic_t = (float)(base.isNormalState() ? (-15) : 0);
 					}
-					this.stk_magic_t = global::XX.X.VALWALK(this.stk_magic_t, 0f, TS);
+					this.stk_magic_t = X.VALWALK(this.stk_magic_t, 0f, TS);
 					if (this.stk_magic_t < 0f)
 					{
 						flag = true;
@@ -2644,10 +2861,10 @@ namespace nel
 					}
 					else if (TS > 0f)
 					{
-						this.magic_t = global::XX.X.Mx(this.magic_t, 0f) + TS;
+						this.magic_t = X.Mx(this.magic_t, 0f) + TS;
 						if (this.CurMg == null && this.MagicSel.run(TS, this.CurMg == null && this.magic_t < (float)this.MAGIC_CHANT_DELAY, null))
 						{
-							this.magic_t = global::XX.X.Mn(this.magic_t, (float)this.MAGIC_CHANT_DELAY - 0.25f);
+							this.magic_t = X.Mn(this.magic_t, (float)this.MAGIC_CHANT_DELAY - 0.25f);
 						}
 					}
 					else
@@ -2719,24 +2936,24 @@ namespace nel
 			}
 			if (this.magic_t != 0f && this.CurMg != null && this.CurMg.casttime > 0f && !this.CurMg.is_sleep)
 			{
-				float num = global::XX.X.Mn(this.CurMg.casttime, this.CurMg.t + TS) * (float)this.CurMg.reduce_mp / this.CurMg.casttime;
+				float num = X.Mn(this.CurMg.casttime, this.CurMg.t + TS) * this.CurMg.reduce_mp / this.CurMg.casttime;
 				if (num > this.mp_hold)
 				{
 					if (!base.isPuzzleManagingMp())
 					{
 						if (base.mp - num <= 0f)
 						{
-							this.mp_overhold = global::XX.X.Mx(this.mp_overhold, -(base.mp - num));
+							this.mp_overhold = X.Mx(this.mp_overhold, -(base.mp - num));
 						}
 						else
 						{
 							this.mp_overhold = 0f;
 						}
 						this.mp_hold = num;
-						if (this.mp_hold >= (float)this.CurMg.reduce_mp && base.EggCon.isActive())
+						if (this.mp_hold >= this.CurMg.reduce_mp && base.EggCon.isActive())
 						{
 							base.EggCon.need_fine_mp = true;
-							base.EggCon.check_holded_mp += (float)this.CurMg.reduce_mp;
+							base.EggCon.check_holded_mp += this.CurMg.reduce_mp;
 						}
 					}
 					else
@@ -2744,7 +2961,7 @@ namespace nel
 						this.mp_hold = num;
 						this.mp_overhold = 0f;
 					}
-					this.mp_overhold = global::XX.X.Mn(this.mp_overhold, this.mp_hold);
+					this.mp_overhold = X.Mn(this.mp_overhold, this.mp_hold);
 				}
 			}
 			if (this.magic_t < 0f)
@@ -2758,17 +2975,17 @@ namespace nel
 							float t = this.CurMg.t;
 							MGKIND kind = this.CurMg.kind;
 							this.CurMg.kill(-1f);
-							MagicItem magicItem = this.NM2D.MGC.setMagic(this.Pr, kind, MGHIT.AUTO);
+							MagicItem magicItem = base.NM2D.MGC.setMagic(this.Pr, kind, MGHIT.AUTO);
 							this.OcSlots.replace(this.CurMg, magicItem);
 							this.CurMg = magicItem;
 							this.pre_chanted_magic_id = this.CurMg.id;
-							this.CurMg.t = global::XX.X.Mx(this.CurMg.t, t);
+							this.CurMg.t = X.Mx(this.CurMg.t, t);
 							this.Cursor.initMagic(this.CurMg, true, true);
 						}
 						this.Pr.changeState(PR.STATE.MAG_EXPLODE_PREPARE);
 						return M2MoverPr.PR_MNP.CHANGED_STATE;
 					}
-					this.magic_t = global::XX.X.Mn(0f, this.magic_t + TS);
+					this.magic_t = X.Mn(0f, this.magic_t + TS);
 				}
 				else
 				{
@@ -2813,20 +3030,20 @@ namespace nel
 				return false;
 			}
 			this.FlgSoftFall.Add("MAGIC");
-			this.CurMg = this.NM2D.MGC.setMagic(this.Pr, kind, MGHIT.AUTO);
-			if (this.CurMg.reduce_mp > 0)
+			this.CurMg = base.NM2D.MGC.setMagic(this.Pr, kind, MGHIT.AUTO);
+			if (this.CurMg.reduce_mp > 0f)
 			{
-				this.CurMg.reduce_mp = (int)global::XX.X.Mx(1f, (float)this.CurMg.reduce_mp * this.NM2D.pr_mp_consume_ratio);
+				this.CurMg.reduce_mp = (float)((int)X.Mx(1f, this.CurMg.reduce_mp * base.NM2D.pr_mp_consume_ratio));
 			}
 			this.pre_chanted_magic_id = this.CurMg.id;
 			this.Cursor.initMagic(this.CurMg, this.mp_hold > 0f, false);
 			if (flag && this.OcSlots.UseCheck(this.CurMg, 1))
 			{
-				this.mp_hold = (float)this.CurMg.reduce_mp;
+				this.mp_hold = this.CurMg.reduce_mp;
 			}
 			if (this.mp_hold > 0f)
 			{
-				this.CurMg.t = this.CurMg.casttime * this.mp_hold / (float)this.CurMg.reduce_mp;
+				this.CurMg.t = this.CurMg.casttime * this.mp_hold / this.CurMg.reduce_mp;
 			}
 			return true;
 		}
@@ -2838,13 +3055,13 @@ namespace nel
 			this.Pr.target_calced = 2;
 			if (base.state == PR.STATE.MAG_EXPLODED || this.CurMg == null || !this.CurMg.isPreparingCircle || this.CurMg.exploded)
 			{
-				this.killHoldMagic(false);
+				this.killHoldMagic(false, false);
 			}
 			else if (this.CurMg != null && !this.CurMg.is_sleep)
 			{
 				if (this.mp_hold == 0f)
 				{
-					this.fineHoldMagicTime();
+					this.fineHoldMagicTime(false);
 				}
 				else
 				{
@@ -2872,7 +3089,7 @@ namespace nel
 			}
 			if (this.CurMg.killed)
 			{
-				this.killHoldMagic(false);
+				this.killHoldMagic(false, false);
 				return false;
 			}
 			int num = (int)this.mp_hold;
@@ -2881,10 +3098,10 @@ namespace nel
 			{
 				if (this.temp_puzzle_mp == 0f)
 				{
-					this.killHoldMagic(false);
+					this.killHoldMagic(false, false);
 					return false;
 				}
-				if (this.NM2D.Puz.puzz_magic_count_max == -1)
+				if (base.NM2D.Puz.puzz_magic_count_max == -1)
 				{
 					num = 0;
 				}
@@ -2894,7 +3111,7 @@ namespace nel
 				num2 = this.OcSlots.clearMagic(this.CurMg, true);
 			}
 			this.Cursor.need_recalc_len = true;
-			this.CurMg.reduce_mp = this.getReduceableMana(num, num2);
+			this.CurMg.reduce_mp = (float)this.getReduceableMana(num, num2);
 			if (num2 == 0)
 			{
 				this.Pr.applyMpDamage(num, true, null, false, false);
@@ -2910,16 +3127,16 @@ namespace nel
 				if (this.mp_overhold > 0f)
 				{
 					this.mp_overused += this.mp_overhold;
-					this.mana_drain_lock_t = global::XX.X.NIL(50f, 120f, this.mp_overhold, this.mp_hold);
+					this.mana_drain_lock_t = X.NIL(50f, 120f, this.mp_overhold, this.mp_hold);
 				}
 				this.CurMg = this.prepareMagicForCooking(magicItem, this.CurMg, false);
-				magicItem.TS = this.NM2D.NightCon.WindSpeed();
+				magicItem.TS = base.NM2D.NightCon.WindSpeed();
 				magicItem.run(0f);
-				this.NM2D.MGC.initRayCohitable(this.CurMg.Ray);
+				base.NM2D.MGC.initRayCohitable(this.CurMg.Ray);
 				this.pre_chanted_magic_id = this.CurMg.id;
 				this.Cursor.initExplode(magicItem);
 				this.addManaDrainLock(magicItem, 1f, 0f);
-				MGContainer mgc = this.NM2D.MGC;
+				MGContainer mgc = base.NM2D.MGC;
 				int num3 = 0;
 				if (this.CurMg.kind == MGKIND.DROPBOMB)
 				{
@@ -2935,7 +3152,7 @@ namespace nel
 			}
 			else
 			{
-				global::XX.X.de(string.Concat(new string[]
+				X.de(string.Concat(new string[]
 				{
 					"初期化前にスペルが破壊されています！ type:",
 					FEnum<MGKIND>.ToStr(magicItem.kind),
@@ -2953,7 +3170,7 @@ namespace nel
 		{
 			if (this.CurMg != null && !this.CurMg.isPreparingCircle)
 			{
-				this.CurMg.reduce_mp = 0;
+				this.CurMg.reduce_mp = 0f;
 			}
 		}
 
@@ -2967,7 +3184,7 @@ namespace nel
 			{
 				return oc_consumed;
 			}
-			return global::XX.X.Mn(reduce_mag, base.magic_returnable_mp);
+			return X.Mn(reduce_mag, base.magic_returnable_mp);
 		}
 
 		public void addManaDrainLock(MagicItem Mg, float ratio = 1f, float add = 0f)
@@ -2980,9 +3197,9 @@ namespace nel
 					float num = kindData.mana_drain_lock * ratio + add;
 					if (this.Pr.enemy_targetted <= 0)
 					{
-						num = global::XX.X.Mn(60f, num);
+						num = X.Mn(60f, num);
 					}
-					this.mana_drain_lock_t_ = global::XX.X.Mn(global::XX.X.Mx(200f, this.mana_drain_lock_t_), this.mana_drain_lock_t_ + num * ((this.mana_drain_lock_t_ > num * 0.5f) ? 0.5f : 1f));
+					this.mana_drain_lock_t_ = X.Mn(X.Mx(200f, this.mana_drain_lock_t_), this.mana_drain_lock_t_ + num * ((this.mana_drain_lock_t_ > num * 0.5f) ? 0.5f : 1f));
 				}
 			}
 		}
@@ -2992,7 +3209,7 @@ namespace nel
 			if (this.mana_drain_lock_t_ > 0f)
 			{
 				this.mana_drain_lock_t_ = 0f;
-				this.NM2D.Mana.fineRecheckTarget(2f);
+				base.NM2D.Mana.fineRecheckTarget(2f);
 			}
 		}
 
@@ -3004,7 +3221,7 @@ namespace nel
 			}
 			set
 			{
-				this.mana_drain_lock_t_ = global::XX.X.Mx(this.mana_drain_lock_t_, value);
+				this.mana_drain_lock_t_ = X.Mx(this.mana_drain_lock_t_, value);
 			}
 		}
 
@@ -3013,46 +3230,60 @@ namespace nel
 			base.SpSetPose(this.FootD.FootIsLadder() ? "magic_hold_ladder" : "magic_hold", -1, null, false);
 			Vector2 aimPos = this.Pr.getAimPos(this.CurMg);
 			float num = base.Mp.GAR(base.x, base.y, aimPos.x, aimPos.y);
-			this.magic_aim_agR = global::XX.X.MULWALKANGLER(this.magic_aim_agR, num, 1f);
-			if (global::XX.CAim._XD(base.aim, 1) > 0)
+			this.magic_aim_agR = X.MULWALKANGLER(this.magic_aim_agR, num, 1f);
+			if (CAim._XD(base.aim, 1) > 0)
 			{
 				if (this.magic_aim_agR > 0.6597344f)
 				{
-					this.Anm.setAim(global::XX.AIM.TR, -1, false);
+					base.Anm.setAim(AIM.TR, -1, false);
 					return;
 				}
 				if (this.magic_aim_agR < -0.3455752f)
 				{
-					this.Anm.setAim(global::XX.AIM.RB, -1, false);
+					base.Anm.setAim(AIM.RB, -1, false);
 					return;
 				}
-				this.Anm.setAim(global::XX.AIM.R, -1, false);
+				base.Anm.setAim(AIM.R, -1, false);
 				return;
 			}
 			else
 			{
 				if (0f <= this.magic_aim_agR && this.magic_aim_agR < 2.4818583f)
 				{
-					this.Anm.setAim(global::XX.AIM.LT, -1, false);
+					base.Anm.setAim(AIM.LT, -1, false);
 					return;
 				}
 				if (0f > this.magic_aim_agR && this.magic_aim_agR > -2.7960176f)
 				{
-					this.Anm.setAim(global::XX.AIM.BL, -1, false);
+					base.Anm.setAim(AIM.BL, -1, false);
 					return;
 				}
-				this.Anm.setAim(global::XX.AIM.L, -1, false);
+				base.Anm.setAim(AIM.L, -1, false);
 				return;
 			}
 		}
 
-		public void killHoldMagic(bool split_hold_mp = false)
+		public void killHoldMagic(bool split_hold_mp = false, bool no_kill_effect = false)
 		{
-			if (split_hold_mp && this.mp_hold > this.mp_overhold)
+			MANA_HIT mana_HIT = MANA_HIT.NOUSE;
+			if (split_hold_mp)
+			{
+				mana_HIT = MANA_HIT.EN | MANA_HIT.FROM_DAMAGE_SPLIT | MANA_HIT.FALL;
+			}
+			this.killHoldMagic(mana_HIT, no_kill_effect);
+		}
+
+		public void killHoldMagic(MANA_HIT split_mana, bool no_kill_effect = false)
+		{
+			if (split_mana != MANA_HIT.NOUSE && this.mp_hold > this.mp_overhold && this.CurMg != null)
 			{
 				float num = this.mp_hold - this.mp_overhold;
-				this.NM2D.Mana.AddMulti(base.x, base.y, num, (MANA_HIT)14);
+				if (!PUZ.IT.barrier_active)
+				{
+					base.NM2D.Mana.AddMulti(base.x, base.y, num * MDAT.crystalizeRatio(this.Pr, this.CurMg.mp_crystalize), split_mana | this.Pr.mana_hit_absorb, 1f);
+				}
 				this.Pr.applyMpDamage((int)num, true, null, true, true);
+				this.mana_drain_lock_t = 50f;
 			}
 			this.mp_hold = (this.mp_overhold = 0f);
 			if (this.magic_t > 0f && this.magic_t < (float)this.MAGIC_CHANT_DELAY)
@@ -3060,27 +3291,30 @@ namespace nel
 				this.MagicSel.deactivate();
 			}
 			this.magic_t = 0f;
-			this.fineHoldMagicTime();
+			this.fineHoldMagicTime(no_kill_effect);
 		}
 
-		private bool fineHoldMagicTime()
+		private bool fineHoldMagicTime(bool no_kill_effect = false)
 		{
 			if (this.CurMg == null || base.state == PR.STATE.MAG_EXPLODED)
 			{
 				return true;
 			}
-			this.mp_overhold = global::XX.X.Mn(this.mp_overhold, this.mp_hold);
+			this.mp_overhold = X.Mn(this.mp_overhold, this.mp_hold);
 			if (this.mp_hold <= 0f)
 			{
 				this.FlgSoftFall.Rem("MAGIC");
-				this.CurMg.close();
+				if (!no_kill_effect)
+				{
+					this.CurMg.close();
+				}
 				this.CurMg.kill(-1f);
 				this.OcSlots.clearMagic(this.CurMg, false);
 				this.CurMg = null;
 				this.MagicSel.deactivate();
 				return true;
 			}
-			this.CurMg.castedTimeResetTo(this.CurMg.casttime * this.mp_hold / (float)this.CurMg.reduce_mp);
+			this.CurMg.castedTimeResetTo(this.CurMg.casttime * this.mp_hold / this.CurMg.reduce_mp);
 			return false;
 		}
 
@@ -3096,7 +3330,7 @@ namespace nel
 		{
 			get
 			{
-				return base.isNormalState() && global::XX.X.BTW((float)this.MAGIC_CHANT_EVADE_KILL_DELAY, this.magic_t, (float)this.MAGIC_CHANT_DELAY);
+				return base.isNormalState() && X.BTW((float)this.MAGIC_CHANT_EVADE_KILL_DELAY, this.magic_t, (float)this.MAGIC_CHANT_DELAY);
 			}
 		}
 
@@ -3136,17 +3370,17 @@ namespace nel
 
 		public void cureMp(ref int val)
 		{
-			this.mp_overhold = global::XX.X.Mx(this.mp_overhold - (float)val, 0f);
+			this.mp_overhold = X.Mx(this.mp_overhold - (float)val, 0f);
 		}
 
 		public void reduceCrackMp(ref int val)
 		{
-			val = (int)global::XX.X.Mn((float)val, global::XX.X.Mx(0f, this.Pr.get_mp() - this.mp_hold));
+			val = (int)X.Mn((float)val, X.Mx(0f, this.Pr.get_mp() - this.mp_hold));
 		}
 
 		public bool initPuzzleManagingMp(int set_to = -1)
 		{
-			this.killHoldMagic(false);
+			this.killHoldMagic(false, false);
 			this.Pr.tempPuzzleMpStringCacheClear();
 			this.temp_puzzle_mp = ((set_to < 0) ? this.Pr.get_temp_puzzle_max_mp() : ((float)set_to));
 			base.Ser.checkSer();
@@ -3161,7 +3395,7 @@ namespace nel
 		{
 			try
 			{
-				if (this.Pr.isPuzzleManagingMp() && this.NM2D.Puz.puzz_magic_count_max == -1)
+				if (this.Pr.isPuzzleManagingMp() && base.NM2D.Puz.puzz_magic_count_max == -1)
 				{
 					this.temp_puzzle_mp = this.Pr.get_temp_puzzle_max_mp();
 					if (UIStatus.Instance != null)
@@ -3177,7 +3411,7 @@ namespace nel
 
 		public void quitPuzzleManagingMp()
 		{
-			this.killHoldMagic(false);
+			this.killHoldMagic(false, false);
 			this.Pr.tempPuzzleMpStringCacheClear();
 			this.temp_puzzle_mp = 0f;
 			base.Ser.checkSer();
@@ -3198,9 +3432,9 @@ namespace nel
 			{
 				return 0f;
 			}
-			if (this.NM2D.Puz.puzz_magic_count_max != -1)
+			if (base.NM2D.Puz.puzz_magic_count_max != -1)
 			{
-				return (float)this.NM2D.Puz.puzz_magic_count_max * 64f;
+				return (float)base.NM2D.Puz.puzz_magic_count_max * 64f;
 			}
 			return base.maxmp;
 		}
@@ -3209,7 +3443,7 @@ namespace nel
 		{
 			if (!base.isPuzzleManagingMp())
 			{
-				return global::XX.X.ZLINE(base.getCastableMp(), base.maxmp);
+				return X.ZLINE(base.getCastableMp(), base.maxmp);
 			}
 			if (this.temp_puzzle_mp != 0f)
 			{
@@ -3233,7 +3467,7 @@ namespace nel
 			{
 				return 0;
 			}
-			if (this.NM2D.Puz.puzz_magic_count_max == -1)
+			if (base.NM2D.Puz.puzz_magic_count_max == -1)
 			{
 				return 0;
 			}
@@ -3244,7 +3478,7 @@ namespace nel
 			}
 			else
 			{
-				num = (int)global::XX.X.Mn(this.temp_puzzle_mp, (float)val);
+				num = (int)X.Mn(this.temp_puzzle_mp, (float)val);
 			}
 			this.temp_puzzle_mp -= (float)num;
 			this.Pr.tempPuzzleMpStringCacheClear();
@@ -3286,25 +3520,33 @@ namespace nel
 			else if (Atk == null || Atk.AttackFrom == null || Atk.AttackFrom is PR || !this.OcSlots.isActive(this.CurMg))
 			{
 				float num3 = this.mp_overhold;
-				float num4 = global::XX.X.Scr(this.getRE(RecipeManager.RPI_EFFECT.LOST_MP_WHEN_CHANTING), DIFF.lostMpChanting_screen_value(this.Pr, Atk));
-				float lost_mp_in_chanting_ratio = this.Pr.lost_mp_in_chanting_ratio;
-				this.mp_overhold = global::XX.X.Mx(0f, global::XX.X.Mn((float)this.CurMg.reduce_mp, this.mp_overhold) - (float)(3 * reduce_val0) * lost_mp_in_chanting_ratio);
-				float num5 = (num3 - this.mp_overhold) * global::XX.X.Mx(0f, global::XX.X.NI(3f, 0f, num4));
+				float num4 = X.Scr(this.getRE(RCP.RPI_EFFECT.LOST_MP_WHEN_CHANTING), DIFF.lostMpChanting_screen_value(this.Pr, Atk));
+				float lost_mp_in_chanting_ratio = this.Pr.DMG.lost_mp_in_chanting_ratio;
+				this.mp_overhold = X.Mx(0f, X.Mn(this.CurMg.reduce_mp, this.mp_overhold) - (float)(3 * reduce_val0) * lost_mp_in_chanting_ratio);
+				float num5 = (num3 - this.mp_overhold) * X.Mx(0f, X.NI(3f, 0f, num4));
 				num += num5;
-				this.mp_hold = (float)((int)global::XX.X.Mx(0f, global::XX.X.Mn((float)this.CurMg.reduce_mp, this.mp_hold) - ((float)reduce_val0 + num5) * lost_mp_in_chanting_ratio));
-				this.fineHoldMagicTime();
-				reduce_val0 = (int)global::XX.X.Mn(global::XX.X.Mx((float)reduce_val0, num2 - this.mp_hold), num2);
+				this.mp_hold = (float)((int)X.Mx(0f, X.Mn(this.CurMg.reduce_mp, this.mp_hold) - ((float)reduce_val0 + num5) * lost_mp_in_chanting_ratio));
+				this.fineHoldMagicTime(false);
+				reduce_val0 = (int)X.Mn(X.Mx((float)reduce_val0, num2 - this.mp_hold), num2);
 			}
 			float num6 = (float)this.Pr.applyMpDamage(out gauge_break, reduce_val0, true, Atk, use_quake, false, true);
 			float num7 = num6;
 			this.Pr.GSaver.applyMpDamage((float)reduce_val0, Atk, ref gauge_break, num2, use_quake);
 			if (crack_ratio > 0f)
 			{
-				gauge_break += (num7 * global::XX.X.NI(1f, 0f, this.getRE(RecipeManager.RPI_EFFECT.MP_GAZE_RESIST)) + num) * crack_ratio;
+				gauge_break += (num7 * X.NI(1f, 0f, this.getRE(RCP.RPI_EFFECT.MP_GAZE_RESIST)) + num) * crack_ratio;
 			}
 			if (split_mana_type != MANA_HIT.NOUSE && (Atk == null || Atk.attr != MGATTR.WORM))
 			{
-				(base.Mp.M2D as NelM2DBase).Mana.AddMulti(base.x, base.y, num6, split_mana_type);
+				if (Atk is NelAttackInfo)
+				{
+					MagicItem publishMagic = (Atk as NelAttackInfo).PublishMagic;
+					if (publishMagic != null && publishMagic.mana_absorb_replace)
+					{
+						publishMagic.ManaAbsorbReplace(this.Pr, split_mana_type, ref num6);
+					}
+				}
+				(base.Mp.M2D as NelM2DBase).Mana.AddMulti(base.x, base.y, num6, split_mana_type | this.Pr.mana_hit_absorb, 1f);
 			}
 			return num6;
 		}
@@ -3331,22 +3573,6 @@ namespace nel
 				return this.showMagicChantingTimeForEffect();
 			}
 			return (base.state == PR.STATE.NORMAL && this.magic_t != 0f && !curMagicForCursor.is_sleep) || base.state == PR.STATE.MAG_EXPLODE_PREPARE || base.state == PR.STATE.MAG_EXPLODED;
-		}
-
-		public NoelAnimator Anm
-		{
-			get
-			{
-				return this.Pr.getAnimator();
-			}
-		}
-
-		public float mpf_is_right
-		{
-			get
-			{
-				return this.Pr.mpf_is_right;
-			}
 		}
 
 		public MagicItem getCurMagic()
@@ -3379,7 +3605,7 @@ namespace nel
 			{
 				return this.Cursor.getAimPos();
 			}
-			return new Vector2(base.x + (float)global::XX.CAim._XD(this.Pr.aim, 4), base.y);
+			return new Vector2(base.x + (float)CAim._XD(this.Pr.aim, 4), base.y);
 		}
 
 		public void getCameraCenterPos(ref float posx, ref float posy, float shiftx, float shifty)
@@ -3390,8 +3616,8 @@ namespace nel
 				float num = this.Cursor.getCameraShiftLevel() * 0.56f;
 				if (targetPosition.z == 1f)
 				{
-					posx = global::XX.X.NI(posx, targetPosition.x * base.Mp.CLEN + shiftx, num);
-					posy = global::XX.X.NI(posy, targetPosition.y * base.Mp.CLEN + shifty, num);
+					posx = X.NI(posx, targetPosition.x * base.Mp.CLEN + shiftx, num);
+					posy = X.NI(posy, targetPosition.y * base.Mp.CLEN + shifty, num);
 					return;
 				}
 				int num2 = this.Cursor.getAim();
@@ -3399,14 +3625,14 @@ namespace nel
 				{
 					num2 = (int)base.aim;
 				}
-				posx = global::XX.X.NI(posx, base.drawx + (float)global::XX.CAim._XD(num2, 3 * (int)base.Mp.CLEN) + shiftx, num);
-				posy = global::XX.X.NI(posy, base.drawy - (float)global::XX.CAim._YD(num2, 3 * (int)base.Mp.CLEN) + shifty, num);
+				posx = X.NI(posx, base.drawx + (float)CAim._XD(num2, 3 * (int)base.Mp.CLEN) + shiftx, num);
+				posy = X.NI(posy, base.drawy - (float)CAim._YD(num2, 3 * (int)base.Mp.CLEN) + shifty, num);
 			}
 		}
 
 		private M2MoverPr.PR_MNP runUseItemSelectCheck(float TS)
 		{
-			UseItemSelector usel = this.NM2D.IMNG.USel;
+			UseItemSelector usel = base.NM2D.IMNG.USel;
 			bool flag = base.isNormalState() && this.magicProgressable(CFG.item_usel_type > CFG.USEL_TYPE.D_RELEASE) && this.magic_t == 0f;
 			if (CFG.item_usel_type == CFG.USEL_TYPE.D_TAP_Z)
 			{
@@ -3445,52 +3671,7 @@ namespace nel
 
 		public bool cannotAccessToCheckEvent()
 		{
-			return this.NM2D.IMNG.USel.isSelecting() || this.magic_t < 0f || this.magic_t > 1f;
-		}
-
-		private M2MoverPr.PR_MNP runFreezeGacha(float TS)
-		{
-			if (this.Pr.Ser.has(SER.FROZEN))
-			{
-				if (base.is_alive && ((base.isNormalState() && !this.isBusyTime(true, true, true, true)) || this.Pr.isAbsorbState() || this.Pr.isFrozenState() || this.Pr.isInputtableDownState()))
-				{
-					bool flag = false;
-					if (this.Pr.isBP() || this.Pr.isLP(1) || this.Pr.isRP(1) || this.Pr.isTP(1) || this.Pr.isJumpPD(1))
-					{
-						if (this.freeze_lock_t == 0f)
-						{
-							flag = true;
-						}
-						else
-						{
-							this.freeze_lock_t = -global::XX.X.Abs(this.freeze_lock_t);
-						}
-					}
-					if (this.freeze_lock_t != 0f)
-					{
-						bool flag2 = this.freeze_lock_t < 0f;
-						this.freeze_lock_t = global::XX.X.VALWALK(this.freeze_lock_t, 0f, TS);
-						if (this.freeze_lock_t == 0f && flag2)
-						{
-							flag = true;
-						}
-					}
-					if (flag)
-					{
-						this.freeze_lock_t = 8f;
-						this.Pr.TeCon.setQuake(1f, 7, 0f, 0);
-						this.Pr.TeCon.setQuakeSinH(4f, 13, 5.54f, 1f, 0);
-						this.Pr.PtcVar("cx", (double)(this.Pr.x + global::XX.X.XORSPS() * this.Pr.sizex * 0.7f)).PtcVar("cy", (double)(this.Pr.y + global::XX.X.XORSPS() * this.Pr.sizey * 0.7f)).PtcST("frozen_gacha", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-						int level = this.Pr.Ser.getLevel(SER.FROZEN);
-						this.Pr.Ser.CureTime(SER.FROZEN, (int)global::XX.X.NIL(120f, 180f, (float)level, 2f), false);
-					}
-				}
-			}
-			else if (this.freeze_lock_t != 0f)
-			{
-				this.freeze_lock_t = global::XX.X.Mx(global::XX.X.Abs(this.freeze_lock_t) - TS, 0f);
-			}
-			return (M2MoverPr.PR_MNP)0;
+			return base.NM2D.IMNG.USel.isSelecting() || this.magic_t < 0f || this.magic_t > 1f;
 		}
 
 		public void addCarryingBox(M2BoxMover Mv)
@@ -3508,7 +3689,7 @@ namespace nel
 					this.Pr.initJump();
 				}
 				this.CarryBox = Mv;
-				this.killHoldMagic(false);
+				this.killHoldMagic(false, false);
 				this.magic_t = 0f;
 			}
 		}
@@ -3601,14 +3782,14 @@ namespace nel
 				base.addD(M2MoverPr.DECL.INIT_A);
 				t = 0f;
 				this.Pr.playSndPos("cloth_off", 1);
-				this.Anm.setPose("item_gosogoso", -1, false);
+				base.Anm.setPose("item_gosogoso", -1, false);
 			}
 			else if (!base.hasD(M2MoverPr.DECL.FLAG0))
 			{
 				if (t >= 30f && mgBombMem.Con.initHoldPrepare(curSkill))
 				{
 					base.addD(M2MoverPr.DECL.FLAG0);
-					this.Anm.setPose("throw", -1, false);
+					base.Anm.setPose("throw", -1, false);
 					t = 0f;
 					curSkill.PtcST("itembomb_initialize", PTCThread.StFollow.NO_FOLLOW, false);
 					this.Cursor.initMagic(curSkill, false, false);
@@ -3620,16 +3801,16 @@ namespace nel
 				bool flag;
 				if (aimDirection >= 0)
 				{
-					int num = global::XX.CAim._XD(aimDirection, 1);
-					flag = num != 0 && num != global::XX.CAim._XD(curSkill.Caster.getAimForCaster(), 1);
+					int num = CAim._XD(aimDirection, 1);
+					flag = num != 0 && num != CAim._XD(curSkill.Caster.getAimForCaster(), 1);
 				}
 				else
 				{
-					flag = global::XX.X.Abs(curSkill.Cen.x - curSkill.PosA.x) > 0.0625f && curSkill.Cen.x < curSkill.PosA.x != global::XX.CAim._XD(curSkill.Caster.getAimForCaster(), 1) > 0;
+					flag = X.Abs(curSkill.Cen.x - curSkill.PosA.x) > 0.0625f && curSkill.Cen.x < curSkill.PosA.x != CAim._XD(curSkill.Caster.getAimForCaster(), 1) > 0;
 				}
 				if (flag)
 				{
-					curSkill.Caster.setAimForCaster((curSkill.Cen.x < curSkill.PosA.x) ? global::XX.AIM.R : global::XX.AIM.L);
+					curSkill.Caster.setAimForCaster((curSkill.Cen.x < curSkill.PosA.x) ? AIM.R : AIM.L);
 				}
 				else
 				{
@@ -3652,12 +3833,12 @@ namespace nel
 					{
 						if (t >= 20f && this.Pr.isSubmitPD(10))
 						{
-							this.Anm.setPose("throw_2", -1, false);
+							base.Anm.setPose("throw_2", -1, false);
 							t = 100f;
 						}
 						else
 						{
-							t = global::XX.X.Mn(20f, t);
+							t = X.Mn(20f, t);
 						}
 					}
 					else if (t >= 106f)
@@ -3665,9 +3846,9 @@ namespace nel
 						if (!this.Pr.isSubmitO(0) || !mgBombMem.Con.isHoldPrepare(curSkill))
 						{
 							t = 20f;
-							if (this.Anm.poseIs("throw_2"))
+							if (base.Anm.poseIs("throw_2"))
 							{
-								this.Anm.setPose("throw", -1, false);
+								base.Anm.setPose("throw", -1, false);
 							}
 							if (mgBombMem.Con.isHoldPrepare(curSkill))
 							{
@@ -3746,21 +3927,21 @@ namespace nel
 			float num2 = 1f;
 			if (!newgaming)
 			{
-				foreach (KeyValuePair<RecipeManager.RPI_EFFECT, float> keyValuePair in this.NM2D.IMNG.StmNoel.getLevelDictionary01())
+				foreach (KeyValuePair<RCP.RPI_EFFECT, float> keyValuePair in base.NM2D.IMNG.StmNoel.getLevelDictionary01())
 				{
-					float num3 = (float)global::XX.X.IntR(keyValuePair.Value * 100f) / 100f;
+					float num3 = (float)X.IntR(keyValuePair.Value * 100f) / 100f;
 					if (num3 >= 0f)
 					{
 						num3 *= this.Pr.Ser.getStomachApplyRatio();
 					}
-					RecipeManager.RPI_EFFECT key = keyValuePair.Key;
-					if (key <= RecipeManager.RPI_EFFECT.FIRE_DAMAGE_REDUCE)
+					RCP.RPI_EFFECT key = keyValuePair.Key;
+					if (key <= RCP.RPI_EFFECT.FIRE_DAMAGE_REDUCE)
 					{
-						if (key != RecipeManager.RPI_EFFECT.MAXHP)
+						if (key != RCP.RPI_EFFECT.MAXHP)
 						{
-							if (key != RecipeManager.RPI_EFFECT.MAXMP)
+							if (key != RCP.RPI_EFFECT.MAXMP)
 							{
-								if (key == RecipeManager.RPI_EFFECT.FIRE_DAMAGE_REDUCE)
+								if (key == RCP.RPI_EFFECT.FIRE_DAMAGE_REDUCE)
 								{
 									if (num3 > 0f)
 									{
@@ -3770,7 +3951,7 @@ namespace nel
 							}
 							else
 							{
-								this.PreAMem.mp_add = this.PreAMem.mp_add + global::XX.X.IntC((float)this.PreAMem.def_maxmp * num3);
+								this.PreAMem.mp_add = this.PreAMem.mp_add + X.IntC((float)this.PreAMem.def_maxmp * num3);
 								if (num3 < 0f)
 								{
 									num2 += num3;
@@ -3781,7 +3962,7 @@ namespace nel
 						}
 						else
 						{
-							this.PreAMem.hp_add = this.PreAMem.hp_add + global::XX.X.IntC((float)this.PreAMem.def_maxhp * num3);
+							this.PreAMem.hp_add = this.PreAMem.hp_add + X.IntC((float)this.PreAMem.def_maxhp * num3);
 							if (num3 < 0f)
 							{
 								num += num3;
@@ -3790,11 +3971,11 @@ namespace nel
 							continue;
 						}
 					}
-					else if (key != RecipeManager.RPI_EFFECT.ELEC_DAMAGE_REDUCE)
+					else if (key != RCP.RPI_EFFECT.ELEC_DAMAGE_REDUCE)
 					{
-						if (key != RecipeManager.RPI_EFFECT.FROZEN_DAMAGE_REDUCE)
+						if (key != RCP.RPI_EFFECT.FROZEN_DAMAGE_REDUCE)
 						{
-							if (key == RecipeManager.RPI_EFFECT.SLEEP_RESIST)
+							if (key == RCP.RPI_EFFECT.SLEEP_RESIST)
 							{
 								if (num3 > 0f)
 								{
@@ -3813,29 +3994,29 @@ namespace nel
 					}
 					this.addRELevel(keyValuePair.Key, num3);
 				}
-				int num4 = global::XX.X.beki_cntC(8193U);
+				int num4 = X.beki_cntC(8193U);
 				for (int i = 0; i < num4; i++)
 				{
-					EnhancerManager.EH eh = (EnhancerManager.EH)(1 << i);
+					ENHA.EH eh = (ENHA.EH)(1 << i);
 					if (base.getEH(eh))
 					{
-						if (eh != EnhancerManager.EH.overspell)
+						if (eh != ENHA.EH.overspell)
 						{
-							if (eh != EnhancerManager.EH.anchor)
+							if (eh != ENHA.EH.anchor)
 							{
-								if (eh == EnhancerManager.EH.singletask)
+								if (eh == ENHA.EH.singletask)
 								{
-									this.addRELevel(RecipeManager.RPI_EFFECT.LOST_MP_WHEN_CHANTING, 0.92f);
+									this.addRELevel(RCP.RPI_EFFECT.LOST_MP_WHEN_CHANTING, 0.92f);
 								}
 							}
 							else
 							{
-								this.addRELevel(RecipeManager.RPI_EFFECT.SINK_REDUCE, 0.44f);
+								this.addRELevel(RCP.RPI_EFFECT.SINK_REDUCE, 0.44f);
 							}
 						}
 						else
 						{
-							this.addRELevel(RecipeManager.RPI_EFFECT.ATK_MAGIC_OVERSPELL, 0.66f);
+							this.addRELevel(RCP.RPI_EFFECT.ATK_MAGIC_OVERSPELL, 0.66f);
 						}
 					}
 				}
@@ -3849,24 +4030,24 @@ namespace nel
 						this.addActivePrSkill(value);
 					}
 				}
-				int num5 = global::XX.X.Int((float)(this.PreAMem.hp_add - hp_add) * num);
-				int num6 = global::XX.X.Int((float)(this.PreAMem.mp_add - mp_add) * num2);
+				int num5 = X.Int((float)(this.PreAMem.hp_add - hp_add) * num);
+				int num6 = X.Int((float)(this.PreAMem.mp_add - mp_add) * num2);
 				this.PreAMem.hp_add = hp_add + num5;
 				this.PreAMem.mp_add = mp_add + num6;
 				if (!newgaming && base.isOnBench(false))
 				{
 					expand_hp = true;
-					if (this.NM2D.isSafeArea())
+					if (base.NM2D.isSafeArea())
 					{
 						expand_mp = true;
 					}
 				}
-				this.shield_fcnt = global::XX.X.NI(0.8f, 0.1f, this.getRE(RecipeManager.RPI_EFFECT.SHIELD_ENPOWER));
-				this.Shield.shield_enpower = global::XX.X.NI(1f, 0.25f, this.getRE(RecipeManager.RPI_EFFECT.SHIELD_ENPOWER));
-				this.Pr.Ser.progress_speed = global::XX.X.Mx(0.0625f, global::XX.X.NI(1f, 2f, this.getRE(RecipeManager.RPI_EFFECT.SER_FAST)));
-				this.pr_chant_speed = global::XX.X.NI(1f, 2f, this.getRE(RecipeManager.RPI_EFFECT.CHANT_SPEED));
-				this.pr_mp_hunder_chant_speed = global::XX.X.NI(0.25f, 2.66f, this.getRE(RecipeManager.RPI_EFFECT.CHANT_SPEED_OVERHOLD));
-				this.ser_apply_ratio = global::XX.X.NI(1f, 0.25f, this.getRE(RecipeManager.RPI_EFFECT.SER_RESIST));
+				this.shield_fcnt = X.NI(0.8f, 0.1f, this.getRE(RCP.RPI_EFFECT.SHIELD_ENPOWER));
+				this.Shield.shield_enpower = X.NI(1f, 0.25f, this.getRE(RCP.RPI_EFFECT.SHIELD_ENPOWER));
+				this.Pr.Ser.progress_speed = X.Mx(0.0625f, X.NI(1f, 2f, this.getRE(RCP.RPI_EFFECT.SER_FAST)));
+				this.pr_chant_speed = X.NI(1f, 2f, this.getRE(RCP.RPI_EFFECT.CHANT_SPEED));
+				this.pr_mp_hunder_chant_speed = X.NI(0.25f, 2.66f, this.getRE(RCP.RPI_EFFECT.CHANT_SPEED_OVERHOLD));
+				this.ser_apply_ratio = X.NI(1f, 0.25f, this.getRE(RCP.RPI_EFFECT.SER_RESIST));
 				this.Pr.Ser.Regist = this.SerRegist;
 			}
 			this.popSkillParams(expand_hp, expand_mp);
@@ -3876,7 +4057,7 @@ namespace nel
 		{
 			get
 			{
-				if (!base.getEH(EnhancerManager.EH.cliff_stopper))
+				if (!base.getEH(ENHA.EH.cliff_stopper))
 				{
 					return (FOCTYPE)0U;
 				}
@@ -3888,7 +4069,7 @@ namespace nel
 		{
 			get
 			{
-				if (!(base.getEH(EnhancerManager.EH.cliff_stopper) | DIFF.damage_cliff_stop))
+				if (!(base.getEH(ENHA.EH.cliff_stopper) | DIFF.damage_cliff_stop))
 				{
 					return (FOCTYPE)0U;
 				}
@@ -3901,11 +4082,11 @@ namespace nel
 			this.enable_skill_bits |= K.skill_type_bit;
 			if ((K.category & SkillManager.SKILL_CTG.HP) != (SkillManager.SKILL_CTG)0 && REG.match(K.key, PrSkill.RegHpGain))
 			{
-				this.PreAMem.hp_add = this.PreAMem.hp_add + global::XX.X.NmI(REG.R1, 0, false, false);
+				this.PreAMem.hp_add = this.PreAMem.hp_add + X.NmI(REG.R1, 0, false, false);
 			}
 			if ((K.category & SkillManager.SKILL_CTG.MP) != (SkillManager.SKILL_CTG)0 && REG.match(K.key, PrSkill.RegMpGain))
 			{
-				this.PreAMem.mp_add = this.PreAMem.mp_add + global::XX.X.NmI(REG.R1, 0, false, false);
+				this.PreAMem.mp_add = this.PreAMem.mp_add + X.NmI(REG.R1, 0, false, false);
 			}
 		}
 
@@ -3933,18 +4114,18 @@ namespace nel
 			float num2 = 1f;
 			if (PreChantMagic == null)
 			{
-				num += this.getRE(RecipeManager.RPI_EFFECT.ATK) * 0.75f;
-				num2 += this.getRE(RecipeManager.RPI_EFFECT.PUNCH_DRAIN) * 1f;
+				num += this.getRE(RCP.RPI_EFFECT.ATK) * 0.75f;
+				num2 += this.getRE(RCP.RPI_EFFECT.PUNCH_DRAIN) * 1f;
 			}
 			if (PreChantMagic != null || shotgun)
 			{
-				float num3 = this.getRE(RecipeManager.RPI_EFFECT.ATK_MAGIC) * 1f;
+				float num3 = this.getRE(RCP.RPI_EFFECT.ATK_MAGIC) * 1f;
 				if (this.mp_overhold > 0f && this.mp_hold > 0f)
 				{
-					num3 = global::XX.X.NI(num3, 1.5f, this.getRE(RecipeManager.RPI_EFFECT.ATK_MAGIC_OVERSPELL) * (shotgun ? global::XX.X.ZPOW(this.mp_overhold, this.mp_hold) : global::XX.X.ZLINE(this.mp_overhold, this.mp_hold)));
+					num3 = X.NI(num3, 1.5f, this.getRE(RCP.RPI_EFFECT.ATK_MAGIC_OVERSPELL) * (shotgun ? X.ZPOW(this.mp_overhold, this.mp_hold) : X.ZLINE(this.mp_overhold, this.mp_hold)));
 				}
 				num += num3;
-				Mg.crystalize_neutral_ratio = global::XX.X.Scr(Mg.crystalize_neutral_ratio, global::XX.X.NI(0f, 0.875f, this.getRE(RecipeManager.RPI_EFFECT.MANA_NEUTRAL)));
+				Mg.crystalize_neutral_ratio = X.Scr(Mg.crystalize_neutral_ratio, X.NI(0f, 0.875f, this.getRE(RCP.RPI_EFFECT.MANA_NEUTRAL)));
 			}
 			this.AtkMul(Mg.Atk0, num, num2);
 			this.AtkMul(Mg.Atk1, num, num2);
@@ -3959,8 +4140,8 @@ namespace nel
 				return;
 			}
 			Atk.hpdmg0 = (int)((float)Atk.hpdmg0 * hpdmg);
-			Atk.mpdmg0 = global::XX.X.IntC((float)Atk.mpdmg0 * mpdmg);
-			Atk.split_mpdmg = global::XX.X.IntC((float)Atk.split_mpdmg * mpdmg);
+			Atk.mpdmg0 = X.IntC((float)Atk.mpdmg0 * mpdmg);
+			Atk.split_mpdmg = X.IntC((float)Atk.split_mpdmg * mpdmg);
 		}
 
 		public bool isCastingSpecificMagic(MGKIND k)
@@ -3992,7 +4173,7 @@ namespace nel
 			if (!return_real_val)
 			{
 				int num2 = this.OcSlots.currentHoldMpForUi(this.CurMg, (int)this.mp_hold);
-				num = global::XX.X.Mn(num, num2);
+				num = X.Mn(num, num2);
 			}
 			return num;
 		}
@@ -4006,7 +4187,7 @@ namespace nel
 		{
 			set
 			{
-				this.punch_decline_time_ = (byte)global::XX.X.Mx((int)this.punch_decline_time_, value);
+				this.punch_decline_time_ = (byte)X.Mx((int)this.punch_decline_time_, value);
 			}
 		}
 
@@ -4056,9 +4237,9 @@ namespace nel
 			return this.Shield.canGuard();
 		}
 
-		public M2PrSkill addRELevel(RecipeManager.RPI_EFFECT effect, float val)
+		public M2PrSkill addRELevel(RCP.RPI_EFFECT effect, float val)
 		{
-			this.Oeffect01[effect] = global::XX.X.Mn(1f, global::XX.X.Get<RecipeManager.RPI_EFFECT, float>(this.Oeffect01, effect, 0f) + val);
+			this.Oeffect01[effect] = X.Mn(1f, X.Get<RCP.RPI_EFFECT, float>(this.Oeffect01, effect, 0f) + val);
 			return this;
 		}
 
@@ -4073,15 +4254,15 @@ namespace nel
 
 		public bool isBusyTime(bool punch = true, bool evade = true, bool magic = true, bool usel = true)
 		{
-			return (punch && this.punch_t > 0f) || (evade && this.evade_t > 0f) || (magic && this.magic_t > 0f) || (usel && this.NM2D.IMNG.USel.isSelecting());
+			return (punch && this.punch_t > 0f) || (evade && this.evade_t > 0f) || (magic && this.magic_t > 0f) || (usel && base.NM2D.IMNG.USel.isSelecting());
 		}
 
-		public float getRE(RecipeManager.RPI_EFFECT effect)
+		public float getRE(RCP.RPI_EFFECT effect)
 		{
-			float num = global::XX.X.Get<RecipeManager.RPI_EFFECT, float>(this.Oeffect01, effect, 0f);
+			float num = X.Get<RCP.RPI_EFFECT, float>(this.Oeffect01, effect, 0f);
 			if (!base.is_alive && num != 0f)
 			{
-				return global::XX.X.Mn(0f, num);
+				return X.Mn(0f, num);
 			}
 			return num;
 		}
@@ -4089,12 +4270,6 @@ namespace nel
 		public bool isShotgunState()
 		{
 			return this.Pr.isShotgunState();
-		}
-
-		public M2PrSkill PadVib(string vib_key, float level = 1f)
-		{
-			this.Pr.PadVib(vib_key, level);
-			return this;
 		}
 
 		public bool isShotgun(MagicItem Mg)
@@ -4161,6 +4336,28 @@ namespace nel
 		public const float DASHPUNCH_RADIUS = 0.66f;
 
 		public const float DASHPUNCH_SHOTGUN_RATIO = 1f;
+
+		public const int SMASH_HOLD_START_T = 10;
+
+		public const float SMASH_PREPARE_T = 60f;
+
+		public const float SMASH_SLIDING_SHIFTABLE_T = 12f;
+
+		public const float SMASH_ATK_T = 20f;
+
+		public const float SMASH_AFTER_T = 44f;
+
+		public const float SMASH_AFTER_EVADE_ALLOC = 20f;
+
+		public const float SMASH_PUNCH_RADIUS = 0.6f;
+
+		public const float SMASH_SHOTGUN_RATIO = 2f;
+
+		public const float SMASH_PREPARE_EVADE_ALLOC = 35f;
+
+		private const float SMASH_VX = 0.25f;
+
+		private const float SMASH_VX_RETURN = 0.09f;
 
 		public const float AIRPUNCH_FIRST_VX = 0.15f;
 
@@ -4302,7 +4499,7 @@ namespace nel
 
 		private M2PrOverChargeSlot OcSlots;
 
-		private BDic<RecipeManager.RPI_EFFECT, float> Oeffect01;
+		private BDic<RCP.RPI_EFFECT, float> Oeffect01;
 
 		private int evade_count;
 
@@ -4354,13 +4551,11 @@ namespace nel
 
 		private int pre_chanted_magic_id = -1;
 
-		private const float MP_OVERUSED_REDUCE_TS = 0.06666667f;
+		private const float MP_OVERUSED_REDUCE_TS = 0.16666667f;
 
 		private byte punch_decline_time_;
 
 		private bool cyclone_attacked;
-
-		private float freeze_lock_t;
 
 		private float swaysld_t;
 
@@ -4368,7 +4563,7 @@ namespace nel
 
 		public readonly Flagger FlgSoftFall;
 
-		public readonly FlagCounter<SER> SerRegist;
+		public readonly M2SerResist SerRegist;
 
 		private const float burst_ptrfl = 128f;
 
@@ -4402,16 +4597,16 @@ namespace nel
 			{
 				bool flag = false;
 				bool is_alive = Pr.is_alive;
-				int num = global::XX.X.Mx(this.hp_add + this.def_maxhp, 1);
+				int num = X.Mx(this.hp_add + this.def_maxhp, 1);
 				if (num != this.maxhp)
 				{
 					if (expand_hp && is_alive)
 					{
-						this.hp = global::XX.X.Mx(1, this.hp + num - this.maxhp);
+						this.hp = X.Mx(1, this.hp + num - this.maxhp);
 					}
 					else
 					{
-						this.hp = global::XX.X.IntR((float)(num * this.hp / this.maxhp));
+						this.hp = X.IntR((float)(num * this.hp / this.maxhp));
 					}
 					this.maxhp = num;
 					flag = true;
@@ -4421,19 +4616,19 @@ namespace nel
 				{
 					if (expand_mp && is_alive)
 					{
-						this.mp = global::XX.X.Mx(1, this.mp + cacled_dep_maxmp - this.maxmp);
+						this.mp = X.Mx(1, this.mp + cacled_dep_maxmp - this.maxmp);
 					}
 					else
 					{
-						this.mp = global::XX.X.IntR((float)(cacled_dep_maxmp * this.mp / this.maxmp));
+						this.mp = X.IntR((float)(cacled_dep_maxmp * this.mp / this.maxmp));
 					}
 					this.maxmp = cacled_dep_maxmp;
 					flag = true;
 				}
 				if (flag)
 				{
-					this.hp = global::XX.X.MMX(is_alive ? 1 : 0, this.hp, this.maxhp);
-					this.mp = global::XX.X.MMX(0, this.mp, this.maxmp);
+					this.hp = X.MMX(is_alive ? 1 : 0, this.hp, this.maxhp);
+					this.mp = X.MMX(0, this.mp, this.maxmp);
 					Pr.ApplySkillFixParameter(this);
 				}
 			}
@@ -4442,7 +4637,7 @@ namespace nel
 			{
 				get
 				{
-					return global::XX.X.Mx(this.mp_add + this.def_maxmp, 15);
+					return X.Mx(this.mp_add + this.def_maxmp, 15);
 				}
 			}
 

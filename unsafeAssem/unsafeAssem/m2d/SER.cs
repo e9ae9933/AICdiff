@@ -38,6 +38,9 @@ namespace m2d
 		CLT_BROKEN,
 		OVERRUN_TIRED,
 		MILKY,
+		WEB_TRAPPED,
+		STONE,
+		ORGASM_STACK,
 		DEATH,
 		__MAX
 	}

@@ -33,7 +33,7 @@ namespace nel
 				this.CurMg = base.nM2D.MGC.setMagic(this, magic_kind, MGHIT.AUTO);
 				if (this.mp_hold > 0f)
 				{
-					this.CurMg.t = this.CurMg.casttime * this.mp_hold / (float)this.CurMg.reduce_mp;
+					this.CurMg.t = this.CurMg.casttime * this.mp_hold / this.CurMg.reduce_mp;
 				}
 			}
 			return this.CurMg;
@@ -45,7 +45,7 @@ namespace nel
 			{
 				return false;
 			}
-			float num = X.Mn(this.CurMg.casttime, this.CurMg.t + this.TS) * (float)this.CurMg.reduce_mp / this.CurMg.casttime;
+			float num = X.Mn(this.CurMg.casttime, this.CurMg.t + this.TS) * this.CurMg.reduce_mp / this.CurMg.casttime;
 			if ((float)this.mp - num <= 0f)
 			{
 				return false;
@@ -66,7 +66,7 @@ namespace nel
 			{
 				return false;
 			}
-			magicItem.reduce_mp = num;
+			magicItem.reduce_mp = (float)num;
 			this.CurMg = null;
 			this.mp_hold = 0f;
 			this.applyMpDamage(num, true, null);
@@ -237,7 +237,7 @@ namespace nel
 				}
 				return true;
 			}
-			this.CurMg.castedTimeResetTo(this.CurMg.casttime * this.mp_hold / (float)this.CurMg.reduce_mp);
+			this.CurMg.castedTimeResetTo(this.CurMg.casttime * this.mp_hold / this.CurMg.reduce_mp);
 			return false;
 		}
 

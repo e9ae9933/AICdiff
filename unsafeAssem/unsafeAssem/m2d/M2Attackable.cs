@@ -114,6 +114,22 @@ namespace m2d
 			base.runPhysics(fcnt);
 		}
 
+		public virtual float last_foot_bottom_y
+		{
+			get
+			{
+				if (this.FootD != null)
+				{
+					M2BlockColliderContainer.BCCLine lastBCC = this.FootD.get_LastBCC();
+					if (lastBCC != null)
+					{
+						return lastBCC.slopeBottomY(X.MMX(lastBCC.shifted_x, base.x, lastBCC.shifted_right));
+					}
+				}
+				return base.mbottom;
+			}
+		}
+
 		public virtual bool check_dangerous_bcc
 		{
 			get
@@ -268,7 +284,7 @@ namespace m2d
 			return false;
 		}
 
-		public virtual void initTortureAbsorbPoseSet(string p, int set_frame = -1, int reset_animf = -1)
+		public virtual void initTortureAbsorbPoseSet(M2Attackable Another, string p, int set_frame = -1, int reset_animf = -1)
 		{
 			this.SpSetPose(p, reset_animf, null, false);
 		}
@@ -357,7 +373,14 @@ namespace m2d
 
 		public virtual void addKnockbackVelocity(float v0, AttackInfo Atk, M2Attackable Another, FOCTYPE _foctype_add = (FOCTYPE)0U)
 		{
-			this.Phy.addFoc(FOCTYPE.KNOCKBACK, v0, 0f, -4f, 0, 16, 5, -1, 0);
+			if (this.Phy.is_on_ice)
+			{
+				this.Phy.addFoc(FOCTYPE.KNOCKBACK, v0 * 2f, 0f, -4f, 0, 22, 0, -1, 0);
+			}
+			else
+			{
+				this.Phy.addFoc(FOCTYPE.KNOCKBACK, v0, 0f, -4f, 0, 18, 5, -1, 0);
+			}
 			this.Phy.addLockGravity(Another, 0.5f, 22f);
 		}
 
@@ -389,6 +412,14 @@ namespace m2d
 			return (float)this.maxmp;
 		}
 
+		public virtual float mpf_is_right_visible
+		{
+			get
+			{
+				return base.mpf_is_right;
+			}
+		}
+
 		public float mp_ratio
 		{
 			get
@@ -410,7 +441,7 @@ namespace m2d
 			return true;
 		}
 
-		protected virtual void setDamageCounter(int delta_hp, int delta_mp, M2DmgCounterItem.DC ef = M2DmgCounterItem.DC.NORMAL, M2Attackable AbsorbedBy = null)
+		public virtual void setDamageCounter(int delta_hp, int delta_mp, M2DmgCounterItem.DC ef = M2DmgCounterItem.DC.NORMAL, M2Attackable AbsorbedBy = null)
 		{
 			if (AbsorbedBy != null)
 			{
@@ -465,294 +496,176 @@ namespace m2d
 			if (cmd != null)
 			{
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(cmd);
-				if (num > 1996746613U)
+				if (num <= 2014939182U)
 				{
-					if (num > 2419201793U)
+					if (num <= 811585033U)
 					{
-						if (num <= 3072939085U)
+						if (num <= 363198355U)
 						{
-							if (num != 2491796050U)
+							if (num != 27896808U)
 							{
-								if (num != 3041186419U)
+								if (num != 156884704U)
 								{
-									if (num != 3072939085U)
+									if (num != 363198355U)
 									{
-										goto IL_08D4;
+										goto IL_09B8;
 									}
-									if (!(cmd == "%MYPOS_SHAKE"))
+									if (!(cmd == "%SND"))
 									{
-										goto IL_08D4;
+										goto IL_09B8;
 									}
-									rER.Def("cxs", base.x + X.XORSPS() * this.sizex * 0.7f);
-									rER.Def("cys", base.y + X.XORSPS() * this.sizey * 0.7f);
-									return true;
+									goto IL_058F;
 								}
 								else
 								{
-									if (!(cmd == "%SND2"))
+									if (!(cmd == "%MYPOS"))
 									{
-										goto IL_08D4;
+										goto IL_09B8;
 									}
-									goto IL_0529;
+									rER.Def("cx", base.x);
+									rER.Def("cy", base.y);
+									return true;
 								}
 							}
-							else if (!(cmd == "%QU_VIB2"))
+							else if (!(cmd == "%QU_HANDSHAKE"))
 							{
-								goto IL_08D4;
+								goto IL_09B8;
 							}
 						}
-						else if (num <= 3382953879U)
+						else if (num != 523093787U)
 						{
-							if (num != 3132573588U)
+							if (num != 541049905U)
 							{
-								if (num != 3382953879U)
+								if (num != 811585033U)
 								{
-									goto IL_08D4;
+									goto IL_09B8;
 								}
-								if (!(cmd == "%QU_SINV2"))
+								if (!(cmd == "%SND_CPOS"))
 								{
-									goto IL_08D4;
+									goto IL_09B8;
 								}
-								goto IL_084D;
+								if (X.DEBUGNOSND)
+								{
+									return true;
+								}
+								this.PtcHld.playSndPos(rER, 1, rER.clength - 1, base.x, base.y, PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.FOLLOW_C, 1);
+								return true;
 							}
-							else if (!(cmd == "%QU_VIB"))
+							else
 							{
-								goto IL_08D4;
+								if (!(cmd == "%SIZE"))
+								{
+									goto IL_09B8;
+								}
+								rER.Def("sizex", this.sizex);
+								rER.Def("sizey", this.sizey);
+								return true;
 							}
 						}
-						else if (num != 3472483256U)
+						else
 						{
-							if (num != 3543879655U)
+							if (!(cmd == "%TE_COLORBLINK_ADD"))
 							{
-								goto IL_08D4;
+								goto IL_09B8;
 							}
-							if (!(cmd == "%TE_COLORBLINK"))
+							this.TeCon.setColorBlinkAdd(rER._N1, rER._N2, rER._N3, rER.Int(4, 16777215), rER.Int(5, 0));
+							return true;
+						}
+					}
+					else if (num <= 1363421846U)
+					{
+						if (num != 836404553U)
+						{
+							if (num != 1358799072U)
 							{
-								goto IL_08D4;
+								if (num != 1363421846U)
+								{
+									goto IL_09B8;
+								}
+								if (!(cmd == "%SND_ACT2"))
+								{
+									goto IL_09B8;
+								}
 							}
-							this.TeCon.setColorBlink(rER._N1, rER._N2, rER._N3, rER.Int(4, 16777215), rER.Int(5, 0));
+							else if (!(cmd == "%SND_ACT"))
+							{
+								goto IL_09B8;
+							}
+							if (X.DEBUGNOSND)
+							{
+								return true;
+							}
+							if (rER.clength >= 3 && rER.isNm(2))
+							{
+								this.PtcHld.playSndPos(rER, 1, 0, rER.Nm(2, 0f), rER.Nm(3, -1000f), PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C, (rER.cmd == "%SND_ACT2") ? 2 : 1);
+							}
+							else
+							{
+								this.PtcHld.playSndPos(rER, 1, rER.clength - 1, base.x, base.y, PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C, (rER.cmd == "%SND_ACT2") ? 2 : 1);
+							}
 							return true;
 						}
 						else
 						{
-							if (!(cmd == "%TE_QU_VIB"))
+							if (!(cmd == "%QU_SINH2"))
 							{
-								goto IL_08D4;
+								goto IL_09B8;
 							}
-							this.TeCon.setQuake(rER._N1, rER.Int(2, 0), rER._N3, rER.Int(4, 0));
+							goto IL_08EF;
+						}
+					}
+					else if (num <= 1750609613U)
+					{
+						if (num != 1487802141U)
+						{
+							if (num != 1750609613U)
+							{
+								goto IL_09B8;
+							}
+							if (!(cmd == "%HOLD"))
+							{
+								goto IL_09B8;
+							}
+							PTCThread.StFollow stFollow;
+							if (!FEnum<PTCThread.StFollow>.TryParse(rER._1, out stFollow, true))
+							{
+								rER.tError("不明な StFollow: " + rER._1);
+							}
+							else
+							{
+								this.PtcHld.changeCurrentBufferFollow(stFollow, rER);
+								rER.follow = stFollow;
+							}
 							return true;
 						}
-						this.QuakeVib(rER.Nm(1, 0f), (float)rER.Int(2, 1), rER.Nm(3, -1f), rER.Int(4, 0), rER.cmd == "%QU_VIB2");
-						return true;
+						else
+						{
+							if (!(cmd == "%TARGETPOS"))
+							{
+								goto IL_09B8;
+							}
+							Vector2 targetPos = this.getTargetPos();
+							rER.Def("tx", targetPos.x);
+							rER.Def("ty", targetPos.y);
+							return true;
+						}
 					}
-					if (num <= 2050094175U)
+					else if (num != 1996746613U)
 					{
 						if (num != 2014939182U)
 						{
-							if (num != 2021943417U)
-							{
-								if (num != 2050094175U)
-								{
-									goto IL_08D4;
-								}
-								if (!(cmd == "%QU_SINV"))
-								{
-									goto IL_08D4;
-								}
-							}
-							else
-							{
-								if (!(cmd == "%AIM"))
-								{
-									goto IL_08D4;
-								}
-								rER.Def("aim", (float)this.aim);
-								rER.Def("ax", (float)CAim._XD(this.aim, 1));
-								rER.Def("ay", (float)CAim._YD(this.aim, 1));
-								return true;
-							}
+							goto IL_09B8;
 						}
-						else
+						if (!(cmd == "%QU_HANDSHAKE2"))
 						{
-							if (!(cmd == "%QU_HANDSHAKE2"))
-							{
-								goto IL_08D4;
-							}
-							goto IL_088F;
-						}
-					}
-					else if (num != 2073177697U)
-					{
-						if (num != 2215071754U)
-						{
-							if (num != 2419201793U)
-							{
-								goto IL_08D4;
-							}
-							if (!(cmd == "%QU_SINH"))
-							{
-								goto IL_08D4;
-							}
-							goto IL_080B;
-						}
-						else
-						{
-							if (!(cmd == "%SND_TPOS"))
-							{
-								goto IL_08D4;
-							}
-							if (X.DEBUGNOSND)
-							{
-								return true;
-							}
-							Vector2 targetPos = this.getTargetPos();
-							this.playSndPos(rER.getRandom(1, rER.clength - 1), targetPos.x, targetPos.y, PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.FOLLOW_T, null);
-							return true;
+							goto IL_09B8;
 						}
 					}
 					else
 					{
-						if (!(cmd == "%CALCPOS"))
-						{
-							goto IL_08D4;
-						}
-						this.getPtcCalc(rER);
-						return true;
-					}
-					IL_084D:
-					this.QuakeSinV(rER.Nm(1, 0f), (float)rER.Int(2, 1), rER.Nm(3, -1f), rER.Int(4, 0), rER.cmd == "%QU_SINV2");
-					return true;
-				}
-				if (num <= 811585033U)
-				{
-					if (num <= 363198355U)
-					{
-						if (num != 27896808U)
-						{
-							if (num != 156884704U)
-							{
-								if (num != 363198355U)
-								{
-									goto IL_08D4;
-								}
-								if (!(cmd == "%SND"))
-								{
-									goto IL_08D4;
-								}
-							}
-							else
-							{
-								if (!(cmd == "%MYPOS"))
-								{
-									goto IL_08D4;
-								}
-								rER.Def("cx", base.x);
-								rER.Def("cy", base.y);
-								return true;
-							}
-						}
-						else
-						{
-							if (!(cmd == "%QU_HANDSHAKE"))
-							{
-								goto IL_08D4;
-							}
-							goto IL_088F;
-						}
-					}
-					else if (num != 523093787U)
-					{
-						if (num != 541049905U)
-						{
-							if (num != 811585033U)
-							{
-								goto IL_08D4;
-							}
-							if (!(cmd == "%SND_CPOS"))
-							{
-								goto IL_08D4;
-							}
-							if (X.DEBUGNOSND)
-							{
-								return true;
-							}
-							this.PtcHld.playSndPos(rER, 1, rER.clength - 1, base.x, base.y, PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.FOLLOW_C, 1);
-							return true;
-						}
-						else
-						{
-							if (!(cmd == "%SIZE"))
-							{
-								goto IL_08D4;
-							}
-							rER.Def("sizex", this.sizex);
-							rER.Def("sizey", this.sizey);
-							return true;
-						}
-					}
-					else
-					{
-						if (!(cmd == "%TE_COLORBLINK_ADD"))
-						{
-							goto IL_08D4;
-						}
-						this.TeCon.setColorBlinkAdd(rER._N1, rER._N2, rER._N3, rER.Int(4, 16777215), rER.Int(5, 0));
-						return true;
-					}
-				}
-				else if (num <= 1363421846U)
-				{
-					if (num != 836404553U)
-					{
-						if (num != 1358799072U)
-						{
-							if (num != 1363421846U)
-							{
-								goto IL_08D4;
-							}
-							if (!(cmd == "%SND_ACT2"))
-							{
-								goto IL_08D4;
-							}
-						}
-						else if (!(cmd == "%SND_ACT"))
-						{
-							goto IL_08D4;
-						}
-						if (X.DEBUGNOSND)
-						{
-							return true;
-						}
-						if (rER.clength >= 3 && rER.isNm(2))
-						{
-							this.PtcHld.playSndPos(rER, 1, 0, rER.Nm(2, 0f), rER.Nm(3, -1000f), PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C, (rER.cmd == "%SND_ACT2") ? 2 : 1);
-						}
-						else
-						{
-							this.PtcHld.playSndPos(rER, 1, rER.clength - 1, base.x, base.y, PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C, (rER.cmd == "%SND_ACT2") ? 2 : 1);
-						}
-						return true;
-					}
-					else
-					{
-						if (!(cmd == "%QU_SINH2"))
-						{
-							goto IL_08D4;
-						}
-						goto IL_080B;
-					}
-				}
-				else if (num != 1487802141U)
-				{
-					if (num != 1750609613U)
-					{
-						if (num != 1996746613U)
-						{
-							goto IL_08D4;
-						}
 						if (!(cmd == "%SND_CONFUSE"))
 						{
-							goto IL_08D4;
+							goto IL_09B8;
 						}
 						if (X.DEBUGNOSND)
 						{
@@ -768,36 +681,180 @@ namespace m2d
 						}
 						return true;
 					}
-					else
+					this.QuakeHandShake(rER.Nm(1, 0f), rER.Nm(2, 0f), rER.Nm(3, 1f), rER.Int(4, 0), rER.cmd == "%QU_HANDSHAKE2");
+					return true;
+				}
+				if (num <= 2796171389U)
+				{
+					if (num <= 2073177697U)
 					{
-						if (!(cmd == "%HOLD"))
+						if (num != 2021943417U)
 						{
-							goto IL_08D4;
-						}
-						PTCThread.StFollow stFollow;
-						if (!FEnum<PTCThread.StFollow>.TryParse(rER._1, out stFollow, true))
-						{
-							rER.tError("不明な StFollow: " + rER._1);
+							if (num != 2050094175U)
+							{
+								if (num != 2073177697U)
+								{
+									goto IL_09B8;
+								}
+								if (!(cmd == "%CALCPOS"))
+								{
+									goto IL_09B8;
+								}
+								this.getPtcCalc(rER);
+								return true;
+							}
+							else
+							{
+								if (!(cmd == "%QU_SINV"))
+								{
+									goto IL_09B8;
+								}
+								goto IL_0931;
+							}
 						}
 						else
 						{
-							this.PtcHld.changeCurrentBufferFollow(stFollow);
+							if (!(cmd == "%AIM"))
+							{
+								goto IL_09B8;
+							}
+							rER.Def("aim", (float)this.aim);
+							rER.Def("ax", (float)CAim._XD(this.aim, 1));
+							rER.Def("ay", (float)CAim._YD(this.aim, 1));
+							return true;
 						}
+					}
+					else if (num <= 2419201793U)
+					{
+						if (num != 2215071754U)
+						{
+							if (num != 2419201793U)
+							{
+								goto IL_09B8;
+							}
+							if (!(cmd == "%QU_SINH"))
+							{
+								goto IL_09B8;
+							}
+							goto IL_08EF;
+						}
+						else
+						{
+							if (!(cmd == "%SND_TPOS"))
+							{
+								goto IL_09B8;
+							}
+							if (X.DEBUGNOSND)
+							{
+								return true;
+							}
+							Vector2 targetPos2 = this.getTargetPos();
+							this.playSndPos(rER.getRandom(1, rER.clength - 1), targetPos2.x, targetPos2.y, PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.FOLLOW_T, null);
+							return true;
+						}
+					}
+					else if (num != 2491796050U)
+					{
+						if (num != 2796171389U)
+						{
+							goto IL_09B8;
+						}
+						if (!(cmd == "%TE_QU_SINH"))
+						{
+							goto IL_09B8;
+						}
+						this.TeCon.setQuakeSinH(rER.Nm(1, 0f), rER.Int(2, 1), rER.Nm(3, -1f), (float)rER.Int(4, -1), rER.Int(5, 0));
+						return true;
+					}
+					else if (!(cmd == "%QU_VIB2"))
+					{
+						goto IL_09B8;
+					}
+				}
+				else if (num <= 3072939085U)
+				{
+					if (num != 2829726627U)
+					{
+						if (num != 3041186419U)
+						{
+							if (num != 3072939085U)
+							{
+								goto IL_09B8;
+							}
+							if (!(cmd == "%MYPOS_SHAKE"))
+							{
+								goto IL_09B8;
+							}
+							rER.Def("cxs", base.x + X.XORSPS() * this.sizex * 0.7f);
+							rER.Def("cys", base.y + X.XORSPS() * this.sizey * 0.7f);
+							return true;
+						}
+						else
+						{
+							if (!(cmd == "%SND2"))
+							{
+								goto IL_09B8;
+							}
+							goto IL_058F;
+						}
+					}
+					else
+					{
+						if (!(cmd == "%TE_QU_SINV"))
+						{
+							goto IL_09B8;
+						}
+						this.TeCon.setQuakeSinV(rER.Nm(1, 0f), rER.Int(2, 1), rER.Nm(3, -1f), (float)rER.Int(4, -1), rER.Int(5, 0));
 						return true;
 					}
 				}
-				else
+				else if (num <= 3382953879U)
 				{
-					if (!(cmd == "%TARGETPOS"))
+					if (num != 3132573588U)
 					{
-						goto IL_08D4;
+						if (num != 3382953879U)
+						{
+							goto IL_09B8;
+						}
+						if (!(cmd == "%QU_SINV2"))
+						{
+							goto IL_09B8;
+						}
+						goto IL_0931;
 					}
-					Vector2 targetPos2 = this.getTargetPos();
-					rER.Def("tx", targetPos2.x);
-					rER.Def("ty", targetPos2.y);
+					else if (!(cmd == "%QU_VIB"))
+					{
+						goto IL_09B8;
+					}
+				}
+				else if (num != 3472483256U)
+				{
+					if (num != 3543879655U)
+					{
+						goto IL_09B8;
+					}
+					if (!(cmd == "%TE_COLORBLINK"))
+					{
+						goto IL_09B8;
+					}
+					this.TeCon.setColorBlink(rER._N1, rER._N2, rER._N3, rER.Int(4, 16777215), rER.Int(5, 0));
 					return true;
 				}
-				IL_0529:
+				else
+				{
+					if (!(cmd == "%TE_QU_VIB"))
+					{
+						goto IL_09B8;
+					}
+					this.TeCon.setQuake(rER._N1, rER.Int(2, 0), rER._N3, rER.Int(4, 0));
+					return true;
+				}
+				this.QuakeVib(rER.Nm(1, 0f), (float)rER.Int(2, 1), rER.Nm(3, -1f), rER.Int(4, 0), rER.cmd == "%QU_VIB2");
+				return true;
+				IL_0931:
+				this.QuakeSinV(rER.Nm(1, 0f), (float)rER.Int(2, 1), rER.Nm(3, -1f), rER.Int(4, 0), rER.cmd == "%QU_SINV2");
+				return true;
+				IL_058F:
 				if (X.DEBUGNOSND)
 				{
 					return true;
@@ -811,14 +868,11 @@ namespace m2d
 					this.PtcHld.playSndPos(rER, 1, rER.clength - 1, base.x, base.y, PtcHolder.PTC_HOLD.NO_HOLD, PTCThread.StFollow.NO_FOLLOW, (rER.cmd == "%SND2") ? 2 : 1);
 				}
 				return true;
-				IL_080B:
+				IL_08EF:
 				this.QuakeSinH(rER.Nm(1, 0f), (float)rER.Int(2, 1), rER.Nm(3, -1f), rER.Int(4, 0), rER.cmd == "%QU_SINH2");
 				return true;
-				IL_088F:
-				this.QuakeHandShake(rER.Nm(1, 0f), rER.Nm(2, 0f), rER.Nm(3, 1f), rER.Int(4, 0), rER.cmd == "%QU_HANDSHAKE2");
-				return true;
 			}
-			IL_08D4:
+			IL_09B8:
 			return this.Mp.M2D.readPtcScript(rER);
 		}
 
@@ -1041,6 +1095,11 @@ namespace m2d
 
 		public abstract HITTYPE getHitType(M2Ray Ray);
 
+		public virtual float auto_target_priority(M2Mover CalcFrom)
+		{
+			return 1f;
+		}
+
 		public virtual RAYHIT can_hit(M2Ray Ray)
 		{
 			if (!this.is_alive && !this.overkill)
@@ -1048,6 +1107,11 @@ namespace m2d
 				return RAYHIT.NONE;
 			}
 			return (RAYHIT)3;
+		}
+
+		public virtual bool isGaraaakiForNAI()
+		{
+			return !this.is_alive;
 		}
 
 		public void penetrateNoDamageTime(NDMG key, int reduce = -1)
@@ -1065,9 +1129,9 @@ namespace m2d
 			return new Vector2(base.x + (float)CAim._XD(this.aim, 1) * this.sizex * 0.85f, base.y);
 		}
 
-		public virtual Vector2 getDamageCounterShiftMapPos()
+		public virtual Vector3 getDamageCounterShiftMapPos()
 		{
-			return new Vector2(0f, -X.Mx(this.sizey * 0.7f, 0.9f));
+			return new Vector3(0f, -X.Mx(this.sizey * 0.7f, 0.9f), 1f);
 		}
 
 		public virtual void setWaterReleaseEffect(int water_id)
@@ -1103,6 +1167,11 @@ namespace m2d
 				this.Phy.clampSpeed(FOCTYPE.DAMAGE, 0f, 0f, 1f);
 			}
 			return this;
+		}
+
+		public int get_knockback_time()
+		{
+			return this.knockback_time;
 		}
 
 		protected int hp = -1000;

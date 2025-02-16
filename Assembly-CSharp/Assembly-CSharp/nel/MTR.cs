@@ -30,8 +30,13 @@ namespace nel
 			}
 			MTRX.Aadditinal_pmesh_pose_title = new string[] { "nel", "nel_wholemap", "nel_l", "nel_magic", "lang_btn", "nel_curs" };
 			TX.EvReadLocalize += NEL.readLocalizeTxItemScript;
-			MTRX.loadMtiPxc("_icons_l", "Pxl/_icons_l.pxls", "_", false, true);
-			MTRX.loadMtiPxc("_patterns", "Pxl/_patterns.pxls", "_", false, true);
+			LoadTicketManager.PrepareLoadManager();
+			MTIOneImage mtioneImage;
+			PxlCharacter pxlCharacter = MTRX.loadMtiPxc(out mtioneImage, "_icons_l", "Pxl/_icons_l.pxls", "_", false, true, true);
+			LoadTicketManager.Instance.AddTicketInner(pxlCharacter, mtioneImage, 0);
+			MTIOneImage mtioneImage2;
+			PxlCharacter pxlCharacter2 = MTRX.loadMtiPxc(out mtioneImage2, "_patterns", "Pxl/_patterns.pxls", "_", false, true, true);
+			LoadTicketManager.Instance.AddTicketInner(pxlCharacter2, mtioneImage2, 0);
 		}
 
 		public static bool prepare1
@@ -53,18 +58,25 @@ namespace nel
 				{
 					return false;
 				}
+				NelItem.readItemScript(Resources.Load<TextAsset>("Data/item").text);
+				IN.initKeyAndTextLocalization(true, true);
+				MImage mi = MTRX.getMI(pxlCharacter, true);
+				MImage mi2 = MTRX.getMI(pxlCharacter2, true);
+				if (mi == null || mi2 == null)
+				{
+					return false;
+				}
 				NEL.createListenerEval();
 				MTR.loaded_1 = true;
 				MTRX.SqEfPattern = pxlCharacter2.getPoseByName("pattern_nel").getSequence(0);
-				MTR.MIiconL = MTRX.getMI(pxlCharacter);
-				NelItem.readItemScript(Resources.Load<TextAsset>("Data/item").text);
+				MTR.MIiconL = mi;
+				MTR.MIiconP = mi2;
 				ReelManager.initReelScript();
-				IN.initKeyAndTextLocalization(false);
 				NelMSGResource.initResource(false);
 				MTR.DrGhost = new AttackGhostDrawer();
 				MTR.DrGhostEn = new AttackGhostDrawer();
 				EffectItemNel.initEffectItemNel();
-				EnhancerManager.initImage();
+				ENHA.initImage();
 				UiGmMapMarker.initItem();
 				MTR.DrRad = new RadiationDrawer();
 				MTR.SqNelCuteLine = MTRX.PxlIcon.getPoseByName("nel_cute_line").getSequence(0);
@@ -83,16 +95,24 @@ namespace nel
 			MTR.MtiShader.addLoadKey("_", async);
 		}
 
-		public static void prepareShaderInstance()
+		public static bool prepareShaderInstance()
 		{
 			if ((MTR.loaded_g & 8) != 0)
 			{
-				return;
+				return true;
 			}
-			MTR.loaded_g |= 8;
 			MTR.prepareShaderMti(false);
+			if (!MTR.MtiShader.isAsyncLoadFinished())
+			{
+				return false;
+			}
 			PxlCharacter pxlCharacter = PxlsLoader.getPxlCharacter("_icons_l");
 			PxlCharacter pxlCharacter2 = PxlsLoader.getPxlCharacter("_patterns");
+			if (!pxlCharacter.isLoadCompleted() || !pxlCharacter2.isLoadCompleted())
+			{
+				return false;
+			}
+			MTR.loaded_g |= 8;
 			MTR.ShaderGDTGradationMap = MTR.getShd("Hachan/ShaderGDTGradationMap");
 			MTR.ShaderGDTGradationMapAdd = MTR.getShd("Hachan/ShaderGDTGradationMapAdd");
 			MTR.ShaderGDTWaveColor = MTR.getShd("Hachan/ShaderGDTWaveColor");
@@ -110,17 +130,11 @@ namespace nel
 			MTR.MtrNDAdd = MTRX.newMtr(MTR.getShd("Hachan/ShaderMeshAddNoiseDissolve"));
 			MTR.MtrNDSub = MTRX.newMtr(MTR.getShd("Hachan/ShaderMeshSubNoiseDissolve"));
 			MTR.MtrNDSub2 = MTRX.newMtr(MTR.getShd("Hachan/ShaderMeshSubNoiseDissolve2"));
-			MTR.MIiconP = MTRX.getMI(pxlCharacter2);
+			MTR.MIiconP = MTR.MIiconP ?? MTRX.getMI(pxlCharacter2, false);
 			MTR.MtrConfuseCurtain = MTR.newMtr("Hachan/ConfuseCurtain");
 			MTRX.setMaterialST(MTR.MtrConfuseCurtain, "_PatTex", MTRX.SqEfPattern.getImage(7, 0), 0f);
 			MTR.MtrConfuseCurtain.SetVector("_Intv", new Vector4(78f, 78f, 2f, 2f));
 			MTR.MtrConfuseCurtain.SetColor("_Color", C32.d2c(4284176466U));
-			MTR.MtrFrozen = MTR.newMtr("hachan/Frozen");
-			MTRX.setMaterialST(MTR.MtrFrozen, "_NoiseTex", MTRX.SqEfPattern.getImage(6, 0), 0f);
-			MTR.MtrFrozenGdtA = MTR.newMtr("hachan/FrozenGDTA");
-			MTRX.setMaterialST(MTR.MtrFrozenGdtA, "_NoiseTex", MTRX.SqEfPattern.getImage(6, 0), 0f);
-			MTR.MtrFrozenGdtS = MTR.newMtr("hachan/FrozenGDTS");
-			MTRX.setMaterialST(MTR.MtrFrozenGdtS, "_NoiseTex", MTRX.SqEfPattern.getImage(6, 0), 0f);
 			MTR.MtrNoisyMessage = MTR.newMtr("Hachan/NoisyMessage");
 			MTRX.setMaterialST(MTR.MtrNoisyMessage, "_MainTex", MTRX.SqEfPattern.getImage(2, 0), 0f);
 			MTR.MtrPowerbomb = MTR.newMtr("Hachan/powerbomb");
@@ -138,6 +152,7 @@ namespace nel
 			MTRX.HaloI = new HaloIDrawer(MTRX.SqEfPattern.getImage(10, 0));
 			MTRX.HaloIA = new HaloIDrawer(MTRX.SqEfPattern.getImage(11, 0));
 			M2EventItem.PFTalkTarget = MTRX.getPF("talk_target_ttt");
+			return true;
 		}
 
 		public static void initT()
@@ -161,7 +176,9 @@ namespace nel
 			}
 			MTR.loaded_g |= 4;
 			MTR.prepareShaderMti(true);
-			MTR.NoelUiPic = MTRX.loadMtiPxc("NoelUiPic", "PxlNoel/noel_uipic.pxls", "_", false, true);
+			MTIOneImage mtioneImage;
+			MTR.NoelUiPic = MTRX.loadMtiPxc(out mtioneImage, "NoelUiPic", "PxlNoel/noel_uipic.pxls", "_", false, true, true);
+			LoadTicketManager.Instance.AddTicketInner(MTR.NoelUiPic, mtioneImage, 0);
 		}
 
 		public static void initG()
@@ -182,7 +199,7 @@ namespace nel
 			MTR.initNoelAnimatorPxl();
 			SND.loadSheets("m2d", "m2d");
 			MTR.VcNoelSource = NEL.prepareVoiceController("noel");
-			EnemyData.prepareData();
+			NDAT.prepareData();
 			WeatherItem.initWeather();
 			MTR.BkEnhancer = new Block3DDrawer();
 			MTR.BkEnhancer.defineBlock2D(new int[] { 0, 0, 0, 1, 1, 1, 2, 1, 1, 2 });
@@ -197,15 +214,49 @@ namespace nel
 
 		public static void initNoelAnimatorPxl()
 		{
+			if (MTR.PConNoelAnim != null)
+			{
+				return;
+			}
 			string[][] anoel_pxls = MTR.Anoel_pxls;
+			LoadTicketManager.PrepareLoadManager();
+			LoadTicketManager instance = LoadTicketManager.Instance;
 			int num = anoel_pxls.Length;
 			for (int i = 0; i < num; i++)
 			{
 				int num2 = anoel_pxls[i].Length;
 				for (int j = 0; j < num2; j++)
 				{
-					MTRX.loadMtiPxc(anoel_pxls[i][j], "PxlNoel/" + anoel_pxls[i][j] + ".pxls", "_", true, true);
+					string text = "PxlNoel/" + anoel_pxls[i][j] + ".pxls";
+					MTIOneImage mtioneImage;
+					PxlCharacter pxlCharacter = MTRX.loadMtiPxc(out mtioneImage, anoel_pxls[i][j], text, "_", true, true, true);
+					instance.AddTicketInner(pxlCharacter, mtioneImage, 0);
 				}
+			}
+			MTR.PConNoelAnim = new PrPoseContainer("noel");
+		}
+
+		public static bool is_noel_picture_prepared
+		{
+			get
+			{
+				if (!MTR.preparedG)
+				{
+					return false;
+				}
+				int num = MTR.Anoel_pxls.Length;
+				for (int i = 0; i < num; i++)
+				{
+					int num2 = MTR.Anoel_pxls[i].Length;
+					for (int j = 0; j < num2; j++)
+					{
+						if (MTRX.getMI(PxlsLoader.getPxlCharacter(MTR.Anoel_pxls[i][j]), true) == null)
+						{
+							return false;
+						}
+					}
+				}
+				return true;
 			}
 		}
 
@@ -237,7 +288,7 @@ namespace nel
 				{
 					return false;
 				}
-				IN.initKeyAndTextLocalization(true);
+				IN.initKeyAndTextLocalization(true, true);
 				MagicSelector.reloadKindData();
 				MTR.MeshMarker = MTRX.getPF("marker_meter");
 				MTR.MeshMarker_Sel = MTRX.getPF("marker_meter_selected");
@@ -273,6 +324,7 @@ namespace nel
 				MTR.SqParticleSplash = poseByName.getSequence(0);
 				MTR.SqParticleSplashFixed = poseByName.getSequence(1);
 				MTR.SqParticleSperm = pxlCharacter.getPoseByName("particle_sperm").getSequence(0);
+				MTR.SqParticleBetoWebTrapped = pxlCharacter.getPoseByName("nel_beto_web_trapped").getSequence(0);
 				MTR.MeshSuriken = MTRX.getPF("suriken");
 				MTR.ANelChars = pxlIcon.getPoseByName("nel_character").getSequence(0);
 				MTR.AMsgTalkerBg = pxlIcon.getPoseByName("nel_other").getSequence(0);
@@ -281,12 +333,17 @@ namespace nel
 				MTR.ImgGroundShockWave = MTRX.getPF("ground_shockwave").getLayer(0).Img;
 				MTR.SqLOther = pxlCharacter.getPoseByName("l_other_sq").getSequence(0);
 				MTR.SqEfStainBurning = pxlIcon.getPoseByName("effect_burning").getSequence(0);
+				PxlPose poseByName2 = pxlIcon.getPoseByName("effect_icefloor");
+				MTR.SqEfStainIce = poseByName2.getSequence(0);
+				MTR.SqEfStainIcePtc = poseByName2.getSequence(1);
+				MTR.SqEfStainWebFloor = pxlIcon.getPoseByName("effect_webfloor").getSequence(0);
 				MTR.ImgShockWave160 = MTR.SqLOther.getImage(0, 0);
 				MTR.SqCheckPointBubble = pxlIcon.getPoseByName("checkpoint_bubble").getSequence(0);
 				MTR.SqAlchemyRowSlot = pxlIcon.getPoseByName("nel_recipe_slot").getSequence(0);
 				MTR.SqReelIcon = pxlIcon.getPoseByName("nel_reel_icon").getSequence(0);
 				MTR.SqMatoateTarget = pxlIcon.getPoseByName("_anim_puzzle_mato").getSequence(0);
 				MTR.SqPeeSlot = pxlIcon.getPoseByName("nel_pee_slot").getSequence(0);
+				MTR.SqRebagacha = pxlCharacter.getPoseByName("nel_rebagacha").getSequence(0);
 				PxlSequence sequence = pxlCharacter.getPoseByName("mbox").getSequence(0);
 				MTR.DrMBox = new MBoxDrawer().Create(12, sequence.getImage(0, 0), sequence.getImage(1, 0), sequence.getImage(2, 0), sequence.getImage(3, 0));
 				MTR.DrReelBox = new NelMBoxDrawer(MTR.DrMBox);
@@ -299,8 +356,8 @@ namespace nel
 					.getLayer(0)
 					.Img;
 				SkillManager.initScript();
-				EnhancerManager.initScript();
-				RecipeManager.initScript();
+				ENHA.initScript();
+				RCP.initScript();
 				QuestTracker.initQuestScript();
 				MeshDrawer meshDrawer = new MeshDrawer(null, 4, 6);
 				meshDrawer.draw_gl_only = true;
@@ -329,6 +386,10 @@ namespace nel
 				{
 					return false;
 				}
+				if (MTR.PConNoelAnim == null)
+				{
+					MTR.initNoelAnimatorPxl();
+				}
 				if ((MTR.loaded_g & 1) == 0)
 				{
 					return false;
@@ -342,7 +403,12 @@ namespace nel
 					{
 						return false;
 					}
-					if (!NoelAnimator.initNoelAnimator(MTR.Anoel_pxls, 56f))
+					MImage mi = MTRX.getMI(MTR.NoelUiPic, true);
+					if (mi == null || mi.Tx == null)
+					{
+						return false;
+					}
+					if (!MTR.PConNoelAnim.iniPxlResources<PRNoel.OUTFIT>(MTR.Anoel_pxls, 56f))
 					{
 						return false;
 					}
@@ -380,6 +446,8 @@ namespace nel
 					MTR.SqEffectCeilFall = pxlIcon.getPoseByName("effect_ceilfall").getSequence(0);
 					MTR.ShaderEnemyDark = MTR.getShd("nel/enemydark");
 					MTR.ShaderEnemyDarkWhiter = MTR.getShd("nel/enemydark_whiter");
+					MTR.ShaderDarkWhiteParlin = MTR.getShd("nel/enemywhiteparlin");
+					MTR.ShaderTransparentParlin = MTR.getShd("nel/enemytransparentparlin");
 					MTR.ShaderEnemyAulaAdd = MTR.getShd("nel/EnemyAulaAdd");
 					MTR.ShaderEnemyBuffer = MTR.getShd("nel/EnemyBuffer");
 					MTR.SqFrozen = pxlCharacter.getPoseByName("frozen").getSequence(0);
@@ -388,6 +456,7 @@ namespace nel
 					MTRX.setMaterialST(MTR.MtrFireWallAdd, "_DarkTex", MTRX.SqEfPattern.getImage(6, 0), 0f);
 					MTR.DrWorm = new WormDrawer(MTRX.getLayerArray(pxlIcon.getPoseByName("worm"), 0)[0].Img).DefineSplit(1f, new float[] { 0f, 5f, 20f, 32f, 48f, 62f, 76f });
 					MTR.APuzzleMarker = pxlIcon.getPoseByName("puzzle_marker").getSequence(0);
+					ReelExecuter.initReelExecuter();
 					if (Bench.now_stream_key == "MTR - initG")
 					{
 						Bench.mark(null, false, false);
@@ -413,6 +482,30 @@ namespace nel
 		public static Material newMtr(string shader_name)
 		{
 			return MTRX.newMtr(MTR.getShd(shader_name));
+		}
+
+		public static Material newMtrStone()
+		{
+			Material material = MTR.newMtr("hachan/Stone");
+			MTRX.setMaterialST(material, "_NoiseTex", MTRX.SqEfPattern.getImage(2, 0), 0f);
+			MTRX.setMaterialST(material, "_NoiseTex2", MTRX.SqEfPattern.getImage(6, 0), 0f);
+			MTRX.setMaterialST(material, "_WaveTex", MTRX.SqEfPattern.getImage(6, 0), 0f);
+			return material;
+		}
+
+		public static Material newMtrFrozenMain()
+		{
+			Material material = MTR.newMtr("hachan/Frozen");
+			MTRX.setMaterialST(material, "_NoiseTex", MTRX.SqEfPattern.getImage(6, 0), 0f);
+			return material;
+		}
+
+		public static void newMtrFrozenAdditional(out Material MtrFrozenGdtA, out Material MtrFrozenGdtS)
+		{
+			MtrFrozenGdtA = MTR.newMtr("hachan/FrozenGDTA");
+			MTRX.setMaterialST(MtrFrozenGdtA, "_NoiseTex", MTRX.SqEfPattern.getImage(6, 0), 0f);
+			MtrFrozenGdtS = MTR.newMtr("hachan/FrozenGDTS");
+			MTRX.setMaterialST(MtrFrozenGdtS, "_NoiseTex", MTRX.SqEfPattern.getImage(6, 0), 0f);
 		}
 
 		public static void initCameraAfter()
@@ -454,6 +547,8 @@ namespace nel
 		public static PxlCharacter NoelUiPic;
 
 		public static PxlCharacter PxlM2DGeneral;
+
+		public static PrPoseContainer PConNoelAnim;
 
 		public static PxlSequence SqEfLeaf;
 
@@ -534,6 +629,10 @@ namespace nel
 		public static PxlSequence SqParticleSplashFixed;
 
 		public static PxlSequence SqParticleSperm;
+
+		public static PxlSequence SqParticleBetoWebTrapped;
+
+		public static PxlSequence SqRebagacha;
 
 		public static PxlSequence AImgMapMarker;
 
@@ -621,6 +720,12 @@ namespace nel
 
 		public static PxlSequence SqEfStainBurning;
 
+		public static PxlSequence SqEfStainIce;
+
+		public static PxlSequence SqEfStainIcePtc;
+
+		public static PxlSequence SqEfStainWebFloor;
+
 		public static Shader ShaderShiftImage;
 
 		public static Shader ShaderGDTGradationMap;
@@ -634,6 +739,10 @@ namespace nel
 		public static Shader ShaderEnemyDark;
 
 		public static Shader ShaderEnemyDarkWhiter;
+
+		public static Shader ShaderDarkWhiteParlin;
+
+		public static Shader ShaderTransparentParlin;
 
 		public static Material MtrFireWall;
 
@@ -652,12 +761,6 @@ namespace nel
 		public static Shader ShaderEnemyAulaAdd;
 
 		public static Shader ShaderEnemyBuffer;
-
-		public static Material MtrFrozen;
-
-		public static Material MtrFrozenGdtA;
-
-		public static Material MtrFrozenGdtS;
 
 		public static Material MtrBeam;
 

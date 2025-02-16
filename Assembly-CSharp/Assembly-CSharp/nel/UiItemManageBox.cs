@@ -15,6 +15,7 @@ namespace nel
 			this.fnDescAddition = null;
 			this.fnGradeFocusChange = null;
 			this.fnItemRowInitAfter = null;
+			this.fnItemRowRemakedAfter = null;
 			this.fnWholeRowsPrepare = null;
 			this.fnSortInjectMng = null;
 			this.fnCommandPrepare = null;
@@ -49,6 +50,7 @@ namespace nel
 					this.Inventory.releaseDesigner();
 				}
 				this.Inventory = _Inventory;
+				this.ItemSelectRow = null;
 				if (!this.Inventory.auto_splice_zero_row)
 				{
 					this.OTouchGrade = new BDic<NelItem, uint>();
@@ -122,7 +124,7 @@ namespace nel
 				{
 					this.Inventory.BlurCheckedRow();
 					this.ItemSelectRow = this.ItemUsingRow;
-					this.ItemSelectRow.Select(false);
+					this.ItemSelectRow.Select(true);
 				}
 				this.closeUsingState();
 				this.ItemUsingRow = null;
@@ -211,6 +213,7 @@ namespace nel
 			this.BxCmd = null;
 			this.BConItemStars = null;
 			this.FbDesc = null;
+			this.ItemSelectRow = null;
 		}
 
 		public void unlinkCmdWindow()
@@ -301,6 +304,10 @@ namespace nel
 			Designer designer = this.BxR.addTab("item_inventory", use_w, this.BxR.h - this.slice_height - 10f, use_w, this.BxR.h - this.slice_height, false);
 			designer.scroll_area_selectable = true;
 			designer.radius = 0f;
+			if (this.stencil_ref == -2)
+			{
+				this.stencil_ref = this.BxR.stencil_ref - 10;
+			}
 			this.Inventory.createRowsTo(this, designer, new FnBtnBindings(this.fnClickItemRow), this.stencil_ref, this.item_row_skin);
 		}
 
@@ -433,10 +440,15 @@ namespace nel
 			this.BxDesc.margin_in_lr = 14f;
 			this.BxDesc.margin_in_tb = 22f;
 			this.BxDesc.init();
-			UiItemManageBox.createItemDescDesigner(this.BxDesc, this.use_grade_stars, this.use_under_description, out this.BConItemStars, out this.FbDesc);
+			this.createItemDescDesigner(this.BxDesc, out this.BConItemStars, out this.FbDesc);
 		}
 
-		public static void createItemDescDesigner(Designer BxDesc, bool use_grade_stars, bool use_under_description, out BtnContainerRadio<aBtn> BConItemStars, out FillBlock FbDesc)
+		public virtual void createItemDescDesigner(Designer BxDesc, out BtnContainerRadio<aBtn> BConItemStars, out FillBlock FbDesc)
+		{
+			UiItemManageBox.createItemDescDesignerBasic(BxDesc, this.use_grade_stars, this.use_under_description, out BConItemStars, out FbDesc);
+		}
+
+		public static void createItemDescDesignerBasic(Designer BxDesc, bool use_grade_stars, bool use_under_description, out BtnContainerRadio<aBtn> BConItemStars, out FillBlock FbDesc)
 		{
 			BxDesc.addP(new DsnDataP("", false)
 			{
@@ -564,16 +576,19 @@ namespace nel
 
 		public void fineDescValue(string html_text)
 		{
-			UiItemManageBox.fineDescValueS(this.FbDesc, html_text);
+			UiItemManageBox.fineDescValueS(this.FbDesc, html_text, this.detail_auto_condence);
 		}
 
-		private static void fineDescValueS(FillBlock FbDesc, string html_text)
+		private static void fineDescValueS(FillBlock FbDesc, string html_text, bool detail_auto_condence)
 		{
 			if (FbDesc != null && !FbDesc.textIs(html_text))
 			{
 				FbDesc.text_content = html_text;
-				bool flag = TX.isEnglishLang();
-				FbDesc.lineSpacing = ((TX.countLine(html_text) >= (flag ? 6 : 8)) ? (flag ? 0.8f : 1.04f) : 1.25f);
+				if (detail_auto_condence)
+				{
+					bool flag = TX.isEnglishLang();
+					FbDesc.lineSpacing = ((TX.countLine(html_text) >= (flag ? 6 : 8)) ? (flag ? 0.8f : 1.04f) : 1.25f);
+				}
 			}
 		}
 
@@ -593,7 +608,6 @@ namespace nel
 
 		protected virtual bool runEditItem(bool using_mode, bool first = false, bool execute_select_button = true)
 		{
-			bool flag = false;
 			if (!using_mode)
 			{
 				if (first)
@@ -630,63 +644,23 @@ namespace nel
 				{
 					this.Inventory.progressSortByLshKey();
 				}
-				if (this.Inventory.SelectedRow != this.ItemSelectRow)
-				{
-					ItemStorage.ObtainInfo obtainInfo = ((this.ItemSelectRow != null) ? this.ItemSelectRow.getItemRow().Info : null);
-					ItemStorage.ObtainInfo obtainInfo2 = ((this.Inventory.SelectedRow != null) ? this.Inventory.SelectedRow.getItemRow().Info : null);
-					bool flag2 = true;
-					if (obtainInfo == obtainInfo2)
-					{
-						this.ItemSelectRow = this.Inventory.SelectedRow;
-						this.Inventory.RowReveal(this.ItemSelectRow.transform, false);
-						flag2 = this.Inventory.grade_split;
-					}
-					else
-					{
-						if (this.ItemSelectRow == null && execute_select_button)
-						{
-							this.Inventory.SelectedRow.Select(true);
-						}
-						this.ItemSelectRow = this.Inventory.SelectedRow;
-					}
-					if (execute_select_button && !this.ItemSelectRow.isSelected())
-					{
-						this.ItemSelectRow.Select(true);
-					}
-					if (this.animation_immediate_flag)
-					{
-						this.Inventory.ScrollAnimationFinalize();
-					}
-					if (flag2 && this.ItemSelectRow != null)
-					{
-						NelItem itemData = this.ItemSelectRow.getItemData();
-						int num = (this.Inventory.grade_split ? ((int)this.ItemSelectRow.getItemRow().splitted_grade) : this.ItemSelectRow.getItemRow().top_grade);
-						if (this.BxDesc != null)
-						{
-							this.fineItemDetail(using_mode, this.Inventory.grade_split ? num : (-1), true, this.DetailLockRow == null || itemData != this.DetailLockRow.getItemData());
-						}
-						if (this.fnDetailPrepare != null)
-						{
-							this.fnDetailPrepare(itemData, this.ItemSelectRow.getItemInfo(), this.ItemSelectRow.getItemRow());
-						}
-						flag = true;
-					}
-				}
+				this.runSelection(execute_select_button);
 				this.animation_immediate_flag = false;
 			}
 			else
 			{
+				bool flag = false;
 				this.fineUsingTarget();
-				ItemStorage.ObtainInfo obtainInfo3 = ((this.ItemUsingRow == null) ? null : this.ItemUsingRow.getItemRow().Info);
+				ItemStorage.ObtainInfo obtainInfo = ((this.ItemUsingRow == null) ? null : this.ItemUsingRow.getItemRow().Info);
 				if (first)
 				{
 					if (this.ItemUsingRow != null)
 					{
 						if (this.OTouchGrade != null)
 						{
-							this.touchGrade(this.ItemUsingRow.getItemData(), obtainInfo3);
+							this.touchGrade(this.ItemUsingRow.getItemData(), obtainInfo);
 						}
-						if (X.bit_count(this.getGradeAvailable(this.ItemUsingRow.getItemData(), obtainInfo3, true)) >= 2)
+						if (X.bit_count(this.getGradeAvailable(this.ItemUsingRow.getItemData(), obtainInfo, true)) >= 2)
 						{
 							if (this.BConItemStars != null)
 							{
@@ -701,9 +675,9 @@ namespace nel
 						flag = true;
 						if (this.Pr != null)
 						{
-							this.grade_cursor = this.ItemUsingRow.getItemData().autoFixGradeSelection(obtainInfo3, this.grade_cursor, this.Pr);
+							this.grade_cursor = this.ItemUsingRow.getItemData().autoFixGradeSelection(obtainInfo, this.grade_cursor, this.Pr);
 						}
-						this.checkGradeShift(using_mode, this.ItemUsingRow.getItemData(), obtainInfo3, 0, true, true);
+						this.checkGradeShift(using_mode, this.ItemUsingRow.getItemData(), obtainInfo, 0, true, true);
 					}
 				}
 				else
@@ -722,34 +696,86 @@ namespace nel
 						}
 						return true;
 					}
-					if (obtainInfo3 != null)
+					if (obtainInfo != null)
 					{
-						int num2 = 0;
+						int num = 0;
 						if (IN.isLTabPD())
 						{
-							num2 = -1;
+							num = -1;
 						}
 						if (IN.isRTabPD())
 						{
-							num2 = 1;
+							num = 1;
 						}
-						if (num2 != 0)
+						if (num != 0)
 						{
 							SND.Ui.play("tool_gradation", false);
-							this.checkGradeShift(using_mode, this.ItemUsingRow.getItemData(), obtainInfo3, num2, false, false);
+							this.checkGradeShift(using_mode, this.ItemUsingRow.getItemData(), obtainInfo, num, false, false);
 						}
 					}
 				}
-			}
-			if (flag)
-			{
-				this.fineItemStarsCount(using_mode);
+				if (flag)
+				{
+					this.fineItemStarsCount(using_mode);
+				}
 			}
 			if (this.DetailLockRow != null && !first)
 			{
 				this.DetailLockRow = null;
 			}
 			return true;
+		}
+
+		public bool runSelection(bool execute_select_button = true)
+		{
+			if (this.Inventory == null)
+			{
+				return false;
+			}
+			if (this.Inventory.SelectedRow != this.ItemSelectRow)
+			{
+				ItemStorage.ObtainInfo obtainInfo = ((this.ItemSelectRow != null) ? this.ItemSelectRow.getItemRow().Info : null);
+				ItemStorage.ObtainInfo obtainInfo2 = ((this.Inventory.SelectedRow != null) ? this.Inventory.SelectedRow.getItemRow().Info : null);
+				bool flag = true;
+				if (obtainInfo == obtainInfo2)
+				{
+					this.ItemSelectRow = this.Inventory.SelectedRow;
+					this.Inventory.RowReveal(this.ItemSelectRow.transform, false);
+					flag = this.Inventory.grade_split;
+				}
+				else
+				{
+					if (this.ItemSelectRow == null && execute_select_button)
+					{
+						this.Inventory.SelectedRow.Select(true);
+					}
+					this.ItemSelectRow = this.Inventory.SelectedRow;
+				}
+				if (execute_select_button && !this.ItemSelectRow.isSelected())
+				{
+					this.ItemSelectRow.Select(true);
+				}
+				if (this.animation_immediate_flag)
+				{
+					this.Inventory.ScrollAnimationFinalize();
+				}
+				if (flag && this.ItemSelectRow != null)
+				{
+					NelItem itemData = this.ItemSelectRow.getItemData();
+					int num = (this.Inventory.grade_split ? ((int)this.ItemSelectRow.getItemRow().splitted_grade) : this.ItemSelectRow.getItemRow().top_grade);
+					if (this.BxDesc != null)
+					{
+						this.fineItemDetail(false, this.Inventory.grade_split ? num : (-1), true, this.DetailLockRow == null || itemData != this.DetailLockRow.getItemData());
+					}
+					if (this.fnDetailPrepare != null)
+					{
+						this.fnDetailPrepare(itemData, this.ItemSelectRow.getItemInfo(), this.ItemSelectRow.getItemRow());
+					}
+					this.fineItemStarsCount(false);
+					return true;
+				}
+			}
+			return false;
 		}
 
 		private void fineUsingTarget()
@@ -787,40 +813,45 @@ namespace nel
 		public static string getDescStrS(ItemStorage Inventory, NelItem Itm, UiItemManageBox.DESC_ROW d_type, int grade, ItemStorage.ObtainInfo Obt, int count = 0, bool detail_main_item_effect = true, UiItemManageBox.FnDescAddition fnDescAddition = null, ItemStorage.IRow IR = null)
 		{
 			string text;
-			switch (d_type)
+			using (STB stb = TX.PopBld(null, 0))
 			{
-			case UiItemManageBox.DESC_ROW.NAME:
-				text = Itm.getLocalizedName((grade < 0) ? Obt.top_grade : grade, Inventory);
-				if (Inventory.FD_RowNameAddition != null && IR != null)
+				switch (d_type)
 				{
-					text = Inventory.FD_RowNameAddition(IR, Inventory, text);
-					goto IL_00E5;
+				case UiItemManageBox.DESC_ROW.NAME:
+					Itm.getLocalizedName(stb, (grade < 0) ? Obt.top_grade : grade);
+					if (Inventory.FD_RowNameAddition != null && IR != null)
+					{
+						Inventory.FD_RowNameAddition(stb, IR, Inventory);
+					}
+					text = stb.ToString();
+					goto IL_00FC;
+				case UiItemManageBox.DESC_ROW.GRADE:
+					text = ((Obt == null) ? "0" : Obt.getCount(grade).ToString());
+					goto IL_00FC;
+				case UiItemManageBox.DESC_ROW.DETAIL:
+					Itm.getDetail(stb, Inventory, grade, Obt, detail_main_item_effect, true, true);
+					text = stb.ToString();
+					goto IL_00FC;
+				case UiItemManageBox.DESC_ROW.ROW_COUNT:
+					text = Itm.getCountString(count, Inventory);
+					goto IL_00FC;
+				case UiItemManageBox.DESC_ROW.DESC:
+					Itm.getDescLocalized(stb, Inventory, grade);
+					text = stb.ToString();
+					goto IL_00FC;
+				case UiItemManageBox.DESC_ROW.TOPRIGHT_COUNTER:
+					text = (Inventory.infinit_stockable ? "" : (Inventory.getVisibleRowCount().ToString() + "/" + Inventory.row_max.ToString()));
+					goto IL_00FC;
 				}
-				goto IL_00E5;
-			case UiItemManageBox.DESC_ROW.GRADE:
-				text = ((Obt == null) ? "0" : Obt.getCount(grade).ToString());
-				goto IL_00E5;
-			case UiItemManageBox.DESC_ROW.DETAIL:
-				text = Itm.getDetail(Inventory, grade, Obt, detail_main_item_effect, true, true);
-				goto IL_00E5;
-			case UiItemManageBox.DESC_ROW.ROW_COUNT:
-				text = Itm.getCountString(count, Inventory);
-				goto IL_00E5;
-			case UiItemManageBox.DESC_ROW.DESC:
-				text = Itm.getDescLocalized(Inventory, grade);
-				goto IL_00E5;
-			case UiItemManageBox.DESC_ROW.TOPRIGHT_COUNTER:
-				text = (Inventory.infinit_stockable ? "" : (Inventory.getVisibleRowCount().ToString() + "/" + Inventory.row_max.ToString()));
-				goto IL_00E5;
-			}
-			text = "";
-			IL_00E5:
-			if (fnDescAddition != null && (IR == null || !IR.is_fake_row))
-			{
-				string text2 = fnDescAddition(Itm, d_type, text, grade, Obt, count);
-				if (text2 != null)
+				text = "";
+				IL_00FC:
+				if (fnDescAddition != null && (IR == null || !IR.is_fake_row))
 				{
-					text = text2;
+					string text2 = fnDescAddition(Itm, d_type, text, grade, Obt, count);
+					if (text2 != null)
+					{
+						text = text2;
+					}
 				}
 			}
 			return text;
@@ -832,7 +863,6 @@ namespace nel
 			{
 				return;
 			}
-			int num = 5;
 			NelItem nelItem = null;
 			ItemStorage.ObtainInfo obtainInfo = null;
 			if (!this.getCurrentFocusItem(using_mode, out nelItem, out obtainInfo))
@@ -843,9 +873,28 @@ namespace nel
 				}
 				nelItem = this.UsingTarget;
 			}
+			this.fineItemStarsCount(using_mode, nelItem, obtainInfo);
+		}
+
+		public void fineItemStarsCount(bool using_mode, NelItem Itm, ItemStorage.ObtainInfo Obt)
+		{
+			int num = 5;
 			for (int i = 0; i < num; i++)
 			{
-				(this.BConItemStars.Get(i).get_Skin() as ButtonSkinItemGrade).fineItem(nelItem, obtainInfo, i, this);
+				(this.BConItemStars.Get(i).get_Skin() as ButtonSkinItemGrade).fineItem(Itm, Obt, i, this);
+			}
+		}
+
+		public void fineItemStartAvailable(int grade_min)
+		{
+			if (this.BConItemStars == null)
+			{
+				return;
+			}
+			int num = 5;
+			for (int i = 0; i < num; i++)
+			{
+				(this.BConItemStars.Get(i).get_Skin() as ButtonSkinItemGrade).available = i >= grade_min;
 			}
 		}
 
@@ -923,7 +972,7 @@ namespace nel
 			if (this.grade_cursor != num || force)
 			{
 				this.grade_cursor = num;
-				if (this.BxDesc != null)
+				if (this.BxDesc != null && this.BConItemStars != null)
 				{
 					this.BConItemStars.setValue(this.grade_cursor, false);
 					if (using_mode)
@@ -1030,7 +1079,7 @@ namespace nel
 			return IR != null;
 		}
 
-		private void fineItemDetail(bool using_mode, int grade, bool fine_name = false, bool fine_desc = false)
+		protected void fineItemDetail(bool using_mode, int grade, bool fine_name = false, bool fine_desc = false)
 		{
 			if (this.BxDesc == null)
 			{
@@ -1041,21 +1090,36 @@ namespace nel
 			{
 				return;
 			}
-			UiItemManageBox.fineItemDetailS(this.BxDesc, this.FbDesc, this.Inventory, row.Data, row.Info, grade, fine_name, fine_desc, this.detail_main_item_effect, this.fnDescAddition, row);
+			this.fineItemDetailInner(using_mode, row.Data, row.Info, row, grade, fine_name, fine_desc, true);
 		}
 
-		public static void fineItemDetailS(Designer BxDesc, FillBlock FbDesc, ItemStorage Inventory, NelItem Itm, ItemStorage.ObtainInfo Obt, int grade, bool fine_name = false, bool fine_desc = false, bool detail_main_item_effect = true, UiItemManageBox.FnDescAddition fnDescAddition = null, ItemStorage.IRow IR = null)
+		public virtual void fineItemDetailInner(bool using_mode, NelItem Data, ItemStorage.ObtainInfo Obt, ItemStorage.IRow IR, int grade, bool fine_name = false, bool fine_desc = false, bool fine_detail = true)
+		{
+			UiItemManageBox.fineItemDetailS(this.BxDesc, this.FbDesc, this.Inventory, Data, Obt, grade, fine_name, fine_desc, this.detail_main_item_effect, this.fnDescAddition, IR, this.detail_auto_condence, fine_detail);
+		}
+
+		public static void fineItemDetailS(Designer BxDesc, FillBlock FbDesc, ItemStorage Inventory, NelItem Itm, ItemStorage.ObtainInfo Obt, int grade, bool fine_name = false, bool fine_desc = false, bool detail_main_item_effect = true, UiItemManageBox.FnDescAddition fnDescAddition = null, ItemStorage.IRow IR = null, bool detail_auto_condence = true, bool fine_detail = true)
 		{
 			string descStrS = UiItemManageBox.getDescStrS(Inventory, Itm, UiItemManageBox.DESC_ROW.DETAIL, grade, Obt, 0, detail_main_item_effect, fnDescAddition, null);
-			FillBlock fillBlock = BxDesc.Get("item_detail", false) as FillBlock;
-			if (fillBlock != null)
+			if (fine_detail)
 			{
-				fillBlock.lineSpacing = ((TX.countLine(descStrS) >= 6) ? 1.06f : 1.38f);
-				fillBlock.setValue(descStrS);
-				BxDesc.RowRemakeHeightRecalc(fillBlock, null);
-				if (FbDesc != null)
+				FillBlock fillBlock = BxDesc.Get("item_detail", false) as FillBlock;
+				if (fillBlock != null)
 				{
-					FbDesc.aligny = ((fillBlock.get_sheight_px() > fillBlock.heightPixel) ? ALIGNY.TOP : ALIGNY.MIDDLE);
+					if (detail_auto_condence)
+					{
+						fillBlock.lineSpacing = ((TX.countLine(descStrS) >= 6) ? 1.06f : 1.38f);
+						fillBlock.setValue(descStrS);
+						BxDesc.RowRemakeHeightRecalc(fillBlock, null);
+						if (FbDesc != null)
+						{
+							FbDesc.aligny = ((fillBlock.get_sheight_px() > fillBlock.heightPixel) ? ALIGNY.TOP : ALIGNY.MIDDLE);
+						}
+					}
+					else
+					{
+						fillBlock.setValue(descStrS);
+					}
 				}
 			}
 			if (fine_name)
@@ -1068,7 +1132,7 @@ namespace nel
 			}
 			if (fine_desc && FbDesc != null)
 			{
-				UiItemManageBox.fineDescValueS(FbDesc, UiItemManageBox.getDescStrS(Inventory, Itm, UiItemManageBox.DESC_ROW.DESC, grade, Obt, 0, detail_main_item_effect, fnDescAddition, null));
+				UiItemManageBox.fineDescValueS(FbDesc, UiItemManageBox.getDescStrS(Inventory, Itm, UiItemManageBox.DESC_ROW.DESC, grade, Obt, 0, detail_main_item_effect, fnDescAddition, null), detail_auto_condence);
 			}
 		}
 
@@ -1161,7 +1225,7 @@ namespace nel
 				else
 				{
 					this.BxCmd.WH(this.cmd_w, this.BxCmd.maxh_pixel + this.BxCmd.margin_in_tb * 2f);
-					this.BxCmd.getBtn(X.MMX(0, num, this.BxCmd.getBtnContainer().Length - 1)).Select(false);
+					this.BxCmd.getBtn(X.MMX(0, num, this.BxCmd.getBtnContainer().Length - 1)).Select(true);
 					if (this.fnCommandPrepare != null && !this.fnCommandPrepare(this, this.BxCmd, this.ItemUsingRow))
 					{
 						return false;
@@ -1182,7 +1246,7 @@ namespace nel
 
 		public void repositItemUsingCommand()
 		{
-			if (this.BxCmd == null)
+			if (this.BxCmd == null || !this.auto_reposit_bxcmd)
 			{
 				return;
 			}
@@ -1441,22 +1505,22 @@ namespace nel
 						{
 							if (num2 != 584542933U)
 							{
-								goto IL_04C4;
+								goto IL_04C5;
 							}
 							if (!(title == "discard_water"))
 							{
-								goto IL_04C4;
+								goto IL_04C5;
 							}
 						}
 						else
 						{
 							if (!(title == "drink"))
 							{
-								goto IL_04C4;
+								goto IL_04C5;
 							}
 							if (usingTarget.is_food && usingTarget.is_water)
 							{
-								this.Pr.MyStomach.addEffect(usingTarget.RecipeInfo.DishInfo, true, true);
+								this.Pr.MyStomach.addEffect(usingTarget.RecipeInfo.DishInfo, true, true, true);
 								this.Pr.UP.useItem(usingTarget, "food");
 								flag = this.Inventory.Reduce(usingTarget, 1, num, true);
 								this.ItemUsingRow = null;
@@ -1474,18 +1538,18 @@ namespace nel
 					{
 						if (num2 != 1469170932U)
 						{
-							goto IL_04C4;
+							goto IL_04C5;
 						}
 						if (!(title == "use"))
 						{
-							goto IL_04C4;
+							goto IL_04C5;
 						}
 					}
 					else
 					{
 						if (!(title == "Cancel"))
 						{
-							goto IL_04C4;
+							goto IL_04C5;
 						}
 						this.changeState(UiItemManageBox.STATE.SELECT, true);
 						return true;
@@ -1497,29 +1561,29 @@ namespace nel
 					{
 						if (num2 != 2685783248U)
 						{
-							goto IL_04C4;
+							goto IL_04C5;
 						}
 						if (!(title == "drink_useless"))
 						{
-							goto IL_04C4;
+							goto IL_04C5;
 						}
 						this.errorMessageToDesc(TX.Get("Item_desc_drink_cannot_use", ""));
 						return false;
 					}
 					else if (!(title == "discard_row"))
 					{
-						goto IL_04C4;
+						goto IL_04C5;
 					}
 				}
 				else if (num2 != 2846199180U)
 				{
 					if (num2 != 4166810253U)
 					{
-						goto IL_04C4;
+						goto IL_04C5;
 					}
 					if (!(title == "useless"))
 					{
-						goto IL_04C4;
+						goto IL_04C5;
 					}
 					string text = this.Pr.canUseItem(usingTarget, this.Inventory, true);
 					if (text == "")
@@ -1531,7 +1595,7 @@ namespace nel
 				}
 				else if (!(title == "drop"))
 				{
-					goto IL_04C4;
+					goto IL_04C5;
 				}
 				if (this.canUseItemCheck(usingTarget, B.title == "use"))
 				{
@@ -1617,7 +1681,7 @@ namespace nel
 				}
 				return true;
 			}
-			IL_04C4:
+			IL_04C5:
 			if (this.fnCommandBtnExecuted != null)
 			{
 				this.fnCommandBtnExecuted(this.ItemUsingRow, B.title);
@@ -1679,6 +1743,11 @@ namespace nel
 					this.fineDescValue(NEL.error_tag + desc + NEL.error_tag_close);
 				}
 			}
+		}
+
+		public bool isOffline()
+		{
+			return this.state == UiItemManageBox.STATE.OFFLINE;
 		}
 
 		public BDic<NelItem, uint> getTouchedGradeDictionary()
@@ -1801,6 +1870,10 @@ namespace nel
 
 		public bool hide_list_buttons_when_using;
 
+		public bool detail_auto_condence = true;
+
+		public bool auto_reposit_bxcmd = true;
+
 		public string item_row_skin = "normal";
 
 		public float slice_height = 120f;
@@ -1811,7 +1884,7 @@ namespace nel
 
 		public bool animation_immediate_flag;
 
-		public int stencil_ref = -1;
+		public int stencil_ref = -2;
 
 		public float cmd_w = 320f;
 
@@ -1827,6 +1900,8 @@ namespace nel
 
 		public UiItemManageBox.FnItemRowInitAfter fnItemRowInitAfter;
 
+		public UiItemManageBox.FnStorageRun fnItemRowRemakedAfter;
+
 		public UiItemManageBox.FnWholeRowsPrepare fnWholeRowsPrepare;
 
 		public UiItemManageBox.FnSortOverride fnSortInjectMng;
@@ -1836,6 +1911,12 @@ namespace nel
 		public UiItemManageBox.FnCommandKeysPrepare fnCommandKeysPrepare;
 
 		public UiItemManageBox.FnCommandBtnExecuted fnCommandBtnExecuted;
+
+		public const string fb_item_detail_name = "item_detail";
+
+		public const string fb_item_title_name = "item_name";
+
+		public const string fb_item_desc_name = "item_desc";
 
 		private ItemStorage[] ASupportStorage_;
 
@@ -1855,13 +1936,15 @@ namespace nel
 
 		private FillBlock FbDesc;
 
+		public delegate void FnStorageRun(ItemStorage Storage);
+
 		public delegate void FnDetailPrepare(NelItem Itm, ItemStorage.ObtainInfo Obt, ItemStorage.IRow IR);
 
 		public delegate void FnWholeRowsPrepare(UiItemManageBox IMng, List<ItemStorage.IRow> ASource, List<ItemStorage.IRow> ADest);
 
 		public delegate string FnDescAddition(NelItem Itm, UiItemManageBox.DESC_ROW row, string def_string, int grade, ItemStorage.ObtainInfo Obt, int count);
 
-		public delegate string FnRowNameAddition(ItemStorage.IRow Row, ItemStorage Storage, string def_string);
+		public delegate void FnRowNameAddition(STB Stb, ItemStorage.IRow Row, ItemStorage Storage);
 
 		public delegate int FnRowIconAddition(ItemStorage.IRow Row, ItemStorage Storage, int def_ico);
 

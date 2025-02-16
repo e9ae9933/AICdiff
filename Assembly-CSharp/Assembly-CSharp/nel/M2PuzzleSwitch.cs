@@ -403,6 +403,11 @@ namespace nel
 			return base.can_hit(Ray) | (this.no_auto_target ? RAYHIT.DO_NOT_AUTO_TARGET : RAYHIT.NONE);
 		}
 
+		public override float auto_target_priority(M2Mover CalcFrom)
+		{
+			return 2f;
+		}
+
 		public override float applyHpDamageRatio(AttackInfo Atk)
 		{
 			float num = base.applyHpDamageRatio(Atk) * (float)(this.isDamagingOrKo() ? 0 : 1);

@@ -6,11 +6,11 @@ using PixelLiner.PixelLinerLib;
 
 namespace nel
 {
-	public sealed class PRNoel : PR
+	public sealed class PRNoel : PRMain
 	{
 		public bool isSpOutFit()
 		{
-			return this.outfit_type_ == NoelAnimator.OUTFIT.BABYDOLL || this.outfit_type_ == NoelAnimator.OUTFIT.DOJO;
+			return this.outfit_type_ == PRNoel.OUTFIT.BABYDOLL || this.outfit_type_ == PRNoel.OUTFIT.DOJO;
 		}
 
 		public override void newGame()
@@ -18,17 +18,15 @@ namespace nel
 			this.hp = (this.maxhp = 150);
 			this.mp = (this.maxmp = 200);
 			base.newGame();
-			this.setOutfitType(NoelAnimator.OUTFIT.NORMAL, false, false);
+			this.setOutfitType(PRNoel.OUTFIT.NORMAL, false, false);
 			this.Ser.clear();
 			this.jamming_count = 0;
 			this.EpCon.newGame();
-			this.EggCon.clear(false);
+			this.EggCon.newGame(false);
 			this.GaugeBrk.reset();
 			UiBenchMenu.newGame();
 			base.key = "Noel";
-			base.water_drunk = 30;
-			this.water_drunk_cache = 0;
-			this.outfit_type_ = NoelAnimator.OUTFIT.NORMAL;
+			this.outfit_type_ = PRNoel.OUTFIT.NORMAL;
 			if (this.Anm != null && this.Anm.FlgDropCane != null)
 			{
 				this.Anm.FlgDropCane.Clear();
@@ -37,7 +35,8 @@ namespace nel
 
 		protected override void createAnimator(M2PxlAnimator PAnm)
 		{
-			this.Anm = new NoelAnimator(this, PAnm as M2PxlAnimatorRT);
+			this.SfPose = new AnimationShufflerNoel(this);
+			this.Anm = new NoelAnimator(this, PAnm as M2PxlAnimatorRT, MTR.PConNoelAnim);
 		}
 
 		public override void appear(Map2d Mp)
@@ -70,7 +69,7 @@ namespace nel
 			this.jamming_count++;
 		}
 
-		public void readBinaryFrom(ByteArray Ba, SVD.sFile Sf)
+		public void readBinaryFrom(ByteReader Ba, SVD.sFile Sf)
 		{
 			this.newGame();
 			this.maxhp = (int)Sf.maxhp_noel;
@@ -83,21 +82,25 @@ namespace nel
 			Sf.last_saved_x = (float)num2;
 			Sf.last_saved_y = (float)num3;
 			Sf.revert_pos = true;
-			if (num >= 1)
+			int num4 = 0;
+			int num5 = 0;
+			int num6 = 0;
+			byte b = 0;
+			if (num < 14 && num >= 1)
 			{
-				base.water_drunk = Ba.readInt();
+				num4 = Ba.readInt();
 				if (num >= 8)
 				{
-					this.water_drunk_cache = Ba.readInt();
+					num5 = Ba.readInt();
 					if (num >= 9)
 					{
-						this.juice_stock = Ba.readByte();
+						num6 = Ba.readByte();
 					}
 				}
 			}
 			this.Ser.readBinaryFrom(Ba, num >= 10);
 			this.EpCon.readBinaryFrom(Ba);
-			this.EggCon.readBinaryFrom(Ba, num >= 12);
+			this.EggCon.readBinaryFrom(Ba, num >= 12, num >= 13);
 			this.GaugeBrk.readBinaryFrom(Ba, num >= 11);
 			if (num >= 4)
 			{
@@ -110,10 +113,13 @@ namespace nel
 				this.BetoMng.readBinaryFrom(Ba);
 				if (num >= 5)
 				{
-					this.setOutfitType((NoelAnimator.OUTFIT)Ba.readByte(), true, false);
+					this.setOutfitType((PRNoel.OUTFIT)Ba.readByte(), true, false);
 					if (num >= 6)
 					{
-						this.pee_lock = (byte)Ba.readByte();
+						if (num < 14)
+						{
+							b = (byte)Ba.readByte();
+						}
 						if (num >= 7)
 						{
 							this.GSaver.readBinaryFrom(Ba);
@@ -121,21 +127,25 @@ namespace nel
 					}
 				}
 			}
+			if (num >= 14)
+			{
+				this.JuiceCon.readFromBytes(Ba, num);
+			}
+			else
+			{
+				this.JuiceCon.readFromOldData(num4, num5, num6, b);
+			}
 			this.EggCon.fineActivate();
 			this.EpCon.fineCounter();
 			this.GSaver.FineAll(true);
-			base.fineFrozenAppearance();
 			this.pre_camera_y = -1000f;
 		}
 
 		public void writeBinaryTo(ByteArray Ba)
 		{
-			Ba.writeByte(12);
+			Ba.writeByte(14);
 			Ba.writeUShort((ushort)base.x);
 			Ba.writeUShort((ushort)(base.mbottom + 0.12f));
-			Ba.writeInt(base.water_drunk);
-			Ba.writeInt(this.water_drunk_cache);
-			Ba.writeByte(this.juice_stock);
 			this.Ser.writeBinaryTo(Ba);
 			this.EpCon.writeBinaryTo(Ba);
 			this.EggCon.writeBinaryTo(Ba);
@@ -145,11 +155,11 @@ namespace nel
 			this.Skill.writeBinaryTo(Ba);
 			this.BetoMng.writeBinaryTo(Ba);
 			Ba.writeByte((int)((byte)this.outfit_type_));
-			Ba.writeByte((int)this.pee_lock);
 			this.GSaver.writeBinaryTo(Ba);
+			this.JuiceCon.writeBinaryTo(Ba);
 		}
 
-		public NoelAnimator.OUTFIT outfit_type
+		public PRNoel.OUTFIT outfit_type
 		{
 			get
 			{
@@ -162,14 +172,14 @@ namespace nel
 			this.setOutfitType(this.outfit_type_, true, false);
 		}
 
-		public void setOutfitType(NoelAnimator.OUTFIT type, bool force = false, bool fine_state = false)
+		public void setOutfitType(PRNoel.OUTFIT type, bool force = false, bool fine_state = false)
 		{
 			if (type == this.outfit_type_ && !force)
 			{
 				return;
 			}
 			this.outfit_type_ = type;
-			if (this.outfit_type_ == NoelAnimator.OUTFIT.BABYDOLL)
+			if (this.outfit_type_ == PRNoel.OUTFIT.BABYDOLL)
 			{
 				this.outfit_default_mnp = (M2MoverPr.PR_MNP)35;
 				this.outfit_default_dcl = M2MoverPr.DECL.STOP_SPECIAL_OUTFIT;
@@ -195,13 +205,13 @@ namespace nel
 		{
 			if (this.Phy != null)
 			{
-				this.Phy.getFootManager().footstamp_type = ((this.outfit_type_ == NoelAnimator.OUTFIT.BABYDOLL) ? FOOTSTAMP.BAREFOOT : FOOTSTAMP.SHOES);
+				this.Phy.getFootManager().footstamp_type = ((this.outfit_type_ == PRNoel.OUTFIT.BABYDOLL) ? FOOTSTAMP.BAREFOOT : FOOTSTAMP.SHOES);
 			}
 		}
 
 		public override bool canStartFrustratedMasturbate(bool starting = true)
 		{
-			return this.outfit_type_ == NoelAnimator.OUTFIT.NORMAL && base.canStartFrustratedMasturbate(starting);
+			return this.outfit_type_ == PRNoel.OUTFIT.NORMAL && base.canStartFrustratedMasturbate(starting);
 		}
 
 		public override bool isWetPose()
@@ -266,10 +276,10 @@ namespace nel
 			{
 				fade_key = "damage_gas";
 			}
-			else if (base.isMasturbateState() && this.Onnie != null)
+			else if (base.isMasturbateState() && base.SpRunner is M2PrMasturbate)
 			{
 				fade_key = "masturbate";
-				estate |= this.Onnie.checkUiPlayerState(UIPictureBase.EMSTATE.NORMAL);
+				estate |= (base.SpRunner as M2PrMasturbate).checkUiPlayerState(UIPictureBase.EMSTATE.NORMAL);
 				force_change = true;
 			}
 			else if (base.isOnBench(true))
@@ -277,9 +287,9 @@ namespace nel
 				if (base.poseIsBenchMusturbOrgasm())
 				{
 					force_change = true;
-					if (this.Onnie != null)
+					if (base.SpRunner is M2PrMasturbate)
 					{
-						estate |= this.Onnie.checkUiPlayerState(UIPictureBase.EMSTATE.NORMAL);
+						estate |= (base.SpRunner as M2PrMasturbate).checkUiPlayerState(UIPictureBase.EMSTATE.NORMAL);
 					}
 					fade_key = "masturbate";
 				}
@@ -306,7 +316,7 @@ namespace nel
 					emstate |= UIPictureBase.EMSTATE.SLEEP;
 				}
 			}
-			else if (this.EggCon.total > (int)(base.get_maxmp() * (float)CFG.sp_threshold_pregnant * 0.01f))
+			else if (this.EggCon.total > (int)(base.get_maxmp() * (float)CFGSP.threshold_pregnant * 0.01f))
 			{
 				emstate |= UIPictureBase.EMSTATE.SHAMED | UIPictureBase.EMSTATE.LOWMP | UIPictureBase.EMSTATE.BOTE;
 			}
@@ -328,9 +338,18 @@ namespace nel
 			return new PRNoel.WaitListenerNoelExplodeBurst(this);
 		}
 
-		private NoelAnimator.OUTFIT outfit_type_;
+		private PRNoel.OUTFIT outfit_type_;
 
 		public int jamming_count;
+
+		public enum OUTFIT
+		{
+			NORMAL,
+			TORNED,
+			BABYDOLL,
+			DOJO,
+			_MAX
+		}
 
 		public class WaitListenerNoelExplodeMagic : IEventWaitListener
 		{

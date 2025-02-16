@@ -50,7 +50,7 @@ namespace nel
 			{
 				if (this.Adirt_occur[i] > 0)
 				{
-					this.Adirt_occur[i] = global::XX.X.Mn(this.Adirt_occur[i] + 11, 450);
+					this.Adirt_occur[i] = X.Mn(this.Adirt_occur[i] + 11, 450);
 					num--;
 				}
 			}
@@ -65,7 +65,7 @@ namespace nel
 					this.applyDirt(0);
 					return;
 				}
-				int num2 = global::XX.X.xors(num);
+				int num2 = X.xors(num);
 				for (int j = 1; j < 4; j++)
 				{
 					if (this.Adirt_occur[j] <= 0 && num2-- == 0)
@@ -90,7 +90,7 @@ namespace nel
 			{
 				if (this.dirt_check > 0)
 				{
-					this.dirt_check = (short)global::XX.X.VALWALK((int)this.dirt_check, 0, 1);
+					this.dirt_check = (short)X.VALWALK((int)this.dirt_check, 0, 1);
 				}
 				if (this.dirt_occurence != 0)
 				{
@@ -112,7 +112,7 @@ namespace nel
 			}
 			if (this.dirt_check < 0)
 			{
-				this.dirt_check = (short)global::XX.X.VALWALK((int)this.dirt_check, 0, num / 4);
+				this.dirt_check = (short)X.VALWALK((int)this.dirt_check, 0, num / 4);
 			}
 		}
 
@@ -126,7 +126,7 @@ namespace nel
 			return this.Adirt_occur[id] > 0;
 		}
 
-		public void readBinaryFrom(ByteArray Ba)
+		public void readBinaryFrom(ByteReader Ba)
 		{
 			Ba.readByte();
 			this.dirt_check = Ba.readShort();

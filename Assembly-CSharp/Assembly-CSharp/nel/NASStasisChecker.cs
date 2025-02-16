@@ -70,7 +70,7 @@ namespace nel
 			{
 				return;
 			}
-			if (nai.isPrAttacking())
+			if (nai.isPrAttacking(1f))
 			{
 				flag = true;
 				num *= this.reduce_ratio_attack;

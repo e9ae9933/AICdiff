@@ -24,7 +24,7 @@ namespace nel
 		public M2PrMistApplier activate()
 		{
 			this.HnPe.release(false);
-			this.HnPe.Set(this.PEBreatheStop = this.NM2D.PE.setPE(POSTM.GAS_APPLIED, 20f, 0.125f, 0));
+			this.HnPe.Set(this.PEBreatheStop = base.NM2D.PE.setPE(POSTM.GAS_APPLIED, 20f, 0.125f, 0));
 			this.ui_need_fine = true;
 			this.t_br = 1f;
 			this.Pr.recheck_emot = true;
@@ -56,7 +56,7 @@ namespace nel
 
 		public void abortWaterChokeRelease()
 		{
-			this.NM2D.Iris.deassignListener(this);
+			base.NM2D.Iris.deassignListener(this);
 			base.remD(M2MoverPr.DECL.WATER_CHOKE_FLOAT);
 			this.removePe(ref this.PEWaterChokeZoom);
 			this.Pr.recheck_emot = true;
@@ -69,7 +69,7 @@ namespace nel
 		public void waterReleasedInChoking()
 		{
 			base.remD(M2MoverPr.DECL.WATER_CHOKE_FLOAT);
-			if (this.isWaterChokeDamageAlreadyApplied())
+			if (this.isWaterChokeDamageAlreadyApplied(true))
 			{
 				this.choken_released = true;
 				this.t_water = X.Mn(100f, this.t_water);
@@ -88,7 +88,7 @@ namespace nel
 
 		public bool setPE(ref PostEffectItem Pe, POSTM postm, float z_maxt = 40f, float x_level = 1f, int saf = 0)
 		{
-			if (!this.NM2D.Cam.isBaseMover(this.Pr))
+			if (!base.NM2D.Cam.isBaseMover(this.Pr))
 			{
 				return false;
 			}
@@ -96,10 +96,10 @@ namespace nel
 			{
 				return true;
 			}
-			this.HnPe.deactivateSpecific(postm);
+			this.HnPe.deactivateSpecific(postm, false);
 			EffectHandler<PostEffectItem> hnPe = this.HnPe;
 			PostEffectItem postEffectItem;
-			Pe = (postEffectItem = this.NM2D.PE.setPE(postm, z_maxt, x_level, saf));
+			Pe = (postEffectItem = base.NM2D.PE.setPE(postm, z_maxt, x_level, saf));
 			hnPe.Set(postEffectItem);
 			return true;
 		}
@@ -131,7 +131,7 @@ namespace nel
 				{
 					if (num4 < 0f && num5 == 1)
 					{
-						this.NM2D.Iris.assignListener(this);
+						base.NM2D.Iris.assignListener(this);
 						this.t_water = 300f;
 						num3 = this.t_water - 200f;
 						num4 = 0f;
@@ -160,12 +160,18 @@ namespace nel
 			}
 			else
 			{
+				float num8 = 1f;
 				if (this.t_br > 0f)
 				{
+					num8 = 0f;
 					this.setPE(ref this.PEBreatheStop, POSTM.GAS_APPLIED, 20f, 0.125f, 0);
-					if (this.Pr.isShieldOpening() && this.t_br <= 6f)
+					if (this.Pr.isShieldOpening())
 					{
-						num = ((this.t_water > 0f || this.t_wd != 0f) ? 0.375f : 0.25f);
+						num8 = DIFF.cure_o2_ratio_in_shield;
+						if (this.t_br <= 6f)
+						{
+							num = ((this.t_water > 0f || this.t_wd != 0f) ? 0.375f : 0.25f);
+						}
 					}
 					if (!this.Pr.isTrappedState() && this.t_wd >= 0f && (this.Pr.isShieldOpening() || base.isNormalBusy()))
 					{
@@ -180,10 +186,10 @@ namespace nel
 					}
 					this.t_mdmg_ac_reduce = 0f;
 				}
-				else
+				if (num8 > 0f)
 				{
-					float num8 = fcnt;
-					float num9 = (((!base.isNormalState() && !this.Pr.isDownState() && !this.Pr.isWaterChokedReleaseState()) || this.Pr.magic_chanting) ? 0.125f : ((this.Pr.get_walk_xspeed() != 0f || !this.Pr.canJump()) ? 0.41666666f : 1f));
+					float num9 = fcnt;
+					float num10 = (((!base.isNormalState() && !this.Pr.isDownState() && !this.Pr.isWaterChokedReleaseState()) || this.Pr.magic_chanting) ? 0.125f : ((this.Pr.get_walk_xspeed() != 0f || !this.Pr.canJump()) ? 0.41666666f : 1f));
 					if (this.o2_point < 100f)
 					{
 						if (this.LogRowChoking != null)
@@ -191,24 +197,25 @@ namespace nel
 							this.LogRowChoking.deactivate(false);
 							this.LogRowChoking = null;
 						}
+						num10 *= num8;
 						if (this.t_water > 0f && this.o2_point >= 50f)
 						{
-							num9 *= X.NI(1f, 0.5f, X.ZLINE(this.t_water, 50f));
+							num10 *= X.NI(1f, 0.5f, X.ZLINE(this.t_water, 50f));
 						}
-						this.o2_point = X.Mn(this.o2_point + num9 * fcnt, 100f);
-						if (num9 > 0f && this.o2_point > 12.5f && this.Pr.isWaterChokeState())
+						this.o2_point = X.Mn(this.o2_point + num10 * fcnt, 100f);
+						if (num10 > 0f && this.o2_point > 12.5f && this.Pr.isWaterChokeState())
 						{
 							this.abortWaterChokeRelease();
 						}
 						this.ui_need_fine = true;
 					}
-					else if (num9 == 1f)
+					else if (num10 == 1f)
 					{
-						num8 = fcnt * 4f;
+						num9 = fcnt * 4f;
 					}
 					if (this.mdmg_count > 0)
 					{
-						this.t_mdmg_ac_reduce += num8;
+						this.t_mdmg_ac_reduce += num9;
 						if (this.t_mdmg_ac_reduce > 150f)
 						{
 							this.t_mdmg_ac_reduce -= 150f;
@@ -287,7 +294,7 @@ namespace nel
 			}
 			if (this.HnPe.Count > 0)
 			{
-				if (!this.NM2D.Cam.isBaseMover(this.Pr))
+				if (!base.NM2D.Cam.isBaseMover(this.Pr))
 				{
 					this.deactivateEffect();
 				}
@@ -304,16 +311,16 @@ namespace nel
 				}
 				else
 				{
-					int num10 = (int)((this.t_voice - 35f) / 25f);
-					this.t_voice += fcnt;
 					int num11 = (int)((this.t_voice - 35f) / 25f);
-					if (num11 >= 1 && num10 != num11)
+					this.t_voice += fcnt;
+					int num12 = (int)((this.t_voice - 35f) / 25f);
+					if (num12 >= 1 && num11 != num12)
 					{
-						if (num11 <= 2 || (num11 == 3 && X.XORSP() < 0.5f))
+						if (num12 <= 2 || (num12 == 3 && X.XORSP() < 0.5f))
 						{
 							this.Pr.playVo("cough", false, false);
 						}
-						if (num11 >= 5)
+						if (num12 >= 5)
 						{
 							this.t_voice = -1f;
 						}
@@ -383,7 +390,7 @@ namespace nel
 					}
 					if (!Mist.isWater())
 					{
-						num2 *= X.NI(1f, 0.1f, this.Pr.getRE(RecipeManager.RPI_EFFECT.SMOKE_RESIST) * num);
+						num2 *= X.NI(1f, 0.1f, this.Pr.getRE(RCP.RPI_EFFECT.SMOKE_RESIST) * num);
 					}
 					if (num2 > 0f)
 					{
@@ -397,10 +404,10 @@ namespace nel
 					}
 				}
 				this.Pr.stopRunning(false, false);
-				this.Pr.Skill.initMagicSleep(true, false);
 				int num3 = 0;
 				if (Mist.isWater())
 				{
+					this.Pr.Skill.initMagicSleep(true, false);
 					if (this.t_water == 0f)
 					{
 						this.Pr.UP.applyGasDamage(Mist, true);
@@ -424,18 +431,27 @@ namespace nel
 				}
 				else
 				{
-					this.t_br = 28f;
-					if (!base.isNormalState() && base.isNormalBusy())
+					bool flag = false;
+					if (Mist.AAtk != null && Mist.AAtk[0].no_cough_move)
 					{
-						this.Pr.changeState(PR.STATE.NORMAL);
+						flag = true;
 					}
-					if (this.t_voice < 0f)
+					if (!flag)
 					{
-						this.t_voice = 59f;
+						this.Pr.Skill.initMagicSleep(true, false);
+						this.t_br = 28f;
+						if (!base.isNormalState() && base.isNormalBusy())
+						{
+							this.Pr.changeState(PR.STATE.NORMAL);
+						}
+						if (this.t_voice < 0f)
+						{
+							this.t_voice = 59f;
+						}
 					}
-					this.NM2D.Cam.Qu.SinV(6f, 50f, 0f, 0);
-					this.NM2D.Cam.Qu.SinH(3f, 75f, 0f, -40);
-					this.NM2D.PE.setPEabsorbed(POSTM.GAS_APPLIED, 2f, 40f, 0.5f, 0);
+					base.NM2D.Cam.Qu.SinV(6f, 50f, 0f, 0);
+					base.NM2D.Cam.Qu.SinH(3f, 75f, 0f, -40);
+					base.NM2D.PE.setPEabsorbed(POSTM.GAS_APPLIED, 2f, 40f, 0.5f, 0);
 					this.t_mdmg_ac_reduce = 0f;
 					this.Pr.UP.applyGasDamage(Mist, true);
 					if (DIFF.mist_damage_applyable(this.Pr, (int)this.mdmg_count + Mist.adding_damage_count))
@@ -554,9 +570,9 @@ namespace nel
 			return this.t_water > 0f;
 		}
 
-		public bool isWaterChokeDamageAlreadyApplied()
+		public bool isWaterChokeDamageAlreadyApplied(bool consider_release_after = true)
 		{
-			return this.t_water >= 300f || this.choken_released;
+			return this.t_water >= 300f || (consider_release_after && this.choken_released);
 		}
 
 		public bool canReleaseWaterChokeStun()

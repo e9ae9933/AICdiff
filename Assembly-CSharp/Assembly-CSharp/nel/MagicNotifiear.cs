@@ -46,9 +46,9 @@ namespace nel
 			return Mg.MGC.makeRay(Mg, mnHit.thick, mnHit.wall_hit, mnHit.other_hit);
 		}
 
-		public M2Ray SetRay(M2Ray Ray, int id, float agR, float t)
+		public M2Ray SetRay(M2Ray Ray, int id, float agR, float t, float len_extend = 0f)
 		{
-			return this.AHit[id].SetRay(Ray, agR, t);
+			return this.AHit[id].SetRay(Ray, agR, t, len_extend);
 		}
 
 		public Vector2 drawTo(MeshDrawer Md, Map2d Mp, Vector2 MpPos0, float st, float agR, bool no_hit_pr, float kadomaru_t = 0f, M2Ray RayForCheck = null, RaycastHit2D[] ARayHitBuf = null)
@@ -464,11 +464,11 @@ namespace nel
 				return num2;
 			}
 
-			public M2Ray SetRay(M2Ray Ray, float agR, float t)
+			public M2Ray SetRay(M2Ray Ray, float agR, float t, float len_extend = 0f)
 			{
 				Ray.PosMapShift(this.x, this.y);
 				this.agR = agR;
-				Ray.LenM(this.Spd(t)).AngleR(agR).RadiusM(this.thick);
+				Ray.LenM(this.Spd(t) + len_extend).AngleR(agR).RadiusM(this.thick);
 				if (this.wall_hit)
 				{
 					Ray.check_hit_wall = true;
@@ -483,7 +483,7 @@ namespace nel
 				}
 				else
 				{
-					Ray.hittype &= (HITTYPE)(-9);
+					Ray.hittype &= ~HITTYPE.OTHER;
 				}
 				return Ray;
 			}
@@ -536,13 +536,13 @@ namespace nel
 						}
 						if (!Ray.penetrate && (hittype & HITTYPE._TEMP_REFLECT) != HITTYPE.NONE)
 						{
-							hittype &= (HITTYPE)(-12582945);
+							hittype &= ~(HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED);
 							if (this.clipRayLength(Ray, HITTYPE._TEMP_REFLECT))
 							{
 								Ray.LenM(this.len);
 							}
 						}
-						Ray.hittype &= (HITTYPE)(-1048641);
+						Ray.hittype &= ~(HITTYPE.AUTO_TARGET | HITTYPE.WATER_CUT);
 						Ray.hittype |= HITTYPE.TARGET_CHECKER;
 						Ray.clearReflectBuffer().Cast(true, (ARayHitBuf == null) ? M2Ray.AHitTest : ARayHitBuf, true);
 						Ray.hittype = hittype;
@@ -551,7 +551,7 @@ namespace nel
 						{
 							if (this.len > 0f && !this.penetrate)
 							{
-								this.clipRayLength(Ray, (HITTYPE)12615716);
+								this.clipRayLength(Ray, HITTYPE.WALL | HITTYPE.REFLECTED | HITTYPE.BREAK | HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED);
 							}
 							if (num2 != this.len)
 							{

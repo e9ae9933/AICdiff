@@ -128,7 +128,7 @@ namespace XX
 						}
 					}
 				}
-				if (IN.isMousePushDown() && this.CurrentHover != null)
+				if (IN.isMousePushDown(1) && this.CurrentHover != null)
 				{
 					this.can_hover_other_object_on_dragging = false;
 					if (this.CurrentHover.OnPointerDown())

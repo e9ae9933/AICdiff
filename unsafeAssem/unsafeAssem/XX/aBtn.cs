@@ -359,7 +359,7 @@ namespace XX
 				this.bind();
 				if (this.autoSelect)
 				{
-					this.Select(false);
+					this.Select(true);
 				}
 				this.autoBind = false;
 			}
@@ -634,7 +634,7 @@ namespace XX
 			}
 		}
 
-		public void Select(bool move_scrollbox = false)
+		public void Select(bool move_scrollbox = true)
 		{
 			if (this.destructed)
 			{
@@ -739,7 +739,7 @@ namespace XX
 			aBtn preSelected = aBtn.PreSelected;
 			if (this.click_to_select)
 			{
-				this.Select(false);
+				this.Select(true);
 			}
 			else if (preSelected == this)
 			{
@@ -1146,7 +1146,7 @@ namespace XX
 					}
 					aBtn = aBtn2;
 				}
-				if (aBtn != this)
+				if (aBtn != this && aBtn != null)
 				{
 					IN.clearCursDown();
 					if (aBtn.hover_snd == null)
@@ -1211,6 +1211,11 @@ namespace XX
 		public bool isNaviImportantConnected(AIM i)
 		{
 			return ((int)this.navi_setted & (1 << (int)i << 4)) > 0;
+		}
+
+		public bool isNaviConnected(AIM i)
+		{
+			return ((int)this.navi_setted & (1 << (int)i)) > 0;
 		}
 
 		protected void fillEmptyInNavigation()

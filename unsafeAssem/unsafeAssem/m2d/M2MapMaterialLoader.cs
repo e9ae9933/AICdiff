@@ -37,14 +37,14 @@ namespace m2d
 					{
 						map2d.prepared = true;
 					}
-					map2d.getMapBodyContentReader(ref this.CR, ref this.BaLoad);
+					map2d.getMapBodyContentReader(ref this.CR, ref this.BaLoad, true);
 					if (this.CR != null)
 					{
 						this.line = 0;
 					}
 					else
 					{
-						this.line = 1;
+						this.line = (int)this.BaLoad.position;
 					}
 					bool flag = this.load_additinal_material;
 				}
@@ -66,7 +66,7 @@ namespace m2d
 						return true;
 					}
 				}
-				if (!this.pxl_loaded)
+				if (!this.pxl_loaded && !map2d.is_whole)
 				{
 					this.M2D.IMGS.Atlas.initCspAtlas(M2DBase.Achip_pxl_key);
 				}

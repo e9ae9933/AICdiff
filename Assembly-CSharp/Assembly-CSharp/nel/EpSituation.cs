@@ -73,7 +73,7 @@ namespace nel
 							return;
 						}
 						situDesc.count++;
-						situDesc.multiple = global::XX.X.Mx(situDesc.multiple, multiple_orgasm);
+						situDesc.multiple = X.Mx(situDesc.multiple, multiple_orgasm);
 						this.ALastSituEn[i] = situDesc;
 						num = -1;
 						break;
@@ -126,7 +126,7 @@ namespace nel
 			{
 				return null;
 			}
-			int num2 = global::XX.X.xors(num);
+			int num2 = X.xors(num);
 			for (int j = 0; j < count; j++)
 			{
 				EpSituation.SituDesc situDesc2 = this.ALastSituEn[j];
@@ -296,7 +296,7 @@ namespace nel
 			return false;
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool new_ver = true)
+		public void readBinaryFrom(ByteReader Ba, bool new_ver = true)
 		{
 			int num = (int)Ba.readUShort();
 			for (int i = 0; i < num; i++)

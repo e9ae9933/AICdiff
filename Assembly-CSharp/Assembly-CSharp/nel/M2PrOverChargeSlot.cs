@@ -9,8 +9,8 @@ namespace nel
 		public M2PrOverChargeSlot(PR _Pr)
 			: base(_Pr)
 		{
-			this.Ptc0 = new EfParticleOnce("ui_oc_slot_0", EFCON_TYPE.UI);
-			this.Ptc1 = new EfParticleOnce("ui_oc_slot_1", EFCON_TYPE.UI);
+			this.Ptc0 = new EfParticleOnce("ui_oc_slot_0", EFCON_TYPE.FIXED);
+			this.Ptc1 = new EfParticleOnce("ui_oc_slot_1", EFCON_TYPE.FIXED);
 		}
 
 		public override void initS()
@@ -62,7 +62,7 @@ namespace nel
 
 		public void fineSlots(bool force = true)
 		{
-			int count = this.NM2D.IMNG.getInventoryPrecious().getCount(NelItem.GetById("oc_slot", false), -1);
+			int count = base.NM2D.IMNG.getInventoryPrecious().getCount(NelItem.GetById("oc_slot", false), -1);
 			if (this.max_slot != count || force)
 			{
 				this.max_slot = count;

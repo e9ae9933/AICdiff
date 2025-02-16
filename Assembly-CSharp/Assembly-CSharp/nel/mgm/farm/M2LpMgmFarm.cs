@@ -11,7 +11,7 @@ namespace nel.mgm.farm
 		public M2LpMgmFarm(string _key, int _index, M2MapLayer _Lay)
 			: base(_key, _index, _Lay)
 		{
-			EnemyData.getResources(base.nM2D, "MGMFARM_COW_NPC");
+			NDAT.getResources(base.nM2D, "MGMFARM_COW_NPC");
 			this.ABelongWeed = new List<M2ManaWeed>(10);
 			this.AActiveWeed = new List<M2ManaWeed>(10);
 			this.Ui = new UiMgmFarmSuck(this);

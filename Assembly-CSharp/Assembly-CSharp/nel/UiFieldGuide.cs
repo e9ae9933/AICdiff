@@ -3,15 +3,23 @@ using System.Collections.Generic;
 using Better;
 using evt;
 using m2d;
-using nel.gm;
+using nel.smnp;
 using PixelLiner;
-using UnityEngine;
 using XX;
 
 namespace nel
 {
 	public class UiFieldGuide : UiBoxDesignerFamily, IEventWaitListener, NelItem.IItemUser
 	{
+		public static NelItem Sanitize(NelItem Itm)
+		{
+			if (Itm != null && Itm.is_reelmbox && TX.isStart(Itm.key, "itemreelC_", 0))
+			{
+				Itm = NelItem.GetById("itemreelG_" + TX.slice(Itm.key, "itemreelC_".Length), false) ?? Itm;
+			}
+			return Itm;
+		}
+
 		private float bxl_btn_w
 		{
 			get
@@ -94,15 +102,16 @@ namespace nel
 		protected override void Awake()
 		{
 			base.Awake();
-			this.OAItm2Row = new BDic<UiFieldGuide.FDR, List<UiFieldGuide.ItmAndCateg>>();
-			this.OItmTreasureCache = new BDic<NelItem, ReelManager.ReelDecription>();
-			this.OAAItmRecipeDefinition = new BDic<NelItem, List<RecipeManager.RecipeDescription>[]>();
-			this.OIRDesc = new BDic<ReelManager.ItemReelContainer, SupplyManager.SupplyDescription>(4);
-			this.IRDesc_Merged = new SupplyManager.SupplyDescriptionMulti();
+			this.OAItm2Row = new BDic<UiFieldGuide.FDR, UiFieldGuide.FdrEntry>();
+			this.OAAItmRecipeDefinition = new BDic<NelItem, List<RCP.RecipeDescription>[]>();
 			this.OAStoreItemListedUp = new BDic<StoreManager, List<NelItem>>(StoreManager.GetWholeStoreObject().Count);
+			this.OABufAppearEn = new BDic<WholeMapItem, SummonerList>(1);
 			this.ADetailHistory = new List<UiFieldGuide.FDR>(1);
+			this.OAItm2EnemyID = new BDic<NelItem, List<ENEMYID>>(4);
+			this.ARbSk = new List<ButtonSkinNelFieldGuide>(16);
 			IN.setZ(base.transform, -4.275f);
 			this.M2D = M2DBase.Instance as NelM2DBase;
+			this.enabled_enemy_info = (X.DEBUGALBUMUNLOCK || GF.getB("FG_ENEMY")) && this.M2D != null;
 			UiAlchemyWorkBench.initReadScript();
 			UiAlchemyWorkBench.AddTopicRow(null);
 			this.ACtgHeader = new List<aBtn>();
@@ -152,15 +161,22 @@ namespace nel
 			}
 			if (UiFieldGuide.NextRevealAtAwake is M2EventItem_ItemSupply)
 			{
-				NelItem individualItem2 = (UiFieldGuide.NextRevealAtAwake as M2EventItem_ItemSupply).IReel.IndividualItem;
+				M2EventItem_ItemSupply m2EventItem_ItemSupply = UiFieldGuide.NextRevealAtAwake as M2EventItem_ItemSupply;
+				ReelManager.ItemReelContainer ireel = m2EventItem_ItemSupply.IReel;
+				NelItem individualItem2 = ireel.IndividualItem;
 				if (individualItem2 != null)
 				{
 					UiFieldGuide.NextRevealAtAwake = individualItem2;
 				}
+				else
+				{
+					flag2 = true;
+					this.CurPickUp = new UiFieldGuide.PickUp(ireel, ireel.getLocalizedName(m2EventItem_ItemSupply.LpCon));
+				}
 			}
-			if (UiFieldGuide.NextRevealAtAwake is RecipeManager.RecipeIngredient)
+			if (UiFieldGuide.NextRevealAtAwake is RCP.RecipeIngredient)
 			{
-				RecipeManager.RecipeIngredient recipeIngredient = UiFieldGuide.NextRevealAtAwake as RecipeManager.RecipeIngredient;
+				RCP.RecipeIngredient recipeIngredient = UiFieldGuide.NextRevealAtAwake as RCP.RecipeIngredient;
 				if (recipeIngredient.Target != null)
 				{
 					UiFieldGuide.NextRevealAtAwake = recipeIngredient.Target;
@@ -169,7 +185,7 @@ namespace nel
 				{
 					UiFieldGuide.NextRevealAtAwake = recipeIngredient.TargetRecipe;
 				}
-				if (recipeIngredient.target_category != (RecipeManager.RPI_CATEG)0)
+				if (recipeIngredient.target_category != (RCP.RPI_CATEG)0)
 				{
 					flag2 = true;
 					this.CurPickUp = new UiFieldGuide.PickUp(recipeIngredient.target_category);
@@ -179,29 +195,52 @@ namespace nel
 					this.CurPickUp = new UiFieldGuide.PickUp(recipeIngredient.target_ni_category);
 				}
 			}
-			if (UiFieldGuide.NextRevealAtAwake is RecipeManager.Recipe)
+			if (UiFieldGuide.NextRevealAtAwake is RCP.Recipe)
 			{
-				UiFieldGuide.NextRevealAtAwake = (UiFieldGuide.NextRevealAtAwake as RecipeManager.Recipe).RecipeItem;
+				UiFieldGuide.NextRevealAtAwake = (UiFieldGuide.NextRevealAtAwake as RCP.Recipe).RecipeItem;
 			}
 			if (UiFieldGuide.NextRevealAtAwake is NelItem)
 			{
-				NelItem nelItem = UiFieldGuide.NextRevealAtAwake as NelItem;
-				if (TX.isStart(nelItem.key, "itemreelC_", 0))
-				{
-					nelItem = NelItem.GetById("itemreelG_" + TX.slice(nelItem.key, "itemreelC_".Length), false) ?? nelItem;
-				}
+				NelItem nelItem = UiFieldGuide.Sanitize(UiFieldGuide.NextRevealAtAwake as NelItem);
 				flag = this.topicJump(nelItem);
+			}
+			UiFieldGuide.FDR fdr = default(UiFieldGuide.FDR);
+			if (UiFieldGuide.NextRevealAtAwake is SummonerPlayer)
+			{
+				UiFieldGuide.NextRevealAtAwake = (UiFieldGuide.NextRevealAtAwake as SummonerPlayer).Summoner;
 			}
 			if (UiFieldGuide.NextRevealAtAwake is EnemySummoner && this.M2D != null)
 			{
-				UiFieldGuide.FDR fdrfor = this.getFDRFor(UiFieldGuide.NextRevealAtAwake as EnemySummoner);
-				if (fdrfor.valid)
+				fdr = this.getFDRFor(UiFieldGuide.NextRevealAtAwake as EnemySummoner);
+			}
+			if (UiFieldGuide.NextRevealAtAwake is UiFieldGuide.IFieldGuideOpenable)
+			{
+				fdr = (UiFieldGuide.NextRevealAtAwake as UiFieldGuide.IFieldGuideOpenable).getFDR();
+			}
+			if (UiFieldGuide.NextRevealAtAwake is UiFieldGuide.FDR)
+			{
+				fdr = (UiFieldGuide.FDR)UiFieldGuide.NextRevealAtAwake;
+			}
+			if (UiFieldGuide.NextRevealAtAwake is ENEMYID)
+			{
+				fdr = this.getFDRFor((ENEMYID)UiFieldGuide.NextRevealAtAwake);
+			}
+			if (fdr.valid)
+			{
+				if (fdr.enemyid > (ENEMYID)0U)
 				{
-					flag = this.topicJump(fdrfor);
-					WholeMapItem wholeFor = this.M2D.WM.GetWholeFor(fdrfor.FSmn.SInfoMp, false);
-					if (wholeFor != null)
+					fdr = this.getFDRFor(fdr.enemyid);
+				}
+				if (fdr.valid)
+				{
+					flag = this.topicJump(fdr);
+					if (fdr.FSmn != null)
 					{
-						wmDeperture = new WmDeperture(wholeFor.text_key, fdrfor.FSmn.SInfoMp.key);
+						WholeMapItem wholeFor = this.M2D.WM.GetWholeFor(fdr.FSmn.SInfoMp, false);
+						if (wholeFor != null)
+						{
+							wmDeperture = new WmDeperture(wholeFor.text_key, fdr.FSmn.SInfoMp.key);
+						}
 					}
 				}
 			}
@@ -215,7 +254,7 @@ namespace nel
 			}
 			else if (this.BConR.Length >= 2)
 			{
-				this.BConR.Get(1).Select(false);
+				this.BConR.Get(1).Select(true);
 			}
 			if (UiFieldGuide.NextRevealAtAwake is M2EventItem_ItemSupply)
 			{
@@ -224,6 +263,12 @@ namespace nel
 			if (UiFieldGuide.NextRevealAtAwake is ReelManager.ItemReelContainer)
 			{
 				this.CurPickUp = new UiFieldGuide.PickUp(UiFieldGuide.NextRevealAtAwake as ReelManager.ItemReelContainer, "&&Catalog_pickup_current_reel_spot[" + ((this.M2D != null) ? this.M2D.getMapTitle(null) : "") + "]");
+				flag2 = true;
+			}
+			if (UiFieldGuide.NextRevealAtAwake is SummonerList)
+			{
+				SummonerList summonerList = UiFieldGuide.NextRevealAtAwake as SummonerList;
+				this.CurPickUp = new UiFieldGuide.PickUp(summonerList, "&&Guild_pickup_fof_fieldguide");
 				flag2 = true;
 			}
 			if (flag2)
@@ -279,7 +324,7 @@ namespace nel
 			this.BxL.item_margin_y_px = 8f;
 			this.BxL.box_stencil_ref_mask = -1;
 			this.BxL.stencil_ref = -1;
-			int num = X.beki_cnt(32768U);
+			int num = X.beki_cnt(131072U);
 			this.OCategHead = new BDic<aBtn, UiFieldGuide.CategHead>(num);
 			this.BxL.init();
 			this.BxL.getBox().col(MTRX.ColTrnsp);
@@ -389,7 +434,7 @@ namespace nel
 
 		private aBtn initItemContent()
 		{
-			int num = X.beki_cnt(65536U);
+			int num = X.beki_cnt(131072U);
 			BDic<UiItemWholeSelector.WCATEG, UiFieldGuide.CategHead> bdic = new BDic<UiItemWholeSelector.WCATEG, UiFieldGuide.CategHead>(num);
 			this.total_items = (this.valid_items = 0);
 			aBtn aBtn = null;
@@ -422,7 +467,7 @@ namespace nel
 						{
 							if (this.M2D == null)
 							{
-								goto IL_0553;
+								goto IL_05CC;
 							}
 							this.OSummonerInfo = SupplyManager.getFDSummonerInfoData(this.M2D);
 							using (Dictionary<string, FDSummonerInfo>.Enumerator enumerator = this.OSummonerInfo.GetEnumerator())
@@ -433,110 +478,127 @@ namespace nel
 									UiFieldGuide.FDR fdr = new UiFieldGuide.FDR(keyValuePair.Value);
 									list2.Add(fdr);
 								}
-								goto IL_035D;
+								goto IL_03D6;
 							}
 						}
-						using (BList<NelItem> blist = ListBuffer<NelItem>.Pop(0))
+						if (wcateg2 == UiItemWholeSelector.WCATEG.ENEMY)
 						{
-							UiItemWholeSelector.PopForSpecificCategory(wcateg2, blist);
-							num2 = blist.Count;
-							if (wcateg2 == UiItemWholeSelector.WCATEG.RECIPE)
+							if (!this.enabled_enemy_info || this.M2D == null)
 							{
-								blist.Sort(delegate(NelItem A, NelItem B)
-								{
-									int num3 = (A.is_trm_episode ? 2 : (A.is_workbench_craft ? 1 : 0));
-									int num4 = (B.is_trm_episode ? 2 : (B.is_workbench_craft ? 1 : 0));
-									if (num3 == num4)
-									{
-										return (int)(A.id - B.id);
-									}
-									return num3 - num4;
-								});
+								goto IL_05CC;
 							}
-							bool flag2 = false;
-							if (list2.Capacity < num2)
+							List<UiEnemyDex.DefeatData> listupDefeated = UiEnemyDex.getListupDefeated(null, true, true);
+							int count = listupDefeated.Count;
+							for (int j = 0; j < count; j++)
 							{
-								list2.Capacity = num2;
+								UiFieldGuide.FDR fdr2 = new UiFieldGuide.FDR(listupDefeated[j].id, listupDefeated[j].get_count(-1));
+								list2.Add(fdr2);
 							}
-							int j = 0;
-							while (j < num2)
+						}
+						else
+						{
+							using (BList<NelItem> blist = ListBuffer<NelItem>.Pop(0))
 							{
-								NelItem nelItem = blist[j];
-								bool flag3 = this.ignore_obtain_count || nelItem.obtain_count > 0;
-								if (wcateg2 != UiItemWholeSelector.WCATEG.REEL)
-								{
-									goto IL_024F;
-								}
-								NelItem nelItem2 = null;
-								if (!TX.isStart(nelItem.key, "itemreelC_", 0))
-								{
-									if (TX.isStart(nelItem.key, "itemreelG_", 0))
-									{
-										nelItem2 = NelItem.GetById("itemreelC_" + TX.slice(nelItem.key, "itemreelG_".Length), false);
-									}
-									if (nelItem2 != null)
-									{
-										bool fd_favorite = nelItem.fd_favorite;
-										nelItem.addObtainCount(nelItem2.visible_obtain_count);
-										nelItem2.visible_obtain_count = 0;
-										nelItem2.fd_favorite = (nelItem.fd_favorite = fd_favorite);
-									}
-									flag3 = this.ignore_obtain_count || nelItem.obtain_count > 0;
-									goto IL_024F;
-								}
-								IL_030F:
-								j++;
-								continue;
-								IL_024F:
+								UiItemWholeSelector.PopForSpecificCategory(wcateg2, blist);
+								num2 = blist.Count;
 								if (wcateg2 == UiItemWholeSelector.WCATEG.RECIPE)
 								{
-									RecipeManager.Recipe recipeAllType = UiCraftBase.getRecipeAllType(nelItem);
-									if (recipeAllType == null || recipeAllType.debug_recipe)
+									blist.Sort(delegate(NelItem A, NelItem B)
 									{
-										num2--;
-										blist.RemoveAt(j);
-										goto IL_030F;
-									}
-									flag3 = this.isRecipeEnabled(nelItem, recipeAllType, flag3);
-									if (flag3)
-									{
-										recipeAllType.touchObtainCountAllIngredients();
-									}
+										int num3 = (A.is_trm_episode ? 2 : (A.is_workbench_craft ? 1 : 0));
+										int num4 = (B.is_trm_episode ? 2 : (B.is_workbench_craft ? 1 : 0));
+										if (num3 == num4)
+										{
+											return (int)(A.id - B.id);
+										}
+										return num3 - num4;
+									});
 								}
-								UiFieldGuide.FDR fdr2 = new UiFieldGuide.FDR(nelItem, flag3 ? this.getSpecificGrade(nelItem, false) : (-1));
-								List<UiFieldGuide.ItmAndCateg> list3;
-								if (!this.OAItm2Row.TryGetValue(fdr2, out list3))
+								bool flag2 = false;
+								if (list2.Capacity < num2)
 								{
-									list3 = (this.OAItm2Row[fdr2] = new List<UiFieldGuide.ItmAndCateg>(1));
-									if (flag)
+									list2.Capacity = num2;
+								}
+								int k = 0;
+								while (k < num2)
+								{
+									NelItem nelItem = blist[k];
+									bool flag3 = this.ignore_obtain_count || nelItem.obtain_count > 0;
+									if (wcateg2 != UiItemWholeSelector.WCATEG.REEL)
 									{
-										this.total_items++;
+										goto IL_02C8;
+									}
+									NelItem nelItem2 = null;
+									if (!TX.isStart(nelItem.key, "itemreelC_", 0))
+									{
+										if (TX.isStart(nelItem.key, "itemreelG_", 0))
+										{
+											nelItem2 = NelItem.GetById("itemreelC_" + TX.slice(nelItem.key, "itemreelG_".Length), false);
+										}
+										if (nelItem2 != null)
+										{
+											bool fd_favorite = nelItem.fd_favorite;
+											nelItem.addObtainCount(nelItem2.visible_obtain_count);
+											nelItem2.visible_obtain_count = 0;
+											nelItem2.fd_favorite = (nelItem.fd_favorite = fd_favorite);
+										}
+										flag3 = this.ignore_obtain_count || nelItem.obtain_count > 0;
+										goto IL_02C8;
+									}
+									IL_0388:
+									k++;
+									continue;
+									IL_02C8:
+									if (wcateg2 == UiItemWholeSelector.WCATEG.RECIPE)
+									{
+										RCP.Recipe recipeAllType = UiCraftBase.getRecipeAllType(nelItem);
+										if (recipeAllType == null || recipeAllType.debug_recipe)
+										{
+											num2--;
+											blist.RemoveAt(k);
+											goto IL_0388;
+										}
+										flag3 = this.isRecipeEnabled(nelItem, recipeAllType, flag3);
 										if (flag3)
 										{
-											this.valid_items++;
+											recipeAllType.touchObtainCountAllIngredients();
 										}
 									}
+									UiFieldGuide.FDR fdr3 = new UiFieldGuide.FDR(nelItem, flag3 ? this.getSpecificGrade(nelItem, false) : (-1));
+									UiFieldGuide.FdrEntry fdrEntry;
+									if (!this.OAItm2Row.TryGetValue(fdr3, out fdrEntry))
+									{
+										fdrEntry = (this.OAItm2Row[fdr3] = new UiFieldGuide.FdrEntry(1));
+										if (flag)
+										{
+											this.total_items++;
+											if (flag3)
+											{
+												this.valid_items++;
+											}
+										}
+									}
+									list2.Add(fdr3);
+									if (flag3)
+									{
+										flag2 = true;
+										goto IL_0388;
+									}
+									goto IL_0388;
 								}
-								list2.Add(fdr2);
-								if (flag3)
+								if (num2 == 0 || (!flag2 && wcateg2 != UiItemWholeSelector.WCATEG.DUST))
 								{
-									flag2 = true;
-									goto IL_030F;
+									goto IL_05CC;
 								}
-								goto IL_030F;
-							}
-							if (num2 == 0 || (!flag2 && wcateg2 != UiItemWholeSelector.WCATEG.DUST))
-							{
-								goto IL_0553;
-							}
-							if (wcateg2 == UiItemWholeSelector.WCATEG.RECIPE && i < 0)
-							{
-								list.AddRange(list2);
-								goto IL_0553;
+								if (wcateg2 == UiItemWholeSelector.WCATEG.RECIPE && i < 0)
+								{
+									list.AddRange(list2);
+									goto IL_05CC;
+								}
 							}
 						}
 					}
-					IL_035D:
+					IL_03D6:
 					num2 = list2.Count;
 					if (num2 != 0)
 					{
@@ -554,27 +616,27 @@ namespace nel
 						aBtnNel2.SetChecked(false, true);
 						this.BConR.default_h = 34f;
 						aBtnFDRow aBtnFDRow = null;
-						for (int k = 0; k < num2; k++)
+						for (int l = 0; l < num2; l++)
 						{
-							UiFieldGuide.FDR fdr3 = list2[k];
-							List<UiFieldGuide.ItmAndCateg> list4 = X.Get<UiFieldGuide.FDR, List<UiFieldGuide.ItmAndCateg>>(this.OAItm2Row, fdr3);
-							if (list4 == null)
+							UiFieldGuide.FDR fdr4 = list2[l];
+							UiFieldGuide.FdrEntry fdrEntry2 = X.Get<UiFieldGuide.FDR, UiFieldGuide.FdrEntry>(this.OAItm2Row, fdr4);
+							if (fdrEntry2 == null)
 							{
-								list4 = (this.OAItm2Row[fdr3] = new List<UiFieldGuide.ItmAndCateg>(1));
+								fdrEntry2 = (this.OAItm2Row[fdr4] = new UiFieldGuide.FdrEntry(1));
 							}
-							aBtnFDRow aBtnFDRow2 = this.BConR.MakeT<aBtnFDRow>(text + "__" + fdr3.key, "fieldguide");
-							list4.Add(new UiFieldGuide.ItmAndCateg(aBtnFDRow2, wcateg2));
-							if (aBtnFDRow == null && fdr3.valid)
+							aBtnFDRow aBtnFDRow2 = this.BConR.MakeT<aBtnFDRow>(text + "__" + fdr4.key, "fieldguide");
+							fdrEntry2.Add(new UiFieldGuide.ItmAndCateg(aBtnFDRow2, wcateg2));
+							if (aBtnFDRow == null && fdr4.valid)
 							{
 								aBtnFDRow = aBtnFDRow2;
 							}
-							if (list4.Count == 1)
+							if (fdrEntry2.Count == 1)
 							{
-								aBtnFDRow2.setItem(this, this.M2D, fdr3);
+								aBtnFDRow2.setItem(this, this.M2D, fdr4);
 							}
 							else
 							{
-								aBtnFDRow2.setItem(list4[0].B);
+								aBtnFDRow2.setItem(fdrEntry2[0].B);
 							}
 							aBtnFDRow2.do_not_tip_on_navi_loop = true;
 							aBtnFDRow2.secureNavi();
@@ -589,7 +651,7 @@ namespace nel
 						dictionary[wcateg3] = categHead;
 					}
 				}
-				IL_0553:;
+				IL_05CC:;
 			}
 			this.OCategHead0 = bdic;
 			this.BConL.fnGenerateRemakeKeys = new FnGenerateRemakeKeys(this.remakeTopicLKeys);
@@ -621,12 +683,12 @@ namespace nel
 
 		private void remakeTopicLKeys(BtnContainerBasic BCon, List<string> Adest)
 		{
-			int num = X.beki_cnt(32768U);
+			int num = X.beki_cnt(131072U);
 			UiItemWholeSelector.WCATEG wcateg = (this.pickup_use ? this.pickup_wcateg_using : this.wcateg_using0);
 			for (int i = 0; i < num; i++)
 			{
 				UiItemWholeSelector.WCATEG wcateg2 = (UiItemWholeSelector.WCATEG)(1 << i);
-				if ((wcateg & wcateg2) != UiItemWholeSelector.WCATEG.ALL)
+				if ((wcateg & wcateg2) != UiItemWholeSelector.WCATEG.ALL && (wcateg2 != UiItemWholeSelector.WCATEG.ENEMY || this.enabled_enemy_info))
 				{
 					UiFieldGuide.WCATEG_ToStr(wcateg2);
 					Adest.Add("l_" + wcateg2.ToString());
@@ -647,6 +709,7 @@ namespace nel
 			buttonSkinKadomaruIcon.PFMesh = categoryIconFor;
 			buttonSkinKadomaruIcon.col_icon = 4283780170U;
 			buttonSkinKadomaruIcon.icon_scale = 2f;
+			buttonSkinKadomaruIcon.alpha = 1f;
 			BL.addHoverFn(new FnBtnBindings(this.fnHoverTopicLeft));
 			BL.addClickFn(delegate(aBtn B)
 			{
@@ -683,11 +746,13 @@ namespace nel
 				this.BxT.position(-1000f, -1000f, this.right_x, this.top_y, false);
 				this.BxR.position(-1000f, -1000f, this.right_x, this.right_y, false);
 				this.BxD.position(-1000f, -1000f, this.detail_shift_x, 0f, false);
-				this.DetailMapSmn = null;
-				this.DetailMapIR = null;
-				if (this.WmCtr != null && this.DetailSelectMain != null)
+				if (this.WmCtr != null)
 				{
-					this.WmCtr.quitEdit(true);
+					this.WmCtr.clearTarget();
+					if (this.DetailSelectMain != null)
+					{
+						this.WmCtr.quitEdit(true);
+					}
 				}
 			}
 			else if (new_st == UiFieldGuide.STATE.DETAIL)
@@ -723,15 +788,15 @@ namespace nel
 				this.left_category_selected = 0f;
 				if (state == UiFieldGuide.STATE.DETAIL && this.PreTopicRow.valid)
 				{
-					this.PreTopicRow.B.Select(false);
+					this.PreTopicRow.B.Select(true);
 				}
 				if (this.pickup_use)
 				{
 					this.finePickUpKD();
 				}
-				if (this.WmSkin != null)
+				if (this.WmCtr != null)
 				{
-					this.WmSkin.getBtn().hide();
+					this.WmCtr.hide();
 				}
 				break;
 			case UiFieldGuide.STATE.DETAIL:
@@ -748,10 +813,10 @@ namespace nel
 				this.BxR.hide();
 				this.BxL.hide();
 				this.selectDetailDescRow();
-				if (this.WmSkin != null)
+				if (this.WmCtr != null)
 				{
-					this.WmSkin.getBtn().bind();
-					this.WmSkin.fine_flag = true;
+					this.WmCtr.bind();
+					this.WmCtr.fine_flag = true;
 				}
 				this.fineTopInfoKDVisible();
 				break;
@@ -839,7 +904,7 @@ namespace nel
 						{
 							this.clearPickup();
 						}
-						this.BDetailPre.Select(false);
+						this.BDetailPre.Select(true);
 						this.fine_current_topic_scroll = true;
 						this.changeState(UiFieldGuide.STATE.DETAIL);
 						SND.Ui.play("cancel", false);
@@ -863,7 +928,7 @@ namespace nel
 					{
 						this.clearPickup();
 					}
-					this.BDetailPre.Select(false);
+					this.BDetailPre.Select(true);
 				}
 				this.changeState(UiFieldGuide.STATE.DETAIL);
 				return;
@@ -880,7 +945,7 @@ namespace nel
 					this.getCategHead(this.PreTopicRow.categ, out aBtn);
 					if (aBtn != null)
 					{
-						aBtn.Select(false);
+						aBtn.Select(true);
 						if (!this.pickup_use)
 						{
 							this.TopTab.setValue(0, true);
@@ -936,12 +1001,12 @@ namespace nel
 					fdr.fd_favorite = false;
 					SND.Ui.play("tool_drag_quit", false);
 				}
-				List<UiFieldGuide.ItmAndCateg> list;
-				if (this.OAItm2Row.TryGetValue(this.PreTopicRow.B.getFDR(), out list))
+				UiFieldGuide.FdrEntry fdrEntry;
+				if (this.OAItm2Row.TryGetValue(this.PreTopicRow.B.getFDR(), out fdrEntry))
 				{
-					for (int i = list.Count - 1; i >= 0; i--)
+					for (int i = fdrEntry.Count - 1; i >= 0; i--)
 					{
-						list[i].B.Fine(false);
+						fdrEntry[i].B.Fine(false);
 					}
 				}
 				this.DTitleIcon.redraw_flag = true;
@@ -1011,7 +1076,7 @@ namespace nel
 
 		private UiFieldGuide.FDR getFDRFor(NelItem Itm)
 		{
-			foreach (KeyValuePair<UiFieldGuide.FDR, List<UiFieldGuide.ItmAndCateg>> keyValuePair in this.OAItm2Row)
+			foreach (KeyValuePair<UiFieldGuide.FDR, UiFieldGuide.FdrEntry> keyValuePair in this.OAItm2Row)
 			{
 				if (keyValuePair.Key.Itm == Itm)
 				{
@@ -1042,9 +1107,24 @@ namespace nel
 			return default(UiFieldGuide.FDR);
 		}
 
+		private UiFieldGuide.FDR getFDRFor(ENEMYID id)
+		{
+			if (id > (ENEMYID)0U)
+			{
+				foreach (KeyValuePair<UiFieldGuide.FDR, UiFieldGuide.FdrEntry> keyValuePair in this.OAItm2Row)
+				{
+					if (keyValuePair.Key.enemyid == id)
+					{
+						return keyValuePair.Key;
+					}
+				}
+			}
+			return default(UiFieldGuide.FDR);
+		}
+
 		private bool topicJump(NelItem Itm)
 		{
-			foreach (KeyValuePair<UiFieldGuide.FDR, List<UiFieldGuide.ItmAndCateg>> keyValuePair in this.OAItm2Row)
+			foreach (KeyValuePair<UiFieldGuide.FDR, UiFieldGuide.FdrEntry> keyValuePair in this.OAItm2Row)
 			{
 				if (keyValuePair.Key.Itm == Itm)
 				{
@@ -1054,10 +1134,26 @@ namespace nel
 			return false;
 		}
 
+		private bool topicJump(ENEMYID id)
+		{
+			if (id > (ENEMYID)0U)
+			{
+				foreach (KeyValuePair<UiFieldGuide.FDR, UiFieldGuide.FdrEntry> keyValuePair in this.OAItm2Row)
+				{
+					if (keyValuePair.Key.enemyid == id)
+					{
+						return this.topicJump(keyValuePair.Key);
+					}
+				}
+				return false;
+			}
+			return false;
+		}
+
 		private bool topicJump(UiFieldGuide.FDR Fdr)
 		{
-			List<UiFieldGuide.ItmAndCateg> list;
-			UiFieldGuide.ItmAndCateg categData = this.getCategData(Fdr, out list);
+			UiFieldGuide.FdrEntry fdrEntry;
+			UiFieldGuide.ItmAndCateg categData = this.getCategData(Fdr, out fdrEntry);
 			return categData.valid && this.topicJump(categData.B);
 		}
 
@@ -1139,15 +1235,15 @@ namespace nel
 			}
 			if (this.PreTopicRow.valid)
 			{
-				List<UiFieldGuide.ItmAndCateg> list;
-				this.getCateg(this.PreTopicRow.B, out list);
+				UiFieldGuide.FdrEntry fdrEntry;
+				this.getCateg(this.PreTopicRow.B, out fdrEntry);
 				this.PreTopicRow = default(UiFieldGuide.ItmAndCateg);
-				if (list != null)
+				if (fdrEntry != null)
 				{
-					int count = list.Count;
+					int count = fdrEntry.Count;
 					for (int i = 0; i < count; i++)
 					{
-						UiFieldGuide.ItmAndCateg itmAndCateg = list[i];
+						UiFieldGuide.ItmAndCateg itmAndCateg = fdrEntry[i];
 						if (itmAndCateg.categ == categ && itmAndCateg.valid_enabled)
 						{
 							this.PreTopicRow = itmAndCateg;
@@ -1158,8 +1254,8 @@ namespace nel
 			}
 			if (!this.PreTopicRow.valid)
 			{
-				List<UiFieldGuide.ItmAndCateg> list2;
-				this.PreTopicRow = this.getCategData(this.pickup_use ? categHead.BR_PickUp : categHead.BR, out list2);
+				UiFieldGuide.FdrEntry fdrEntry2;
+				this.PreTopicRow = this.getCategData(this.pickup_use ? categHead.BR_PickUp : categHead.BR, out fdrEntry2);
 				if (this.PreTopicRow.valid_enabled)
 				{
 					this.fine_current_topic_scroll = true;
@@ -1173,7 +1269,7 @@ namespace nel
 		{
 			if (this.PreTopicRow.valid)
 			{
-				this.PreTopicRow.B.Select(false);
+				this.PreTopicRow.B.Select(true);
 				SND.Ui.play("cursor", false);
 			}
 			if (this.left_category_selected > 0f)
@@ -1184,8 +1280,8 @@ namespace nel
 
 		private bool fnHoverTopicRight(aBtn B)
 		{
-			List<UiFieldGuide.ItmAndCateg> list;
-			UiFieldGuide.ItmAndCateg categData = this.getCategData(B, out list);
+			UiFieldGuide.FdrEntry fdrEntry;
+			UiFieldGuide.ItmAndCateg categData = this.getCategData(B, out fdrEntry);
 			if (!categData.valid)
 			{
 				return false;
@@ -1386,8 +1482,8 @@ namespace nel
 					}
 					else
 					{
-						List<UiFieldGuide.ItmAndCateg> list;
-						UiFieldGuide.ItmAndCateg categData = this.getCategData(aBtnFDRow2, out list);
+						UiFieldGuide.FdrEntry fdrEntry;
+						UiFieldGuide.ItmAndCateg categData = this.getCategData(aBtnFDRow2, out fdrEntry);
 						if (categData.valid)
 						{
 							if (categData.categ != wcateg)
@@ -1444,7 +1540,7 @@ namespace nel
 					this.ADetailHistory.Clear();
 					this.need_recreate_detail_dpage = true;
 				}
-				foreach (KeyValuePair<UiFieldGuide.FDR, List<UiFieldGuide.ItmAndCateg>> keyValuePair in this.OAItm2Row)
+				foreach (KeyValuePair<UiFieldGuide.FDR, UiFieldGuide.FdrEntry> keyValuePair in this.OAItm2Row)
 				{
 					if (keyValuePair.Value != null && keyValuePair.Value.Count != 0)
 					{
@@ -1480,7 +1576,7 @@ namespace nel
 								string text = null;
 								int num = 0;
 								buttonSkinFDItemRow.clearCenterPowerT();
-								if (this.CurPickUp.rpi != RecipeManager.RPI_EFFECT.NONE)
+								if (this.CurPickUp.rpi != RCP.RPI_EFFECT.NONE)
 								{
 									int num2 = (key.individual_grade ? this.getSpecificGrade(key.Itm, false) : this.target_grade);
 									buttonSkinFDItemRow.setCenterPowerTRpi(this.CurPickUp.rpi, num2);
@@ -1534,13 +1630,13 @@ namespace nel
 			aBtn aBtn2 = null;
 			if (fdr.valid)
 			{
-				List<UiFieldGuide.ItmAndCateg> list;
-				UiFieldGuide.ItmAndCateg categData = this.getCategData(fdr, wcateg, out list);
+				UiFieldGuide.FdrEntry fdrEntry;
+				UiFieldGuide.ItmAndCateg categData = this.getCategData(fdr, wcateg, out fdrEntry);
 				if (categData.valid && categData.B.isActive())
 				{
 					if (this.isTopic())
 					{
-						categData.B.Select(false);
+						categData.B.Select(true);
 					}
 					else
 					{
@@ -1552,7 +1648,7 @@ namespace nel
 			if (aBtn2 == null && this.BConR.Length > 0)
 			{
 				aBtn2 = this.BConR.Get(0);
-				aBtn2.Select(false);
+				aBtn2.Select(true);
 			}
 			if (aBtn2 != null)
 			{
@@ -1729,40 +1825,7 @@ namespace nel
 				designer.init();
 				designer.addHr(new DsnDataHr().H(8f));
 				designer.Br();
-				float num2 = -1000f;
-				float num3 = -1000f;
-				curWM.fixPlayerPosOnWM(this.M2D.getPrNoel(), ref num2, ref num3);
-				aBtnNelMapArea aBtnNelMapArea = this.BxD.addButtonT<aBtnNelMapArea>(new DsnDataButton
-				{
-					name = "map_area",
-					title = "map_area",
-					skin = "whole_map_area",
-					w = designer.use_w,
-					h = designer.use_h - 42f,
-					fnDown = delegate(aBtn B)
-					{
-						if (this.isDetail())
-						{
-							this.WmSkin.dragInit();
-						}
-						return true;
-					}
-				});
-				this.WmSkin = aBtnNelMapArea.get_Skin() as ButtonSkinWholeMapArea;
-				this.WmSkin.show_topleft_text = false;
-				this.WmSkin.inner_margin = 15f;
-				this.WmSkin.setWholeMapTarget(curWM, num2, num3);
-				this.WmSkin.topRightTxVisible(false);
-				this.WmCtr = new UiWmSkinController(this.M2D)
-				{
-					always_unselectable = true,
-					auto_hide_wa_switch_tx = true
-				};
-				ButtonSkinWholeMapArea wmSkin = this.WmSkin;
-				wmSkin.FD_FnDrawIcon = (ButtonSkinWholeMapArea.FnDrawIcon)Delegate.Combine(wmSkin.FD_FnDrawIcon, new ButtonSkinWholeMapArea.FnDrawIcon(this.fnDrawDetailWholeMapIcon));
-				this.WmSkin.icon_base_alpha = 0.25f;
-				this.WmCtr.initAppear(this.WmSkin, num2, num3);
-				this.WmSkin.FnQuitDragging = new Action<bool, bool, bool>(this.WmCtr.fineDragAfter);
+				this.WmCtr = new FieldGuideWmController(this.M2D, new Func<bool>(this.isDetail)).createUiTo(this.BxD, designer.use_w, designer.use_h - 42f);
 				designer.Br();
 				this.DMapKD = this.BxD.addP(new DsnDataP("", false)
 				{
@@ -1820,8 +1883,15 @@ namespace nel
 			this.DsnDetailP.alignx = ALIGN.LEFT;
 			this.DsnDetailP.aligny = ALIGNY.BOTTOM;
 			this.DsnDetailP.sheight = 34f;
+			this.DsnDetailP.text_auto_wrap = true;
 			this.DsnDetailP.text_margin_x = 6f;
 			this.DsnDetailP.text_margin_y = 6f;
+			this.DsnDetailHr = new DsnDataHr
+			{
+				margin_t = 12f,
+				margin_b = 12f,
+				Col = C32.MulA(4283780170U, 0.7f)
+			};
 			this.DsnDetailRB = new DsnDataButton
 			{
 				title = "_",
@@ -1835,10 +1905,6 @@ namespace nel
 
 		private void runDetail(float fcnt)
 		{
-			if (this.WmCtr != null)
-			{
-				this.WmCtr.runAppearing();
-			}
 			if ((IN.isCancel() && this.DetailSelectMain == null) || this.BxR.isFocused() || this.BxT.isFocused())
 			{
 				SND.Ui.play("cancel", false);
@@ -1913,7 +1979,7 @@ namespace nel
 								{
 									ButtonSkinNelFieldGuide buttonSkinNelFieldGuide = btnContainer.Get(i).get_Skin() as ButtonSkinNelFieldGuide;
 									float num2;
-									if (buttonSkinNelFieldGuide != null && buttonSkinNelFieldGuide.rpi_ef != RecipeManager.RPI_EFFECT.NONE && itm.RecipeInfo.Oeffect100.TryGetValue(buttonSkinNelFieldGuide.rpi_ef, out num2))
+									if (buttonSkinNelFieldGuide != null && buttonSkinNelFieldGuide.rpi_ef != RCP.RPI_EFFECT.NONE && itm.RecipeInfo.Oeffect100.TryGetValue(buttonSkinNelFieldGuide.rpi_ef, out num2))
 									{
 										buttonSkinNelFieldGuide.initRpiEffect(itm, buttonSkinNelFieldGuide.rpi_ef, num2, this.target_grade);
 									}
@@ -2001,11 +2067,11 @@ namespace nel
 				if (this.WmSkin.is_detail)
 				{
 					aBtnFDRow b2 = this.PreTopicRow.B;
-					if (IN.isSubmitUp(9) && this.DetailMapIR != null)
+					if (IN.isSubmitUp(9) && this.WmCtr.DetailMapIR != null)
 					{
 						SND.Ui.play("toggle_button_open", false);
 						this.need_recreate_detail_dpage = true;
-						UiFieldGuide.FDR fdrfor = this.getFDRFor(this.DetailMapIR.GReelItem);
+						UiFieldGuide.FDR fdrfor = this.getFDRFor(this.WmCtr.DetailMapIR.GReelItem);
 						if (this.topicJump(fdrfor))
 						{
 							this.addDetailHistory(fdrfor, (b2 != null) ? b2.getFDR() : default(UiFieldGuide.FDR));
@@ -2015,14 +2081,14 @@ namespace nel
 						{
 							SND.Ui.play("enter_small", false);
 							this.changeState(UiFieldGuide.STATE.ITEM_TOPIC);
-							this.CurPickUp = new UiFieldGuide.PickUp(this.DetailMapIR, "&&Catalog_pickup_current_reel_spot[" + ((this.M2D != null) ? this.M2D.getMapTitle(this.M2D.Get(this.detail_map_ir_map, false)) : "") + "]");
+							this.CurPickUp = new UiFieldGuide.PickUp(this.WmCtr.DetailMapIR, "&&Catalog_pickup_current_reel_spot[" + ((this.M2D != null) ? this.M2D.getMapTitle(this.M2D.Get(this.WmCtr.detail_map_ir_map, false)) : "") + "]");
 							this.BDetailPre = b2;
 							this.finePickUp();
 						}
 					}
-					if ((this.DetailMapSmn != null && IN.isLTabPD()) || (IN.isSubmitUp(9) && this.DetailMapIR == null))
+					if ((this.WmCtr.DetailMapSmn != null && IN.isLTabPD()) || (IN.isSubmitUp(9) && this.WmCtr.DetailMapIR == null))
 					{
-						UiFieldGuide.FDR fdrfor2 = this.getFDRFor(this.DetailMapSmn);
+						UiFieldGuide.FDR fdrfor2 = this.getFDRFor(this.WmCtr.DetailMapSmn);
 						if (this.topicJump(fdrfor2))
 						{
 							SND.Ui.play("toggle_button_open", false);
@@ -2036,57 +2102,9 @@ namespace nel
 					this.fine_map_kd = true;
 				}
 			}
-			if (this.WmSkin != null && this.WmSkin.is_detail)
+			if (this.WmCtr.runAppearing())
 			{
-				WholeMapItem wholeMapTarget = this.WmSkin.getWholeMapTarget();
-				if (this.DetailCurrentWM != wholeMapTarget)
-				{
-					this.DetailCurrentWM = wholeMapTarget;
-					this.need_recreate_detail_IR = true;
-				}
-				if (this.need_recreate_detail_IR)
-				{
-					this.need_recreate_detail_IR = false;
-					this.WmSkin.fine_flag = true;
-					this.fine_map_kd = true;
-					this.OIRDesc.Clear();
-					this.IRDesc_Merged.Clear();
-					if (this.DetailBaseIR != null)
-					{
-						SupplyManager.SupplyDescription supplyDescription = (this.OIRDesc[this.DetailBaseIR] = SupplyManager.listupForIR(this.M2D, wholeMapTarget, this.DetailBaseIR, default(SupplyManager.SupplyDescription), true));
-						this.IRDesc_Merged.Merge(supplyDescription);
-					}
-					ReelManager.ReelDecription reelDecription;
-					if (fdr.Itm != null && this.OItmTreasureCache.TryGetValue(fdr.Itm, out reelDecription))
-					{
-						if (reelDecription.AIR_useable != null)
-						{
-							int count = reelDecription.AIR_useable.Count;
-							for (int k = 0; k < count; k++)
-							{
-								ReelManager.ItemReelContainer itemReelContainer = reelDecription.AIR_useable[k];
-								if (itemReelContainer.GReelItem.obtain_count > 0 && !this.OIRDesc.ContainsKey(itemReelContainer))
-								{
-									SupplyManager.SupplyDescription supplyDescription2 = (this.OIRDesc[itemReelContainer] = SupplyManager.listupForIR(this.M2D, wholeMapTarget, itemReelContainer, default(SupplyManager.SupplyDescription), true));
-									this.IRDesc_Merged.Merge(supplyDescription2);
-								}
-							}
-						}
-						if (reelDecription.AIR_supplier != null)
-						{
-							int count2 = reelDecription.AIR_supplier.Count;
-							for (int l = 0; l < count2; l++)
-							{
-								ReelManager.ItemReelContainer itemReelContainer2 = reelDecription.AIR_supplier[l];
-								if (!this.OIRDesc.ContainsKey(itemReelContainer2))
-								{
-									SupplyManager.SupplyDescription supplyDescription3 = (this.OIRDesc[itemReelContainer2] = SupplyManager.listupForIR(this.M2D, wholeMapTarget, itemReelContainer2, default(SupplyManager.SupplyDescription), true));
-									this.IRDesc_Merged.Merge(supplyDescription3);
-								}
-							}
-						}
-					}
-				}
+				this.fine_map_kd = true;
 			}
 			if (this.fine_map_kd)
 			{
@@ -2100,10 +2118,9 @@ namespace nel
 			{
 				SND.Ui.play("toggle_button_close", false);
 				this.WmCtr.quitEdit(false);
-				this.DetailSelectMain.Select(false);
+				this.DetailSelectMain.Select(true);
 				this.DetailSelectMain = null;
-				this.DetailMapSmn = null;
-				this.DetailMapIR = null;
+				this.WmCtr.clearTarget();
 				this.fineTopInfoKDVisible();
 			}
 		}
@@ -2166,11 +2183,26 @@ namespace nel
 					}
 					this.DBottomObtain.text_content = "";
 				}
+				IL_0183:
+				if (fdr.enemyid_available)
+				{
+					this.DBottomHold.text_content = "";
+					if (fdr.valid)
+					{
+						using (STB stb3 = TX.PopBld(null, 0))
+						{
+							stb3.AddTxA("CatalogN_enemy_defeated", false).TxRpl(fdr.grade);
+							this.DBottomObtain.Txt(stb3);
+							goto IL_01F3;
+						}
+					}
+					this.DBottomObtain.text_content = "";
+				}
 			}
-			IL_0183:
-			if (this.FirstBtn != null)
+			IL_01F3:
+			if (this.ARbSk.Count > 0)
 			{
-				this.FirstBtn.setNaviT(this.PreBtn, true, true);
+				this.ARbSk[0].getBtn().setNaviT(this.ARbSk[this.ARbSk.Count - 1].getBtn(), true, true);
 			}
 			if (this.isDetail())
 			{
@@ -2243,11 +2275,24 @@ namespace nel
 		private void selectDetailDescRow()
 		{
 			ScrollBox scrollBox = this.DTabDesc.getScrollBox();
-			if (this.FirstBtn != null)
+			if (this.ARbSk.Count > 0)
 			{
+				UiFieldGuide.FDR fdr = (this.PreTopicRow.valid ? this.PreTopicRow.B.getFDR() : default(UiFieldGuide.FDR));
 				this.DetailSelectMain = null;
-				this.FirstBtn.Select(false);
 				scrollBox.area_selectable = false;
+				bool flag = false;
+				if (fdr.valid)
+				{
+					UiFieldGuide.FdrEntry fdrEntry = X.Get<UiFieldGuide.FDR, UiFieldGuide.FdrEntry>(this.OAItm2Row, fdr);
+					if (fdrEntry != null)
+					{
+						flag = this.SelectDescRBByIndex((int)fdrEntry.last_selected);
+					}
+				}
+				if (!flag)
+				{
+					this.ARbSk[0].getBtn().Select(true);
+				}
 			}
 			else
 			{
@@ -2257,16 +2302,24 @@ namespace nel
 			this.fine_map_kd = true;
 		}
 
+		private void fineDetailBasicInfoEmpty(out bool detail_showing_rpi_categ)
+		{
+			detail_showing_rpi_categ = false;
+			this.DTabLT.getDesignerBlockMemory(this.DTitleKind).active = false;
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				this.DTitle.Txt(NelItem.Unknown.getLocalizedName(stb, 0));
+			}
+			this.DInfo.text_content = "";
+		}
+
 		private void fineDetailBasicInfo()
 		{
 			UiFieldGuide.FDR fdr = this.PreTopicRow.B.getFDR();
 			bool flag;
 			if (!fdr.valid)
 			{
-				flag = false;
-				this.DTabLT.getDesignerBlockMemory(this.DTitleKind).active = false;
-				this.DTitle.text_content = NelItem.Unknown.getLocalizedName(0, null);
-				this.DInfo.text_content = "";
+				this.fineDetailBasicInfoEmpty(out flag);
 			}
 			else
 			{
@@ -2279,31 +2332,33 @@ namespace nel
 						specificGrade = this.target_grade;
 					}
 					bool flag2 = true;
-					RecipeManager.RPI_CATEG rpi_CATEG = ((itm.RecipeInfo != null) ? itm.RecipeInfo.categ : ((RecipeManager.RPI_CATEG)0));
-					flag = rpi_CATEG > (RecipeManager.RPI_CATEG)0;
-					if (rpi_CATEG > (RecipeManager.RPI_CATEG)0)
+					RCP.RPI_CATEG rpi_CATEG = ((itm.RecipeInfo != null) ? itm.RecipeInfo.categ : ((RCP.RPI_CATEG)0));
+					flag = rpi_CATEG > (RCP.RPI_CATEG)0;
+					if (rpi_CATEG > (RCP.RPI_CATEG)0)
 					{
 						using (STB stb = TX.PopBld(null, 0))
 						{
-							RecipeManager.getCategoryStringMultiTo(stb, rpi_CATEG);
+							RCP.getCategoryStringMultiTo(stb, rpi_CATEG);
 							this.DTitleKind.Txt(stb);
 						}
 					}
 					if (this.PreTopicRow.categ == UiItemWholeSelector.WCATEG.RECIPE)
 					{
-						RecipeManager.Recipe recipeAllType = UiCraftBase.getRecipeAllType(itm);
-						if (recipeAllType != null && recipeAllType.categ != RecipeManager.RP_CATEG.ALOMA)
+						RCP.Recipe recipeAllType = UiCraftBase.getRecipeAllType(itm);
+						if (recipeAllType != null && recipeAllType.categ != RCP.RP_CATEG.ALOMA)
 						{
 							this.DTitle.text_content = recipeAllType.title;
 							flag2 = false;
 						}
 					}
-					if (flag2)
-					{
-						this.DTitle.text_content = itm.getLocalizedName(specificGrade, null);
-					}
 					using (STB stb2 = TX.PopBld(null, 0))
 					{
+						if (flag2)
+						{
+							itm.getLocalizedName(stb2.Clear(), specificGrade);
+							this.DTitle.Txt(stb2);
+						}
+						stb2.Clear();
 						if (!itm.is_precious)
 						{
 							stb2.AppendTxA("Item_dbox_stock", "\n").TxRpl(itm.stock);
@@ -2318,7 +2373,7 @@ namespace nel
 							}
 						}
 						this.DInfo.Txt(stb2);
-						goto IL_02B3;
+						goto IL_02FC;
 					}
 				}
 				if (fdr.FSmn != null)
@@ -2338,12 +2393,30 @@ namespace nel
 						stb3.Clear();
 						this.DTitle.text_content = fsmn.Summoner.name_localized;
 						this.DInfo.text_content = "";
-						goto IL_02B3;
+						goto IL_02FC;
 					}
 				}
-				flag = false;
+				if (fdr.enemyid > (ENEMYID)0U)
+				{
+					NOD.BasicData basicData = NOD.getBasicData(fdr.enemyid_tostr);
+					flag = true;
+					if (basicData != null)
+					{
+						this.DTitle.text_content = NDAT.getEnemyName(fdr.enemyid, true);
+						this.DInfo.text_content = "";
+						this.DTitleKind.Txt(NDAT.getEnemyKindName(basicData.is_machine ? ENEMYKIND.MACHINE : ENEMYKIND.DEVIL));
+					}
+					else
+					{
+						this.fineDetailBasicInfoEmpty(out flag);
+					}
+				}
+				else
+				{
+					flag = false;
+				}
 			}
-			IL_02B3:
+			IL_02FC:
 			if (flag != this.detail_showing_rpi_categ)
 			{
 				this.DTabLT.getDesignerBlockMemory(this.DTitleKind).active = (this.detail_showing_rpi_categ = flag);
@@ -2434,93 +2507,10 @@ namespace nel
 
 		private void fineMapKD()
 		{
-			this.DetailMapSmn = null;
-			this.DetailMapIR = null;
-			if (this.isDetail())
+			if (this.WmCtr.fineMapKD(this.DMapKD, false, true))
 			{
 				this.fine_map_kd = false;
-				using (STB stb = TX.PopBld(null, 0))
-				{
-					if (this.DetailSelectMain == null)
-					{
-						stb.AddTxA("KD_map_scroll", false);
-					}
-					else if (this.WmSkin.is_detail)
-					{
-						bool flag = false;
-						NightController.SummonerData summonerData;
-						WMIcon wmicon;
-						this.DetailMapSmn = this.WmCtr.getCurrentFocusEnemySummoner(out summonerData, out wmicon);
-						if (this.DetailMapSmn != null)
-						{
-							stb.Add(" <key ltab/>");
-							stb.AddTxA("KD_enemyspot", false);
-							flag = true;
-						}
-						string text;
-						ReelManager.ItemReelContainer focusIRTargetOnCursor = this.getFocusIRTargetOnCursor(out text);
-						if (focusIRTargetOnCursor != null)
-						{
-							this.detail_map_ir_map = text;
-							this.DetailMapIR = focusIRTargetOnCursor;
-							stb.Add("<key submit/>").AddTxA("KD_reel_detail", false);
-							flag = true;
-						}
-						if (flag)
-						{
-							stb.Ret("\n");
-						}
-						stb.AddTxA("GM_KD_map_current_pos", false);
-						stb.Add(" ");
-						stb.AddTxA((!this.WmSkin.is_zoomin) ? "KD_map_zoomin" : "KD_map_zoomout", false);
-					}
-					else
-					{
-						this.WmCtr.getKDforWA(stb);
-					}
-					this.DMapKD.Txt(stb);
-				}
 			}
-		}
-
-		private ReelManager.ItemReelContainer getFocusIRTargetOnCursor(out string map_key)
-		{
-			WholeMapItem detailCurrentWM = this.DetailCurrentWM;
-			Vector2 cursorMapPos = this.WmSkin.getCursorMapPos();
-			float num = (float)((int)cursorMapPos.x) + 0.5f;
-			float num2 = (float)((int)cursorMapPos.y) + 0.5f;
-			float num3 = 1.5f;
-			ReelManager.ItemReelContainer itemReelContainer = null;
-			map_key = null;
-			using (BList<MapPosition> blist = ListBuffer<MapPosition>.Pop(0))
-			{
-				foreach (KeyValuePair<WmPosition, List<ReelManager.ItemReelContainer>> keyValuePair in this.IRDesc_Merged.OAPosSpl)
-				{
-					blist.Clear();
-					if (keyValuePair.Key.getPos(this.M2D, detailCurrentWM, blist))
-					{
-						float num4 = X.LENGTHXYN(num, num2, blist[0].x, blist[0].y);
-						if (num4 < num3)
-						{
-							num3 = num4;
-							itemReelContainer = ((this.DetailCurIR != null && keyValuePair.Value.IndexOf(this.DetailCurIR) >= 0) ? this.DetailCurIR : keyValuePair.Value[0]);
-							map_key = keyValuePair.Key.Wmi.SrcMap.key;
-						}
-					}
-				}
-			}
-			foreach (KeyValuePair<WMIconPosition, List<ReelManager.ItemReelContainer>> keyValuePair2 in this.IRDesc_Merged.OAPosSmn)
-			{
-				WMIconPosition key = keyValuePair2.Key;
-				float num5 = X.LENGTHXYN(num, num2, key.wmx, key.wmy);
-				if (num5 < num3)
-				{
-					num3 = num5;
-					itemReelContainer = ((this.DetailCurIR != null && keyValuePair2.Value.IndexOf(this.DetailCurIR) >= 0) ? this.DetailCurIR : keyValuePair2.Value[0]);
-					map_key = keyValuePair2.Key.DestMap.key;
-				}
-			}
-			return itemReelContainer;
 		}
 
 		private void fineDetailDesc()
@@ -2529,40 +2519,39 @@ namespace nel
 			this.DTabDesc.EvacuateMemory(this.AEvcMem, null, true);
 			this.DTabDesc.Clear();
 			this.item_value_refining = -1;
-			this.FirstBtn = null;
-			this.DetailBaseIR = null;
-			this.need_recreate_detail_IR = true;
+			this.ARbSk.Clear();
+			this.WmCtr.clearTarget();
 			if (fdr.Itm != null && fdr.valid)
 			{
 				NelItem itm = fdr.Itm;
 				int num = (itm.individual_grade ? this.getSpecificGrade(itm, false) : this.target_grade);
 				if (itm.useable && !itm.is_bomb)
 				{
-					this.PopDescPTx("CatalogI_tab_info", 29);
+					this.PopDescPTx("CatalogI_tab_info", 29, null);
 					itm.Use(null, null, num, this);
 				}
 				if (itm.RecipeInfo != null && itm.RecipeInfo.Oeffect100.Count > 0)
 				{
-					Dictionary<RecipeManager.RPI_EFFECT, float> oeffect = itm.RecipeInfo.Oeffect100;
-					this.PopDescPTx("Item_for_food_effect", 29);
-					foreach (KeyValuePair<RecipeManager.RPI_EFFECT, float> keyValuePair in oeffect)
+					Dictionary<RCP.RPI_EFFECT, float> oeffect = itm.RecipeInfo.Oeffect100;
+					this.PopDescPTx("Item_for_food_effect", 29, null);
+					foreach (KeyValuePair<RCP.RPI_EFFECT, float> keyValuePair in oeffect)
 					{
 						ButtonSkinNelFieldGuide buttonSkinNelFieldGuide;
 						this.PopDescRB(out buttonSkinNelFieldGuide, 48f);
 						buttonSkinNelFieldGuide.initRpiEffect(itm, keyValuePair.Key, keyValuePair.Value, num);
 					}
 				}
-				using (BList<RecipeManager.Recipe> blist = ListBuffer<RecipeManager.Recipe>.Pop(0))
+				using (BList<RCP.Recipe> blist = ListBuffer<RCP.Recipe>.Pop(0))
 				{
 					if (itm.is_recipe || itm.is_workbench_craft || itm.is_trm_episode)
 					{
-						RecipeManager.Recipe recipeAllType = UiCraftBase.getRecipeAllType(itm);
+						RCP.Recipe recipeAllType = UiCraftBase.getRecipeAllType(itm);
 						if (recipeAllType != null)
 						{
 							blist.Add(recipeAllType);
-							if (recipeAllType.Completion != null && (recipeAllType.categ == RecipeManager.RP_CATEG.ALCHEMY || recipeAllType.categ == RecipeManager.RP_CATEG.COOK))
+							if (recipeAllType.Completion != null && (recipeAllType.categ == RCP.RP_CATEG.ALCHEMY || recipeAllType.categ == RCP.RP_CATEG.COOK))
 							{
-								this.PopDescPTx("CatalogI_recipe_completion", 29);
+								this.PopDescPTx("CatalogI_recipe_completion", 29, null);
 								ButtonSkinNelFieldGuide buttonSkinNelFieldGuide2;
 								this.PopDescRB(out buttonSkinNelFieldGuide2, 30f);
 								buttonSkinNelFieldGuide2.initItem(recipeAllType.Completion, recipeAllType.create_count, -1, true, null);
@@ -2571,19 +2560,19 @@ namespace nel
 					}
 					else
 					{
-						RecipeManager.listupRecipeForCompletion(itm, blist);
+						RCP.listupRecipeForCompletion(itm, blist);
 					}
 					if (blist.Count > 0)
 					{
 						int count = blist.Count;
 						for (int i = 0; i < count; i++)
 						{
-							RecipeManager.Recipe recipe = blist[i];
-							this.PopDescPTx("CatalogI_ingredient", 22);
+							RCP.Recipe recipe = blist[i];
+							this.PopDescPTx("CatalogI_ingredient", 22, null);
 							int count2 = recipe.AIng.Count;
 							for (int j = 0; j < count2; j++)
 							{
-								RecipeManager.RecipeIngredient recipeIngredient = recipe.AIng[j];
+								RCP.RecipeIngredient recipeIngredient = recipe.AIng[j];
 								ButtonSkinNelFieldGuide buttonSkinNelFieldGuide3;
 								this.PopDescRB(out buttonSkinNelFieldGuide3, 30f);
 								buttonSkinNelFieldGuide3.initRecipeIngredient(recipeIngredient);
@@ -2597,8 +2586,8 @@ namespace nel
 					ReelManager.ItemReelContainer ir = ReelManager.GetIR(itm);
 					if (ir != null)
 					{
-						this.DetailBaseIR = ir;
-						this.PopDescPTx("Inventory_reel_content", 56);
+						this.WmCtr.DetailBaseIR = ir;
+						this.PopDescPTx("Inventory_reel_content", 56, null);
 						int count3 = ir.Count;
 						for (int k = 0; k < count3; k++)
 						{
@@ -2619,64 +2608,81 @@ namespace nel
 								if (!flag)
 								{
 									flag = true;
-									this.PopDescPTx("CatalogI_tab_enemyspot", 9);
+									this.PopDescPTx("CatalogI_tab_enemyspot", 9, null);
 								}
 								ButtonSkinNelFieldGuide buttonSkinNelFieldGuide5;
 								this.PopDescRB(out buttonSkinNelFieldGuide5, 30f);
 								buttonSkinNelFieldGuide5.initSummonerInfo(this.M2D, keyValuePair2.Value);
 							}
 						}
-						goto IL_057D;
+						goto IL_062F;
 					}
 				}
-				List<RecipeManager.RecipeDescription>[] array;
+				List<RCP.RecipeDescription>[] array;
 				if (!this.OAAItmRecipeDefinition.TryGetValue(itm, out array))
 				{
-					array = (this.OAAItmRecipeDefinition[itm] = RecipeManager.listupDefinitionRecipe(itm, !this.ignore_obtain_count));
+					array = (this.OAAItmRecipeDefinition[itm] = RCP.listupDefinitionRecipe(itm, !this.ignore_obtain_count));
 				}
 				if (array != null)
 				{
 					if (array[0] != null)
 					{
-						this.PopDescPTx("CatalogI_tab_usedrecipe", 28);
+						this.PopDescPTx("CatalogI_tab_usedrecipe", 28, null);
 						int count4 = array[0].Count;
 						for (int l = 0; l < count4; l++)
 						{
 							ButtonSkinNelFieldGuide buttonSkinNelFieldGuide6;
 							this.PopDescRB(out buttonSkinNelFieldGuide6, 30f);
-							RecipeManager.RecipeDescription recipeDescription = array[0][l];
+							RCP.RecipeDescription recipeDescription = array[0][l];
 							buttonSkinNelFieldGuide6.initItem(recipeDescription.Item, -1, -1, this.ignore_obtain_count, recipeDescription.title);
 						}
 					}
 					if (array[1] != null)
 					{
-						this.PopDescPTx("CatalogI_tab_recipe", 22);
+						this.PopDescPTx("CatalogI_tab_recipe", 22, null);
 						int count5 = array[1].Count;
 						for (int m = 0; m < count5; m++)
 						{
 							ButtonSkinNelFieldGuide buttonSkinNelFieldGuide7;
 							this.PopDescRB(out buttonSkinNelFieldGuide7, 30f);
-							RecipeManager.RecipeDescription recipeDescription2 = array[1][m];
+							RCP.RecipeDescription recipeDescription2 = array[1][m];
 							buttonSkinNelFieldGuide7.initItem(recipeDescription2.Item, -1, -1, this.ignore_obtain_count, recipeDescription2.title);
 						}
 					}
 				}
-				ReelManager.ReelDecription reelDecription = default(ReelManager.ReelDecription);
 				if (!itm.is_precious)
 				{
-					if (!this.OItmTreasureCache.TryGetValue(itm, out reelDecription))
+					this.WmCtr.PickupTarget = itm;
+					ReelManager.ReelDecription reelDescriptionForCurrentItem = this.WmCtr.getReelDescriptionForCurrentItem();
+					if (reelDescriptionForCurrentItem.AIR_useable != null)
 					{
-						reelDecription = (this.OItmTreasureCache[itm] = ReelManager.listupItemSupplier(itm, false));
-					}
-					if (reelDecription.AIR_useable != null)
-					{
-						this.PopDescPTx("CatalogI_tab_chest", 29);
-						int count6 = reelDecription.AIR_useable.Count;
+						this.PopDescPTx("CatalogI_tab_chest", 29, null);
+						int count6 = reelDescriptionForCurrentItem.AIR_useable.Count;
 						for (int n = 0; n < count6; n++)
 						{
 							ButtonSkinNelFieldGuide buttonSkinNelFieldGuide8;
 							this.PopDescRB(out buttonSkinNelFieldGuide8, 30f);
-							buttonSkinNelFieldGuide8.initTreasure(reelDecription.AIR_useable[n], this.ignore_obtain_count, itm);
+							buttonSkinNelFieldGuide8.initTreasure(reelDescriptionForCurrentItem.AIR_useable[n], this.ignore_obtain_count, itm);
+						}
+					}
+				}
+				if (this.enabled_enemy_info && itm.RecipeInfo != null && (itm.RecipeInfo.categ & RCP.RPI_CATEG.ENEMY) != (RCP.RPI_CATEG)0)
+				{
+					List<ENEMYID> list;
+					if (!this.OAItm2EnemyID.TryGetValue(itm, out list))
+					{
+						list = (this.OAItm2EnemyID[itm] = NOD.listupEnemyForDropItem(itm));
+					}
+					int count7 = list.Count;
+					if (count7 > 0)
+					{
+						this.PopDescPTx("CatalogI_drop_enemy", 29, null);
+						for (int num2 = 0; num2 < count7; num2++)
+						{
+							ButtonSkinNelFieldGuide buttonSkinNelFieldGuide9;
+							this.PopDescRB(out buttonSkinNelFieldGuide9, 30f);
+							UiFieldGuide.FDR fdrfor = this.getFDRFor(list[num2]);
+							buttonSkinNelFieldGuide9.initEnemy(fdrfor.valid ? list[num2] : ((ENEMYID)0U));
 						}
 					}
 				}
@@ -2688,38 +2694,53 @@ namespace nel
 						if (!this.detail_store_activated)
 						{
 							this.detail_store_activated = true;
-							this.PopDescPTx("CatalogI_tab_shopping", 29);
+							this.PopDescPTx("CatalogI_tab_shopping", 29, null);
 						}
-						ButtonSkinNelFieldGuide buttonSkinNelFieldGuide9;
-						this.PopDescRB(out buttonSkinNelFieldGuide9, 44f);
-						buttonSkinNelFieldGuide9.initStoreManager(itm, keyValuePair3.Key, num);
+						ButtonSkinNelFieldGuide buttonSkinNelFieldGuide10;
+						this.PopDescRB(out buttonSkinNelFieldGuide10, 44f);
+						buttonSkinNelFieldGuide10.initStoreManager(itm, keyValuePair3.Key, num);
+					}
+				}
+				IL_062F:
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					itm.getDescLocalized(stb, null, 0);
+					if (stb.Length > 0)
+					{
+						this.PopDescHr();
+						FillBlock fillBlock = this.PopDescP();
+						fillBlock.margin_x = 40f;
+						fillBlock.margin_y = 20f;
+						fillBlock.size = 12f;
+						fillBlock.Txt(stb);
+						this.DTabDesc.RowRemakeHeightRecalc(fillBlock, null);
 					}
 				}
 			}
-			IL_057D:
 			if (fdr.FSmn != null && fdr.valid && this.M2D != null)
 			{
-				this.PopDescPTx("CatalogI_tab_address", 35);
+				this.WmCtr.PickupTarget = fdr.FSmn;
+				this.PopDescPTx("CatalogI_tab_address", 35, null);
 				FDSummonerInfo fsmn = fdr.FSmn;
-				int num2 = fsmn.AMp.Count;
-				for (int num3 = 0; num3 < num2; num3++)
+				int num3 = fsmn.AMp.Count;
+				for (int num4 = 0; num4 < num3; num4++)
 				{
-					ButtonSkinNelFieldGuide buttonSkinNelFieldGuide10;
-					this.PopDescRB(out buttonSkinNelFieldGuide10, 30f);
-					buttonSkinNelFieldGuide10.initMapAddress(this.M2D, fsmn.AMp[num3]);
+					ButtonSkinNelFieldGuide buttonSkinNelFieldGuide11;
+					this.PopDescRB(out buttonSkinNelFieldGuide11, 30f);
+					buttonSkinNelFieldGuide11.initMapAddress(this.M2D, fsmn.AMp[num4]);
 				}
 				if (fsmn.SupLink.valid)
 				{
-					this.PopDescPTx("CatalogI_tab_chest_from_here", 56);
+					this.PopDescPTx("CatalogI_tab_chest_from_here", 56, null);
 					if (fsmn.SupLink.AReel != null)
 					{
-						num2 = fsmn.SupLink.AReel.Length;
-						for (int num4 = 0; num4 < num2; num4++)
+						num3 = fsmn.SupLink.AReel.Length;
+						for (int num5 = 0; num5 < num3; num5++)
 						{
-							ReelManager.ItemReelContainer itemReelContainer = fsmn.SupLink.AReel[num4];
-							ButtonSkinNelFieldGuide buttonSkinNelFieldGuide11;
-							this.PopDescRB(out buttonSkinNelFieldGuide11, 30f);
-							buttonSkinNelFieldGuide11.initTreasure(itemReelContainer, true, null);
+							ReelManager.ItemReelContainer itemReelContainer = fsmn.SupLink.AReel[num5];
+							ButtonSkinNelFieldGuide buttonSkinNelFieldGuide12;
+							this.PopDescRB(out buttonSkinNelFieldGuide12, 30f);
+							buttonSkinNelFieldGuide12.initTreasure(itemReelContainer, true, null);
 						}
 					}
 					ReelManager.ItemReelContainer[] array2 = fsmn.SupLink.AReelSecret;
@@ -2729,29 +2750,123 @@ namespace nel
 					}
 					if (array2 != null)
 					{
-						num2 = array2.Length;
-						for (int num5 = 0; num5 < num2; num5++)
+						num3 = array2.Length;
+						for (int num6 = 0; num6 < num3; num6++)
 						{
-							ReelManager.ItemReelContainer itemReelContainer2 = array2[num5];
-							ButtonSkinNelFieldGuide buttonSkinNelFieldGuide12;
-							this.PopDescRB(out buttonSkinNelFieldGuide12, 30f);
-							buttonSkinNelFieldGuide12.initTreasure(itemReelContainer2, false, null);
+							ReelManager.ItemReelContainer itemReelContainer2 = array2[num6];
+							ButtonSkinNelFieldGuide buttonSkinNelFieldGuide13;
+							this.PopDescRB(out buttonSkinNelFieldGuide13, 30f);
+							buttonSkinNelFieldGuide13.initTreasure(itemReelContainer2, false, null);
+						}
+					}
+				}
+				if (fsmn.Summoner != null && this.enabled_enemy_info)
+				{
+					using (BList<int> blist2 = ListBuffer<int>.Pop(0))
+					{
+						fsmn.Summoner.listupAboutEnemyForFG(blist2);
+						num3 = blist2.Count;
+						this.PopDescPTx("Smnc_title_enemy", 74, null);
+						for (int num7 = 0; num7 < num3; num7++)
+						{
+							ENEMYID enemyid = (ENEMYID)blist2[num7];
+							UiFieldGuide.FDR fdrfor2 = this.getFDRFor(enemyid);
+							ButtonSkinNelFieldGuide buttonSkinNelFieldGuide14;
+							this.PopDescRB(out buttonSkinNelFieldGuide14, 30f);
+							buttonSkinNelFieldGuide14.initEnemy(fdrfor2.valid ? fdrfor2.enemyid : ((ENEMYID)0U));
 						}
 					}
 				}
 			}
-			this.DetailCurIR = this.DetailBaseIR;
+			if (fdr.enemyid > (ENEMYID)0U && fdr.valid && this.M2D != null && this.enabled_enemy_info)
+			{
+				bool flag2 = (fdr.enemyid & (ENEMYID)2147483648U) > (ENEMYID)0U;
+				this.WmCtr.PickupTarget = fdr.enemyid;
+				this.OABufAppearEn.Clear();
+				EnemySummonerManager.getAppearListForWholeMaps(this.M2D, fdr.enemyid, this.OABufAppearEn);
+				foreach (KeyValuePair<WholeMapItem, SummonerList> keyValuePair4 in this.OABufAppearEn)
+				{
+					SummonerList value = keyValuePair4.Value;
+					int count8 = value.Count;
+					if (count8 != 0)
+					{
+						this.PopDescPTx("CatalogI_tab_appear_enemyspot", 74, keyValuePair4.Key.localized_name);
+						for (int num8 = 0; num8 < count8; num8++)
+						{
+							ButtonSkinNelFieldGuide buttonSkinNelFieldGuide15;
+							this.PopDescRB(out buttonSkinNelFieldGuide15, 30f);
+							buttonSkinNelFieldGuide15.initSummonerInfo(this.M2D, X.Get<string, FDSummonerInfo>(this.OSummonerInfo, value[num8]));
+						}
+					}
+				}
+				NOD.BasicData basicData = NOD.getBasicData(fdr.enemyid);
+				if (basicData != null)
+				{
+					using (BList<int> blist3 = ListBuffer<int>.Pop(0))
+					{
+						int num9 = ((basicData.Adrop_family != null) ? basicData.Adrop_family.Count : 0);
+						for (int num10 = ((basicData.Adrop_family != null) ? 0 : (-1)); num10 < num9; num10++)
+						{
+							NOD.BasicData basicData2;
+							if (num10 < 0)
+							{
+								basicData2 = basicData;
+							}
+							else
+							{
+								basicData2 = NOD.getBasicData(basicData.Adrop_family[num10]);
+							}
+							if (basicData2 != null)
+							{
+								NelItem nelItem = (flag2 ? basicData2.DropItemOd : basicData2.DropItemNormal);
+								if (nelItem != null && X.pushIdentical<int>(blist3, (int)nelItem.id))
+								{
+									if (blist3.Count == 1)
+									{
+										this.PopDescPTx("CatalogN_dropitem", 41, null);
+									}
+									ButtonSkinNelFieldGuide buttonSkinNelFieldGuide16;
+									this.PopDescRB(out buttonSkinNelFieldGuide16, 30f);
+									buttonSkinNelFieldGuide16.initItem(nelItem, 1, -1, true, null);
+								}
+							}
+						}
+					}
+				}
+				string text = FEnum<ENEMYID>.ToStr(fdr.enemyid & (ENEMYID)2147483647U);
+				TX tx = TX.getTX("Enemy_description_" + text + (flag2 ? "_OD" : ""), true, true, null);
+				if (tx == null && REG.match(text, REG.RegSuffixNumber))
+				{
+					tx = TX.getTX("Enemy_description_" + REG.leftContext + (flag2 ? "_OD" : ""), true, true, null);
+				}
+				if (tx != null)
+				{
+					this.PopDescHr();
+					FillBlock fillBlock2 = this.PopDescP();
+					fillBlock2.margin_x = 40f;
+					fillBlock2.margin_y = 20f;
+					fillBlock2.size = 12f;
+					fillBlock2.Txt(tx.text);
+					this.DTabDesc.RowRemakeHeightRecalc(fillBlock2, null);
+				}
+			}
+			this.WmCtr.DetailCurIR = this.WmCtr.DetailBaseIR;
 		}
 
-		private FillBlock PopDescPTx(string tx_key, int icon = 29)
+		private FillBlock PopDescPTx(string tx_key, int icon = 29, string txa0 = null)
 		{
 			FillBlock fillBlock = this.PopDescP();
 			using (STB stb = TX.PopBld(null, 0))
 			{
 				stb.Add("<img mesh=\"itemrow_category.", icon, "\" width=\"36\" tx_color />");
 				stb.AddTxA(tx_key, false);
+				if (txa0 != null)
+				{
+					stb.TxRpl(txa0);
+				}
 				stb.RemoveChar('\n', 0, -1);
 				fillBlock.Txt(stb);
+				this.DTabDesc.RowRemakeHeightRecalc(fillBlock, null);
 			}
 			return fillBlock;
 		}
@@ -2765,14 +2880,20 @@ namespace nel
 				if (evacuateMem.Blk is FillBlock)
 				{
 					this.AEvcMem.RemoveAt(i);
+					FillBlock fillBlock = evacuateMem.Blk as FillBlock;
+					fillBlock.size = this.DsnDetailP.size;
+					fillBlock.margin_x = this.DsnDetailP.text_margin_x;
+					fillBlock.margin_y = this.DsnDetailP.text_margin_y;
+					fillBlock.Txt("");
 					this.DTabDesc.ReassignEvacuatedMemory(evacuateMem);
 					this.DTabDesc.Br();
-					return evacuateMem.Blk as FillBlock;
+					return fillBlock;
 				}
 			}
-			FillBlock fillBlock = this.DTabDesc.addP(this.DsnDetailP, false);
+			FillBlock fillBlock2 = this.DTabDesc.addP(this.DsnDetailP, false);
+			fillBlock2.alloc_extending = true;
 			this.DTabDesc.Br();
-			return fillBlock;
+			return fillBlock2;
 		}
 
 		private aBtn PopDescRB(out ButtonSkinNelFieldGuide Sk, float btn_height = 30f)
@@ -2802,15 +2923,13 @@ namespace nel
 				Sk = aBtn.get_Skin() as ButtonSkinNelFieldGuide;
 				Sk.row_left_px = 30;
 			}
-			if (this.FirstBtn == null)
+			if (this.ARbSk.Count > 0)
 			{
-				this.FirstBtn = aBtn;
+				aBtn btn = this.ARbSk[this.ARbSk.Count - 1].getBtn();
+				btn.setNaviB(aBtn, true, true);
+				aBtn.CopyFunctionFrom(btn);
 			}
-			if (this.PreBtn != null)
-			{
-				this.PreBtn.setNaviB(aBtn, true, true);
-			}
-			this.PreBtn = aBtn;
+			this.ARbSk.Add(Sk);
 			Sk.clearVisual(this);
 			if (aBtn.h != btn_height)
 			{
@@ -2839,6 +2958,44 @@ namespace nel
 				return aBtn;
 			}
 			return this.PopDescRB(out Sk, 30f);
+		}
+
+		private DesignerHr PopDescHr()
+		{
+			int count = this.AEvcMem.Count;
+			for (int i = 0; i < count; i++)
+			{
+				Designer.EvacuateMem evacuateMem = this.AEvcMem[i];
+				if (evacuateMem.Blk is DesignerHr)
+				{
+					this.AEvcMem.RemoveAt(i);
+					this.DTabDesc.Br();
+					this.DTabDesc.ReassignEvacuatedMemory(evacuateMem);
+					this.DTabDesc.Br();
+					return evacuateMem.Blk as DesignerHr;
+				}
+			}
+			return this.DTabDesc.addHr(this.DsnDetailHr);
+		}
+
+		public bool SelectDescRBByIndex(int index = 0)
+		{
+			if (X.BTW(0f, (float)index, (float)this.ARbSk.Count))
+			{
+				this.ARbSk[index].getBtn().Select(true);
+				return true;
+			}
+			return false;
+		}
+
+		public int getDescRBIndex(aBtn B)
+		{
+			ButtonSkinNelFieldGuide buttonSkinNelFieldGuide = (B as aBtnNel).get_Skin() as ButtonSkinNelFieldGuide;
+			if (buttonSkinNelFieldGuide == null)
+			{
+				return -1;
+			}
+			return this.ARbSk.IndexOf(buttonSkinNelFieldGuide);
 		}
 
 		public void NelItemUseInt(NelItem Itm, NelItem.CATEG categ, int grade, int v_int, ref int ef_delay, ref string play_snd, ref bool quit_flag)
@@ -2887,8 +3044,7 @@ namespace nel
 				}
 				else
 				{
-					buttonSkinNelFieldGuide.setTitleTextS(stb.Add(NEL.error_tag).AddTxA("Catalog_categ_sub_reduce_ep", false).Add(" ", -v_int, "")
-						.Add(NEL.error_tag_close));
+					buttonSkinNelFieldGuide.setTitleTextS(stb.AddTxA("Item_detail_dmg_ep", false).TxRpl(-v_int));
 				}
 			}
 		}
@@ -2938,12 +3094,27 @@ namespace nel
 			{
 				return false;
 			}
-			ReelManager.ItemReelContainer itemReelContainer = buttonSkinNelFieldGuide.IR ?? this.DetailBaseIR;
-			if (this.DetailCurIR != itemReelContainer)
-			{
-				this.DetailCurIR = itemReelContainer;
-			}
+			this.WmCtr.fineCurCR(buttonSkinNelFieldGuide.IR);
 			this.fine_current_detail_scroll = true;
+			int descRBIndex = this.getDescRBIndex(B);
+			if (descRBIndex >= 0)
+			{
+				UiFieldGuide.FDR fdr = this.PreTopicRow.getFDR();
+				UiFieldGuide.FdrEntry fdrEntry = X.Get<UiFieldGuide.FDR, UiFieldGuide.FdrEntry>(this.OAItm2Row, fdr);
+				if (fdrEntry != null)
+				{
+					fdrEntry.last_selected = (byte)descRBIndex;
+				}
+				buttonSkinNelFieldGuide.triggerHover(this.WmCtr);
+				if (descRBIndex == this.ARbSk.Count - 1)
+				{
+					ScrollBox scrollBox = this.DTabDesc.getScrollBox();
+					if (scrollBox != null && scrollBox.isActiveAndEnabled)
+					{
+						scrollBox.setScrollLevelTo(0f, 1f, true);
+					}
+				}
+			}
 			return true;
 		}
 
@@ -2986,9 +3157,25 @@ namespace nel
 						return false;
 					}
 				}
+				return true;
+			}
+			if (buttonSkinNelFieldGuide.enid > (ENEMYID)0U)
+			{
+				UiFieldGuide.FDR fdrfor3 = this.getFDRFor(buttonSkinNelFieldGuide.enid);
+				if (fdrfor3.valid)
+				{
+					this.addDetailHistory(fdrfor3, default(UiFieldGuide.FDR));
+					if (!this.topicJump(fdrfor3))
+					{
+						CURS.limitVib(B, AIM.R);
+						SND.Ui.play("toggle_button_limit", false);
+						return false;
+					}
+				}
+				return true;
 			}
 			aBtnFDRow b = this.PreTopicRow.B;
-			if (buttonSkinNelFieldGuide.rpi_ef != RecipeManager.RPI_EFFECT.NONE)
+			if (buttonSkinNelFieldGuide.rpi_ef != RCP.RPI_EFFECT.NONE)
 			{
 				this.changeState(UiFieldGuide.STATE.ITEM_TOPIC);
 				this.CurPickUp = new UiFieldGuide.PickUp(buttonSkinNelFieldGuide.rpi_ef);
@@ -2998,7 +3185,7 @@ namespace nel
 			}
 			if (buttonSkinNelFieldGuide.RecipeIng != null)
 			{
-				if (buttonSkinNelFieldGuide.RecipeIng.target_category != (RecipeManager.RPI_CATEG)0)
+				if (buttonSkinNelFieldGuide.RecipeIng.target_category != (RCP.RPI_CATEG)0)
 				{
 					this.changeState(UiFieldGuide.STATE.ITEM_TOPIC);
 					this.CurPickUp = new UiFieldGuide.PickUp(buttonSkinNelFieldGuide.RecipeIng.target_category);
@@ -3014,7 +3201,7 @@ namespace nel
 					UiFieldGuide.CategHead categHead = this.getCategHead(UiItemWholeSelector.WCATEG.TOOL, out aBtn);
 					if (categHead.valid && categHead.BR != null)
 					{
-						categHead.BR.Select(false);
+						categHead.BR.Select(true);
 						this.fine_current_topic_scroll = true;
 					}
 					return true;
@@ -3063,60 +3250,6 @@ namespace nel
 			this.need_recreate_detail_dpage = true;
 		}
 
-		public void fnDrawDetailWholeMapIcon(ButtonSkinWholeMapArea WmSkin, MeshDrawer MdIco, float blink_alpha, float mappos_x, float mappos_y, float cell_size)
-		{
-			if (!this.isDetail() || !this.PreTopicRow.valid || this.DetailCurrentWM == null)
-			{
-				return;
-			}
-			WholeMapItem detailCurrentWM = this.DetailCurrentWM;
-			float num = blink_alpha * blink_alpha;
-			float num2 = X.Mn(1f, num * 2f);
-			float num3 = num * 0.5f;
-			if (this.IRDesc_Merged.OAPosSpl.Count > 0)
-			{
-				Color32 c = MdIco.ColGrd.Set(4278304339U).setA1(num2).C;
-				Color32 c2 = MdIco.ColGrd.Set(uint.MaxValue).setA1(num2).C;
-				Color32 color = C32.MulA(4278304339U, num3);
-				Color32 color2 = C32.MulA(uint.MaxValue, num3);
-				PxlFrame pf = MTRX.getPF("mbox_base_i");
-				using (BList<MapPosition> blist = ListBuffer<MapPosition>.Pop(0))
-				{
-					foreach (KeyValuePair<WmPosition, List<ReelManager.ItemReelContainer>> keyValuePair in this.IRDesc_Merged.OAPosSpl)
-					{
-						blist.Clear();
-						if (keyValuePair.Key.getPos(this.M2D, detailCurrentWM, blist))
-						{
-							float num4 = detailCurrentWM.map2meshx(blist[0].x, mappos_x, cell_size);
-							float num5 = detailCurrentWM.map2meshy(blist[0].y, mappos_y, cell_size);
-							bool flag = this.DetailCurIR == null || keyValuePair.Value.IndexOf(this.DetailCurIR) >= 0;
-							MdIco.Col = (flag ? c : color);
-							MdIco.initForImg(MTRX.EffCircle128, 0);
-							MdIco.Rect(num4, num5, 32f, 32f, false);
-							MdIco.Col = (flag ? c2 : color2);
-							MdIco.RotaPF(num4, num5, 1f, 1f, 0f, pf, false, false, false, uint.MaxValue, false, 0);
-						}
-					}
-				}
-			}
-			if (this.IRDesc_Merged.OAPosSmn.Count > 0)
-			{
-				Color32 c3 = MdIco.ColGrd.Set(4283780170U).setA1(num).C;
-				Color32 color3 = C32.MulA(4283780170U, num3);
-				foreach (KeyValuePair<WMIconPosition, List<ReelManager.ItemReelContainer>> keyValuePair2 in this.IRDesc_Merged.OAPosSmn)
-				{
-					WMIconPosition key = keyValuePair2.Key;
-					float num6 = detailCurrentWM.map2meshx(key.wmx, mappos_x, cell_size);
-					float num7 = detailCurrentWM.map2meshy(key.wmy, mappos_y, cell_size);
-					bool flag2 = this.DetailCurIR == null || keyValuePair2.Value.IndexOf(this.DetailCurIR) >= 0;
-					MdIco.Col = (flag2 ? c3 : color3);
-					MdIco.initForImg(MTRX.EffCircle128, 0);
-					MdIco.Rect(num6, num7, 32f, 32f, false);
-					((flag2 && this.DetailCurIR != null) ? this.DetailCurIR : keyValuePair2.Value[0]).drawSmallIcon(MdIco, num6, num7, flag2 ? num : num3, 1f, false);
-				}
-			}
-		}
-
 		public int getSpecificGrade(NelItem I, bool is_topic_title = false)
 		{
 			if (I != null)
@@ -3138,12 +3271,12 @@ namespace nel
 			return -1;
 		}
 
-		private UiItemWholeSelector.WCATEG getCateg(aBtn BR, out List<UiFieldGuide.ItmAndCateg> AIc)
+		private UiItemWholeSelector.WCATEG getCateg(aBtn BR, out UiFieldGuide.FdrEntry AIc)
 		{
 			return this.getCategData(BR, out AIc).categ;
 		}
 
-		private UiFieldGuide.ItmAndCateg getCategData(aBtn BR, out List<UiFieldGuide.ItmAndCateg> AIc)
+		private UiFieldGuide.ItmAndCateg getCategData(aBtn BR, out UiFieldGuide.FdrEntry AIc)
 		{
 			aBtnFDRow aBtnFDRow = BR as aBtnFDRow;
 			AIc = null;
@@ -3151,7 +3284,7 @@ namespace nel
 			{
 				return default(UiFieldGuide.ItmAndCateg);
 			}
-			AIc = X.Get<UiFieldGuide.FDR, List<UiFieldGuide.ItmAndCateg>>(this.OAItm2Row, aBtnFDRow.getFDR());
+			AIc = X.Get<UiFieldGuide.FDR, UiFieldGuide.FdrEntry>(this.OAItm2Row, aBtnFDRow.getFDR());
 			if (AIc == null || AIc.Count == 0)
 			{
 				return default(UiFieldGuide.ItmAndCateg);
@@ -3168,19 +3301,19 @@ namespace nel
 			return default(UiFieldGuide.ItmAndCateg);
 		}
 
-		private UiFieldGuide.ItmAndCateg getCategData(UiFieldGuide.FDR Fdr, out List<UiFieldGuide.ItmAndCateg> AIc)
+		private UiFieldGuide.ItmAndCateg getCategData(UiFieldGuide.FDR Fdr, out UiFieldGuide.FdrEntry AIc)
 		{
 			return this.getCategData(Fdr, this.PreTopicRow.valid ? this.PreTopicRow.categ : UiItemWholeSelector.WCATEG.ALL, out AIc);
 		}
 
-		private UiFieldGuide.ItmAndCateg getCategData(UiFieldGuide.FDR Fdr, UiItemWholeSelector.WCATEG categ, out List<UiFieldGuide.ItmAndCateg> AIc)
+		private UiFieldGuide.ItmAndCateg getCategData(UiFieldGuide.FDR Fdr, UiItemWholeSelector.WCATEG categ, out UiFieldGuide.FdrEntry AIc)
 		{
 			AIc = null;
 			if (!Fdr.valid)
 			{
 				return default(UiFieldGuide.ItmAndCateg);
 			}
-			AIc = X.Get<UiFieldGuide.FDR, List<UiFieldGuide.ItmAndCateg>>(this.OAItm2Row, Fdr);
+			AIc = X.Get<UiFieldGuide.FDR, UiFieldGuide.FdrEntry>(this.OAItm2Row, Fdr);
 			if (AIc == null || AIc.Count == 0)
 			{
 				return default(UiFieldGuide.ItmAndCateg);
@@ -3200,7 +3333,7 @@ namespace nel
 			return AIc[0];
 		}
 
-		public bool isRecipeEnabled(NelItem I, RecipeManager.Recipe Rcp, bool basic_flag = true)
+		public bool isRecipeEnabled(NelItem I, RCP.Recipe Rcp, bool basic_flag = true)
 		{
 			bool flag = basic_flag;
 			if (this.M2D != null)
@@ -3209,11 +3342,11 @@ namespace nel
 				{
 					flag = true;
 				}
-				if (Rcp.categ == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+				if (Rcp.categ == RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 				{
 					flag = SCN.alchemy_workbench_enabled;
 				}
-				else if (Rcp.categ == RecipeManager.RP_CATEG.ALOMA)
+				else if (Rcp.categ == RCP.RP_CATEG.ALOMA)
 				{
 					flag = TRMManager.isTrmActive(I, null);
 					if (flag)
@@ -3240,8 +3373,8 @@ namespace nel
 				return true;
 			}
 			UiFieldGuide.FDR fdr = new UiFieldGuide.FDR(Itm, this.getSpecificGrade(Itm, false));
-			List<UiFieldGuide.ItmAndCateg> list;
-			return this.OAItm2Row.TryGetValue(fdr, out list);
+			UiFieldGuide.FdrEntry fdrEntry;
+			return this.OAItm2Row.TryGetValue(fdr, out fdrEntry);
 		}
 
 		public bool ignore_obtain_count
@@ -3267,11 +3400,23 @@ namespace nel
 			return is_first || this.active;
 		}
 
+		public ButtonSkinWholeMapArea WmSkin
+		{
+			get
+			{
+				if (this.WmCtr == null)
+				{
+					return null;
+				}
+				return this.WmCtr.WmSkin;
+			}
+		}
+
 		public static object NextRevealAtAwake;
 
 		public const string item_key_recipe_book = "recipe_collection";
 
-		private NelM2DBase M2D;
+		public NelM2DBase M2D;
 
 		private UiBoxDesigner BxL;
 
@@ -3307,15 +3452,17 @@ namespace nel
 
 		private float state_t;
 
-		private BDic<UiFieldGuide.FDR, List<UiFieldGuide.ItmAndCateg>> OAItm2Row;
+		private BDic<UiFieldGuide.FDR, UiFieldGuide.FdrEntry> OAItm2Row;
 
-		private BDic<NelItem, ReelManager.ReelDecription> OItmTreasureCache;
-
-		private BDic<NelItem, List<RecipeManager.RecipeDescription>[]> OAAItmRecipeDefinition;
+		private BDic<NelItem, List<RCP.RecipeDescription>[]> OAAItmRecipeDefinition;
 
 		private BDic<StoreManager, List<NelItem>> OAStoreItemListedUp;
 
 		private BDic<string, FDSummonerInfo> OSummonerInfo;
+
+		private BDic<NelItem, List<ENEMYID>> OAItm2EnemyID;
+
+		private BDic<WholeMapItem, SummonerList> OABufAppearEn;
 
 		private BDic<aBtn, UiFieldGuide.CategHead> OCategHead;
 
@@ -3330,6 +3477,8 @@ namespace nel
 		private Designer DTopPickUp;
 
 		private FillBlock FbPickUp;
+
+		public bool enabled_enemy_info;
 
 		private BtnContainerRadio<aBtn> BConL;
 
@@ -3357,18 +3506,6 @@ namespace nel
 
 		private bool fine_map_kd;
 
-		private bool need_recreate_detail_IR;
-
-		private WholeMapItem DetailCurrentWM;
-
-		private ReelManager.ItemReelContainer DetailBaseIR;
-
-		private ReelManager.ItemReelContainer DetailCurIR;
-
-		private SupplyManager.SupplyDescriptionMulti IRDesc_Merged;
-
-		private BDic<ReelManager.ItemReelContainer, SupplyManager.SupplyDescription> OIRDesc;
-
 		private bool detail_showing_rpi_categ = true;
 
 		private UiFieldGuide.PickUp CurPickUp;
@@ -3376,12 +3513,6 @@ namespace nel
 		private UiItemWholeSelector.WCATEG pickup_wcateg_using;
 
 		private UiItemWholeSelector.WCATEG wcateg_using0;
-
-		private EnemySummoner DetailMapSmn;
-
-		private ReelManager.ItemReelContainer DetailMapIR;
-
-		private string detail_map_ir_map;
 
 		private aBtn DetailSelectMain;
 
@@ -3415,11 +3546,11 @@ namespace nel
 
 		private DsnDataP DsnDetailP;
 
+		private DsnDataHr DsnDetailHr;
+
 		private DsnDataButton DsnDetailRB;
 
-		private UiWmSkinController WmCtr;
-
-		private ButtonSkinWholeMapArea WmSkin;
+		private FieldGuideWmController WmCtr;
 
 		private const float detail_toph = 84f;
 
@@ -3431,9 +3562,7 @@ namespace nel
 
 		private int target_grade = -1;
 
-		private aBtn PreBtn;
-
-		private aBtn FirstBtn;
+		private List<ButtonSkinNelFieldGuide> ARbSk;
 
 		private int item_value_refining;
 
@@ -3443,6 +3572,11 @@ namespace nel
 			FIRST,
 			ITEM_TOPIC,
 			DETAIL
+		}
+
+		public interface IFieldGuideOpenable
+		{
+			UiFieldGuide.FDR getFDR();
 		}
 
 		private struct ItmAndCateg
@@ -3514,8 +3648,10 @@ namespace nel
 		{
 			public FDR(NelItem _Itm, int _grade)
 			{
-				this.Itm = _Itm;
+				this.Itm = UiFieldGuide.Sanitize(_Itm);
 				this.FSmn = null;
+				this.enemyid_ = 0;
+				this.enemyid_tostr = null;
 				this.grade = _grade;
 			}
 
@@ -3523,7 +3659,34 @@ namespace nel
 			{
 				this.FSmn = _FSmn;
 				this.Itm = null;
+				this.enemyid_ = 0;
+				this.enemyid_tostr = null;
 				this.grade = (this.FSmn.valid ? this.FSmn.defeat_count : (-1));
+			}
+
+			public FDR(ENEMYID _id, int defeat_count)
+			{
+				this.enemyid_tostr = (_id & (ENEMYID)2147483647U).ToString();
+				this.FSmn = null;
+				this.Itm = null;
+				this.enemyid_ = (int)_id;
+				this.grade = defeat_count;
+			}
+
+			public bool enemyid_available
+			{
+				get
+				{
+					return this.enemyid_tostr != null;
+				}
+			}
+
+			public ENEMYID enemyid
+			{
+				get
+				{
+					return (ENEMYID)this.enemyid_;
+				}
 			}
 
 			public string key
@@ -3538,6 +3701,10 @@ namespace nel
 					{
 						return this.FSmn.summoner_key;
 					}
+					if (this.enemyid_tostr != null)
+					{
+						return this.enemyid_tostr;
+					}
 					return null;
 				}
 			}
@@ -3546,7 +3713,7 @@ namespace nel
 			{
 				get
 				{
-					return (this.Itm != null || this.FSmn != null) && this.grade >= 0;
+					return ((this.Itm != null || this.FSmn != null) && this.grade >= 0) || (this.enemyid > (ENEMYID)0U && this.grade >= 0);
 				}
 			}
 
@@ -3568,23 +3735,27 @@ namespace nel
 
 			public bool Equals(UiFieldGuide.FDR dest)
 			{
-				return this.Itm == dest.Itm && this.grade == dest.grade && this.FSmn == dest.FSmn;
+				return this.Itm == dest.Itm && this.grade == dest.grade && this.FSmn == dest.FSmn && this.enemyid_ == dest.enemyid_;
 			}
 
 			public void copyNameTo(STB Stb)
 			{
 				if (!this.valid)
 				{
-					Stb.Add(NelItem.Unknown.getLocalizedName(0, null));
+					Stb.Add(NelItem.Unknown.getLocalizedName(0));
 					return;
 				}
 				if (this.Itm != null)
 				{
-					Stb.Add(this.Itm.getLocalizedName(this.grade, null));
+					Stb.Add(this.Itm.getLocalizedName(this.grade));
 				}
 				if (this.FSmn != null)
 				{
 					Stb.Add(this.FSmn.Summoner.name_localized);
+				}
+				if (this.enemyid_tostr != null)
+				{
+					Stb.Add(NDAT.getEnemyName(this.enemyid, true));
 				}
 			}
 
@@ -3596,7 +3767,11 @@ namespace nel
 					{
 						return this.Itm.fd_favorite;
 					}
-					return this.FSmn != null && this.FSmn.fd_favorite;
+					if (this.FSmn != null)
+					{
+						return this.FSmn.fd_favorite;
+					}
+					return this.enemyid_tostr != null && UiEnemyDex.get_fd_favorite(this.enemyid);
 				}
 				set
 				{
@@ -3608,6 +3783,10 @@ namespace nel
 					{
 						this.FSmn.fd_favorite = value;
 					}
+					if (this.enemyid_tostr != null)
+					{
+						UiEnemyDex.set_fd_favorite(this.enemyid, value);
+					}
 				}
 			}
 
@@ -3615,59 +3794,90 @@ namespace nel
 
 			public FDSummonerInfo FSmn;
 
+			public string enemyid_tostr;
+
 			public int grade;
+
+			private int enemyid_;
 		}
 
 		private struct PickUp
 		{
-			public PickUp(RecipeManager.RPI_CATEG _rpc)
+			public PickUp(RCP.RPI_CATEG _rpc)
 			{
 				this.tx_title = "";
 				this.rpc = _rpc;
-				this.rpi = RecipeManager.RPI_EFFECT.NONE;
+				this.rpi = RCP.RPI_EFFECT.NONE;
 				this.Reel = null;
 				this.Store = null;
 				this.itcateg = NelItem.CATEG.OTHER;
+				this.ASmn = null;
+				this.Aenemy_id = null;
 			}
 
 			public PickUp(NelItem.CATEG _itcateg)
 			{
 				this.tx_title = "";
-				this.rpc = (RecipeManager.RPI_CATEG)0;
-				this.rpi = RecipeManager.RPI_EFFECT.NONE;
+				this.rpc = (RCP.RPI_CATEG)0;
+				this.rpi = RCP.RPI_EFFECT.NONE;
 				this.Reel = null;
 				this.Store = null;
 				this.itcateg = _itcateg;
+				this.ASmn = null;
+				this.Aenemy_id = null;
 			}
 
-			public PickUp(RecipeManager.RPI_EFFECT _rpi)
+			public PickUp(RCP.RPI_EFFECT _rpi)
 			{
-				this.tx_title = "&&recipe_effect_" + FEnum<RecipeManager.RPI_EFFECT>.ToStr(_rpi).ToLower();
-				this.rpc = (RecipeManager.RPI_CATEG)0;
+				this.tx_title = "&&recipe_effect_" + FEnum<RCP.RPI_EFFECT>.ToStr(_rpi).ToLower();
+				this.rpc = (RCP.RPI_CATEG)0;
 				this.rpi = _rpi;
 				this.Reel = null;
 				this.Store = null;
 				this.itcateg = NelItem.CATEG.OTHER;
+				this.ASmn = null;
+				this.Aenemy_id = null;
 			}
 
 			public PickUp(ReelManager.ItemReelContainer _Reel, string _tx_title = "")
 			{
 				this.tx_title = _tx_title;
-				this.rpc = (RecipeManager.RPI_CATEG)0;
-				this.rpi = RecipeManager.RPI_EFFECT.NONE;
+				this.rpc = (RCP.RPI_CATEG)0;
+				this.rpi = RCP.RPI_EFFECT.NONE;
 				this.Reel = _Reel;
 				this.Store = null;
 				this.itcateg = NelItem.CATEG.OTHER;
+				this.ASmn = null;
+				this.Aenemy_id = null;
 			}
 
 			public PickUp(StoreManager _Store)
 			{
 				this.tx_title = "";
-				this.rpc = (RecipeManager.RPI_CATEG)0;
-				this.rpi = RecipeManager.RPI_EFFECT.NONE;
+				this.rpc = (RCP.RPI_CATEG)0;
+				this.rpi = RCP.RPI_EFFECT.NONE;
 				this.Reel = null;
 				this.Store = _Store;
 				this.itcateg = NelItem.CATEG.OTHER;
+				this.ASmn = null;
+				this.Aenemy_id = null;
+			}
+
+			public PickUp(SummonerList _ASmn, string _tx_title = "")
+			{
+				this.tx_title = _tx_title;
+				this.rpc = (RCP.RPI_CATEG)0;
+				this.rpi = RCP.RPI_EFFECT.NONE;
+				this.Reel = null;
+				this.Store = null;
+				this.itcateg = NelItem.CATEG.OTHER;
+				this.Aenemy_id = null;
+				this.ASmn = _ASmn;
+				if (this.ASmn.enemyid_fix > (ENEMYID)0U)
+				{
+					this.Aenemy_id = new List<ENEMYID>(1);
+					this.Aenemy_id.Add(this.ASmn.enemyid_fix);
+				}
 			}
 
 			public bool isPickedUpFor(UiFieldGuide.FDR Fdr)
@@ -3677,11 +3887,11 @@ namespace nel
 				{
 					if (itm.RecipeInfo != null)
 					{
-						if (this.rpc != (RecipeManager.RPI_CATEG)0 && (itm.RecipeInfo.categ & this.rpc) != (RecipeManager.RPI_CATEG)0)
+						if (this.rpc != (RCP.RPI_CATEG)0 && (itm.RecipeInfo.categ & this.rpc) != (RCP.RPI_CATEG)0)
 						{
 							return true;
 						}
-						if (this.rpi != RecipeManager.RPI_EFFECT.NONE && itm.RecipeInfo.Oeffect100.ContainsKey(this.rpi))
+						if (this.rpi != RCP.RPI_EFFECT.NONE && itm.RecipeInfo.Oeffect100.ContainsKey(this.rpi))
 						{
 							return true;
 						}
@@ -3699,14 +3909,25 @@ namespace nel
 						return true;
 					}
 				}
-				return Fdr.FSmn != null && Fdr.valid && this.Reel != null && Fdr.FSmn.SupLink.isContains(this.Reel);
+				if (Fdr.FSmn != null && Fdr.valid)
+				{
+					if (this.Reel != null && Fdr.FSmn.SupLink.isContains(this.Reel))
+					{
+						return true;
+					}
+					if (this.ASmn != null && this.ASmn.IndexOf(Fdr.FSmn.summoner_key) >= 0)
+					{
+						return true;
+					}
+				}
+				return Fdr.enemyid > (ENEMYID)0U && this.Aenemy_id != null && this.Aenemy_id.IndexOf(Fdr.enemyid) >= 0;
 			}
 
 			public void AddTxDescription(STB Stb)
 			{
-				if (this.rpc != (RecipeManager.RPI_CATEG)0)
+				if (this.rpc != (RCP.RPI_CATEG)0)
 				{
-					RecipeManager.RecipeIngredient.ingredientDescForRPCategTo(Stb, this.rpc, true);
+					RCP.RecipeIngredient.ingredientDescForRPCategTo(Stb, this.rpc, true);
 				}
 				if (this.itcateg != NelItem.CATEG.OTHER)
 				{
@@ -3732,15 +3953,29 @@ namespace nel
 
 			public readonly string tx_title;
 
-			public readonly RecipeManager.RPI_CATEG rpc;
+			public readonly RCP.RPI_CATEG rpc;
 
-			public readonly RecipeManager.RPI_EFFECT rpi;
+			public readonly RCP.RPI_EFFECT rpi;
 
 			public readonly NelItem.CATEG itcateg;
 
 			public readonly ReelManager.ItemReelContainer Reel;
 
 			public readonly StoreManager Store;
+
+			public readonly SummonerList ASmn;
+
+			public readonly List<ENEMYID> Aenemy_id;
+		}
+
+		private class FdrEntry : List<UiFieldGuide.ItmAndCateg>
+		{
+			public FdrEntry(int capacity)
+				: base(capacity)
+			{
+			}
+
+			public byte last_selected;
 		}
 
 		private struct CategHead

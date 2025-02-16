@@ -42,7 +42,7 @@ namespace XX.mobpxl
 		{
 			if (this.BasePcr == null)
 			{
-				this.BasePcr = MTRX.loadMtiPxc("sub_mob_general", "MapChars/sub_mob_general.pxls", "MOBG", false, true);
+				this.BasePcr = MTRX.loadMtiPxc("sub_mob_general", "MapChars/sub_mob_general.pxls", "MOBG", false, true, false);
 				this.OImgSource = new BDic<PxlImage, SkltImageSrc>();
 				this.OAnimSq = new BDic<string, SkltSequence>();
 				if (this.CalcAtlas != null)
@@ -50,6 +50,7 @@ namespace XX.mobpxl
 					this.CalcAtlas.destruct();
 				}
 				this.CalcAtlas = new RectAtlasTexture(512, 512, "", false, 0, RenderTextureFormat.ARGB32);
+				this.OAtlasTicket = new BDic<SkltRenderKey, SkltRenderTicket>(6);
 				this.PCC = new MobPCCContainer();
 				if (this.MdBuf == null)
 				{
@@ -82,6 +83,25 @@ namespace XX.mobpxl
 			}
 		}
 
+		internal static string[] Abuf_atc_header_name
+		{
+			get
+			{
+				if (MobGenerator.Abuf_atc_header_name_ == null)
+				{
+					MobGenerator.Abuf_atc_header_name_ = new string[9];
+					for (int i = 8; i >= 0; i--)
+					{
+						string[] abuf_atc_header_name_ = MobGenerator.Abuf_atc_header_name_;
+						int num = i;
+						ATC_TYPE atc_TYPE = (ATC_TYPE)i;
+						abuf_atc_header_name_[num] = atc_TYPE.ToString() + "_";
+					}
+				}
+				return MobGenerator.Abuf_atc_header_name_;
+			}
+		}
+
 		public void prepareParts()
 		{
 			if (this.OSklt != null)
@@ -89,22 +109,11 @@ namespace XX.mobpxl
 				return;
 			}
 			this.OSklt = new BDic<string, MobSklt>();
-			if (MobGenerator.Abuf_atc_name == null)
-			{
-				MobGenerator.Abuf_atc_name = new string[9];
-				for (int i = 8; i >= 0; i--)
-				{
-					string[] abuf_atc_name = MobGenerator.Abuf_atc_name;
-					int num = i;
-					ATC_TYPE atc_TYPE = (ATC_TYPE)i;
-					abuf_atc_name[num] = atc_TYPE.ToString() + "_";
-				}
-			}
 			this.BaseFirstPose = null;
-			int num2 = this.BasePcr.countPoses();
-			for (int j = 0; j < num2; j++)
+			int num = this.BasePcr.countPoses();
+			for (int i = 0; i < num; i++)
 			{
-				PxlPose pose = this.BasePcr.getPose(j);
+				PxlPose pose = this.BasePcr.getPose(i);
 				if (!TX.isStart(pose.title, "_", 0) && !TX.isStart(pose.title, "PLT", 0))
 				{
 					if (this.BaseFirstPose == null)
@@ -112,10 +121,10 @@ namespace XX.mobpxl
 						this.BaseFirstPose = pose;
 					}
 					PxlSequence sequence = pose.getSequence(0);
-					int num3 = sequence.countFrames();
-					for (int k = 0; k < num3; k++)
+					int num2 = sequence.countFrames();
+					for (int j = 0; j < num2; j++)
 					{
-						PxlFrame frame = sequence.getFrame(k);
+						PxlFrame frame = sequence.getFrame(j);
 						string name = frame.name;
 						if (TX.noe(name))
 						{
@@ -143,19 +152,19 @@ namespace XX.mobpxl
 							{
 								text2 = REG.R1;
 							}
-							int num4 = frame.countLayers();
-							for (int l = 0; l < 2; l++)
+							int num3 = frame.countLayers();
+							for (int k = 0; k < 2; k++)
 							{
-								for (int m = 0; m < num4; m++)
+								for (int l = 0; l < num3; l++)
 								{
-									PxlLayer layer = frame.getLayer(m);
+									PxlLayer layer = frame.getLayer(l);
 									if (!layer.isGroup())
 									{
 										if (TX.isStart(layer.name, "point_", 0))
 										{
-											if (l != 1)
+											if (k != 1)
 											{
-												PARTS_TYPE parts_TYPE = this.name2PT(layer.name, 6);
+												PARTS_TYPE parts_TYPE = MobGenerator.name2PT(layer.name, 6);
 												if (parts_TYPE == PARTS_TYPE._OTHER || parts_TYPE == PARTS_TYPE.BODY)
 												{
 													X.de("point の接続が不明: " + layer.ToString(), null);
@@ -166,9 +175,9 @@ namespace XX.mobpxl
 												}
 											}
 										}
-										else if (l != 0)
+										else if (k != 0)
 										{
-											PARTS_TYPE parts_TYPE2 = this.name2PT(layer.name, 0);
+											PARTS_TYPE parts_TYPE2 = MobGenerator.name2PT(layer.name, 0);
 											SkltImageSrc skltImageSrc;
 											if (!this.assignAttachLayer(layer, text2, out skltImageSrc))
 											{
@@ -178,9 +187,9 @@ namespace XX.mobpxl
 													if (!layer.isImport() || !(layer.name == "noel"))
 													{
 														X.de("パーツ画像の定義エラー: " + layer.ToString(), null);
-														goto IL_033B;
+														goto IL_02F0;
 													}
-													goto IL_033B;
+													goto IL_02F0;
 												}
 												else
 												{
@@ -202,9 +211,9 @@ namespace XX.mobpxl
 											}
 										}
 									}
-									IL_033B:;
+									IL_02F0:;
 								}
-								if (l == 0)
+								if (k == 0)
 								{
 									mobSklt3.fineJointPositionOnLoad();
 								}
@@ -214,19 +223,19 @@ namespace XX.mobpxl
 				}
 			}
 			this.pcr_base_parts_bits = 0U;
-			num2 = this.BasePcr.APartsInfo.Length;
-			for (int n = 0; n < num2; n++)
+			num = this.BasePcr.APartsInfo.Length;
+			for (int m = 0; m < num; m++)
 			{
-				if (MobGenerator.is_base_oacc_parts(this.BasePcr.APartsInfo[n].name))
+				if (MobGenerator.is_base_oacc_parts(this.BasePcr.APartsInfo[m].name))
 				{
-					this.pcr_base_parts_bits |= 1U << n;
+					this.pcr_base_parts_bits |= 1U << m;
 				}
 			}
 			this.PCC.name = "_";
 			this.PCC.chr_name = this.BasePcr.title;
 			this.PCC.Init(this, this.BasePcr.getExternalTextureArray()[1].Image);
 			this.loadMobgData(out this.first_sklt_key);
-			this.ClearTexture();
+			this.ClearTexture(false);
 		}
 
 		public BDic<string, MobSklt> getWholeSkltObject()
@@ -239,17 +248,20 @@ namespace XX.mobpxl
 			return X.Get<string, MobSklt>(this.OSklt, s);
 		}
 
-		public bool ClearTexture()
+		public bool ClearTexture(bool completely = false)
 		{
 			bool flag = false;
-			foreach (KeyValuePair<string, MobSklt> keyValuePair in this.OSklt)
+			foreach (KeyValuePair<SkltRenderKey, SkltRenderTicket> keyValuePair in this.OAtlasTicket)
 			{
-				MobSklt value = keyValuePair.Value;
-				if (value.atlas_created)
+				if (keyValuePair.Value.atlas_created)
 				{
 					flag = true;
 				}
-				value.clearTextureAtlas();
+				keyValuePair.Value.Clear();
+			}
+			if (completely)
+			{
+				this.OAtlasTicket.Clear();
 			}
 			this.CalcAtlas.Clear(512, 512);
 			this.fineMITexture();
@@ -339,14 +351,36 @@ namespace XX.mobpxl
 			return this.CalcAtlas;
 		}
 
-		public bool createAtlas(MobSklt Sklt)
+		public bool alreadyAtlasCreated(MobSklt Sklt, string colvari_key)
 		{
-			Sklt.createAtlas(this.CalcAtlas);
-			bool flag = this.fineMITexture();
+			return this.getAtlasCreatedTicket(Sklt, colvari_key) != null;
+		}
+
+		public SkltRenderTicket getAtlasCreatedTicket(MobSklt Sklt, string colvari_key)
+		{
+			SkltRenderKey skltRenderKey = new SkltRenderKey(Sklt, colvari_key);
+			SkltRenderTicket skltRenderTicket;
+			if (!this.OAtlasTicket.TryGetValue(skltRenderKey, out skltRenderTicket) || !skltRenderTicket.atlas_created)
+			{
+				return null;
+			}
+			return skltRenderTicket;
+		}
+
+		internal SkltRenderTicket createAtlas(MobSklt Sklt, string colvari_key)
+		{
+			SkltRenderKey skltRenderKey = new SkltRenderKey(Sklt, colvari_key);
+			SkltRenderTicket skltRenderTicket;
+			if (!this.OAtlasTicket.TryGetValue(skltRenderKey, out skltRenderTicket))
+			{
+				skltRenderTicket = (this.OAtlasTicket[skltRenderKey] = new SkltRenderTicket());
+			}
+			skltRenderTicket.createAtlas(this.CalcAtlas, Sklt);
+			this.fineMITexture();
 			SkltImage skltImage = null;
-			Sklt.createPccAppliedMesh(this, this.MdBuf, (this.Apply_Buffer_Redrawing != null) ? skltImage : null);
+			Sklt.createPccAppliedMesh(this, skltRenderTicket, this.MdBuf, (this.Apply_Buffer_Redrawing != null) ? skltImage : null);
 			this.MdBuf.clearSimple();
-			return flag;
+			return skltRenderTicket;
 		}
 
 		public RenderTexture GetAtlasTexture()
@@ -537,7 +571,7 @@ namespace XX.mobpxl
 			return this.BasePcr.APartsInfo[partsInfoIndex];
 		}
 
-		private PARTS_TYPE name2PT(string t, int si = 0)
+		internal static PARTS_TYPE name2PT(string t, int si = 0)
 		{
 			if (TX.isStart(t, "ra2_", si) || TX.isMatch(t, "ra2", si))
 			{
@@ -607,14 +641,14 @@ namespace XX.mobpxl
 			ImgSrc = null;
 			for (int i = 0; i < num; i++)
 			{
-				if (TX.isStart(name, MobGenerator.Abuf_atc_name[i], 0))
+				if (TX.isStart(name, MobGenerator.Abuf_atc_header_name[i], 0))
 				{
 					ATC_TYPE atc_TYPE = (ATC_TYPE)i;
 					PARTS_TYPE parts_TYPE = PARTS_TYPE._OTHER;
 					string text = null;
-					if (REG.match(name, this.RegAttachHeader) && REG.R1 == MobGenerator.Abuf_atc_name[i])
+					if (REG.match(name, this.RegAttachHeader) && REG.R1 == MobGenerator.Abuf_atc_header_name[i])
 					{
-						parts_TYPE = this.name2PT(REG.R2, 0);
+						parts_TYPE = MobGenerator.name2PT(REG.R2, 0);
 						if (parts_TYPE != PARTS_TYPE._OTHER)
 						{
 							text = REG.R3;
@@ -622,7 +656,7 @@ namespace XX.mobpxl
 					}
 					if (text == null)
 					{
-						text = TX.slice(name, MobGenerator.Abuf_atc_name[i].Length);
+						text = TX.slice(name, MobGenerator.Abuf_atc_header_name[i].Length);
 					}
 					if (!TX.noe(text))
 					{
@@ -664,6 +698,8 @@ namespace XX.mobpxl
 
 		protected RectAtlasTexture CalcAtlas;
 
+		private BDic<SkltRenderKey, SkltRenderTicket> OAtlasTicket;
+
 		private MeshDrawer MdBuf;
 
 		public string first_sklt_key;
@@ -672,7 +708,9 @@ namespace XX.mobpxl
 
 		private MobPCCContainer PCC;
 
-		private static string[] Abuf_atc_name;
+		internal SkltColVari CurColVari;
+
+		private static string[] Abuf_atc_header_name_;
 
 		private readonly Regex RegAttachHeader = new Regex("^([a-zA-Z]+_)_*([a-zA-Z]+[0-9]*)_+(\\w+)");
 
@@ -682,6 +720,6 @@ namespace XX.mobpxl
 
 		private RenderTexture Apply_Buffer_Redrawing;
 
-		public const int MOBG_VERS = 10;
+		public const int MOBG_VERS = 13;
 	}
 }

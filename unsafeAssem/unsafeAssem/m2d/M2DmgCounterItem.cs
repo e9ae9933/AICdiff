@@ -102,8 +102,8 @@ namespace m2d
 				this.Mv = this.MvAnother;
 				this.MvAnother = null;
 				this.FineMv();
-				Vector2 damageCounterShiftMapPos = this.Mv.getDamageCounterShiftMapPos();
-				Vector2 vector = this.Con.reposit(this, this.Mv.drawx_map + damageCounterShiftMapPos.x, this.Mv.drawy_map + damageCounterShiftMapPos.y, false);
+				Vector3 damageCounterShiftMapPos = this.Mv.getDamageCounterShiftMapPos();
+				Vector2 vector = this.Con.reposit(this, this.Mv.drawx_map + damageCounterShiftMapPos.x, this.Mv.drawy_map + damageCounterShiftMapPos.y, damageCounterShiftMapPos.z, false);
 				this.f0_move = IN.totalframe;
 				this.dx = vector.x - this.Mv.drawx_map;
 				this.dy = vector.y - this.Mv.drawy_map;

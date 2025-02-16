@@ -27,9 +27,9 @@ namespace m2d
 			this.OFnForDropObject = new BDic<PxlImage, M2DropObject.FnDropObjectDraw>(8);
 			this.OABlurImg = new BDic<M2ChipImage, List<M2BlurImage>>(4);
 			this.APxcEntry = new List<M2ImageAtlas.AtlasPxcEntry>();
-			this.ALayForLoading = new List<PxlLayer>();
+			this.ALayForLoading = new List<M2ImageAtlas.LayerEntry>();
 			this.CalcAtlas = new RectAtlasTexture(0, 0, "M2ImageAtlas", false, 0, RenderTextureFormat.ARGB32);
-			this.FD_FnSortFotAtlasAssign = new Comparison<PxlLayer>(this.FnSortFotAtlasAssign);
+			this.FD_FnSortFotAtlasAssign = new Comparison<M2ImageAtlas.LayerEntry>(this.FnSortFotAtlasAssign);
 		}
 
 		public void initAsyncLoad()
@@ -171,11 +171,15 @@ namespace m2d
 			this.pre_dirname = null;
 			int num = Pxc.countPoses();
 			int count = this.Aloaded_dir.Count;
-			bool flag = false;
+			bool flag = Pxc.title == M2DBase.Achip_pxl_key[0];
 			for (int i = 0; i < num; i++)
 			{
 				string text = Pxc.getPose(i).title + "/";
-				if (this.Aloaded_dir.IndexOf(text) != -1)
+				if (text == "obj/")
+				{
+					flag = true;
+				}
+				else if (this.Aloaded_dir.IndexOf(text) != -1)
 				{
 					if (this.Acurrent_async_loading != null && this.Acurrent_async_loading.IndexOf(text) != -1)
 					{
@@ -236,16 +240,16 @@ namespace m2d
 			return false;
 		}
 
-		public void prepareChipImageDirectory(M2ChipImage I, bool stop_m2d = false)
+		public bool prepareChipImageDirectory(M2ChipImage I, bool stop_m2d = false)
 		{
-			this.prepareChipImageDirectory(I.dirname, stop_m2d);
+			return this.prepareChipImageDirectory(I.dirname, stop_m2d);
 		}
 
-		public void prepareChipImageDirectory(string dirname, bool stop_m2d = false)
+		public bool prepareChipImageDirectory(string dirname, bool stop_m2d = false)
 		{
 			if (dirname == this.pre_dirname)
 			{
-				return;
+				return false;
 			}
 			this.pre_dirname = dirname;
 			if (this.Acurrent_async_loading != null && this.Acurrent_async_loading.IndexOf(dirname) == -1)
@@ -254,22 +258,23 @@ namespace m2d
 			}
 			if (this.Aloaded_dir.IndexOf(dirname) != -1)
 			{
-				return;
+				return false;
 			}
 			this.Aloaded_dir.Add(dirname);
 			if (stop_m2d)
 			{
 				this.M2D.transferring_game_stopping = true;
 			}
+			return true;
 		}
 
-		public bool prepareAtlasProgress(int progress_count = 350)
+		public bool prepareAtlasProgress(int progress_count = 900)
 		{
 			bool flag;
 			return this.prepareAtlasProgress(out flag, progress_count);
 		}
 
-		public bool prepareAtlasProgress(out bool executed, int progress_count = 350)
+		public bool prepareAtlasProgress(out bool executed, int progress_count = 900)
 		{
 			executed = false;
 			if (this.loaded_index == -1 || this.Tx == null)
@@ -283,6 +288,7 @@ namespace m2d
 				this.atlas_rescale_x = (this.atlas_rescale_y = 0f);
 				this.first_step_on_fine_image = true;
 				this.ORc.Clear();
+				this.ALayForLoading.Clear();
 				this.CurEntry = null;
 				this.CalcAtlas.Clear(2048, 2048);
 				this.CalcAtlas.Tx.name = "M2ImageAtalas(" + this.CalcAtlas.width.ToString() + "," + this.CalcAtlas.height.ToString();
@@ -333,61 +339,66 @@ namespace m2d
 				for (;;)
 				{
 					int num = ((j == 0) ? this.loaded_index : this.fined_imgs_index);
-					if (num >= this.Aloaded_dir.Count)
+					if (num < this.Aloaded_dir.Count)
 					{
-						break;
-					}
-					string text = this.Aloaded_dir[num];
-					if (this.CurEntry == null)
-					{
-						string text2 = TX.slice(text, 0, text.Length - 1);
-						this.CurEntryPose = null;
-						this.ALayForLoading.Clear();
-						this.calced_layer_index = 0;
-						bool flag2 = false;
-						int k = 0;
-						while (k < count)
+						string text = this.Aloaded_dir[num];
+						if (this.CurEntry == null)
 						{
-							M2ImageAtlas.AtlasPxcEntry atlasPxcEntry = this.APxcEntry[k];
-							PxlCharacter pc2 = atlasPxcEntry.Pc;
-							this.CurEntryPose = pc2.getPoseByName(text2);
-							bool flag3 = !pc2.isLoadCompleted();
-							flag2 = flag2 || flag3;
-							if (this.CurEntryPose != null)
+							string text2 = TX.slice(text, 0, text.Length - 1);
+							this.CurEntryPose = null;
+							if (j == 0)
 							{
-								if (flag3 || !atlasPxcEntry.prepareImage(true))
-								{
-									return true;
-								}
-								this.CurEntry = atlasPxcEntry;
-								break;
+								this.calced_atlas_index = -1;
 							}
 							else
 							{
-								k++;
+								this.calced_layer_index = -1;
+								this.ALayForLoading.Clear();
+							}
+							bool flag2 = false;
+							int k = 0;
+							while (k < count)
+							{
+								M2ImageAtlas.AtlasPxcEntry atlasPxcEntry = this.APxcEntry[k];
+								PxlCharacter pc2 = atlasPxcEntry.Pc;
+								this.CurEntryPose = pc2.getPoseByName(text2);
+								bool flag3 = !pc2.isLoadCompleted();
+								flag2 = flag2 || flag3;
+								if (this.CurEntryPose != null)
+								{
+									if (flag3 || !atlasPxcEntry.prepareImage(true))
+									{
+										return true;
+									}
+									this.CurEntry = atlasPxcEntry;
+									break;
+								}
+								else
+								{
+									k++;
+								}
+							}
+							if (this.CurEntry == null)
+							{
+								if (flag2)
+								{
+									return true;
+								}
+								X.de(string.Concat(new string[]
+								{
+									"準備された",
+									this.APxcEntry.Count.ToString(),
+									" 個のPxlCharacter内にポーズ",
+									text,
+									" が見つかりませんでした。"
+								}), null);
 							}
 						}
-						if (this.CurEntry == null)
-						{
-							if (flag2)
-							{
-								return true;
-							}
-							X.de(string.Concat(new string[]
-							{
-								"準備された",
-								this.APxcEntry.Count.ToString(),
-								" 個のPxlCharacter内にポーズ",
-								text,
-								" が見つかりませんでした。"
-							}), null);
-						}
-						else
+						if (this.CurEntry != null && (j == 0 || this.calced_layer_index == -1))
 						{
 							if (j == 0)
 							{
 								PxlCharacter pc3 = this.CurEntry.Pc;
-								this.fineMeshToTexture(pc3.getExternalTextureArray()[0].Image, false);
 							}
 							if (j == 1)
 							{
@@ -396,17 +407,25 @@ namespace m2d
 									this.CurEntry = null;
 									this.CurEntryPose = null;
 								}
-								else if (this.first_step_on_fine_image)
+								else
 								{
-									this.fineMeshToTexture(null, false);
-									this.first_step_on_fine_image = false;
-									this.IMGS.assignPxlLayerInitialize();
-									this.IMGS.MIchip.Tx = this.Tx;
-									if (this.atlas_rescale_x == 0f)
+									if (this.IMGS.initializeChipsDirectory(text, ref progress_count, false) || progress_count == 0)
 									{
-										this.IMGS.releaseAtlas(false, null);
+										return true;
+									}
+									if (this.first_step_on_fine_image)
+									{
+										this.fineMeshToTexture(null, false);
+										this.first_step_on_fine_image = false;
+										this.IMGS.assignPxlLayerInitialize();
+										this.IMGS.MIchip.Tx = this.Tx;
+										if (this.atlas_rescale_x == 0f)
+										{
+											this.IMGS.releaseAtlas(false, null);
+										}
 									}
 								}
+								this.calced_layer_index = 0;
 							}
 							if (this.CurEntryPose != null)
 							{
@@ -451,64 +470,100 @@ namespace m2d
 													{
 														continue;
 													}
-													this.ALayForLoading.Add(layer);
+													this.ALayForLoading.Add(new M2ImageAtlas.LayerEntry(layer, text));
 												}
 											}
 										}
 									}
 									num2++;
 								}
-								if (j == 0 && !TX.isStart(this.CurEntryPose.title, "_", 0))
+							}
+						}
+						if (j == 1)
+						{
+							while (this.CurEntry != null && this.ALayForLoading.Count > this.calced_layer_index)
+							{
+								List<M2ImageAtlas.LayerEntry> alayForLoading = this.ALayForLoading;
+								int num5 = this.calced_layer_index;
+								this.calced_layer_index = num5 + 1;
+								PxlLayer lay = alayForLoading[num5].Lay;
+								if (!lay.isGroup())
 								{
-									this.ALayForLoading.Sort(this.FD_FnSortFotAtlasAssign);
+									M2ImageAtlas.AtlasRect atlasRect2;
+									if (!this.ORc.TryGetValue(lay.Img, out atlasRect2) || !atlasRect2.valid)
+									{
+										continue;
+									}
+									bool flag5;
+									M2ChipImage m2ChipImage = this.IMGS.assignPxlLayerToImage(out flag5, lay, text, atlasRect2, this.atlas_rescale_x, this.atlas_rescale_y, this.first_fined_imgs_index <= this.fined_imgs_index);
+									if (m2ChipImage != null && !m2ChipImage.loaded_additional_material)
+									{
+										this.M2D.loadAdditionalMaterialForChip(m2ChipImage);
+									}
+								}
+								if (--progress_count == 0)
+								{
+									return true;
 								}
 							}
 						}
-					}
-					while (this.CurEntry != null && this.ALayForLoading.Count > this.calced_layer_index)
-					{
-						List<PxlLayer> alayForLoading = this.ALayForLoading;
-						int num5 = this.calced_layer_index;
-						this.calced_layer_index = num5 + 1;
-						PxlLayer pxlLayer = alayForLoading[num5];
+						this.CurEntry = null;
+						this.CurEntryPose = null;
 						if (j == 0)
 						{
-							int num6;
-							M2ImageAtlas.AtlasRect atlasRect2 = this.createRect(pxlLayer, out num6);
-							progress_count = ((progress_count > 0) ? X.Mx(1, progress_count - num6 / 32) : progress_count);
-							if (text == "obj/" && pxlLayer.name == "DUMMY_CHIP_IMAGE")
-							{
-								this.RectWhite = atlasRect2;
-							}
+							this.loaded_index++;
 						}
-						else if (!pxlLayer.isGroup())
+						else
 						{
-							M2ImageAtlas.AtlasRect atlasRect3;
-							if (!this.ORc.TryGetValue(pxlLayer.Img, out atlasRect3) || !atlasRect3.valid)
-							{
-								continue;
-							}
-							M2ChipImage m2ChipImage = this.IMGS.assignPxlLayerToImage(pxlLayer, text, atlasRect3, this.atlas_rescale_x, this.atlas_rescale_y, this.first_fined_imgs_index <= this.fined_imgs_index);
-							if (m2ChipImage != null && !m2ChipImage.loaded_additional_material)
-							{
-								this.M2D.loadAdditionalMaterialForChip(m2ChipImage);
-							}
+							this.fined_imgs_index++;
+							this.IMGS.assignPxlLayerFinalizeOnPose(true);
 						}
-						if (--progress_count == 0)
-						{
-							return true;
-						}
-					}
-					this.CurEntry = null;
-					this.CurEntryPose = null;
-					if (j == 0)
-					{
-						this.loaded_index++;
 					}
 					else
 					{
-						this.fined_imgs_index++;
-						this.IMGS.assignPxlLayerFinalizeOnPose();
+						if (j == 1 || this.calced_atlas_index == -3)
+						{
+							break;
+						}
+						if (this.calced_atlas_index < 0)
+						{
+							this.ALayForLoading.Sort(this.FD_FnSortFotAtlasAssign);
+							this.calced_atlas_index = 0;
+						}
+						while (this.ALayForLoading.Count > this.calced_atlas_index)
+						{
+							List<M2ImageAtlas.LayerEntry> alayForLoading2 = this.ALayForLoading;
+							int num5 = this.calced_atlas_index;
+							this.calced_atlas_index = num5 + 1;
+							M2ImageAtlas.LayerEntry layerEntry = alayForLoading2[num5];
+							PxlLayer lay2 = layerEntry.Lay;
+							this.fineMeshToTexture(lay2.Img.get_I(), false);
+							string dirname = layerEntry.dirname;
+							int num6;
+							M2ImageAtlas.AtlasRect atlasRect3 = this.createRect(lay2, out num6);
+							progress_count = ((progress_count > 0) ? X.Mx(1, progress_count - num6 / 32) : progress_count);
+							if (dirname == "obj/" && lay2.name == "DUMMY_CHIP_IMAGE")
+							{
+								this.RectWhite = atlasRect3;
+							}
+							if (--progress_count == 0)
+							{
+								break;
+							}
+						}
+						if (this.ALayForLoading.Count <= this.calced_atlas_index)
+						{
+							this.calced_atlas_index = -3;
+							this.ALayForLoading.Clear();
+						}
+						if (progress_count == 0)
+						{
+							return true;
+						}
+						if (this.calced_atlas_index == -3)
+						{
+							break;
+						}
 					}
 				}
 			}
@@ -518,6 +573,7 @@ namespace m2d
 			this.CurEntry = null;
 			this.CurEntryPose = null;
 			this.pre_dirname = null;
+			this.ALayForLoading.Clear();
 			this.IMGS.assignPxlLayerFinalize();
 			this.atlas_rescale_x = (this.atlas_rescale_y = 1f);
 			this.first_fined_imgs_index = this.fined_imgs_index;
@@ -543,15 +599,17 @@ namespace m2d
 			return false;
 		}
 
-		private int FnSortFotAtlasAssign(PxlLayer La, PxlLayer Lb)
+		private int FnSortFotAtlasAssign(M2ImageAtlas.LayerEntry Lea, M2ImageAtlas.LayerEntry Leb)
 		{
-			bool flag = La.isGroup();
-			bool flag2 = Lb.isGroup();
+			PxlLayer lay = Lea.Lay;
+			PxlLayer lay2 = Leb.Lay;
+			bool flag = lay.isGroup();
+			bool flag2 = lay2.isGroup();
 			if (flag || flag2)
 			{
 				if (flag && flag2)
 				{
-					return string.Compare(La.name, Lb.name);
+					return string.Compare(lay.name, lay2.name);
 				}
 				if (!flag)
 				{
@@ -561,13 +619,14 @@ namespace m2d
 			}
 			else
 			{
-				PxlImage img = La.Img;
-				PxlImage img2 = Lb.Img;
-				if (img.height != img2.height)
+				PxlImage img = lay.Img;
+				PxlImage img2 = lay2.Img;
+				int num = ((img.height == img2.height) ? (img2.width - img.width) : (img2.height - img.height));
+				if (num != 0)
 				{
-					return img2.height - img.height;
+					return num;
 				}
-				return img2.width - img.width;
+				return string.Compare(lay.pChar.title, lay2.pChar.title);
 			}
 		}
 
@@ -581,7 +640,7 @@ namespace m2d
 			this.MdBuf.initForImg(Lay.Img, 0);
 			this.MdBuf.RectBL((float)atlasRect.x, (float)atlasRect.y, (float)atlasRect.w, (float)atlasRect.h, true);
 			this.ORc[Lay.Img] = atlasRect;
-			cost = 4;
+			cost = 1;
 			return atlasRect;
 		}
 
@@ -776,9 +835,11 @@ namespace m2d
 
 		private int fined_imgs_index;
 
+		private int first_fined_imgs_index;
+
 		private int calced_layer_index;
 
-		private int first_fined_imgs_index;
+		private int calced_atlas_index;
 
 		private bool first_step_on_fine_image = true;
 
@@ -794,7 +855,7 @@ namespace m2d
 
 		private M2ImageAtlas.AtlasPxcEntry CurEntry;
 
-		private List<PxlLayer> ALayForLoading;
+		private List<M2ImageAtlas.LayerEntry> ALayForLoading;
 
 		private readonly BDic<PxlImage, M2DropObject.FnDropObjectDraw> OFnForDropObject;
 
@@ -812,7 +873,7 @@ namespace m2d
 
 		private const int WHITE_WH = 4;
 
-		private Comparison<PxlLayer> FD_FnSortFotAtlasAssign;
+		private Comparison<M2ImageAtlas.LayerEntry> FD_FnSortFotAtlasAssign;
 
 		internal const string LAYNAME_GROUP_HEADER_STAMP = "stamp_";
 
@@ -1016,6 +1077,19 @@ namespace m2d
 			public MImage MI;
 
 			public MTIOneImage MtiLoader;
+		}
+
+		private struct LayerEntry
+		{
+			public LayerEntry(PxlLayer _Lay, string _dirname)
+			{
+				this.Lay = _Lay;
+				this.dirname = _dirname;
+			}
+
+			public PxlLayer Lay;
+
+			public string dirname;
 		}
 	}
 }

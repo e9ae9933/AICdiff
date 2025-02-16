@@ -193,7 +193,7 @@ namespace XX
 				this.Scr.AssignToInner(this.View.transform);
 			}
 			this.fineRow();
-			this.BCon.stencil_ref = this.stencil_ref;
+			this.BCon.stencil_ref = this.container_stencil_ref;
 			this.BCon.BelongScroll = this.CurrentAttachScroll;
 			this.Row.Align(this.alignx_);
 			if (this.Area != null)
@@ -578,9 +578,9 @@ namespace XX
 			if (Src.Blk != null)
 			{
 				int num = this.item_count;
-				this.addItem(Src.name, Src.Blk, Src.NameTarget ?? (Src.Blk as IVariableObject), null, -0.01f, Src.is_active);
+				this.addItem(Src.name, Src.Blk, Src.NameTarget ?? (Src.Blk as IVariableObject), null, -0.01f, Src.active);
 				Transform transform = Src.Blk.getTransform();
-				transform.gameObject.SetActive(Src.is_active);
+				transform.gameObject.SetActive(Src.active);
 				this.setItemParent(transform);
 				if (Src.Blk is aBtn)
 				{
@@ -596,7 +596,16 @@ namespace XX
 					this.item_count = num2;
 				}
 			}
+			else
+			{
+				this.Row.Reassign(Src);
+			}
 			return this;
+		}
+
+		public void ClearRowGameObject()
+		{
+			this.Row.Clear(true);
 		}
 
 		public virtual Designer Clear()
@@ -606,7 +615,7 @@ namespace XX
 				return this;
 			}
 			this.endTab(true);
-			this.Row.Clear();
+			this.Row.Clear(false);
 			if (this.TempMMRD != null)
 			{
 				this.TempMMRD.OnDestroy();
@@ -810,7 +819,7 @@ namespace XX
 			}
 			gameObject.layer = base.gameObject.layer;
 			MultiMeshRenderer multiMeshRenderer = gameObject.AddComponent<MultiMeshRenderer>();
-			multiMeshRenderer.stencil_ref = this.stencil_ref;
+			multiMeshRenderer.stencil_ref = this.container_stencil_ref;
 			this.TempMMRD = multiMeshRenderer;
 			return multiMeshRenderer;
 		}
@@ -999,6 +1008,7 @@ namespace XX
 				btnContainer.RemakeLT<T>(Mde.titlesL, "");
 			}
 			btnContainer.BelongScroll = this.CurrentAttachScroll;
+			btnContainer.APool = Mde.APoolEvacuated;
 			btnContainer.carr_alpha_tz = false;
 			int length = btnContainer.Length;
 			for (int i = 0; i < length; i++)
@@ -1234,24 +1244,29 @@ namespace XX
 
 		public FillImageBlock addImg(DsnDataImg Mde)
 		{
+			return this.addImgT<FillImageBlock>(Mde);
+		}
+
+		public T addImgT<T>(DsnDataImg Mde) where T : FillImageBlock
+		{
 			string text = this.Name(Mde);
-			FillImageBlock fillImageBlock = this.CreateInnerGob(text).AddComponent<FillImageBlock>();
-			fillImageBlock.stencil_lessequal = Mde.stencil_lessequal;
-			this.setPInner(Mde, fillImageBlock);
-			fillImageBlock.UvRect = Mde.UvRect;
-			fillImageBlock.MI = Mde.MI;
+			T t = this.CreateInnerGob(text).AddComponent<T>();
+			t.stencil_lessequal = Mde.stencil_lessequal;
+			this.setPInner(Mde, t);
+			t.UvRect = Mde.UvRect;
+			t.MI = Mde.MI;
 			if (Mde.PF != null)
 			{
-				fillImageBlock.PF = Mde.PF;
+				t.PF = Mde.PF;
 			}
-			fillImageBlock.scale = Mde.scale;
-			fillImageBlock.FnDrawFIB = Mde.FnDrawInFIB;
-			fillImageBlock.FnDraw = Mde.FnDraw;
-			fillImageBlock.StartFb(Mde.text, Mde.Stb, Mde.html);
+			t.scale = Mde.scale;
+			t.FnDrawFIB = Mde.FnDrawInFIB;
+			t.FnDraw = Mde.FnDraw;
+			t.StartFb(Mde.text, Mde.Stb, Mde.html);
 			Mde.Stb = null;
-			this.addDeactivate(text, fillImageBlock);
-			this.addItem(text, fillImageBlock, fillImageBlock, Mde, -0.01f, true);
-			return fillImageBlock;
+			this.addDeactivate(text, t);
+			this.addItem(text, t, t, Mde, -0.01f, true);
+			return t;
 		}
 
 		public BtnContainer<aBtn> addChecks(DsnDataChecks Mde)
@@ -1565,17 +1580,52 @@ namespace XX
 
 		public void reboundCarrForBtnMulti(BtnContainer<aBtn> BCon, bool remaking = true)
 		{
-			DsnDataRadio dsnDataRadio = X.Get<BtnContainerBasic, DsnData>(this.ORadioMde, BCon) as DsnDataRadio;
-			if (dsnDataRadio != null)
+			DsnData dsnData = X.Get<BtnContainerBasic, DsnData>(this.ORadioMde, BCon);
+			ObjCarrierConBlockBtnContainer<aBtn> objCarrierConBlockBtnContainer = null;
+			int num4;
+			float num5;
+			float num6;
+			float num7;
+			if (dsnData is DsnDataRadio)
 			{
-				ObjCarrierConBlockBtnContainer<aBtn> objCarrierConBlockBtnContainer = BCon.getMainCarr() as ObjCarrierConBlockBtnContainer<aBtn>;
-				if (objCarrierConBlockBtnContainer != null)
+				DsnDataRadio dsnDataRadio = dsnData as DsnDataRadio;
+				int num = dsnDataRadio.clms;
+				float num2 = (float)dsnDataRadio.margin_w;
+				float num3 = (float)dsnDataRadio.margin_h;
+				float scale = dsnDataRadio.scale;
+				num4 = num;
+				num5 = num2;
+				num6 = num3;
+				num7 = scale;
+				BtnContainerRadio<aBtn> btnContainerRadio = BCon as BtnContainerRadio<aBtn>;
+				if (btnContainerRadio != null)
 				{
-					Designer.reboundCarrForBtnMulti(objCarrierConBlockBtnContainer, dsnDataRadio.clms, (float)dsnDataRadio.margin_w, (float)dsnDataRadio.margin_h, dsnDataRadio.scale);
-					if (remaking)
-					{
-						this.RowRemakeHeightRecalc(objCarrierConBlockBtnContainer, null);
-					}
+					objCarrierConBlockBtnContainer = btnContainerRadio.getBaseCarr() as ObjCarrierConBlockBtnContainer<aBtn>;
+				}
+			}
+			else
+			{
+				if (!(dsnData is DsnDataButtonMulti))
+				{
+					return;
+				}
+				DsnDataButtonMulti dsnDataButtonMulti = dsnData as DsnDataButtonMulti;
+				int num = dsnDataButtonMulti.clms;
+				float num3 = dsnDataButtonMulti.margin_w;
+				float margin_h = dsnDataButtonMulti.margin_h;
+				float num2 = 1f;
+				num4 = num;
+				num5 = num3;
+				num6 = margin_h;
+				num7 = num2;
+			}
+			objCarrierConBlockBtnContainer = objCarrierConBlockBtnContainer ?? (BCon.getMainCarr() as ObjCarrierConBlockBtnContainer<aBtn>);
+			if (objCarrierConBlockBtnContainer != null)
+			{
+				Designer.reboundCarrForBtnMulti(objCarrierConBlockBtnContainer, num4, num5, num6, num7);
+				if (remaking)
+				{
+					this.RowRemakeHeightRecalc(objCarrierConBlockBtnContainer, null);
 				}
 			}
 		}
@@ -1615,6 +1665,10 @@ namespace XX
 				if (dsnDataRadio.fnHover != null)
 				{
 					B.addHoverFn(dsnDataRadio.fnHover);
+				}
+				if (dsnDataRadio.fnOut != null)
+				{
+					B.addOutFn(dsnDataRadio.fnOut);
 				}
 			}
 			int index = BCon.getIndex(B);
@@ -1661,7 +1715,7 @@ namespace XX
 			designerHr.margin_t = Mde.margin_t;
 			designerHr.margin_b = Mde.margin_b;
 			designerHr.draw_width_rate = Mde.draw_width_rate;
-			designerHr.stencil_ref = this.stencil_ref;
+			designerHr.stencil_ref = this.element_stencil_ref;
 			if (Mde.dashed_oneline_lgt > 0f)
 			{
 				designerHr.dashed = X.IntC(designerHr.width_px * designerHr.draw_width_rate / Mde.dashed_oneline_lgt);
@@ -1680,24 +1734,26 @@ namespace XX
 			return this.addTabT<Designer>(name, _w, _h, min_w, min_h, use_scroll);
 		}
 
-		public Designer addTabT<T>(string name, float _w = 0f, float _h = 0f, float min_w = 0f, float min_h = 0f, bool use_scroll = false) where T : Designer
+		public T addTabT<T>(string name, float _w = 0f, float _h = 0f, float min_w = 0f, float min_h = 0f, bool use_scroll = false) where T : Designer
 		{
 			this.checkInit();
 			if (this.CurTab != null)
 			{
 				this.endTab(true);
 			}
-			this.CurTab = IN.CreateGob((this.use_scroll && this.Scr != null) ? this.Scr.getViewArea() : base.gameObject, "-tab-" + name).AddComponent<T>();
+			T t = IN.CreateGob((this.use_scroll && this.Scr != null) ? this.Scr.getViewArea() : base.gameObject, "-tab-" + name).AddComponent<T>();
+			this.CurTab = t;
 			this.CurTab.Small();
 			this.curtab_name = name;
 			this.CurTab.TabParentDesigner = this;
-			this.CurTab.no_write_mask = this.no_write_mask;
+			this.CurTab.no_write_mask = this.no_write_mask || !use_scroll;
 			this.CurTab.w = ((_w > 0f) ? _w : this.w);
 			this.CurTab.h = ((_h > 0f) ? _h : this.h);
 			this.CurTab.is_tab = true;
 			this.curtab_min_w = min_w;
 			this.curtab_min_h = min_h;
-			this.CurTab.stencil_ref = ((this.stencil_ref >= 0) ? (this.stencil_ref + (use_scroll ? 1 : 0)) : (use_scroll ? 10 : (-1)));
+			int element_stencil_ref = this.element_stencil_ref;
+			this.CurTab.stencil_ref = ((element_stencil_ref >= 0) ? (element_stencil_ref + (use_scroll ? 1 : 0)) : (use_scroll ? 10 : (-1)));
 			this.CurTab.radius = 0f;
 			this.CurTab.use_scroll = use_scroll;
 			this.CurTab.curs_active = this.curs_active;
@@ -1708,7 +1764,12 @@ namespace XX
 				this.AChild = new List<Designer>(1);
 			}
 			this.AChild.Add(this.CurTab);
-			return this.CurTab;
+			return t;
+		}
+
+		public void assignCurrentTargetTabManual(Designer _Tab)
+		{
+			this.CurTab = _Tab;
 		}
 
 		public Designer endTab(bool extend_by_using_size = true)
@@ -1729,6 +1790,7 @@ namespace XX
 
 		public Designer cropBounds(float min_w, float min_h)
 		{
+			this.rowRemakeCheck(false);
 			float num;
 			if (min_w < 0f)
 			{
@@ -2015,7 +2077,7 @@ namespace XX
 		{
 			if (this.DefSel != null && !this.DefSel.isSelected())
 			{
-				this.DefSel.Select(false);
+				this.DefSel.Select(true);
 			}
 		}
 
@@ -2452,15 +2514,27 @@ namespace XX
 			}
 		}
 
+		public int container_stencil_ref
+		{
+			get
+			{
+				if (this.stencil_ref < 0 && this.TabParentDesigner != null)
+				{
+					return this.TabParentDesigner.container_stencil_ref;
+				}
+				return this.stencil_ref;
+			}
+		}
+
 		public int element_stencil_ref
 		{
 			get
 			{
 				if (!(this.CurTab != null))
 				{
-					return this.stencil_ref;
+					return this.container_stencil_ref;
 				}
-				return this.CurTab.stencil_ref;
+				return this.CurTab.element_stencil_ref;
 			}
 		}
 
@@ -3011,12 +3085,25 @@ namespace XX
 
 		private string _tostring;
 
-		public class EvacuateMem
+		public class EvacuateMem : DesignerRowMem.DsnMem
 		{
+			public override bool active
+			{
+				get
+				{
+					return this.active_;
+				}
+				set
+				{
+					this.active_ = value;
+				}
+			}
+
 			public EvacuateMem(DesignerRowMem.DsnMem Mem)
+				: base(null)
 			{
 				this.Blk = Mem.Blk;
-				this.is_active = Mem.active;
+				this.active = Mem.active;
 				if (this.Blk is ObjCarrierConBlockBtnContainer<aBtn>)
 				{
 					BtnContainer<aBtn> bcon = (this.Blk as ObjCarrierConBlockBtnContainer<aBtn>).BCon;
@@ -3101,21 +3188,11 @@ namespace XX
 				}
 			}
 
-			public IDesignerBlock Blk;
-
 			public IVariableObject NameTarget;
 
 			public IPauseable DeactivateTarget;
 
-			public float w;
-
-			public float h;
-
-			public int line;
-
 			public string name = "";
-
-			public bool is_active = true;
 		}
 
 		public struct EvacuateContainer

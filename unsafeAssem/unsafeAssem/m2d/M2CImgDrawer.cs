@@ -64,6 +64,19 @@ namespace m2d
 				}
 				return DrDef(ref Md, lay, Cp, Meta, Pre_Drawer);
 			};
+			Odr["half_scale"] = delegate(ref MeshDrawer Md, int lay, M2Puts Cp, METACImg Meta, M2CImgDrawer Pre_Drawer)
+			{
+				return new M2CImgDrawerHalf(Md, lay, Cp, false);
+			};
+			Odr["animate"] = delegate(ref MeshDrawer Md, int lay, M2Puts Cp, METACImg Meta, M2CImgDrawer Pre_Drawer)
+			{
+				int i2 = Meta.GetI("animate", -1, 0);
+				if (i2 >= 0 && i2 == lay)
+				{
+					return new M2CImgAnimate(Md, lay, Cp);
+				}
+				return DrDef(ref Md, lay, Cp, Meta, Pre_Drawer);
+			};
 		}
 
 		public Map2d Mp
@@ -161,7 +174,7 @@ namespace m2d
 				{
 					return this.Mp.getLayer2UpdateFlag(this.Md);
 				}
-				return 4096;
+				return 8192;
 			}
 		}
 
@@ -332,7 +345,7 @@ namespace m2d
 			base.Set(false);
 			this.entryMainPicToMeshInner(Md, meshx, meshy, _zmx, _zmy, _rotR, Ms);
 			base.Set(false);
-			if ((this.redraw_flag || this.use_shift || this.use_color) && this.index_last > this.index_first)
+			if ((this.use_mdarray || this.use_shift || this.use_color) && this.index_last > this.index_first)
 			{
 				this.initMdArray();
 			}
@@ -341,6 +354,14 @@ namespace m2d
 				this.repositActiveRemoveFlag();
 			}
 			return this.redraw_flag;
+		}
+
+		protected virtual bool use_mdarray
+		{
+			get
+			{
+				return this.redraw_flag;
+			}
 		}
 
 		protected virtual void entryMainPicToMeshInner(MeshDrawer Md, float meshx, float meshy, float _zmx, float _zmy, float _rotR, PxlMeshDrawer Ms)
@@ -417,21 +438,6 @@ namespace m2d
 					this.ASh[i].Set(0f, 0f, 0f);
 				}
 			}
-		}
-
-		protected void hideDrawnVertice()
-		{
-			int num = this.index_last - this.index_first;
-			this.Md.getVertexArray();
-			for (int i = 0; i < num; i++)
-			{
-				this.APos[i] = Vector3.zero;
-				if (this.use_shift)
-				{
-					this.ASh[i].Set(0f, 0f, 0f);
-				}
-			}
-			this.need_reposit_flag = true;
 		}
 
 		public int reentryToArrangeableMesh()

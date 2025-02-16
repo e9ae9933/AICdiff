@@ -75,6 +75,11 @@ namespace XX
 			this.OBa.Remove(key);
 		}
 
+		public bool hasData()
+		{
+			return this.Ofloat.Count > 0 || this.Ostring.Count > 0 || this.OBa.Count > 0;
+		}
+
 		public void readFromBytes(ByteArray Ba)
 		{
 			this.DeleteAll();

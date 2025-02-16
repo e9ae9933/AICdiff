@@ -310,7 +310,7 @@ namespace XX
 				Logger.view_fps_t = 0f;
 				this.pre_totalframe = IN.totalframe;
 				this.PreTDate = DateTime.Now;
-				Object.DontDestroyOnLoad(this);
+				global::UnityEngine.Object.DontDestroyOnLoad(this);
 				this.InnerStb = new STB();
 				this.Md = MeshDrawer.prepareMeshRenderer(base.gameObject, MTRX.MIicon.getMtr(BLEND.NORMAL, -1), 0f, -1, null, true, true);
 				this.Valot = base.gameObject.GetComponent<ValotileRenderer>();
@@ -428,11 +428,11 @@ namespace XX
 
 		private class DefaultLogOverride : ILogHandler
 		{
-			public void LogException(Exception exception, Object context)
+			public void LogException(Exception exception, global::UnityEngine.Object context)
 			{
 			}
 
-			public void LogFormat(LogType logType, Object context, string format, params object[] args)
+			public void LogFormat(LogType logType, global::UnityEngine.Object context, string format, params object[] args)
 			{
 			}
 		}

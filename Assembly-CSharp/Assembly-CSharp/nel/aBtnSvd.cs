@@ -56,10 +56,15 @@ namespace nel
 				if (this.call_load_delay > 0)
 				{
 					this.call_load_delay--;
-					if (SVD.initPreparingFileHeader(svdData, base.isSelected()))
+					byte[] array = ((this.ContainerSVD != null) ? this.ContainerSVD.Abuffer_for_header : null);
+					if (SVD.initPreparingFileHeader(svdData, base.isSelected(), ref array))
 					{
 						this.call_load_delay = 0;
 						this.RowSkin.setData(this.getSvdIndex(), svdData, false);
+					}
+					if (this.ContainerSVD != null)
+					{
+						this.ContainerSVD.Abuffer_for_header = array;
 					}
 				}
 				else if (this.call_load_delay < 0)
@@ -97,7 +102,7 @@ namespace nel
 
 		public ButtonSkinSvdRow RowSkin;
 
-		public SVD ContainerSVD;
+		public UiSVD ContainerSVD;
 
 		public int call_load_delay;
 	}

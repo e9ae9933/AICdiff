@@ -134,7 +134,7 @@ namespace nel
 			if (this.particle_set_floort <= this.Mp.floort)
 			{
 				this.particle_set_floort = this.Mp.floort + 150f;
-				EfParticleOnce efParticleOnce = new EfParticleOnce("watersurface_lava", EFCON_TYPE.UI);
+				EfParticleOnce efParticleOnce = new EfParticleOnce("watersurface_lava", EFCON_TYPE.FIXED);
 				this.AEf.Add(efParticleOnce);
 				efParticleOnce.x = this.Mp.M2D.Cam.PosMainTransform.x;
 			}

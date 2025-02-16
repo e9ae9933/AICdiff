@@ -52,7 +52,7 @@ namespace XX
 		{
 			if (this.Base != null)
 			{
-				Object @base = this.Base;
+				global::UnityEngine.Object @base = this.Base;
 				this.Base = null;
 				IN.DestroyOne(@base);
 			}

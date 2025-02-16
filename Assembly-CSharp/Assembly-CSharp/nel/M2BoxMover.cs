@@ -1484,7 +1484,7 @@ namespace nel
 					vector.y += this.parent_shift_y + (float)(-(float)this.Parent.drawy) * this.Mp.rCLEN;
 					if (meshDrawer == null)
 					{
-						meshDrawer = Ef.GetMeshImg("", base.M2D.MIchip, BLEND.ADD, true);
+						meshDrawer = Ef.GetMeshImg("", base.M2D.MIchip, BLEND.ADD, false);
 					}
 					meshDrawer.Col = meshDrawer.ColGrd.White().mulA(X.ZLINE((float)(num + 1), 5f) * vector.z).C;
 					for (int i = ACmem.Length - 1; i >= 0; i--)
@@ -1502,7 +1502,7 @@ namespace nel
 			}
 			if (this.t_putting != 0f && this.Oputpos != null)
 			{
-				meshDrawer = Ef.GetMesh("", MTRX.MtrMeshNormal, true);
+				meshDrawer = Ef.GetMesh("", MTRX.MtrMeshNormal, false);
 				float num3 = X.ZLINE(X.Abs(this.t_putting) - 1f, 30f);
 				meshDrawer.ColGrd.Set((this.PuttingNear.z < 1f) ? 4290822336U : 4287102939U);
 				foreach (KeyValuePair<uint, int> keyValuePair in this.Oputpos)

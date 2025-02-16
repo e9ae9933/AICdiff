@@ -34,7 +34,7 @@ namespace nel
 			this.type = _type;
 		}
 
-		public WMIcon(ByteArray Ba, int vers)
+		public WMIcon(ByteReader Ba, int vers)
 		{
 			this.readBinaryFrom(Ba, vers);
 		}
@@ -144,7 +144,7 @@ namespace nel
 			return null;
 		}
 
-		public void readBinaryFrom(ByteArray Ba, int vers)
+		public void readBinaryFrom(ByteReader Ba, int vers)
 		{
 			this.x = Ba.readUShort();
 			this.y = Ba.readUShort();
@@ -181,6 +181,11 @@ namespace nel
 				return;
 			}
 			Ba.writeString(null, "utf-8");
+		}
+
+		public bool isForSummoner(string smn_key)
+		{
+			return this.type == WMIcon.TYPE.ENEMY && (TX.isEnd(this.sf_key, smn_key) && TX.isStart(this.sf_key, "..", this.sf_key.Length - smn_key.Length - 2));
 		}
 
 		public ushort x;

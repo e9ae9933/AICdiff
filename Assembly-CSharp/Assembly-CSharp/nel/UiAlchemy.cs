@@ -44,7 +44,7 @@ namespace nel
 
 		protected override void fnRecipeTopicRowsPrepare(UiItemManageBox IMng, List<ItemStorage.IRow> ASource, List<ItemStorage.IRow> ADest)
 		{
-			RecipeManager.RP_CATEG rp_CATEG = (RecipeManager.RP_CATEG)X.bit_on_index(this.rcp_use_bits, this.tptab_index);
+			RCP.RP_CATEG rp_CATEG = (RCP.RP_CATEG)X.bit_on_index(this.rcp_use_bits, this.tptab_index);
 			base.fnRecipeTopicRowsPrepareS(ASource, ADest, rp_CATEG);
 		}
 

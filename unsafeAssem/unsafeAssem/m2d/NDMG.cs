@@ -5,6 +5,7 @@ namespace m2d
 	public enum NDMG : uint
 	{
 		NORMAL,
+		NATTR,
 		MAPDAMAGE,
 		MAPDAMAGE_LAVA,
 		MAPDAMAGE_THUNDER,

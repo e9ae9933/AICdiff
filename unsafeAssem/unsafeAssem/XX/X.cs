@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Better;
 using UnityEngine;
@@ -907,6 +908,23 @@ namespace XX
 			return X.Sin(x / 360f * 3.1415927f * 2f);
 		}
 
+		public static float q_rsqrt(float x)
+		{
+			if (x >= 0f && x <= 1f)
+			{
+				return x;
+			}
+			if (x > 1f && x <= 4f)
+			{
+				return (x - 1f) * 0.33333f + 1f;
+			}
+			if (x > 4f && x <= 9f)
+			{
+				return (x - 4f) * 0.2f + 2f;
+			}
+			return Mathf.Sqrt(x);
+		}
+
 		public static float frac(float x)
 		{
 			return x - (float)((int)x);
@@ -1195,6 +1213,12 @@ namespace XX
 			return v1 * (1f - f) + v2 * f;
 		}
 
+		public static float NILP(float v1, float v2, float f, float div = 1f)
+		{
+			f = X.ZPOW(f, div);
+			return v1 * (1f - f) + v2 * f;
+		}
+
 		public static float NIXP(float v1, float v2)
 		{
 			float num = X.XORSP();
@@ -1480,7 +1504,7 @@ namespace XX
 			return def;
 		}
 
-		public static T2 Get<T, T2>(BDic<T, T2> O, T key) where T2 : class
+		public static T2 Get<T, T2>(BDic<T, T2> O, T key)
 		{
 			T2 t;
 			if (!O.TryGetValue(key, out t))
@@ -1490,7 +1514,7 @@ namespace XX
 			return t;
 		}
 
-		public static T2 Get<T2>(BDic<string, T2> O, StringKey key) where T2 : class
+		public static T2 Get<T2>(BDic<string, T2> O, StringKey key)
 		{
 			T2 t;
 			if (!O.TryGetValue(key, out t))
@@ -1712,23 +1736,12 @@ namespace XX
 				return ((int)_val).ToString();
 			}
 			string text;
-			if (_val == 0f)
+			using (STB stb = TX.PopBld(null, 0))
 			{
-				text = "0.";
-				for (int i = 0; i < kurai; i++)
-				{
-					text += "0";
-				}
-				return text;
+				stb.spr_after(_val, kurai);
+				text = stb.ToString();
 			}
-			string text2 = ((_val > 0f) ? "" : "-");
-			_val *= (float)((int)X.Pow(10f, kurai));
-			text = ((int)X.Abs(_val)).ToString();
-			while (text.Length <= kurai)
-			{
-				text = "0" + text;
-			}
-			return text2 + ((text.Length - kurai > 0) ? TX.slice(text, 0, text.Length - kurai) : "0") + "." + TX.slice(text, text.Length - kurai);
+			return text;
 		}
 
 		public static string spr_after(Vector2 V, int kurai)
@@ -2067,6 +2080,11 @@ namespace XX
 			return Mathf.Sqrt(X.Pow2(the_x1 - the_x2) + X.Pow2(the_y1 - the_y2));
 		}
 
+		public static float LENGTHXYQ(float the_x1, float the_y1, float the_x2 = 0f, float the_y2 = 0f)
+		{
+			return X.q_rsqrt(X.Pow2(the_x1 - the_x2) + X.Pow2(the_y1 - the_y2));
+		}
+
 		public static float LENGTHXY2(float the_x1, float the_y1, float the_x2, float the_y2)
 		{
 			return X.Pow2(the_x1 - the_x2) + X.Pow2(the_y1 - the_y2);
@@ -2090,6 +2108,28 @@ namespace XX
 			one.x = ((x2s == x2e) ? x2s : ((x1s == x1e) ? x1s : (vector.w * vector2[0] + -vector.y * vector2[1])));
 			one.y = ((y2s == y2e) ? y2s : ((y1s == y1e) ? y1s : (-vector.z * vector2[0] + vector.x * vector2[1])));
 			return one;
+		}
+
+		public static bool crosspointGH(float la, float lb, float lc, float RY, out Vector2 V)
+		{
+			if (la == 0f)
+			{
+				V = Vector2.zero;
+				return false;
+			}
+			V = new Vector2((-lb * RY - lc) / la, RY);
+			return true;
+		}
+
+		public static bool crosspointGV(float la, float lb, float lc, float RX, out Vector2 V)
+		{
+			if (lb == 0f)
+			{
+				V = Vector2.zero;
+				return false;
+			}
+			V = new Vector2(RX, (-la * RX - lc) / lb);
+			return true;
 		}
 
 		public static void calcLineGraphVariable(float x0, float y0, float x1, float y1, out float la, out float lb, out float lc, out float la_div)
@@ -3226,7 +3266,7 @@ namespace XX
 
 		public static int xors(int i)
 		{
-			return (int)(X.Xors.get0() % (uint)i);
+			return X.Xors.xors(i);
 		}
 
 		public static int xorsi()
@@ -3257,7 +3297,7 @@ namespace XX
 
 		public static float XORSP()
 		{
-			return X.Xors.getP();
+			return X.Xors.XORSP();
 		}
 
 		public static float XORSPS()
@@ -4293,8 +4333,8 @@ namespace XX
 			int num = (arraymax - 1) * 23;
 			for (int i = 0; i < num; i++)
 			{
-				int num2 = Random.Range(0, arraymax);
-				int num3 = Random.Range(0, arraymax);
+				int num2 = global::UnityEngine.Random.Range(0, arraymax);
+				int num3 = global::UnityEngine.Random.Range(0, arraymax);
 				int num4 = num2;
 				int num5 = num3;
 				T t = A[num3];
@@ -4310,8 +4350,8 @@ namespace XX
 			int num = (arraymax - 1) * 23;
 			for (int i = 0; i < num; i++)
 			{
-				int num2 = ((Xors != null) ? ((int)((ulong)Xors.get0() % (ulong)((long)arraymax))) : Random.Range(0, arraymax));
-				int num3 = ((Xors != null) ? ((int)((ulong)Xors.get0() % (ulong)((long)arraymax))) : Random.Range(0, arraymax));
+				int num2 = ((Xors != null) ? ((int)((ulong)Xors.get0() % (ulong)((long)arraymax))) : global::UnityEngine.Random.Range(0, arraymax));
+				int num3 = ((Xors != null) ? ((int)((ulong)Xors.get0() % (ulong)((long)arraymax))) : global::UnityEngine.Random.Range(0, arraymax));
 				int num4 = num2;
 				int num5 = num3;
 				T t = A[num3];
@@ -4600,6 +4640,16 @@ namespace XX
 		}
 
 		public static T[] ALLN<T>(T[] A) where T : class
+		{
+			int num = A.Length;
+			for (int i = 0; i < num; i++)
+			{
+				A[i] = default(T);
+			}
+			return A;
+		}
+
+		public static T[] ALLDEF<T>(T[] A)
 		{
 			int num = A.Length;
 			for (int i = 0; i < num; i++)
@@ -5009,7 +5059,11 @@ namespace XX
 
 		public const float R1_100 = 0.01f;
 
+		public const float R1_1000 = 0.001f;
+
 		public const float R1_256 = 0.00390625f;
+
+		public const float R1_255 = 0.003921569f;
 
 		public const float R1_512 = 0.001953125f;
 
@@ -5087,5 +5141,15 @@ namespace XX
 		private static FlaggerC<MonoBehaviour> ScreenLockMono;
 
 		private static FlaggerT<string> ScreenLockStr;
+
+		[StructLayout(LayoutKind.Explicit)]
+		private struct FloatIntUnion
+		{
+			[FieldOffset(0)]
+			public float f;
+
+			[FieldOffset(0)]
+			public int i;
+		}
 	}
 }

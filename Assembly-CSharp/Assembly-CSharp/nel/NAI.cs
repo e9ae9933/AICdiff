@@ -24,7 +24,7 @@ namespace nel
 		{
 			if (this.En.Summoner != null)
 			{
-				this.WRC_Air = this.En.Summoner.getRegionCheckerAir();
+				this.WRC_Air = this.En.Summoner.Summoner.getRegionCheckerAir();
 			}
 			return this;
 		}
@@ -65,8 +65,8 @@ namespace nel
 					{
 						this.fnSearchPlayer = new NAI.FnSearchPlayer(this.SearchPlayerDefault);
 					}
-					M2MoverPr m2MoverPr = this.fnSearchPlayer((float)(this.CFlags.Has(NAI.FLAG.SUMMON_APPEARED) ? 9999 : 0));
-					if (m2MoverPr != null)
+					M2Attackable m2Attackable = this.fnSearchPlayer((float)(this.CFlags.Has(NAI.FLAG.SUMMON_APPEARED) ? 9999 : 0));
+					if (m2Attackable != null)
 					{
 						if (!this.CFlags.Has(NAI.FLAG.AWAKEN))
 						{
@@ -76,7 +76,7 @@ namespace nel
 						this.delay += fcnt;
 						if (this.delay >= 14f || this.CFlags.Has(NAI.FLAG.SUMMON_APPEARED))
 						{
-							this.awakeInit(m2MoverPr);
+							this.awakeInit(m2Attackable);
 						}
 					}
 					else
@@ -102,7 +102,7 @@ namespace nel
 				Bench.P("Consider normal 1");
 				if (this.delay > 0f)
 				{
-					if (this.ticket_cnt == 0)
+					if (this.ticket_cnt == 0 || this.can_progress_delay_if_ticket_exists)
 					{
 						this.delay = X.Mx(0f, this.delay - fcnt);
 					}
@@ -136,7 +136,7 @@ namespace nel
 				}
 				Bench.Pend("Consider normal 2");
 				Bench.P("Consider normal 3");
-				if (this.AimPr_.target_calced != 1 && flag)
+				if (this.AimPr_ is M2MoverPr && ((this.AimPr_ as M2MoverPr).target_calced != 1 && flag))
 				{
 					if (this.autotargetted_me)
 					{
@@ -198,34 +198,22 @@ namespace nel
 			}
 			if (this.RayDummy != null)
 			{
-				this.RayDummy.hittype = (this.RayDummy.hittype | HITTYPE.TARGET_CHECKER) & (HITTYPE)(-12582945);
+				this.RayDummy.hittype = (this.RayDummy.hittype | HITTYPE.TARGET_CHECKER) & ~(HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED);
 			}
-			int i = 0;
-			bool flag3 = true;
-			this.ticket_cnt = X.MMX(0, this.ticket_cnt, this.ATicket.Length);
-			while (i < this.ticket_cnt)
+			if (this.En.getState() == NelEnemy.STATE.STAND)
 			{
-				NaTicket naTicket = this.ATicket[i];
-				if (flag3)
+				int i = 0;
+				bool flag3 = true;
+				this.ticket_cnt = X.MMX(0, this.ticket_cnt, this.ATicket.Length);
+				while (i < this.ticket_cnt)
 				{
-					flag3 = false;
-					if ((naTicket.prog & PROG.QUIT) != PROG.PREPARE)
+					NaTicket naTicket = this.ATicket[i];
+					if (flag3)
 					{
-						naTicket.after_delay -= fcnt;
-						if (naTicket.after_delay <= 0f)
+						flag3 = false;
+						if ((naTicket.prog & PROG.QUIT) != PROG.PREPARE)
 						{
-							this.spliceTicket(i, true, false);
-							continue;
-						}
-					}
-					else
-					{
-						string text = Bench.P(FEnum<NAI.TYPE>.ToStr(naTicket.type));
-						bool flag4 = this.En.readTicket(naTicket);
-						Bench.Pend(text);
-						if (!flag4)
-						{
-							naTicket.quit();
+							naTicket.after_delay -= fcnt;
 							if (naTicket.after_delay <= 0f)
 							{
 								this.spliceTicket(i, true, false);
@@ -234,23 +222,38 @@ namespace nel
 						}
 						else
 						{
-							naTicket.t += fcnt;
+							string text = Bench.P(FEnum<NAI.TYPE>.ToStr(naTicket.type));
+							bool flag4 = this.En.readTicket(naTicket);
+							Bench.Pend(text);
+							if (!flag4)
+							{
+								naTicket.quit();
+								if (naTicket.after_delay <= 0f)
+								{
+									this.spliceTicket(i, true, false);
+									continue;
+								}
+							}
+							else
+							{
+								naTicket.t += fcnt;
+							}
 						}
 					}
-				}
-				else
-				{
-					if ((naTicket.prog & PROG.QUIT) != PROG.PREPARE)
+					else
 					{
-						this.spliceTicket(i, true, false);
-						continue;
+						if ((naTicket.prog & PROG.QUIT) != PROG.PREPARE)
+						{
+							this.spliceTicket(i, true, false);
+							continue;
+						}
+						if (!naTicket.isPrepare())
+						{
+							naTicket.prog = PROG.PREPARE_RECREATED;
+						}
 					}
-					if (!naTicket.isPrepare())
-					{
-						naTicket.prog = PROG.PREPARE_RECREATED;
-					}
+					i++;
 				}
-				i++;
 			}
 		}
 
@@ -309,7 +312,7 @@ namespace nel
 		public void quitTicket(NaTicket Tk, bool error_quit_check = true)
 		{
 			this.En.quitTicket(Tk);
-			if (Tk.isAttack())
+			if (Tk.isAttack(false))
 			{
 				this.En.getPhysic().remLockMoverHitting(HITLOCK.SPECIAL_ATTACK).remLockGravity(HITLOCK.SPECIAL_ATTACK);
 			}
@@ -341,7 +344,7 @@ namespace nel
 			Tk.quitFinalize();
 		}
 
-		public void awakeInit(M2MoverPr _AimPr)
+		public void awakeInit(M2Attackable _AimPr)
 		{
 			if (_AimPr == null)
 			{
@@ -352,7 +355,7 @@ namespace nel
 			this.En.awakeInit();
 		}
 
-		public M2MoverPr SearchPlayerDefault(float fix_awake_length = 0f)
+		public M2Attackable SearchPlayerDefault(float fix_awake_length = 0f)
 		{
 			int count_players = this.Mp.count_players;
 			if ((this.En.isOverDrive() && this.AimPr_ != null) || this.awake_length == 0f)
@@ -517,10 +520,14 @@ namespace nel
 			{
 				return !this.hasPriorityTicket(0, false, false) && this.AddTicketB(NAI.TYPE.GAZE, 0, true);
 			}
-			return (this.En.isOverDrive() && this.fnOverDriveLogic != null && this.fnOverDriveLogic(this)) || (this.fnAwakeLogic != null && this.fnAwakeLogic(this));
+			if (this.En.isOverDrive() && this.fnOverDriveLogic != null)
+			{
+				return this.fnOverDriveLogic(this);
+			}
+			return this.fnAwakeLogic != null && this.fnAwakeLogic(this);
 		}
 
-		public bool fnAwakeBasicHead(NAI Nai)
+		public bool fnAwakeBasicHead(NAI Nai, NAI.TYPE gazing_type = NAI.TYPE.GAZE)
 		{
 			if (this.cant_access_to_pr())
 			{
@@ -530,7 +537,7 @@ namespace nel
 			{
 				if (this.HasF(NAI.FLAG.GAZE, false))
 				{
-					this.AddTicket(NAI.TYPE.GAZE, 0, true);
+					this.AddTicket(gazing_type, 0, true);
 					return true;
 				}
 			}
@@ -551,7 +558,7 @@ namespace nel
 					float num3 = this.target_x + (float)X.MPF(this.x > this.target_x) * (this.sizex * (1.1f + 2.7f * this.RANa(7613)));
 					if (X.Abs(num3 - this.x) < 0.125f)
 					{
-						this.AddTicket(NAI.TYPE.GAZE, 0, true);
+						this.AddTicket(gazing_type, 0, true);
 						return true;
 					}
 					if (this.AddMoveTicketFor(num3, this.y, this.TargetLastBcc, 0, true, NAI.TYPE.WALK) != null)
@@ -718,7 +725,7 @@ namespace nel
 
 		public NaTicket AddMoveTicketToTarget(float randomize_x = 0f, float randomize_y = 0f, int priority = 0, bool check_declining = true, NAI.TYPE settype = NAI.TYPE.WALK)
 		{
-			return this.AddMoveTicketFor(this.target_x, this.En.floating ? this.target_mbottom : this.target_lastfoot_bottom, this.TargetLastBcc, priority, check_declining, settype);
+			return this.AddMoveTicketFor(this.target_x + ((randomize_x != 0f) ? (this.RANtk(3148) * randomize_x * (float)X.MPF(this.RANtk(4338) < 0.5f)) : 0f), this.En.floating ? this.target_mbottom : this.target_lastfoot_bottom, this.TargetLastBcc, priority, check_declining, settype);
 		}
 
 		public NaTicket AddMoveTicketFor(float depx, float depy, M2BlockColliderContainer.BCCLine TargetBcc = null, int priority = 0, bool check_declining = true, NAI.TYPE settype = NAI.TYPE.WALK)
@@ -736,11 +743,12 @@ namespace nel
 			{
 				num4 = num4 * this.suit_distance_garaaki_ratio + this.sizex;
 			}
+			M2LpSummon m2LpSummon = ((this.En.Summoner != null) ? this.En.Summoner.Lp : null);
 			if (!this.En.is_flying)
 			{
 				if (TargetBcc == null)
 				{
-					TargetBcc = this.Mp.getFallableBcc(depx, depy, this.sizex, num3, -1f, true, true);
+					TargetBcc = this.Mp.getFallableBcc(depx, depy, this.sizex, num3, -1f, true, true, this.LastBcc);
 				}
 				if (TargetBcc != null)
 				{
@@ -757,19 +765,29 @@ namespace nel
 						{
 							float num5 = (float)((this.x < depx == (i == 0)) ? (-1) : 1);
 							float num6 = depx + num5 * num4;
-							float num7 = bccline.slopeBottomY(num6);
-							if (bccline.isNear(num6, num7, 0f, 1f, -1, false) && (!check_declining || !this.isDecliningXy(num6, num7, 2f, 2f)))
+							bool flag2 = true;
+							if (m2LpSummon != null)
+							{
+								float num7 = X.MMX((float)m2LpSummon.mapx + this.sizex + 0.25f, num6, (float)(m2LpSummon.mapx + m2LpSummon.mapw) - this.sizex - 0.25f);
+								if (num7 != num6)
+								{
+									num6 = num7;
+									flag2 = false;
+								}
+							}
+							float num8 = bccline.slopeBottomY(num6);
+							if (flag2 && bccline.isNear(num6, num8, 0f, 1f, -1, false) && (!check_declining || !this.isDecliningXy(num6, num8, 2f, 2f)))
 							{
 								TargetBcc = bccline;
 								depx = num6;
-								depy = num7;
+								depy = num8;
 								break;
 							}
-							M2BlockColliderContainer.BCCLine fallableBcc = this.Mp.getFallableBcc(num6, depy, this.sizex, num3, -1f, true, true);
+							M2BlockColliderContainer.BCCLine fallableBcc = this.Mp.getFallableBcc(num6, depy, this.sizex, num3, -1f, true, true, bccline);
 							if (fallableBcc != null)
 							{
-								num7 = fallableBcc.slopeBottomY(num6);
-								if ((!check_declining || !this.isDecliningXy(num6, num7, 2f, 2f)) && ((!this.walk_only_linear && i != 1) || bccline.isLinearWalkableTo(fallableBcc, i == 0) != 0))
+								num8 = fallableBcc.slopeBottomY(num6);
+								if ((!check_declining || !this.isDecliningXy(num6, num8, 2f, 2f)) && X.LENGTHXYS(num6, num8 * 0.35f, this.target_x, this.target_lastfoot_bottom * 0.35f) >= num4 * 0.6f && ((!this.walk_only_linear && i != 1) || bccline.isLinearWalkableTo(fallableBcc, i == 0) != 0))
 								{
 									float shifted_y = fallableBcc.shifted_y;
 									if (X.BTW(shifted_y - 0.5f, mbottom, shifted_y + fallableBcc.height + 0.5f) || ((shifted_y + fallableBcc.height * 0.5f < mbottom) ? (X.Abs(shifted_y + fallableBcc.height - mbottom) <= this.moveable_upper) : (X.Abs(shifted_y - mbottom) <= this.moveable_lower)))
@@ -799,53 +817,56 @@ namespace nel
 						{
 							if (!this.no_check_move_fall_slide)
 							{
-								float num8 = -1f;
+								float num9 = -1f;
 								M2BlockColliderContainer.BCCLine bccline2 = null;
-								float num9 = depy;
-								float num10 = depx;
+								float num10 = depy;
+								float num11 = depx;
 								for (int j = 0; j < 2; j++)
 								{
-									float num11 = (float)((j == 0 == this.En.mpf_is_right < 0f) ? (-1) : 1);
-									float num12 = ((num11 < 0f) ? (lastBcc.shifted_x - 0.5f) : (lastBcc.shifted_right + 0.5f));
-									M2BlockColliderContainer.BCCLine fallableBcc2 = this.Mp.getFallableBcc(num10, lastBcc.shifted_cy, this.sizex, num3, -1f, true, true);
-									if (fallableBcc2 != null)
+									float num12 = (float)((j == 0 == this.En.mpf_is_right < 0f) ? (-1) : 1);
+									float num13 = ((num12 < 0f) ? (lastBcc.shifted_x - 0.125f - this.En.sizex) : (lastBcc.shifted_right + 0.125f + this.En.sizex));
+									if (m2LpSummon == null || (num13 >= (float)m2LpSummon.mapx && num13 < (float)(m2LpSummon.mapx + m2LpSummon.mapw)))
 									{
-										float num13 = ((num11 < 0f) ? lastBcc.shifted_left_y : lastBcc.shifted_right_y);
-										if (X.Mn(depy, fallableBcc2.shifted_bottom) >= num13 - 1f)
+										M2BlockColliderContainer.BCCLine fallableBcc2 = this.Mp.getFallableBcc(num13, lastBcc.shifted_cy, this.sizex, num3, -1f, true, true, this.LastBcc);
+										if (fallableBcc2 != null)
 										{
-											float num14 = 0f;
-											if (fallableBcc2 == TargetBcc)
+											float num14 = ((num12 < 0f) ? lastBcc.shifted_left_y : lastBcc.shifted_right_y);
+											if (X.Mn(depy, fallableBcc2.shifted_bottom) >= num14 - 1f)
 											{
-												num14 += 200f;
-												num11 = 0f;
-												num12 = X.MMX2(TargetBcc.shifted_x + this.sizex * 0.5f, num10, TargetBcc.shifted_right - this.sizex * 0.5f);
-												num13 = depy;
-											}
-											else
-											{
-												if (this.walk_only_linear && this.LastBcc.isLinearWalkableTo(fallableBcc2, true) == 0)
+												float num15 = 0f;
+												if (fallableBcc2 == TargetBcc)
 												{
-													goto IL_050A;
+													num15 += 200f;
+													num12 = 0f;
+													num13 = X.MMX2(TargetBcc.shifted_x + this.sizex * 0.5f, num11, TargetBcc.shifted_right - this.sizex * 0.5f);
+													num14 = depy;
 												}
-												num14 += X.Mx(7f - X.Abs(depy - fallableBcc2.shifted_cy), 0f) * 4f;
-											}
-											num14 += X.Mx(7f - X.Abs(depx - num12), 0f) + X.Mx(7f - X.Abs(num12 - this.x), 0f);
-											if (num8 < 0f || num14 > num8)
-											{
-												num8 = num14;
-												num10 = num12 + num11 * this.sizex;
-												num9 = num13;
-												bccline2 = fallableBcc2;
+												else
+												{
+													if (this.walk_only_linear && this.LastBcc.isLinearWalkableTo(fallableBcc2, true) == 0)
+													{
+														goto IL_05FC;
+													}
+													num15 += X.Mx(7f - X.Abs(depy - fallableBcc2.shifted_cy), 0f) * 4f;
+												}
+												num15 += X.Mx(7f - X.Abs(depx - num13), 0f) + X.Mx(7f - X.Abs(num13 - this.x), 0f);
+												if (num9 < 0f || num15 > num9)
+												{
+													num9 = num15;
+													num11 = num13 + num12 * this.sizex;
+													num10 = num14;
+													bccline2 = fallableBcc2;
+												}
 											}
 										}
 									}
-									IL_050A:;
+									IL_05FC:;
 								}
 								if (bccline2 != null)
 								{
-									TargetBcc = lastBcc;
-									depx = num10;
-									depy = num9;
+									TargetBcc = bccline2;
+									depx = num11;
+									depy = num10;
 								}
 							}
 						}
@@ -859,23 +880,23 @@ namespace nel
 			else
 			{
 				TargetBcc = null;
-				bool flag2 = check_declining && this.isDecliningXy(depx, depy, 2f, 2f);
-				if (X.LENGTHXYS(depx, depy, this.target_x, this.target_lastfoot_bottom) < num4 || flag2)
+				bool flag3 = check_declining && this.isDecliningXy(depx, depy, 2f, 2f);
+				if (X.LENGTHXYS(depx, depy, this.target_x, this.target_lastfoot_bottom) < num4 || flag3)
 				{
 					float mbottom2 = this.En.mbottom;
 					for (int k = 0; k < 2; k++)
 					{
-						float num15 = (float)((depx < this.target_x == (k == 0)) ? (-1) : 1);
-						float num16 = depx + num15 * num4;
-						if (!check_declining || !this.isDecliningXy(num16, depy, 2f, 2f))
+						float num16 = (float)((depx < this.target_x == (k == 0)) ? (-1) : 1);
+						float num17 = depx + num16 * num4;
+						if (!check_declining || !this.isDecliningXy(num17, depy, 2f, 2f))
 						{
-							M2BlockColliderContainer.BCCLine fallableBcc3 = this.Mp.getFallableBcc(num16, depy, this.sizex, num3, -1f, true, true);
+							M2BlockColliderContainer.BCCLine fallableBcc3 = this.Mp.getFallableBcc(num17, depy, this.sizex, num3, -1f, true, true, null);
 							if (fallableBcc3 != null)
 							{
 								float shifted_y2 = fallableBcc3.shifted_y;
 								if (X.BTW(shifted_y2 - 0.5f, mbottom2, shifted_y2 + fallableBcc3.height + 0.5f) || ((shifted_y2 + fallableBcc3.height * 0.5f < mbottom2) ? (X.Abs(shifted_y2 + fallableBcc3.height - mbottom2) <= 3.5f) : (X.Abs(shifted_y2 - mbottom2) <= 5.5f)))
 								{
-									Vector2 vector3 = fallableBcc3.linePosition(num16, depy, 0f, 0f);
+									Vector2 vector3 = fallableBcc3.linePosition(num17, depy, 0f, 0f);
 									depx = vector3.x;
 									depy = X.Mn(depy, vector3.y - 0.5f);
 									break;
@@ -903,12 +924,12 @@ namespace nel
 			{
 				return null;
 			}
-			M2LpSummon summonedArea = this.En.Summoner.getSummonedArea();
-			if (summonedArea == null)
+			M2LpSummon lp = this.En.Summoner.Lp;
+			if (lp == null)
 			{
 				return null;
 			}
-			List<M2ManaWeed> aactiveWeed = summonedArea.AActiveWeed;
+			List<M2ManaWeed> aactiveWeed = lp.AActiveWeed;
 			if (aactiveWeed == null)
 			{
 				return null;
@@ -1479,7 +1500,7 @@ namespace nel
 			}
 		}
 
-		public M2MoverPr AimPr
+		public M2Attackable AimPr
 		{
 			get
 			{
@@ -1491,14 +1512,14 @@ namespace nel
 				{
 					return;
 				}
-				if (this.AimPr_ != null && this.add_enemy_target_count)
+				if (this.AimPr_ is M2MoverPr && this.add_enemy_target_count)
 				{
-					this.AimPr_.enemy_targetted--;
+					(this.AimPr_ as M2MoverPr).enemy_targetted--;
 				}
 				this.AimPr_ = value;
-				if (this.AimPr_ != null && this.add_enemy_target_count)
+				if (this.AimPr_ is M2MoverPr && this.add_enemy_target_count)
 				{
-					this.AimPr_.enemy_targetted++;
+					(this.AimPr_ as M2MoverPr).enemy_targetted++;
 				}
 			}
 		}
@@ -1805,14 +1826,14 @@ namespace nel
 		public bool isAttacking()
 		{
 			NaTicket curTicket = this.getCurTicket();
-			return curTicket != null && curTicket.isAttack();
+			return curTicket != null && curTicket.isAttack(false);
 		}
 
 		public bool isPrGaraakiState()
 		{
 			if (this.garaaki_state == 2)
 			{
-				this.garaaki_state = ((this.AimPr_ is PR && (!this.AimPr_.is_alive || this.AimPr_.isGaraakiState() || (this.AimPr_ as PR).isAbsorbState())) ? 1 : 0);
+				this.garaaki_state = ((this.AimPr_ != null && this.AimPr_.isGaraaakiForNAI()) ? 1 : 0);
 			}
 			return this.garaaki_state == 1;
 		}
@@ -1820,6 +1841,19 @@ namespace nel
 		public bool isPrAbsorbed()
 		{
 			return this.AimPr_ is PR && (this.AimPr_ as PR).isAbsorbState();
+		}
+
+		public int getPrAbsorbedPriority()
+		{
+			if (this.AimPr_ is PR)
+			{
+				PR pr = this.AimPr_ as PR;
+				if (pr.isAbsorbState())
+				{
+					return pr.getAbsorbContainer().current_pose_priority;
+				}
+			}
+			return -2;
 		}
 
 		public bool isPrGacharingFrozen()
@@ -1883,9 +1917,9 @@ namespace nel
 			return this.AimPr is PR && (this.AimPr as PR).isShieldOpening() && (notice_time <= 0 || this.RCmagic_awake.Add(this.En.TS, true, false) >= (float)notice_time);
 		}
 
-		public bool isPrAttacking()
+		public bool isPrAttacking(float time_ratio = 1f)
 		{
-			return this.AimPr is PR && (this.AimPr as PR).isPunchState() && this.canNoticeThat(1f);
+			return this.AimPr is PR && (this.AimPr as PR).isPunchState() && this.canNoticeThat(time_ratio);
 		}
 
 		public bool isPrSpecialAttacking()
@@ -1914,6 +1948,16 @@ namespace nel
 		public bool isPrMagicExploded(float notice_time_ratio = 1f)
 		{
 			return this.AimPr is PR && (this.AimPr as PR).magic_exploded && this.canNoticeThat(notice_time_ratio);
+		}
+
+		public bool isPrMagicChantingOrPreparing(float notice_time_ratio = 1f)
+		{
+			return this.AimPr is PR && (this.AimPr as PR).magic_chanting_or_preparing && this.canNoticeThat(notice_time_ratio);
+		}
+
+		public bool isPrMagicChantingOrPreparingOrExploded(float notice_time_ratio = 1f)
+		{
+			return this.AimPr is PR && ((this.AimPr as PR).magic_chanting_or_preparing || (this.AimPr as PR).magic_exploded) && this.canNoticeThat(notice_time_ratio);
 		}
 
 		public bool isPrTortured()
@@ -2073,18 +2117,16 @@ namespace nel
 
 		public string getTicketInfoForDebug()
 		{
-			if (this.AimPr_ == null)
-			{
-				return "Sleep:";
-			}
-			return (this.En.isOverDrive() ? "Od:" : "Awaken:") + ((this.ticket_cnt > 0) ? this.ATicket[0].getTicketInfoForDebug() : " (no ticket) ");
+			return ((this.AimPr_ == null) ? "Sleep:" : (this.En.isOverDrive() ? "Od:" : "Awaken:")) + ((this.ticket_cnt > 0) ? this.ATicket[0].getTicketInfoForDebug() : " (no ticket) ");
 		}
 
 		public readonly NelEnemy En;
 
-		private M2MoverPr AimPr_;
+		private M2Attackable AimPr_;
 
 		public float delay;
+
+		public bool can_progress_delay_if_ticket_exists;
 
 		public bool add_enemy_target_count = true;
 
@@ -2208,7 +2250,9 @@ namespace nel
 
 		private byte garaaki_state = 2;
 
-		public delegate M2MoverPr FnSearchPlayer(float fix_awake_length);
+		public delegate M2Attackable FnSearchPlayer(float fix_awake_length);
+
+		public delegate bool FnTicketRun(NaTicket Tk);
 
 		public delegate bool FnNaiLogic(NAI Nai);
 

@@ -10,6 +10,6 @@ namespace XX
 
 		IEfPtcSetable PtcVarS(string key, MGATTR v);
 
-		PTCThread PtcST(string ptcst_name, IEfPInteractale Listener = null);
+		PTCThread PtcST(string ptcst_name, IEfPInteractale Listener = null, PTCThread.StFollow _follow = PTCThread.StFollow.NO_FOLLOW);
 	}
 }

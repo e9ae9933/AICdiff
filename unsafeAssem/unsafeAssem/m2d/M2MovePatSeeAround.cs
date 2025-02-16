@@ -16,7 +16,7 @@ namespace m2d
 			{
 				return false;
 			}
-			M2MoverPr pr = base.Mp.Pr;
+			M2MoverPr pr = this.Mp.Pr;
 			if (this.mvsc_assigned >= 2)
 			{
 				this.mvsc_assigned += 1;
@@ -58,10 +58,13 @@ namespace m2d
 			return false;
 		}
 
-		public override void assignMoveScript()
+		public override void assignMoveScript(bool soft_touch)
 		{
-			base.assignMoveScript();
-			this.mvsc_assigned = 1;
+			base.assignMoveScript(soft_touch);
+			if (!soft_touch)
+			{
+				this.mvsc_assigned = 1;
+			}
 		}
 
 		public override void evQuit()

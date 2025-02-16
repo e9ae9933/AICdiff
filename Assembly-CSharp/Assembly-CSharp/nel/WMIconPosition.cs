@@ -6,7 +6,7 @@ namespace nel
 {
 	public struct WMIconPosition
 	{
-		public WMIconPosition(WMIcon _Ico, WholeMapItem.WMItem Wmi, WMIconHiddenDeperture _Whd)
+		public WMIconPosition(WMIcon _Ico, WholeMapItem.WMItem Wmi, WMIconHiddenDeperture _Whd = default(WMIconHiddenDeperture))
 		{
 			this.Ico = _Ico;
 			this.Whd = _Whd;
@@ -16,14 +16,28 @@ namespace nel
 			this.wmy = mapWmPos.y + Wmi.Rc.y;
 		}
 
+		public WMIconPosition(WholeMapItem.WMItem Wmi)
+		{
+			this.DestMap = Wmi.SrcMap;
+			this.Ico = null;
+			this.Whd = new WMIconHiddenDeperture(this.DestMap, Wmi.SrcMap.clms / 2, Wmi.SrcMap.rows / 2);
+			this.wmx = Wmi.Rc.cx;
+			this.wmy = Wmi.Rc.cy;
+		}
+
+		public WmPosition getDepertWmPos(WholeMapItem Wmi)
+		{
+			return new WmPosition(Wmi, Wmi.GetWmi(this.DestMap, null), default(WMSpecialIcon));
+		}
+
 		public Map2d getDepertureMap()
 		{
-			return ((this.Whd != null) ? this.Whd.DestMap : null) ?? this.DestMap;
+			return (this.Whd.valid ? this.Whd.DestMap : null) ?? this.DestMap;
 		}
 
 		public Vector2 getDepertureMapPos()
 		{
-			if (this.Whd != null)
+			if (this.Whd.valid)
 			{
 				return new Vector2((float)this.Whd.x, (float)this.Whd.y);
 			}
@@ -34,13 +48,13 @@ namespace nel
 		{
 			get
 			{
-				return this.Ico != null;
+				return this.Ico != null || this.Whd.valid;
 			}
 		}
 
 		public bool isSame(WMIconPosition P)
 		{
-			return this.Ico == P.Ico && this.DestMap == P.DestMap && this.Whd == P.Whd;
+			return this.Ico == P.Ico && this.DestMap == P.DestMap && this.Whd.Equals(P);
 		}
 
 		public WMIcon get_Icon()
@@ -52,7 +66,7 @@ namespace nel
 
 		public readonly Map2d DestMap;
 
-		private readonly WMIconHiddenDeperture Whd;
+		public readonly WMIconHiddenDeperture Whd;
 
 		public readonly float wmx;
 

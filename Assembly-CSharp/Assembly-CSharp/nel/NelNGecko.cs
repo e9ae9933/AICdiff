@@ -43,7 +43,8 @@ namespace nel
 			this.EadStand = new NelNGecko.DrawFrameStand(this.Anm.getCurrentCharacter().getPoseByName("walking").getSequence(2)
 				.getFrame(0), this, this.Anm, 6);
 			this.Anm.addAdditionalDrawer(this.EadStand);
-			this.Anm.addAdditionalListener(this.EadStand);
+			this.AtkAbsorbGrabRomero.Prepare(this, true);
+			this.AtkSpin.Prepare(this, true);
 		}
 
 		public override void fineEnlargeScale(float r = -1f, bool set_effect = false, bool resize_moveby = false)
@@ -71,7 +72,7 @@ namespace nel
 
 		private bool considerNormal(NAI Nai)
 		{
-			if (Nai.fnAwakeBasicHead(Nai))
+			if (Nai.fnAwakeBasicHead(Nai, NAI.TYPE.GAZE))
 			{
 				return true;
 			}
@@ -116,7 +117,7 @@ namespace nel
 						return true;
 					}
 				}
-				if (base.Useable(this.McsWind, 1f, 0f) && !Nai.hasTypeLock(NAI.TYPE.MAG))
+				if (this.Useable(this.McsWind, 1f, 0f) && !Nai.hasTypeLock(NAI.TYPE.MAG))
 				{
 					if (Nai.HasF(NAI.FLAG.BOTHERED, true))
 					{
@@ -139,7 +140,7 @@ namespace nel
 						return true;
 					}
 				}
-				if (!Nai.hasTypeLock(NAI.TYPE.BACKSTEP) && ((Nai.autotargetted_me && Nai.RANtk(3228) < 0.4f) || Nai.isPrMagicExploded(1f) || Nai.isPrSpecialAttacking() || (Nai.isPrAttacking() && Nai.target_slen <= 2.8f)))
+				if (!Nai.hasTypeLock(NAI.TYPE.BACKSTEP) && ((Nai.autotargetted_me && Nai.RANtk(3228) < 0.4f) || Nai.isPrMagicExploded(1f) || Nai.isPrSpecialAttacking() || (Nai.isPrAttacking(1f) && Nai.target_slen <= 2.8f)))
 				{
 					return Nai.AddTicketB(NAI.TYPE.BACKSTEP, 128, true);
 				}
@@ -228,6 +229,7 @@ namespace nel
 				this.Nai.addTypeLock(NAI.TYPE.PUNCH_0, 40f);
 				this.Nai.addTypeLock(NAI.TYPE.PUNCH, 240f);
 			}
+			this.spinning = false;
 			this.can_hold_tackle = false;
 			base.remF(NelEnemy.FLAG.DECLINE_ENLARGE_CHECKING);
 			this.WindHn.destruct();
@@ -252,11 +254,11 @@ namespace nel
 				}
 				this.angle_shift = (float)X.MPFXP();
 			}
-			float num = (float)((base.hit_wall_ != (HITWALL)0) ? 2 : 1);
+			float num = (float)((this.hit_wall_ != (HITWALL)0) ? 2 : 1);
 			this.progressWalk(this.walk_spd, this.walk_time, 0.10367256f, num);
 			if (Tk.prog == PROG.ACTIVE)
 			{
-				if (base.hit_wall_ == (HITWALL)0)
+				if (this.hit_wall_ == (HITWALL)0)
 				{
 					this.walk_time += this.angle_shift * 0.004f * 3.1415927f * this.TS;
 				}
@@ -265,7 +267,7 @@ namespace nel
 					Tk.AfterDelay(X.NIXP(30f, 80f));
 					return false;
 				}
-				int num2 = this.calcDangerHitWall((int)base.hit_wall_);
+				int num2 = this.calcDangerHitWall((int)this.hit_wall_);
 				int num3 = 0;
 				float num4 = X.correctangleR(this.angleR);
 				for (int i = 0; i < 4; i++)
@@ -312,7 +314,7 @@ namespace nel
 				}
 				this.walk_time = X.correctangleR(this.walk_time);
 			}
-			if (Tk.prog == PROG.PROG0 && ((this.walk_st & (int)base.hit_wall_) != 0 || Tk.Progress(ref this.t, (int)this.Nai.NIRANtk(100f, 160f, 4812), true)))
+			if (Tk.prog == PROG.PROG0 && ((this.walk_st & (int)this.hit_wall_) != 0 || Tk.Progress(ref this.t, (int)this.Nai.NIRANtk(100f, 160f, 4812), true)))
 			{
 				this.t = 0f;
 				Tk.prog = PROG.ACTIVE;
@@ -372,13 +374,13 @@ namespace nel
 					this.WindHn = base.nM2D.WIND.Add(base.x, base.y, this.wind_radius, this.walk_time, 7f, 0.22f, this.wind_release_t, 3f);
 				}
 			}
-			if (Tk.prog == PROG.PROG0 && Tk.Progress(ref this.t, (base.Useable(this.McsWind, 1f, 0f) ? ((int)this.wind_release_t) : 0) + 30, true))
+			if (Tk.prog == PROG.PROG0 && Tk.Progress(ref this.t, (this.Useable(this.McsWind, 1f, 0f) ? ((int)this.wind_release_t) : 0) + 30, true))
 			{
 				this.WindHn.destruct();
 				this.SpSetPose("act1", -1, null, false);
 				this.angleR = 0f;
 				base.base_gravity = 0.66f;
-				base.MpConsume(this.McsWind, null, 1f, 1f);
+				this.MpConsume(this.McsWind, null, 1f, 1f);
 			}
 			if (Tk.prog == PROG.PROG1)
 			{
@@ -403,6 +405,15 @@ namespace nel
 				}
 			}
 			return true;
+		}
+
+		public override IFootable checkSkipLift(M2BlockColliderContainer.BCCLine _P)
+		{
+			if (this.spinning && this.Nai.isFrontType(NAI.TYPE.PUNCH, PROG.ACTIVE))
+			{
+				return null;
+			}
+			return base.checkSkipLift(_P);
 		}
 
 		private bool SpinInitable(bool nearfoot_check = true)
@@ -462,6 +473,7 @@ namespace nel
 					this.angleR = base.VALWALKANGLER(this.angleR, num, 0.47123894f);
 					this.t = 0f;
 					this.walk_st = 0;
+					this.spinning = true;
 				}
 				else
 				{
@@ -473,8 +485,18 @@ namespace nel
 				if (this.walk_st == 0 && this.t >= 17f)
 				{
 					this.walk_st = 1;
-					base.tackleInit(this.AtkSpin, this.TkSpin);
+					this.walk_time = 8f;
+					base.tackleInit(this.AtkSpin, this.TkSpin, MGHIT.AUTO);
 					base.PtcVar("scl", (double)this.enlarge_level).PtcST("gecho_spin_attack", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C);
+				}
+				if (this.walk_st == 1 && base.nattr_has_mattr)
+				{
+					this.walk_time += this.TS * this.nattr_splash_ratio;
+					if (this.walk_time >= 16f)
+					{
+						this.walk_time -= 16f;
+						EnemyAttr.SplashS(this, X.XORSP() * 6.2831855f);
+					}
 				}
 				float num2 = X.NI(0, 1, X.ZPOW(this.t, 16f)) * 0.16f;
 				float num3 = num2 * X.Cos(this.angleR);
@@ -520,6 +542,7 @@ namespace nel
 				if (Tk.Progress(ref this.t, num6, true))
 				{
 					this.PtcHld.killPtc("gecho_spin_attack", false);
+					this.spinning = false;
 					this.walk_st = 0;
 					this.setAim((num3 > 0f) ? AIM.R : AIM.L, false);
 					if (base.Useable(this.TkSpin, 1f))
@@ -770,7 +793,7 @@ namespace nel
 				}
 				base.PtcST("gecko_grab_jump", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.NO_FOLLOW);
 				this.jumpInit(num2 * 1.2f * base.mpf_is_right, 0f, num, true);
-				base.tackleInit(this.AtkGrab, this.TkGrab);
+				base.tackleInit(this.AtkGrab, this.TkGrab, MGHIT.AUTO);
 				this.SpSetPose("jumpatk1", -1, null, false);
 			}
 			if (Tk.prog == PROG.PROG1)
@@ -819,7 +842,7 @@ namespace nel
 			Abm.release_from_publish_count = true;
 			Abm.no_clamp_speed = true;
 			this.Absorb.changeTorturePose("torture_romero_0", false, false, -1, -1);
-			Abm.get_Gacha().SoloPositionPixel = new Vector3(0f, -192f, 0f);
+			Abm.get_Gacha().SoloPositionPixel = new Vector3(0f, 44f, 0f);
 			return true;
 		}
 
@@ -838,11 +861,13 @@ namespace nel
 				{
 					this.walk_st = 100;
 					this.playSndPos("gecko_rotate", 1);
+					this.Absorb.get_Gacha().SoloPositionPixel = new Vector3(0f, -80f, 0f);
+					this.Absorb.Con.need_fine_gacha_effect = true;
 					this.Absorb.changeTorturePose("torture_romero_1", false, false, -1, -1);
 				}
 				else
 				{
-					base.applyAbsorbDamageTo(pr, this.AtkAbsorbGrab0, X.XORSP() < 0.8f, X.XORSP() < 0.7f, false, 0f, false, null, false);
+					base.applyAbsorbDamageTo(pr, this.AtkAbsorbGrab0, X.XORSP() < 0.8f, X.XORSP() < 0.7f, false, 0f, false, null, false, true);
 					this.t = 40f - X.NIXP(20f, 30f);
 				}
 			}
@@ -852,11 +877,13 @@ namespace nel
 				this.Absorb.changeTorturePose("torture_romero_2", false, false, -1, -1);
 				this.t = 200f;
 				this.walk_st = 101;
+				this.Absorb.get_Gacha().SoloPositionPixel = new Vector3(0f, -44f, 0f);
+				this.Absorb.Con.need_fine_gacha_effect = true;
 			}
 			if (this.walk_st == 101 && this.t >= 100f)
 			{
 				this.playSndPos("gecko_grab_dmg", 1);
-				base.applyAbsorbDamageTo(pr, this.AtkAbsorbGrabRomero, true, false, true, 0f, false, null, false);
+				base.applyAbsorbDamageTo(pr, this.AtkAbsorbGrabRomero, true, false, true, 0f, false, null, false, true);
 				pr.UP.setFade(this.Absorb.uipicture_fade_key, UIPictureBase.EMSTATE.NORMAL, false, false, false);
 				this.t = 100f - X.NIXP(35f, 40f);
 				this.Anm.animReset(0, false);
@@ -963,7 +990,7 @@ namespace nel
 			get
 			{
 				int num = 0;
-				int hit_wall_ = (int)base.hit_wall_;
+				int hit_wall_ = (int)this.hit_wall_;
 				for (int i = 0; i < 4; i++)
 				{
 					if ((hit_wall_ & (1 << i)) != 0 && this.Ahitwall_lock[i] == 0f)
@@ -1081,6 +1108,8 @@ namespace nel
 
 		private float[] Ahitwall_lock;
 
+		private bool spinning;
+
 		private const float grab_jump_delay_min = 105f;
 
 		private const float grab_jump_delay_max = 55f;
@@ -1119,15 +1148,15 @@ namespace nel
 			huttobi_ratio = -1000f
 		}.Torn(0.02f, 0.025f);
 
-		protected NelAttackInfo AtkAbsorbGrabRomero = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbGrabRomero = new EnAttackInfo(0.02f, 0.025f)
 		{
 			split_mpdmg = 1,
 			hpdmg0 = 7,
 			pee_apply100 = 3f,
 			huttobi_ratio = -1000f
-		}.Torn(0.02f, 0.025f);
+		};
 
-		protected NelAttackInfo AtkSpin = new NelAttackInfo
+		protected EnAttackInfo AtkSpin = new EnAttackInfo
 		{
 			hpdmg0 = 7,
 			split_mpdmg = 8,
@@ -1138,13 +1167,15 @@ namespace nel
 			Beto = BetoInfo.DarkTornado
 		};
 
+		private const float nattr_splash_intv = 16f;
+
 		private const int PRI_ESCAPE = 128;
 
 		private const int PRI_WALK = 10;
 
 		private const int PRI_ATK = 20;
 
-		protected class DrawFrameStand : EnemyAnimator.EnemyAdditionalDrawFrame, EnemyAnimator.IEnemyAnimListener
+		protected sealed class DrawFrameStand : EnemyAnimator.EnemyAdditionalDrawFrame, EnemyAnimator.IEnemyAnimListener
 		{
 			public DrawFrameStand(PxlFrame _F, NelNGecko _En, EnemyAnimator _Anm, int resolution = 6)
 				: base(null, null, false)
@@ -1281,6 +1312,10 @@ namespace nel
 
 			public void fineFrameData(EnemyAnimator Anm, EnemyFrameDataBasic FrmData, bool created)
 			{
+				if (this.active)
+				{
+					Anm.layer_mask &= 4294967294U;
+				}
 			}
 
 			public int createEyes(EnemyAnimator Anm, Matrix4x4 MxAfterMultiple, ref int eyepos_search)

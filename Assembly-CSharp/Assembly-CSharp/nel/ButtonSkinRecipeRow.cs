@@ -12,12 +12,12 @@ namespace nel
 
 		public override void setItem(UiItemManageBox _ItemMng, ItemStorage _Storage, ItemStorage.IRow _ItmRow)
 		{
-			this.Rcp = RecipeManager.Get(_ItmRow.Data);
+			this.Rcp = RCP.Get(_ItmRow.Data);
 			base.setItem(_ItemMng, _Storage, _ItmRow);
 			if (this.Rcp != null && this.Rcp.isUseable())
 			{
 				this.Rcp.touchObtainCountAllIngredients();
-				if (this.Rcp.categ == RecipeManager.RP_CATEG.ALCHEMY || this.Rcp.categ == RecipeManager.RP_CATEG.COOK)
+				if (this.Rcp.categ == RCP.RP_CATEG.ALCHEMY || this.Rcp.categ == RCP.RP_CATEG.COOK)
 				{
 					NelItem recipeItem = this.Rcp.RecipeItem;
 					if (recipeItem != null)
@@ -28,13 +28,17 @@ namespace nel
 			}
 		}
 
-		protected override string getTitleString()
+		protected override STB getTitleString(STB Stb)
 		{
-			if (this.Rcp == null)
+			if (this.Rcp != null)
 			{
-				return this.ItmRow.Data.getLocalizedName((this.ItmRow.splitted_grade >= 0) ? ((int)this.ItmRow.splitted_grade) : this.ItmRow.Info.min_grade, this.Storage);
+				Stb.Add(this.Rcp.title);
 			}
-			return this.Rcp.title;
+			else
+			{
+				this.ItmRow.Data.getLocalizedName(Stb, (this.ItmRow.splitted_grade >= 0) ? ((int)this.ItmRow.splitted_grade) : this.ItmRow.Info.min_grade);
+			}
+			return Stb;
 		}
 
 		protected override STB getCountString(STB Stb)
@@ -46,7 +50,7 @@ namespace nel
 			return Stb;
 		}
 
-		public RecipeManager.Recipe get_Recipe()
+		public RCP.Recipe get_Recipe()
 		{
 			return this.Rcp;
 		}
@@ -62,6 +66,6 @@ namespace nel
 			}
 		}
 
-		protected RecipeManager.Recipe Rcp;
+		protected RCP.Recipe Rcp;
 	}
 }

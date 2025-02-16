@@ -14,18 +14,23 @@ namespace XX
 			this.PreVal = new DesignerRow.DesignerRowVariable();
 		}
 
-		public override DesignerRow Clear()
+		public override DesignerRow Clear(bool destruct_block = false)
 		{
-			base.Clear();
+			base.Clear(false);
 			for (int i = this.ABlk.Length - 1; i >= 0; i--)
 			{
 				DesignerRowMem.DsnMem dsnMem = this.ABlk[i];
 				if (dsnMem != null)
 				{
+					if (destruct_block && dsnMem.Blk != null)
+					{
+						IN.DestroyE(dsnMem.Blk.getTransform().gameObject);
+					}
 					dsnMem.Blk = null;
 				}
 			}
 			this.ids_cnt = (this.ids_line = 0);
+			this.align = ALIGN.LEFT;
 			return this;
 		}
 
@@ -60,7 +65,7 @@ namespace XX
 			DesignerRowMem.DsnMem dsnMem;
 			if (this.ids_cnt >= this.ABlk.Length || this.ABlk[this.ids_cnt] == null)
 			{
-				X.pushToEmptyS<DesignerRowMem.DsnMem>(ref this.ABlk, dsnMem = new DesignerRowMem.DsnMem(), ref this.ids_cnt, 16);
+				X.pushToEmptyS<DesignerRowMem.DsnMem>(ref this.ABlk, dsnMem = new DesignerRowMem.DsnMem(null), ref this.ids_cnt, 16);
 			}
 			else
 			{
@@ -229,10 +234,10 @@ namespace XX
 			int num = this.ids_cnt;
 			if (this.ids_cnt == 0)
 			{
-				this.Clear();
+				this.Clear(false);
 				return this;
 			}
-			base.Clear();
+			base.Clear(false);
 			this.align = ALIGN.LEFT;
 			this.fine_designer_connect = true;
 			this.ids_cnt = (this.ids_line = 0);
@@ -241,26 +246,27 @@ namespace XX
 			for (int i = 0; i < num; i++)
 			{
 				DesignerRowMem.DsnMem dsnMem = this.ABlk[i];
-				if (dsnMem.Blk == null)
-				{
-					if (dsnMem.w < 0f)
-					{
-						this.align = ((dsnMem.w == -1f) ? ALIGN.LEFT : ((dsnMem.w == -2f) ? ALIGN.CENTER : ALIGN.RIGHT));
-						this.Br(true);
-					}
-					else
-					{
-						this.XSh(dsnMem.w);
-					}
-				}
-				else
-				{
-					this.Add(dsnMem.Blk, dsnMem.w, dsnMem.h, dsnMem);
-					this.ids_cnt++;
-				}
+				this.Reassign(dsnMem);
 			}
 			this.preserve_br_point = flag;
 			return this;
+		}
+
+		public void Reassign(DesignerRowMem.DsnMem M)
+		{
+			if (M.Blk != null)
+			{
+				this.Add(M.Blk, M.w, M.h, M);
+				this.ids_cnt++;
+				return;
+			}
+			if (M.w < 0f)
+			{
+				this.align = ((M.w == -1f) ? ALIGN.LEFT : ((M.w == -2f) ? ALIGN.CENTER : ALIGN.RIGHT));
+				this.Br(true);
+				return;
+			}
+			this.XSh(M.w);
 		}
 
 		public BList<aBtn> PopLastLineSelectable(bool only_front = false)
@@ -329,46 +335,52 @@ namespace XX
 		{
 			this.fine_designer_connect = false;
 			int num = this.ids_cnt;
-			List<aBtn> list = new List<aBtn>();
-			List<aBtn> list2 = null;
-			List<aBtn> list3 = new List<aBtn>();
-			int num2 = 0;
-			for (int i = 0; i < num; i++)
+			using (BList<aBtn> blist = ListBuffer<aBtn>.Pop(0))
 			{
-				DesignerRowMem.DsnMem dsnMem = this.ABlk[i];
-				if (dsnMem.Blk != null)
+				using (BList<aBtn> blist2 = ListBuffer<aBtn>.Pop(0))
 				{
-					if (dsnMem.line > num2)
+					using (BList<aBtn> blist3 = ListBuffer<aBtn>.Pop(0))
 					{
-						if (list.Count > 0)
+						bool flag = true;
+						int num2 = 0;
+						for (int i = 0; i < num; i++)
 						{
-							if (list2 == null && (selectable_loop & 2) > 0)
+							DesignerRowMem.DsnMem dsnMem = this.ABlk[i];
+							if (dsnMem.Blk != null)
 							{
-								list2 = new List<aBtn>();
-								list2.AddRange(list);
+								if (dsnMem.line > num2)
+								{
+									if (blist.Count > 0)
+									{
+										if (flag && (selectable_loop & 2) > 0)
+										{
+											flag = false;
+											blist3.AddRange(blist);
+										}
+										else
+										{
+											this.checkConnectRow(blist, (blist2.Count > 0) ? blist2 : null, selectable_loop, false, false);
+										}
+										blist2.Clear();
+										blist2.AddRange(blist);
+										blist.Clear();
+									}
+									num2 = dsnMem.line;
+								}
+								dsnMem.Blk.AddSelectableItems(blist, false);
 							}
-							else
-							{
-								this.checkConnectRow(list, (list3.Count > 0) ? list3 : null, selectable_loop, false, false);
-							}
-							list3.Clear();
-							list3.AddRange(list);
-							list.Clear();
 						}
-						num2 = dsnMem.line;
+						this.checkConnectRow(blist, (blist2.Count > 0) ? blist2 : null, selectable_loop, false, false);
+						if (!flag)
+						{
+							this.checkConnectRow(blist3, blist, selectable_loop, false, false);
+						}
+						else if ((selectable_loop & 2) > 0)
+						{
+							this.checkConnectRow(blist, blist, selectable_loop | 8, false, false);
+						}
 					}
-					dsnMem.Blk.AddSelectableItems(list, false);
 				}
-			}
-			this.checkConnectRow(list, (list3.Count > 0) ? list3 : null, selectable_loop, false, false);
-			if (list2 != null)
-			{
-				this.checkConnectRow(list2, list, selectable_loop, false, false);
-				return;
-			}
-			if ((selectable_loop & 2) > 0)
-			{
-				this.checkConnectRow(list, list, selectable_loop | 8, false, false);
 			}
 		}
 
@@ -584,7 +596,19 @@ namespace XX
 
 		public class DsnMem
 		{
-			public bool active
+			public DsnMem(DesignerRowMem.DsnMem _Mem = null)
+			{
+				if (_Mem != null)
+				{
+					this.Blk = _Mem.Blk;
+					this.w = _Mem.w;
+					this.h = _Mem.h;
+					this.line = _Mem.line;
+					this.active = _Mem.active;
+				}
+			}
+
+			public virtual bool active
 			{
 				get
 				{
@@ -612,7 +636,7 @@ namespace XX
 
 			public int line;
 
-			private bool active_ = true;
+			protected bool active_ = true;
 		}
 	}
 }

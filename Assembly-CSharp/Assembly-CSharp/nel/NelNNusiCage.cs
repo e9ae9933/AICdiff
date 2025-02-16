@@ -46,6 +46,7 @@ namespace nel
 		{
 			base.initNest(_Parent, array_create_capacity);
 			this.Boss = this.Parent as NelNBoss_Nusi;
+			this.AnmB.copyColor(this.Parent.getAnimator());
 			return this;
 		}
 
@@ -199,7 +200,7 @@ namespace nel
 				this.need_fine_position = true;
 				if (this.MvIxia == null)
 				{
-					M2EventItem m2EventItem = this.Mp.getEventContainer().Get("ixiadoll", true, false);
+					M2EventItem m2EventItem = this.Mp.getEventContainer().Get("ixiadoll", true, true);
 					if (m2EventItem != null)
 					{
 						this.MvIxia = m2EventItem;
@@ -267,7 +268,7 @@ namespace nel
 								this.can_hold_tackle = true;
 							}
 							base.PtcST("nusi_inject_ixiacharge", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.NO_FOLLOW);
-							this.initTortureAbsorbPoseSet("torture_nusi_atk", 0, 1);
+							this.initTortureAbsorbPoseSet(null, "torture_nusi_atk", 0, 1);
 						}
 					}
 				}
@@ -283,7 +284,7 @@ namespace nel
 			return true;
 		}
 
-		public override bool isTortureUsing()
+		public override bool isTortureUsingForAnim()
 		{
 			return this.can_hold_tackle;
 		}
@@ -583,6 +584,7 @@ namespace nel
 			{
 				this.EnCage = _EnCage;
 				this.Anm = this.EnCage.getAnimator();
+				EnemyAttr.initAnimator(this.EnCage, this);
 				base.prepareMesh(this.Anm.getMI(), null);
 				base.prepareRendetTicket(this.Mv, null, null);
 			}

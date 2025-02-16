@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using m2d;
 using UnityEngine;
 using XX;
 
@@ -6,6 +8,14 @@ namespace nel.gm
 {
 	public class UiWmSkinController
 	{
+		public bool use_target_show
+		{
+			get
+			{
+				return this.AFocusTarget != null;
+			}
+		}
+
 		public UiWmSkinController(NelM2DBase _M2D)
 		{
 			this.M2D = _M2D;
@@ -54,7 +64,7 @@ namespace nel.gm
 		public void initEdit()
 		{
 			this.WmSkin.getBtn().SetChecked(true, true);
-			this.WmSkin.getBtn().Select(false);
+			this.WmSkin.getBtn().Select(true);
 			if (!this.always_unselectable)
 			{
 				this.WmSkin.getBtn().unselectable(true);
@@ -126,8 +136,23 @@ namespace nel.gm
 			}
 		}
 
-		public void getKDforWA(STB Stb)
+		public virtual void fineMapKD(STB Stb)
 		{
+			if (this.WmSkin.is_detail)
+			{
+				if (this.use_target_show)
+				{
+					if (this.AFocusTarget != null && this.AFocusTarget.Count > 0)
+					{
+						Stb.Add("<key sort/>").AddTxA("Map_show_target", false).Add(" ");
+					}
+					Stb.Add("<key shift/>+");
+				}
+				Stb.AddTxA("GM_KD_map_current_pos", false);
+				Stb.Add(" ");
+				Stb.AddTxA((!this.WmSkin.is_zoomin) ? "KD_map_zoomin" : "KD_map_zoomout", false);
+				return;
+			}
 			Stb.AddTxA("KD_map_wa_def", false).Add(" ");
 			Stb.AddTxA((!this.WmSkin.is_zoomin) ? "KD_map_zoomin" : "KD_map_zoomout", false);
 			if (this.WmSkin.hasWAFocus())
@@ -136,12 +161,13 @@ namespace nel.gm
 			}
 		}
 
-		internal void runAppearing()
+		public virtual bool runAppearing()
 		{
 			if (this.WmSkin != null)
 			{
 				this.WmSkin.getWholeMapTarget().prepareAllVisitted(true);
 			}
+			return false;
 		}
 
 		public bool runEdit(float fcnt, bool handle, ref byte need_tuto_msg)
@@ -158,7 +184,7 @@ namespace nel.gm
 			int num2 = -IN.cursYD(this.WmSkin.smooth_walk);
 			if (num != 0 || num2 != 0)
 			{
-				this.WmSkin.getBtn().Select(false);
+				this.WmSkin.getBtn().Select(true);
 			}
 			if (this.WmSkin.can_handle)
 			{
@@ -168,20 +194,20 @@ namespace nel.gm
 					{
 						need_tuto_msg = 2;
 					}
-					if (IN.isUiSortPD())
+					if (IN.isUiSortPD() && (!this.use_target_show || IN.isUiShiftO()))
 					{
 						SND.Ui.play("cursor_gear_reset", false);
 						this.WmSkin.SetCenterDefault(true, true);
 						this.WmSkin.quitDragging();
 					}
-					if (IN.isUiShiftPD())
+					if (IN.isUiAddPD())
 					{
 						if (!this.WmSkin.is_detail_swithing && !this.WmSkin.is_wa_fade_animation)
 						{
 							this.WmSkin.changeZoomInOut();
 						}
 					}
-					else if (!IN.isUiShiftO() && IN.isSubmit())
+					else if (!IN.isUiShiftO() && !IN.isUiAddO() && IN.isSubmit())
 					{
 						if (this.WmSkin.switchWA(true, false, true))
 						{
@@ -210,7 +236,7 @@ namespace nel.gm
 					{
 						need_tuto_msg = 2;
 					}
-					if (IN.isUiSortPD())
+					if (IN.isUiSortPD() && (!this.use_target_show || IN.isUiShiftO()))
 					{
 						if (this.WmSkin.getWholeMapTarget() != this.M2D.WM.CurWM)
 						{
@@ -222,7 +248,7 @@ namespace nel.gm
 						this.WmSkin.quitDragging();
 						need_tuto_msg = 2;
 					}
-					if (IN.isUiShiftPD())
+					if (IN.isUiAddPD())
 					{
 						if (!this.WmSkin.is_detail_swithing)
 						{
@@ -236,6 +262,10 @@ namespace nel.gm
 						need_tuto_msg = 2;
 						SND.Ui.play("tool_drag_init", false);
 					}
+				}
+				if (this.use_target_show && this.AFocusTarget.Count > 0 && IN.isUiSortPD() && !IN.isUiShiftO())
+				{
+					this.nextForcusTarget();
 				}
 			}
 			if (this.WmSkin.scale_changed)
@@ -255,23 +285,44 @@ namespace nel.gm
 				bool flag2 = false;
 				if (wmiCurPos != null && wmiCurPos.visitted)
 				{
-					string text = TX.Get("MAP_" + wmiCurPos.SrcMap.key, "");
+					Map2d map2d = null;
+					DRect drect = null;
+					if (this.WmSkin.fast_travel_active)
+					{
+						WMIconPosition fastTravelFocused = this.WmSkin.FastTravelFocused;
+						if (fastTravelFocused.valid)
+						{
+							map2d = fastTravelFocused.Whd.DestMap;
+							drect = new DRect("", fastTravelFocused.wmx, fastTravelFocused.wmy, 0.01f, 0f, 0f);
+						}
+					}
+					string text;
+					if (map2d != null)
+					{
+						text = "MAP_" + map2d.key;
+					}
+					else
+					{
+						text = "MAP_" + wmiCurPos.SrcMap.key;
+					}
+					drect = drect ?? wmiCurPos.Rc;
+					string text2 = TX.Get(text, "");
 					Vector2 cursorMapPos = this.WmSkin.getCursorMapPos();
-					if (TX.valid(text))
+					if (TX.valid(text2))
 					{
 						flag2 = true;
-						if (!this.BxMapName.textIs(text))
+						if (!this.BxMapName.textIs(text2))
 						{
-							this.BxMapName.make(text);
+							this.BxMapName.make(text2);
 						}
 						this.BxMapName.activate();
 						this.BxMapName.wh_anim(this.BxMapName.get_text_swidth_px(), 16f, true, false);
 						float num3 = (this.WmSkin.is_zoomin ? 40f : 20f);
-						Vector2 vector = this.WmSkin.Map2Upos(new Vector2(wmiCurPos.Rc.cx, wmiCurPos.Rc.cy), true) * 64f;
+						Vector2 vector = this.WmSkin.Map2Upos(new Vector2(drect.cx, drect.cy), true) * 64f;
 						float num4 = this.WmSkin.swidth - this.WmSkin.inner_margin * 2f - this.BxMapName.get_swidth_px() * 0.7f;
 						float num5 = this.WmSkin.sheight - this.WmSkin.inner_margin * 2f;
 						vector.x = X.MMX(-num4 * 0.5f, vector.x, num4 * 0.5f);
-						vector.y += (float)X.MPF(this.WmSkin.Map2Upos(cursorMapPos, true).y < -num5 * 0.14f * 0.015625f) * (num3 * 0.5f * wmiCurPos.Rc.height + 8f + this.BxMapName.get_sheight_px() * 0.5f);
+						vector.y += (float)X.MPF(this.WmSkin.Map2Upos(cursorMapPos, true).y < -num5 * 0.14f * 0.015625f) * (num3 * 0.5f * drect.height + 8f + this.BxMapName.get_sheight_px() * 0.5f);
 						if (!this.BxMapName.isActive() || !vector.Equals(this.BxPos))
 						{
 							this.BxPos = vector;
@@ -315,10 +366,55 @@ namespace nel.gm
 
 		public void reveal(WmDeperture Depert, bool no_first_delay = false)
 		{
-			if (this.WmSkin != null)
+			if (this.WmSkin != null && (Depert.map_key != null || Depert.wm_key != null))
 			{
 				this.WmSkin.reveal(Depert, no_first_delay, false);
 			}
+		}
+
+		public void reveal(WmPosition Depert, bool no_first_delay = false)
+		{
+			if (Depert.Wm != null && Depert.Wmi != null)
+			{
+				this.reveal(new WmDeperture(Depert.Wm.text_key, Depert.Wmi.SrcMap.key), no_first_delay);
+			}
+		}
+
+		public List<WmPosition> ClearFocusTarget()
+		{
+			if (this.AFocusTarget == null)
+			{
+				this.AFocusTarget = new List<WmPosition>(1);
+			}
+			this.AFocusTarget.Clear();
+			this.focustarget_index = 0;
+			return this.AFocusTarget;
+		}
+
+		public void nextForcusTarget()
+		{
+			if (this.AFocusTarget == null || this.AFocusTarget.Count == 0)
+			{
+				return;
+			}
+			bool is_wa = this.WmSkin.is_wa;
+			WmPosition wmPosition = this.AFocusTarget[this.focustarget_index];
+			if (!is_wa)
+			{
+				WholeMapItem.WMItem wmiCurPos = this.WmSkin.WmiCurPos;
+				int i = this.AFocusTarget.Count;
+				while (i >= 0)
+				{
+					wmPosition = this.AFocusTarget[this.focustarget_index];
+					if (wmiCurPos != wmPosition.Wmi)
+					{
+						break;
+					}
+					i--;
+					this.focustarget_index = (this.focustarget_index + 1) % this.AFocusTarget.Count;
+				}
+			}
+			this.reveal(wmPosition, true);
 		}
 
 		public void fnSwitchWA(bool to_wa)
@@ -327,6 +423,11 @@ namespace nel.gm
 			{
 				this.hideMapNameBox();
 			}
+		}
+
+		public bool isFocusingToMapArea()
+		{
+			return aBtn.PreSelected == this.WmSkin.getBtn();
 		}
 
 		public EnemySummoner getCurrentFocusEnemySummoner(out NightController.SummonerData NInfo, out WMIcon TargetIco)
@@ -381,5 +482,9 @@ namespace nel.gm
 		private Vector2 BxPos;
 
 		private ButtonSkinWholeMapArea.FnSwitchWA FD_fnSwitchWA;
+
+		private List<WmPosition> AFocusTarget;
+
+		private int focustarget_index;
 	}
 }

@@ -9,26 +9,6 @@ namespace m2d
 {
 	public class M2Mover : MonoBehaviour, IFootable, IM2EvTrigger, IM2DebugTarget, IPosLitener, IHkdsFollowable
 	{
-		public HITWALL hit_wall_
-		{
-			get
-			{
-				return this.hit_wall__;
-			}
-			set
-			{
-				if (this.hit_wall_ == value)
-				{
-					return;
-				}
-				this.hit_wall__ = value;
-				if ((value & HITWALL.SIM_T) != (HITWALL)0)
-				{
-					this.hit_wall__ += 0;
-				}
-			}
-		}
-
 		protected virtual void Start()
 		{
 			Rigidbody2D rigidbody2D;
@@ -421,6 +401,14 @@ namespace m2d
 			this.vy_ = __vy;
 		}
 
+		public virtual void addFocFallWaterVelocity(float __vy, int duration)
+		{
+			if (this.Phy != null)
+			{
+				this.Phy.addFoc(FOCTYPE.KNOCKBACK | FOCTYPE._NO_CONSIDER_WATER, 0f, __vy, -1f, 0, duration, 0, -1, 0);
+			}
+		}
+
 		public void moveToStandablePoint(float depx, float depy)
 		{
 			int num = X.IntC(X.LENGTHXYS(this.x, this.y, depx, depy) / 0.25f);
@@ -484,7 +472,7 @@ namespace m2d
 
 		public virtual IFootable isCarryable(M2FootManager FootD)
 		{
-			return null;
+			return this;
 		}
 
 		public virtual bool isCarrying(M2Mover Mv)
@@ -847,8 +835,8 @@ namespace m2d
 
 		public M2Mover setToLabelPt(string label, float _shx = 0f, float _shy = 0f)
 		{
-			this.Mp.getPos(label, _shx, _shy, this);
-			this.setToPt(this.Mp.getPos(label, _shx, _shy, this), 0f, 0f);
+			Vector2 pos = this.Mp.getPos(label, _shx, _shy, this);
+			this.setToPt(pos, 0f, 0f);
 			return this;
 		}
 
@@ -1357,22 +1345,33 @@ namespace m2d
 			this.FootD.initJump(false, false, false);
 			float num = ((this.Phy != null) ? this.Phy.gravity_apply_velocity(1f) : M2Phys.getGravityApplyVelocity(this.Mp, this.base_gravity_, 1f));
 			Vector4 jumpVelocity = M2Mover.getJumpVelocity(this.Mp, xlen, ypos, high_y, this.base_gravity_, num);
-			if (this.Phy == null)
+			this.jumpInit(jumpVelocity, ypos, release_x_velocity);
+		}
+
+		public virtual void jumpInit(Vector4 JumpVelocity, float ypos, bool release_x_velocity = false)
+		{
+			if (this.Phy != null)
 			{
-				this.vx_ += jumpVelocity.x;
-				this.vy_ = jumpVelocity.y;
-				return;
+				int num = X.IntR(JumpVelocity.z);
+				int num2 = X.IntR(JumpVelocity.w);
+				this.Phy.addLockGravityFrame(num2);
+				this.Phy.addFoc(FOCTYPE.JUMP | FOCTYPE._GRAVITY_LOCK, 0f, JumpVelocity.y, -1f, 0, 1, num2, -1, 0);
+				if (JumpVelocity.x != 0f)
+				{
+					if (release_x_velocity)
+					{
+						this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._RELEASE, JumpVelocity.x, 0f, -1f, -1, 1, 0, -1, 0);
+						return;
+					}
+					this.Phy.addFoc(FOCTYPE.WALK, JumpVelocity.x, 0f, -1f, 0, num, num, 1, 0);
+					return;
+				}
 			}
-			int num2 = X.IntR(jumpVelocity.z);
-			int num3 = X.IntR(jumpVelocity.w);
-			this.Phy.addLockGravityFrame(num3);
-			this.Phy.addFoc(FOCTYPE.JUMP | FOCTYPE._GRAVITY_LOCK, 0f, jumpVelocity.y, -1f, 0, 1, num3, -1, 0);
-			if (release_x_velocity)
+			else
 			{
-				this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._RELEASE, jumpVelocity.x, 0f, -1f, -1, 1, 0, -1, 0);
-				return;
+				this.vx_ += JumpVelocity.x;
+				this.vy_ = JumpVelocity.y;
 			}
-			this.Phy.addFoc(FOCTYPE.WALK, jumpVelocity.x, 0f, -1f, 0, num2, num2, 1, 0);
 		}
 
 		public static Vector4 getJumpVelocity(Map2d Mp, float xlen, float ypos, float high_y, float gravity_scale, float ac = 0f)
@@ -1781,6 +1780,72 @@ namespace m2d
 				Vector2 vector4 = ((zero2.z > zero.z) ? zero2 : zero);
 				vector.x = vector4.x;
 				vector.y = vector4.y;
+			}
+			return vector;
+		}
+
+		public virtual Vector2 calcHitUPosFromRay(float raymapx, float raymapy, Vector3 Dir)
+		{
+			Dir.y *= -1f;
+			Vector2 vector = default(Vector2);
+			float num;
+			float num2;
+			float num3;
+			if (Dir.x == 0f)
+			{
+				num = 0f;
+				num2 = 1f;
+				num3 = -raymapx;
+			}
+			else
+			{
+				float num4 = Dir.y / Dir.x;
+				num = num4;
+				num2 = -1f;
+				num3 = raymapy - num4 * raymapx;
+			}
+			Vector3 zero = Vector3.zero;
+			Vector3 zero2 = Vector3.zero;
+			Vector2 vector3;
+			if (Dir.y < 0f)
+			{
+				Vector2 vector2;
+				if (X.crosspointGH(num, num2, num3, X.MMX(this.y, raymapy, this.mbottom), out vector2) && X.BTW(this.mleft, vector2.x, this.mright))
+				{
+					zero2 = new Vector3(vector2.x, vector2.y, 1f);
+				}
+			}
+			else if (Dir.y > 0f && X.crosspointGH(num, num2, num3, X.MMX(this.mtop, raymapy, this.y), out vector3) && X.BTW(this.mleft, vector3.x, this.mright))
+			{
+				zero2 = new Vector3(vector3.x, vector3.y, 1f);
+			}
+			Vector2 vector5;
+			if (Dir.x < 0f)
+			{
+				Vector2 vector4;
+				if (X.crosspointGV(num, num2, num3, X.MMX(this.x, raymapx, this.mright), out vector4) && X.BTW(this.mtop, vector4.y, this.mbottom))
+				{
+					zero = new Vector3(vector4.x, vector4.y, 1f);
+				}
+			}
+			else if (Dir.x > 0f && X.crosspointGV(num, num2, num3, X.MMX(this.mleft, raymapx, this.x), out vector5) && X.BTW(this.mtop, vector5.y, this.mbottom))
+			{
+				zero = new Vector3(vector5.x, vector5.y, 1f);
+			}
+			if (zero.z == zero2.z)
+			{
+				if (zero.z == 1f)
+				{
+					vector = ((X.LENGTHXYS(raymapx, raymapy, zero.x, zero.y) < X.LENGTHXYS(raymapx, raymapy, zero2.x, zero2.y)) ? zero : zero2);
+				}
+				else
+				{
+					vector = new Vector2(X.MMX2(this.mleft + 0.25f, raymapx, this.mright - 0.25f), X.MMX2(this.mtop + 0.25f, raymapy, this.mbottom - 0.25f));
+				}
+			}
+			else
+			{
+				vector = ((zero.z == 1f) ? zero : zero2);
 			}
 			return vector;
 		}
@@ -2323,7 +2388,7 @@ namespace m2d
 
 		protected int draw_assist;
 
-		protected HITWALL hit_wall__;
+		protected HITWALL hit_wall_;
 
 		protected List<ICarryable> ACarry;
 

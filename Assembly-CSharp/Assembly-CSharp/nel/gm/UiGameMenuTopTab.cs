@@ -8,7 +8,7 @@ namespace nel.gm
 		internal void initializeGM(UiGameMenu _GM)
 		{
 			this.GM = _GM;
-			this.bounds_h = this.GM.bounds_h;
+			this.bounds_h = UiGameMenu.bounds_h;
 			this.bounds_w = this.GM.right_w;
 		}
 

@@ -246,6 +246,26 @@ namespace XX
 			}
 		}
 
+		public Color32 TextColor
+		{
+			get
+			{
+				if (!(this.Tm != null))
+				{
+					return this.TxCol;
+				}
+				return this.Tm.TextColor;
+			}
+			set
+			{
+				this.TxCol = value;
+				if (this.Tm != null)
+				{
+					this.Tm.TextColor = this.TxCol;
+				}
+			}
+		}
+
 		protected override bool runIRD(float fcnt)
 		{
 			bool flag = X.D || this.af <= 1f;
@@ -257,7 +277,7 @@ namespace XX
 			if (this.Tm != null && this.af_retex < 14 && X.D)
 			{
 				this.af_retex += X.AF;
-				this.Tm.Alpha(this.text_alpha);
+				this.Tm.Alpha(this.text_alpha * this.text_alpha_multiple_);
 			}
 			return true;
 		}
@@ -289,6 +309,26 @@ namespace XX
 			}
 		}
 
+		public float text_alpha_multiple
+		{
+			get
+			{
+				return this.text_alpha_multiple_;
+			}
+			set
+			{
+				if (this.text_alpha_multiple == value)
+				{
+					return;
+				}
+				this.text_alpha_multiple_ = value;
+				if (this.Tm != null)
+				{
+					this.Tm.Alpha(this.text_alpha * this.text_alpha_multiple_);
+				}
+			}
+		}
+
 		protected virtual bool use_mesh_renderer
 		{
 			get
@@ -307,7 +347,7 @@ namespace XX
 			this.redrawMesh();
 			if (this.Tm != null)
 			{
-				this.Tm.Alpha(this.text_alpha);
+				this.Tm.Alpha(this.text_alpha * this.text_alpha_multiple_);
 			}
 		}
 
@@ -472,6 +512,26 @@ namespace XX
 			}
 		}
 
+		public float size
+		{
+			get
+			{
+				return this.size_;
+			}
+			set
+			{
+				if (this.size_ == value)
+				{
+					return;
+				}
+				this.size_ = value;
+				if (this.Tm != null)
+				{
+					this.Tm.Size(this.size_);
+				}
+			}
+		}
+
 		public ALIGN alignx
 		{
 			get
@@ -631,7 +691,7 @@ namespace XX
 
 		public float heightPixel;
 
-		public float size = 16f;
+		private float size_ = 16f;
 
 		public MFont TargetFont;
 
@@ -672,6 +732,8 @@ namespace XX
 		protected MeshRenderer Mrd;
 
 		private float alpha_ = 1f;
+
+		private float text_alpha_multiple_ = 1f;
 
 		public float margin_x = 5f;
 

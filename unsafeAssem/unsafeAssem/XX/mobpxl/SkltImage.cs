@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Better;
 using PixelLiner;
 using PixelLiner.PixelLinerLib;
 using UnityEngine;
@@ -22,6 +21,32 @@ namespace XX.mobpxl
 			this.Msp = new MobSkltPosition(FEnum<PARTS_TYPE>.ToStr(this.Con.type), this.Source.short_name);
 		}
 
+		public string palette_key
+		{
+			get
+			{
+				if (TX.noe(this.palette_key_))
+				{
+					this.palette_key_ = this.Source.palette_key_default;
+				}
+				return this.palette_key_;
+			}
+			set
+			{
+				if (this.palette_key == value)
+				{
+					return;
+				}
+				this.palette_key_ = value;
+				if (this.use_base_oacc)
+				{
+					this.OACC = this.Con.pSklt.getPalette("_", false);
+					return;
+				}
+				this.OACC = null;
+			}
+		}
+
 		public SkltImageSrc Source
 		{
 			get
@@ -39,27 +64,23 @@ namespace XX.mobpxl
 			}
 		}
 
-		public SkltImage.PCC_SYNC pcc_sync
+		public bool pcc_sync_base
 		{
 			get
 			{
-				return this.pcc_sync_;
+				return this.pcc_sync_base_;
 			}
 			set
 			{
-				this.pcc_sync_ = value;
-				if (!this.use_base_oacc)
-				{
-					if (this.OACC == this.Con.pSklt.OACCBase)
-					{
-						this.OACC = null;
-						return;
-					}
-				}
-				else
-				{
-					this.OACC = this.Con.pSklt.OACCBase;
-				}
+				this.pcc_sync_base_ = value;
+			}
+		}
+
+		public bool merge_base_oacc
+		{
+			get
+			{
+				return this.pcc_sync_base && this.palette_key != "_";
 			}
 		}
 
@@ -67,7 +88,7 @@ namespace XX.mobpxl
 		{
 			get
 			{
-				return this.pcc_sync == SkltImage.PCC_SYNC.USE_BASE;
+				return this.palette_key == "_";
 			}
 		}
 
@@ -96,14 +117,6 @@ namespace XX.mobpxl
 			get
 			{
 				return this.Source.atc;
-			}
-		}
-
-		public bool atlas_created
-		{
-			get
-			{
-				return this.ACalcedAtlas != null && this.ACalcedAtlas[0].width > 0;
 			}
 		}
 
@@ -156,54 +169,19 @@ namespace XX.mobpxl
 			return text;
 		}
 
-		internal void clearTextureAtlas()
-		{
-			if (this.ACalcedAtlas != null)
-			{
-				this.ACalcedAtlas[0].width = (this.ACalcedAtlas[0].height = 0);
-			}
-		}
-
-		internal void createAtlas(RectAtlasTexture CalcAtlas)
-		{
-			using (BList<string> blist = ListBuffer<string>.Pop(0))
-			{
-				this.Source.CopyAllPType(blist);
-				if (this.ACalcedAtlas == null)
-				{
-					this.ACalcedAtlas = new RectInt[blist.Count];
-				}
-				else if (this.ACalcedAtlas.Length != blist.Count)
-				{
-					Array.Resize<RectInt>(ref this.ACalcedAtlas, blist.Count);
-				}
-				for (int i = 0; i < blist.Count; i++)
-				{
-					SkltImageSrc.ISrcPat forAnm = this.Source.GetForAnm(blist[i]);
-					int num;
-					RenderTexture renderTexture;
-					RectInt rectInt = CalcAtlas.createRect(2 + forAnm.Img.width, 2 + forAnm.Img.height, out num, out renderTexture, true);
-					this.ACalcedAtlas[i] = new RectInt(rectInt.x + 1, rectInt.y + 1, rectInt.width - 2, rectInt.height - 2);
-				}
-			}
-		}
-
-		internal void createPccAppliedMesh(MobGenerator Gen, MeshDrawer Md, bool apply_effect_whole = true)
+		internal void createPccAppliedMesh(MobGenerator Gen, SkltRenderTicket Tkt, MeshDrawer Md, bool apply_effect_whole = true)
 		{
 			this.Source.fineUseBits(Gen);
-			if (!this.atlas_created)
-			{
-				this.createAtlas(Gen.getAtlasCalculator());
-			}
+			RectInt[] array = Tkt.createAtlasImage(this, Gen.getAtlasCalculator());
 			if (Md != null)
 			{
 				Md.clearSimple();
 				int vertexMax = Md.getVertexMax();
-				int num = this.ACalcedAtlas.Length;
+				int num = array.Length;
 				Md.allocUv2(num * 4, false);
 				for (int i = 0; i < num; i++)
 				{
-					RectInt rectInt = this.ACalcedAtlas[i];
+					RectInt rectInt = array[i];
 					Md.initForImg(this.Source.getPatByIndex(i).Img, 0);
 					Md.RectBL((float)rectInt.x, (float)rectInt.y, (float)rectInt.width, (float)rectInt.height, true);
 				}
@@ -219,7 +197,7 @@ namespace XX.mobpxl
 			}
 			MobPCCContainer pcc = Gen.get_PCC();
 			pcc.Clear();
-			if (this.OACC != this.Con.pSklt.OACCBase && this.pcc_sync_ != SkltImage.PCC_SYNC.INDIVIDUAL && (this.Source.parts_use_bits & Gen.pcr_base_parts_bits) != 0U)
+			if (this.pcc_sync_base && this.palette_key != "_" && (this.Source.parts_use_bits & Gen.pcr_base_parts_bits) != 0U)
 			{
 				foreach (KeyValuePair<string, MobPCCContainer.ACC> keyValuePair in this.Con.pSklt.OACCBase)
 				{
@@ -233,21 +211,32 @@ namespace XX.mobpxl
 					}
 				}
 			}
+			if (this.OACC == null)
+			{
+				this.OACC = this.Con.pSklt.getPalette(this.palette_key, true);
+			}
 			if (this.OACC != null)
 			{
 				pcc.MergeOACC(this.OACC);
 			}
+			pcc.initColVari(this, this.palette_key_);
 			if (apply_effect_whole)
 			{
 				pcc.applyEffectWhole(null);
 			}
 		}
 
-		internal void initForImgMd(MeshDrawer Md, string ptype, Texture Tx, float texture_w_r, float texture_h_r, out SkltImageSrc.ISrcPat Pat)
+		internal bool initForImgMd(MeshDrawer Md, string ptype, Texture Tx, SkltRenderTicket Tkt, float texture_w_r, float texture_h_r, out SkltImageSrc.ISrcPat Pat)
 		{
 			int ptypeIndex = this.Source.getPTypeIndex(ptype, out Pat);
-			RectInt rectInt = this.ACalcedAtlas[ptypeIndex];
+			RectInt[] array = Tkt.createAtlasImage(this, null);
+			if (array == null)
+			{
+				return false;
+			}
+			RectInt rectInt = array[ptypeIndex];
 			Md.initForImg(Tx, new Rect((float)rectInt.x * texture_w_r, (float)rectInt.y * texture_h_r, (float)rectInt.width * texture_w_r, (float)rectInt.height * texture_h_r), false);
+			return true;
 		}
 
 		public MobSkltPosition getJointBase()
@@ -255,7 +244,7 @@ namespace XX.mobpxl
 			return this.Con.getJointBase();
 		}
 
-		internal static SkltImage readFromBytes(MobGenerator Gen, SkltParts Con, ByteArray Ba, SkltImage Target = null, bool write_pcc_data = true, int vers = 10)
+		internal static SkltImage readFromBytes(MobGenerator Gen, SkltParts Con, ByteArray Ba, SkltImage Target = null, bool write_pcc_data = true, int vers = 13)
 		{
 			uint num = Ba.readUInt();
 			double num2 = Ba.readDouble();
@@ -284,29 +273,42 @@ namespace XX.mobpxl
 			{
 				MobSkltPosition.readFromBytes(Ba, null);
 			}
+			int num3 = 0;
 			if (vers >= 5)
 			{
 				Target.ptype = Ba.readPascalString("utf-8", false);
 				if (vers >= 6)
 				{
-					Target.visible = Ba.readBoolean();
+					num3 = Ba.readByte();
+					Target.visible = (num3 & 1) != 0;
 				}
 			}
-			if (vers >= 1)
+			bool flag2 = false;
+			if (vers >= 11)
 			{
-				Target.pcc_sync = (SkltImage.PCC_SYNC)Ba.readByte();
+				Target.palette_key = Ba.readPascalString("utf-8", false);
+				Target.pcc_sync_base = (num3 & 2) != 0;
 			}
-			if (write_pcc_data)
+			else if (vers >= 1)
 			{
-				if (!Target.use_base_oacc)
+				SkltImage.PCC_SYNC pcc_SYNC = (SkltImage.PCC_SYNC)Ba.readByte();
+				if (pcc_SYNC == SkltImage.PCC_SYNC.USE_BASE)
 				{
-					MobPCCContainer.readFromBytes(Ba, ref Target.OACC, Gen.getBaseCharacter());
+					Target.palette_key = "_";
 				}
 				else
 				{
-					BDic<string, MobPCCContainer.ACC> bdic = null;
-					MobPCCContainer.readFromBytes(Ba, ref bdic, Gen.getBaseCharacter());
+					Target.pcc_sync_base = pcc_SYNC == SkltImage.PCC_SYNC.MERGE;
+					Target.palette_key = imageSrc.palette_key_default;
+					if (pcc_SYNC == SkltImage.PCC_SYNC.INDIVIDUAL)
+					{
+						flag2 = true;
+					}
 				}
+			}
+			if (write_pcc_data)
+			{
+				MobPCCContainer.readFromBytes(Ba, Target.Con.pSklt, Target.palette_key, Gen.getBaseCharacter(), flag2);
 			}
 			if (flag)
 			{
@@ -353,15 +355,15 @@ namespace XX.mobpxl
 
 		public bool visible = true;
 
-		private SkltImage.PCC_SYNC pcc_sync_ = SkltImage.PCC_SYNC.MERGE;
+		private string palette_key_ = "";
+
+		private bool pcc_sync_base_;
 
 		public string ptype = "";
 
-		internal BDic<string, MobPCCContainer.ACC> OACC;
+		internal SkltPalette OACC;
 
 		public int sort_index;
-
-		public RectInt[] ACalcedAtlas;
 
 		private string[] Aui_name_ = new string[2];
 

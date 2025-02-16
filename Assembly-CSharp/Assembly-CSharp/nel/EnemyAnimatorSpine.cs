@@ -25,6 +25,7 @@ namespace nel
 			this.Anm.call_complete_evnet_when_track0 = true;
 			this.Anm.initGameObject(this.Gob);
 			this.Anm.addListenerEvent(new AnimationState.TrackEntryEventDelegate(this.triggerTrackEvent));
+			EnemyAttr.initAnimator(_Mv, this);
 			base.prepareMesh(mtioneImage.MI, this.Mv.TeCon);
 			this.Anm.prepareMaterial(this.MtrBase);
 			this.Anm.whole_loop_set = true;
@@ -253,7 +254,7 @@ namespace nel
 								matrix4x2 *= Matrix4x4.Translate(new Vector3(length * 0.5f, 0f, 0f));
 							}
 							matrix4x2 = matrix4x * Matrix4x4.Translate(new Vector3(bone.WorldX, bone.WorldY, 0f)) * matrix4x2;
-							neyePos.Set(length * 64f, length * 64f * 0.5f, this.CMul, eye_DRAW_TYPE, matrix4x2, this.Mp.floort, this.Mv.enlarge_level_for_animator, (float)this.CMul.a / 255f * this.alpha);
+							neyePos.Set(length * 64f, length * 64f * 0.5f, this.CurMulColor, eye_DRAW_TYPE, matrix4x2, this.Mp.floort, this.Mv.enlarge_level_for_animator, (float)this.CMul.a / 255f * this.alpha);
 							if (i == 1)
 							{
 								neyePos.FnDraw = this.FD_drawBitmapEye;
@@ -284,9 +285,9 @@ namespace nel
 			}
 		}
 
-		protected override bool FnEnRenderBufferInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected override bool FnEnRenderBufferInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
-			if (base.FnEnRenderBufferInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref paste_mesh))
+			if (base.FnEnRenderBufferInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite))
 			{
 				int num = draw_id;
 				return true;
@@ -294,9 +295,9 @@ namespace nel
 			return false;
 		}
 
-		protected override bool FnEnRenderBaseInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected override bool FnEnRenderBaseInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
-			if (base.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref paste_mesh))
+			if (base.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite))
 			{
 				return true;
 			}

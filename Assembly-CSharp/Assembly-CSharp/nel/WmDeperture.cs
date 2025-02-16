@@ -12,8 +12,12 @@ namespace nel
 
 		public WmPosition getPosCache(WholeMapItem Wm)
 		{
+			if (this.map_key == null)
+			{
+				return new WmPosition(Wm, null, default(WMSpecialIcon));
+			}
 			WholeMapItem.WMItem wmitem = null;
-			WholeMapItem.WMSpecialIcon wmspecialIcon = default(WholeMapItem.WMSpecialIcon);
+			WMSpecialIcon wmspecialIcon = default(WMSpecialIcon);
 			Wm.GetWMItem(this.map_key, ref wmitem, ref wmspecialIcon);
 			return new WmPosition(Wm, wmitem, wmspecialIcon);
 		}

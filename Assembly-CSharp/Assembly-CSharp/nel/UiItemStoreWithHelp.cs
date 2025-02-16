@@ -47,7 +47,7 @@ namespace nel
 			}
 			if (this.BoxHelp.isShowingDetail())
 			{
-				if (IN.isCancel() || IN.isMousePushDown() || IN.isUiSortPD())
+				if (IN.isCancel() || IN.isMousePushDown(1) || IN.isUiSortPD())
 				{
 					this.BoxHelp.deactivateDetail();
 					this.BxC.activate();

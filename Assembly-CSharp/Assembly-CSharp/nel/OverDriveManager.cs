@@ -107,7 +107,7 @@ namespace nel
 
 		public void appear()
 		{
-			this.En.killPtc();
+			this.En.killPtc(PtcHolder.PTC_HOLD.ACT);
 			this.En.TeCon.clear();
 			this.En.M2D.Cam.Qu.SinV(12f, 50f, 0f, 0);
 			this.En.M2D.Cam.Qu.Vib(10f, 18f, 0f, 0);
@@ -271,6 +271,10 @@ namespace nel
 
 		public int od_killed_mana_splash = 90;
 
+		public byte drop_ratio_od100;
+
+		public NelItem DropItemOd;
+
 		private bool initted;
 
 		private float eff_t;
@@ -282,8 +286,6 @@ namespace nel
 		private float thunder_overdrive_t;
 
 		private const float SND_FADE_T = 60f;
-
-		public NelItem DropItem;
 
 		public bool pre_overdrive;
 

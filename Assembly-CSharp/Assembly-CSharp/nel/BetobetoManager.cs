@@ -25,7 +25,7 @@ namespace nel
 			this.Xors = new XorsMaker(0U, true);
 		}
 
-		private Material ClearS()
+		private void ClearS()
 		{
 			if (this.OTex == null)
 			{
@@ -34,7 +34,6 @@ namespace nel
 				BetobetoManager.ASeBuf = new List<Skin.SkinEntry>();
 			}
 			this.OTex.Clear();
-			return BetobetoManager.MtrBetoImg;
 		}
 
 		public void cleanAll(bool force_clean_texture = false)
@@ -47,32 +46,46 @@ namespace nel
 			BetobetoManager.immediate_load_material_ = 3;
 			this.wetten = false;
 			this.torned_count = 0f;
-			this.frozen_lv_ = 0;
+			this.frozen_lv_ = (this.web_trapped_lv_ = (this.stone_lv_ = 0));
 			this.Xors.init(false, 0U, 0U, 0U, 0U);
-			this.total_fill_count = global::XX.X.xors(1024);
+			this.total_fill_count = X.xors(1024);
 			if (flag && this.fnUpdated != null)
 			{
 				this.fnUpdated(this.Current);
 			}
 		}
 
+		public static bool is_special_ser_type(BetoInfo.TYPE type)
+		{
+			return type - BetoInfo.TYPE.FROZEN <= 2;
+		}
+
 		public BetobetoManager.SvTexture prepareTexture(string key, bool immediate = false)
+		{
+			Material mtrSpine = UIPicture.Instance.MtrSpine;
+			Texture mainTexture = mtrSpine.mainTexture;
+			BetobetoManager.SvTexture svTexture = this.prepareTexture(key, mtrSpine, immediate);
+			mtrSpine.mainTexture = mainTexture;
+			return svTexture;
+		}
+
+		public BetobetoManager.SvTexture prepareTexture(string key, Material Target, bool immediate = false)
 		{
 			if (this.OTex == null)
 			{
 				return null;
 			}
-			BetobetoManager.SvTexture svTexture = global::XX.X.Get<string, BetobetoManager.SvTexture>(this.OTex, key);
+			BetobetoManager.SvTexture svTexture = X.Get<string, BetobetoManager.SvTexture>(this.OTex, key);
 			if (svTexture == null)
 			{
-				global::XX.X.de("不明なSvTexture:" + key, null);
+				X.de("不明なSvTexture:" + key, null);
 				return null;
 			}
 			if (!svTexture.texture_prepared && UIPicture.Instance != null)
 			{
 				SpineAtlasAsset spineAtlasAsset;
 				SkeletonDataAsset skeletonDataAsset;
-				svTexture.prepareAtlasAssets(out spineAtlasAsset, out skeletonDataAsset, new Material[] { UIPicture.Instance.MtrSpine }, null);
+				svTexture.prepareAtlasAssets(out spineAtlasAsset, out skeletonDataAsset, new Material[] { Target }, null);
 				svTexture.prepareTexture(immediate);
 				UIPicture.Instance.fineCurrentBodyMaterial();
 			}
@@ -142,7 +155,7 @@ namespace nel
 			{
 				this.ClearS();
 			}
-			BetobetoManager.SvTexture svTexture = global::XX.X.Get<string, BetobetoManager.SvTexture>(this.OTex, _key);
+			BetobetoManager.SvTexture svTexture = X.Get<string, BetobetoManager.SvTexture>(this.OTex, _key);
 			if (svTexture == null)
 			{
 				svTexture = (this.OTex[_key] = new BetobetoManager.SvTexture(_key));
@@ -157,21 +170,25 @@ namespace nel
 
 		public bool addTorned(PR Pr, float _min, float _max)
 		{
-			if (CFG.sp_cloth_strength < 50)
-			{
-				_max += (float)(50 - CFG.sp_cloth_strength) / 100f;
-			}
-			if (this.torned_count >= 1f || _max <= 0f || global::XX.X.SENSITIVE || CFG.sp_cloth_strength >= 200)
+			if (Pr.isAnimationFrozen())
 			{
 				return false;
 			}
-			float num = global::XX.X.NIXP(_min, _max) / (((float)CFG.sp_cloth_strength + 20f) / 120f);
-			this.torned_count = global::XX.X.ZLINE(this.torned_count + num);
+			if (CFGSP.cloth_strength < 50)
+			{
+				_max += (float)(50 - CFGSP.cloth_strength) / 100f;
+			}
+			if (this.torned_count >= 1f || _max <= 0f || X.SENSITIVE || CFGSP.cloth_strength >= 200)
+			{
+				return false;
+			}
+			float num = X.NIXP(_min, _max) / (((float)CFGSP.cloth_strength + 20f) / 120f);
+			this.torned_count = X.ZLINE(this.torned_count + num);
 			if (this.torned_count >= 1f)
 			{
 				if (UIPicture.isPr(this))
 				{
-					UIBase.Instance.PtcVar("x", 0f).PtcVar("y", 50f).PtcST("ui_noel_break_cloth", null);
+					UIBase.Instance.PtcVar("x", 0f).PtcVar("y", 50f).PtcST("ui_noel_break_cloth", null, PTCThread.StFollow.NO_FOLLOW);
 				}
 				Pr.fineClothTorned();
 				return true;
@@ -262,7 +279,7 @@ namespace nel
 					}
 					this.thread_active = true;
 					this.Athread[B.thread] = betoThread;
-					flag = (betoThread.stock - 50f * global::XX.X.NI(1, 0, global::XX.X.ZLINE((float)(CFG.ui_effect_dirty - 7), 3f))) * 0.006666667f > global::XX.X.XORSP();
+					flag = (betoThread.stock - 50f * X.NI(1, 0, X.ZLINE((float)(CFG.ui_effect_dirty - 7), 3f))) * 0.006666667f > X.XORSP();
 				}
 			}
 			else
@@ -297,6 +314,63 @@ namespace nel
 			return false;
 		}
 
+		private void fineSpecialBetoIndex(float value, int id, BetoInfo AddingInfo, float level_start = 0.4f, float level_mul_by_value = 0.18f)
+		{
+			bool flag = false;
+			if (value == 0f)
+			{
+				if (id >= 0)
+				{
+					this.info_use--;
+					BetoInfo betoInfo = this.AInfo[id];
+					this.AInfo.RemoveAt(id);
+					this.AInfo.Add(betoInfo);
+				}
+			}
+			else
+			{
+				float num = level_start + level_mul_by_value * (value - 1f);
+				for (int i = ((id >= 0) ? (id - 1) : (this.info_use - 1)); i >= 0; i--)
+				{
+					if (BetobetoManager.is_special_ser_type(this.AInfo[i].type))
+					{
+						num = X.Mn(0.7f, num);
+					}
+				}
+				if (id >= 0)
+				{
+					BetoInfo betoInfo2 = this.AInfo[id];
+					betoInfo2.level = num;
+					this.AInfo.RemoveAt(id);
+					this.AInfo.Insert(this.info_use - 1, betoInfo2);
+				}
+				else
+				{
+					while (this.info_use >= this.AInfo.Count)
+					{
+						this.AInfo.Add(new BetoInfo(null));
+					}
+					List<BetoInfo> ainfo = this.AInfo;
+					int num2 = this.info_use;
+					this.info_use = num2 + 1;
+					ainfo[num2].CopyFrom(AddingInfo).Fix().FillId(ref this.total_fill_count)
+						.level = num;
+					flag = true;
+				}
+			}
+			if (!flag)
+			{
+				foreach (KeyValuePair<string, BetobetoManager.SvTexture> keyValuePair in this.OTex)
+				{
+					keyValuePair.Value.dirt_index = X.Mn(keyValuePair.Value.dirt_index, -1);
+				}
+			}
+			if (this.fnUpdated != null)
+			{
+				this.fnUpdated(this.Current);
+			}
+		}
+
 		public byte frozen_lv
 		{
 			get
@@ -310,63 +384,51 @@ namespace nel
 					return;
 				}
 				this.frozen_lv_ = value;
-				bool flag = false;
-				int frozen_index = this.frozen_index;
-				if (value == 0)
+				this.fineSpecialBetoIndex((float)value, this.frozen_index, BetoInfo.FREEZE, 0.4f, 0.18f);
+			}
+		}
+
+		public byte stone_lv
+		{
+			get
+			{
+				return this.stone_lv_;
+			}
+			set
+			{
+				if (value == this.stone_lv_)
 				{
-					if (frozen_index >= 0)
-					{
-						this.info_use--;
-						BetoInfo betoInfo = this.AInfo[frozen_index];
-						this.AInfo.RemoveAt(frozen_index);
-						this.AInfo.Add(betoInfo);
-					}
+					return;
 				}
-				else
+				this.stone_lv_ = value;
+				this.fineSpecialBetoIndex((float)value, this.stone_index, BetoInfo.STONE_WHOLE, 0.25f, 0.32f);
+			}
+		}
+
+		public byte web_trapped_lv
+		{
+			get
+			{
+				return this.web_trapped_lv_;
+			}
+			set
+			{
+				if (value == this.web_trapped_lv_)
 				{
-					float num = 0.4f + 0.18f * (float)(value - 1);
-					if (frozen_index >= 0)
-					{
-						BetoInfo betoInfo2 = this.AInfo[frozen_index];
-						betoInfo2.level = num;
-						this.AInfo.RemoveAt(frozen_index);
-						this.AInfo.Insert(this.info_use - 1, betoInfo2);
-					}
-					else
-					{
-						while (this.info_use >= this.AInfo.Count)
-						{
-							this.AInfo.Add(new BetoInfo(null));
-						}
-						List<BetoInfo> ainfo = this.AInfo;
-						int num2 = this.info_use;
-						this.info_use = num2 + 1;
-						ainfo[num2].CopyFrom(BetoInfo.FREEZE).Fix().FillId(ref this.total_fill_count)
-							.level = num;
-						flag = true;
-					}
+					return;
 				}
-				if (!flag)
-				{
-					foreach (KeyValuePair<string, BetobetoManager.SvTexture> keyValuePair in this.OTex)
-					{
-						keyValuePair.Value.dirt_index = global::XX.X.Mn(keyValuePair.Value.dirt_index, -1);
-					}
-				}
-				if (this.fnUpdated != null)
-				{
-					this.fnUpdated(this.Current);
-				}
+				this.web_trapped_lv_ = value;
+				this.fineSpecialBetoIndex((float)value, this.web_trapped_index, BetoInfo.WEB_TRAPPED, 0.25f, 1.6f);
 			}
 		}
 
 		private void checkLimit(bool force_redraw = false)
 		{
-			int num = global::XX.X.Mx(2, global::XX.X.IntR(global::XX.X.NI(0.23f, 1f, global::XX.X.ZLINE((float)CFG.ui_effect_dirty, 10f)) * 16f)) + ((this.frozen_lv_ > 0) ? 1 : 0);
+			int num = X.Mx(2, X.IntR(X.NI(0.23f, 1f, X.ZLINE((float)CFG.ui_effect_dirty, 10f)) * 16f)) + ((this.frozen_lv_ > 0) ? 1 : 0) + ((this.web_trapped_lv_ > 0) ? 1 : 0) + ((this.stone_lv_ > 0) ? 1 : 0);
 			if (this.info_use >= num)
 			{
 				int num2 = this.info_use - num + 1;
-				bool flag = force_redraw || this.frozen_lv_ > 0 || CFG.ui_effect_dirty <= 7;
+				bool flag = force_redraw || this.frozen_lv_ > 0 || this.web_trapped_lv_ > 0 || this.stone_lv_ > 0 || CFG.ui_effect_dirty <= 7;
 				foreach (KeyValuePair<string, BetobetoManager.SvTexture> keyValuePair in this.OTex)
 				{
 					if (keyValuePair.Value.dirt_index > 0)
@@ -381,17 +443,29 @@ namespace nel
 						}
 					}
 				}
-				int num3 = ((this.frozen_lv_ == 0) ? (-1) : this.frozen_index);
-				if (num3 < 0 || num3 >= num2)
+				if (this.frozen_lv_ == 0 && this.web_trapped_lv_ == 0 && this.stone_lv_ == 0)
 				{
 					this.AInfo.RemoveRange(0, num2);
+					this.info_use -= num2;
+					return;
 				}
-				else
+				int i = 0;
+				while (i < this.info_use)
 				{
-					this.AInfo.RemoveRange(num3 + 1, num2 - num3);
-					this.AInfo.RemoveRange(0, num3);
+					if (BetobetoManager.is_special_ser_type(this.AInfo[i].type))
+					{
+						i++;
+					}
+					else
+					{
+						this.AInfo.RemoveAt(i);
+						this.info_use--;
+						if (--num2 <= 0)
+						{
+							break;
+						}
+					}
 				}
-				this.info_use -= num2;
 			}
 		}
 
@@ -402,6 +476,59 @@ namespace nel
 				for (int i = 0; i < this.info_use; i++)
 				{
 					if (this.AInfo[i].type == BetoInfo.TYPE.FROZEN)
+					{
+						return i;
+					}
+				}
+				return -1;
+			}
+		}
+
+		private int stone_index
+		{
+			get
+			{
+				for (int i = 0; i < this.info_use; i++)
+				{
+					if (this.AInfo[i].type == BetoInfo.TYPE.STONE_WHOLE)
+					{
+						return i;
+					}
+				}
+				return -1;
+			}
+		}
+
+		public int frozen_stone_index
+		{
+			get
+			{
+				for (int i = 0; i < this.info_use; i++)
+				{
+					BetoInfo.TYPE type = this.AInfo[i].type;
+					if (type == BetoInfo.TYPE.WEB_TRAPPED)
+					{
+						if (this.web_trapped_lv_ >= 2)
+						{
+							return i;
+						}
+					}
+					else if (type == BetoInfo.TYPE.FROZEN || type == BetoInfo.TYPE.STONE_WHOLE)
+					{
+						return i;
+					}
+				}
+				return -1;
+			}
+		}
+
+		private int web_trapped_index
+		{
+			get
+			{
+				for (int i = 0; i < this.info_use; i++)
+				{
+					if (this.AInfo[i].type == BetoInfo.TYPE.WEB_TRAPPED)
 					{
 						return i;
 					}
@@ -429,7 +556,7 @@ namespace nel
 			return this.info_use;
 		}
 
-		public void readBinaryFrom(ByteArray Ba)
+		public void readBinaryFrom(ByteReader Ba)
 		{
 			this.cleanAll(true);
 			int num = Ba.readByte();
@@ -462,7 +589,7 @@ namespace nel
 			{
 				this.AInfo[k].readBinaryFrom(Ba, num >= 4, num >= 5);
 			}
-			this.torned_count = global::XX.X.ZLINE((float)Ba.readUByte(), 255f);
+			this.torned_count = X.ZLINE((float)Ba.readUByte(), 255f);
 			if (num >= 3)
 			{
 				this.wetten = Ba.readUByte() > 0;
@@ -485,7 +612,7 @@ namespace nel
 			{
 				this.AInfo[j].writeBinaryTo(Ba);
 			}
-			Ba.writeByte((int)((byte)(255f * global::XX.X.ZLINE(this.torned_count))));
+			Ba.writeByte((int)((byte)(255f * X.ZLINE(this.torned_count))));
 			Ba.writeByte(this.wetten ? 1 : 0);
 		}
 
@@ -567,7 +694,7 @@ namespace nel
 			}
 			set
 			{
-				BetobetoManager.immediate_load_material_ = global::XX.X.Mx(BetobetoManager.immediate_load_material_, value);
+				BetobetoManager.immediate_load_material_ = X.Mx(BetobetoManager.immediate_load_material_, value);
 			}
 		}
 
@@ -598,6 +725,9 @@ namespace nel
 				BetobetoManager.BzPict.resolution = 12;
 				BetobetoManager.MtrBetoImg = MTR.newMtr("Nel/BlitBetobetoImg");
 				BetobetoManager.MtrBetoImg.SetTexture("_MainTex", MTR.MIiconL.Tx);
+				BetobetoManager.MtrStone = MTR.newMtrStone();
+				BetobetoManager.MtrFrozen = MTR.newMtrFrozenMain();
+				MTR.newMtrFrozenAdditional(out BetobetoManager.MtrFrozenGdtA, out BetobetoManager.MtrFrozenGdtS);
 				MTRX.setMaterialST(BetobetoManager.MtrBetoImg, "_NTex", MTRX.SqEfPattern.getImage(6, 0), 0f);
 				BetobetoManager.OChara2Beto = new BDic<string, BetobetoManager>();
 				BetobetoManager.OChara2Beto["noel"] = new BetobetoManager("noel");
@@ -641,7 +771,7 @@ namespace nel
 			Bench.P("Noel-Beto");
 			if (BetobetoManager.immediate_load_material_ > 0)
 			{
-				BetobetoManager.immediate_load_material_ = (byte)global::XX.X.Mx(0, (int)BetobetoManager.immediate_load_material_ - fcnt);
+				BetobetoManager.immediate_load_material_ = (byte)X.Mx(0, (int)BetobetoManager.immediate_load_material_ - fcnt);
 			}
 			foreach (KeyValuePair<string, BetobetoManager> keyValuePair in BetobetoManager.OChara2Beto)
 			{
@@ -679,7 +809,15 @@ namespace nel
 			}
 		}
 
-		public static Material MtrBetoImg;
+		private static Material MtrBetoImg;
+
+		private static Material MtrStone;
+
+		private static Material MtrFrozen;
+
+		private static Material MtrFrozenGdtA;
+
+		private static Material MtrFrozenGdtS;
 
 		public static BezierPictDrawer BzPict;
 
@@ -717,6 +855,10 @@ namespace nel
 
 		private byte frozen_lv_;
 
+		private byte stone_lv_;
+
+		private byte web_trapped_lv_;
+
 		public Func<BetobetoManager.SvTexture, bool> fnUpdated;
 
 		private static byte immediate_load_material_;
@@ -742,19 +884,32 @@ namespace nel
 				}
 				this.dirt_index = 0;
 				Texture image = this.MtiImage0.Image;
-				if (this.Base == null)
-				{
-					this.texture_rev_w = 1f / (float)image.width;
-					this.texture_rev_h = 1f / (float)image.height;
-					this.Base = new RenderTexture(image.width, image.height, 16, RenderTextureFormat.ARGB32, 1);
-					this.Base.name = image.name;
-					this.Base.antiAliasing = 2;
-					this.Base.wrapMode = TextureWrapMode.Clamp;
-					BLIT.Clear(this.Base, 0U, true);
-				}
+				this.allocTexture(image.width, image.height, image.name);
 				BLIT.PasteTo(this.Base, image, (float)this.Base.width * 0.5f, (float)this.Base.height * 0.5f, 1f, 0f, 0f, 1f, 1f);
 				RenderTexture.active = null;
+				if (this.SpAtlasAsset != null)
+				{
+					this.SpAtlasAsset.materials[0].mainTexture = this.Base;
+					this.SpDataAsset.GetSkeletonData(false);
+				}
 				return true;
+			}
+
+			private void allocTexture(int width, int height, string name = null)
+			{
+				RenderTexture @base = this.Base;
+				BLIT.Alloc(ref this.Base, width, height, true, RenderTextureFormat.ARGB32, 16);
+				this.texture_rev_w = 1f / (float)width;
+				this.texture_rev_h = 1f / (float)height;
+				this.Base.wrapMode = TextureWrapMode.Clamp;
+				this.Base.name = name ?? this.key;
+				if (this.Base != @base)
+				{
+					BLIT.Clear(this.Base, 0U, true);
+					this.atlas_depth_written = false;
+					return;
+				}
+				BLIT.Clear(this.Base, 0U, false);
 			}
 
 			public void releaseCached(bool do_not_clean = false)
@@ -821,7 +976,7 @@ namespace nel
 
 			public void prepareAtlasAssets(out SpineAtlasAsset _SpAtlasAsset, out SkeletonDataAsset _SpDataAsset, Material[] AMtr, string replace_json_key = null)
 			{
-				bool flag = this.initialize_load;
+				bool flag = this.initialize_load || true;
 				if (this.MtiText.isWrong(this.SpAtlasAsset))
 				{
 					this.SpAtlasAsset = null;
@@ -859,9 +1014,28 @@ namespace nel
 
 			private void readAtlas()
 			{
-				if (this.dirt_index != 0 && !this.cleanExecute(false))
+				if (this.dirt_index != 0 && !this.cleanExecute(false) && this.Base == null && this.SpAtlasAsset != null)
 				{
-					return;
+					string text = this.SpAtlasAsset.atlasFile.text;
+					int num = 0;
+					int num2 = 0;
+					using (STB stb = TX.PopBld(null, 0))
+					{
+						stb.Add(text, 0, this.key.Length + 30);
+						int num3 = stb.IndexOf('\n', 0, -1);
+						if (num3 >= 0 && stb.isStart("size:", num3 + 1))
+						{
+							num3 += 6;
+							int num4;
+							num = stb.NmI(num3, out num4, -1, 0);
+							num2 = stb.NmI(num4 + 1, out num4, -1, 0);
+						}
+					}
+					if (num <= 0 || num2 <= 0)
+					{
+						return;
+					}
+					this.allocTexture(num, num2, null);
 				}
 				if (this.SpDataAsset == null)
 				{
@@ -879,7 +1053,7 @@ namespace nel
 					}
 					ExposedList<Skin> skins = skeletonData.Skins;
 					int count = atlas.Regions.Count;
-					int num = 0;
+					int num5 = 0;
 					for (int i = 0; i < count; i++)
 					{
 						AtlasRegion atlasRegion = atlas.Regions[i];
@@ -889,11 +1063,11 @@ namespace nel
 							if (atlRect.nd_mode)
 							{
 								list.Add(atlRect);
-								num++;
+								num5++;
 							}
 							else
 							{
-								list.Insert(list.Count - num, atlRect);
+								list.Insert(list.Count - num5, atlRect);
 							}
 							if (skins != null)
 							{
@@ -1044,6 +1218,7 @@ namespace nel
 				{
 					return null;
 				}
+				this.preapreAtlasDepth();
 				return this.Base;
 			}
 
@@ -1063,17 +1238,17 @@ namespace nel
 					return false;
 				}
 				BetoInfo info = BCon.getInfo(this.dirt_index);
-				if (CFG.ui_effect_dirty == 0 && info.type != BetoInfo.TYPE.FROZEN)
+				if (CFG.ui_effect_dirty == 0 && !BetobetoManager.is_special_ser_type(info.type))
 				{
 					return !flag;
 				}
-				float num = info.level * global::XX.X.ZLINE((float)CFG.ui_effect_dirty, 7f);
-				float num2 = global::XX.X.NI(0.66f, 1f, global::XX.X.ZLINE((float)CFG.ui_effect_dirty, 7f));
+				float num = info.level * X.ZLINE((float)CFG.ui_effect_dirty, 7f);
+				float num2 = X.NI(0.66f, 1f, X.ZLINE((float)CFG.ui_effect_dirty, 7f));
 				MeshDrawer mdTemp = BetobetoManager.MdTemp;
 				float num3 = info.scale * num2;
 				float num4 = info.scale * num2;
-				int frozen_index = BCon.frozen_index;
-				mdTemp.base_z = ((frozen_index < 0 || this.dirt_index < frozen_index) ? 0.125f : 0.625f);
+				int frozen_stone_index = BCon.frozen_stone_index;
+				mdTemp.base_z = ((frozen_stone_index < 0 || this.dirt_index < frozen_stone_index) ? 0.125f : 0.625f);
 				uint num5 = BCon.GETRAN2((info.fill_id & 255) + this.id * 27, 1 + info.fill_id % 5 + this.id % 4);
 				Graphics.SetRenderTarget(this.Base);
 				GL.PushMatrix();
@@ -1081,17 +1256,177 @@ namespace nel
 				GL.MultMatrix(Matrix4x4.Scale(new Vector3(64f / (float)this.Base.width, 64f / (float)this.Base.height, 1f)));
 				int num6 = 0;
 				int num7 = 0;
-				if (info.type == BetoInfo.TYPE.FROZEN)
+				BetoInfo.TYPE type = info.type;
+				if (type != BetoInfo.TYPE.FROZEN)
 				{
-					Material material = null;
-					float num8 = (float)this.Base.width / 512f / info.scale;
-					float num9 = (float)this.Base.height / 512f / info.scale;
-					for (int i = 2; i >= 0; i--)
+					if (type == BetoInfo.TYPE.STONE_WHOLE)
 					{
-						material = ((i == 2) ? MTR.MtrFrozenGdtS : ((i == 1) ? MTR.MtrFrozenGdtA : MTR.MtrFrozen));
-						material.SetFloat("_Level", info.level);
+						float num8 = (float)this.Base.width / 512f / info.scale * 4f;
+						float num9 = (float)this.Base.height / 512f / info.scale * 4f;
+						Material material = BetobetoManager.MtrStone;
+						material.SetColor("_Color", info.Col);
+						material.SetColor("_BColor", info.Col2);
+						material.SetFloat("_ZTest", 4f);
+						mdTemp.activate("stone", material, true, MTRX.ColWhite, null);
 						material.SetFloat("_ScaleX", num8);
 						material.SetFloat("_ScaleY", num9);
+						material.SetFloat("_AlphaSrc", 0f);
+						material.SetFloat("_AlphaDest", 1f);
+						material.SetFloat("_Level", info.level);
+						BetobetoManager.SvTexture.RenderWhole(this.Base, material);
+					}
+					else
+					{
+						int num10 = (int)(num5 & 3U);
+						float num11 = (float)(this.Base.width * this.Base.height) * num * 0.75f * X.NI(0.4f, 1f, X.ZLINE(info.scale));
+						float num12 = num11 * 0.35f;
+						float num13 = 0f;
+						Material material = BetobetoManager.MtrBetoImg;
+						mdTemp.activate("svnel_betobeto", material, true, info.Col, null);
+						if (info.BloodReplaceCol.a > 0 && CFG.blood_weaken > 0)
+						{
+							num13 = X.Mx(0.125f, num11 * (1f - X.ZSINV(1f - (float)CFG.blood_weaken / (float)CFG.BLOOD_WEAKEN_MAX) * X.NI(0.75f, 1f, X.RAN(num5, 1953))));
+							mdTemp.Col = info.BloodReplaceCol;
+						}
+						material.SetColor("_BColor", info.Col2);
+						material.SetFloat("_TextureScale", info.scale);
+						material.SetFloat("_Density", (float)CFG.ui_effect_density / 10f);
+						material.SetFloat("_ZTest", 4f);
+						material.SetPass(0);
+						GL.Begin(4);
+						float num14 = 0f;
+						float num15 = 0f;
+						float num16 = 0f;
+						float num17 = 0f;
+						float num18 = X.RAN(num5, 2896) * (float)this.Base.width;
+						float num19 = X.RAN(num5, 526) * (float)this.Base.height;
+						float num20 = info.jumprate * X.NI(0.6f, 1f, X.RAN(num5, 1700));
+						PxlSequence pxlSequence = null;
+						BetoInfo.TYPE type2 = info.type;
+						if (type2 != BetoInfo.TYPE.LIQUID)
+						{
+							if (type2 != BetoInfo.TYPE.STAIN)
+							{
+								if (type2 == BetoInfo.TYPE.WEB_TRAPPED)
+								{
+									pxlSequence = MTR.SqParticleBetoWebTrapped;
+									num11 *= 9f;
+									mdTemp.base_z = 0.625f;
+								}
+							}
+							else
+							{
+								pxlSequence = MTR.SqEfSabi;
+							}
+						}
+						else
+						{
+							pxlSequence = MTR.SqParticleSperm;
+						}
+						while (num14 < num11)
+						{
+							num5 = BCon.GETRAN2(num6 * 13 + (int)(num5 & 255U), num6 % 44 + (int)(num5 & 31U));
+							PxlImage pxlImage = null;
+							type2 = info.type;
+							if (type2 != BetoInfo.TYPE.SMOKE)
+							{
+								if (type2 == BetoInfo.TYPE.CUTTED)
+								{
+									PxlSequence sqBezierCutted = MTR.SqBezierCutted;
+									pxlImage = sqBezierCutted.getFrame((int)((ulong)num5 % (ulong)((long)sqBezierCutted.countFrames()))).getLayer(0).Img;
+								}
+							}
+							else
+							{
+								pxlSequence = ((num12 > num14) ? MTR.SqParticleSperm : MTR.SqParticleSplash);
+							}
+							PxlFrame pxlFrame = null;
+							if (pxlSequence != null)
+							{
+								pxlFrame = pxlSequence.getFrame((int)((ulong)num5 % (ulong)((long)pxlSequence.countFrames())));
+								pxlImage = pxlFrame.getLayer(0).Img;
+							}
+							float num21 = 1f;
+							float num22 = 1f;
+							if (num7 > 0 && X.RAN(num5, 493) < num20)
+							{
+								num7 = 0;
+							}
+							float num25;
+							float num26;
+							if (num7 == 0)
+							{
+								float num23 = X.RAN(num5, 1494);
+								float num24 = X.RAN(num5, 670);
+								if (((num23 >= 0.5f) ? 1 : 0) + ((num24 >= 0.5f) ? 2 : 0) == num10)
+								{
+									num6++;
+									continue;
+								}
+								num25 = (float)this.Base.width * num23;
+								num26 = (float)this.Base.height * num24;
+								num17 = 3.1415927f * X.NI(-0.15f, 0.15f, X.RAN(num5, 510));
+							}
+							else
+							{
+								float num27 = X.RAN(num5, 2100) * 6.2831855f;
+								float num28 = (X.NI(12, 30, X.RAN(num5, 728)) + (float)((num7 == 1) ? 25 : 0)) * num3;
+								float num29 = X.NI(0.06f, 0.3f, X.ZPOW(X.RAN(num5, 782)));
+								num25 = num15 + num28 * X.Cos(num27);
+								num26 = num16 + num28 * X.Sin(num27);
+								num21 *= num29;
+								num22 *= num29;
+							}
+							float num30 = X.NI(0.75f, 2.25f, X.RAN(num5, 1530));
+							num21 *= num3 * num30;
+							num22 *= num4 * (num30 + X.NI(-0.1f, 0.1f, X.RAN(num5, 1478)));
+							float num31 = (float)pxlImage.width;
+							if (info.type == BetoInfo.TYPE.CUTTED)
+							{
+								BetobetoManager.BzPict.PtCenterPx(-128f, 0f, 0f, (20f + 14f * X.RAN(num5, 2754)) * (float)X.MPF(X.RAN(num5, 2851) < 0.5f), X.NI(8, 11, X.RAN(num5, 1629)) * 4f, X.NI(-0.06f, 0.06f, X.RAN(num5, 2989)) * 3.1415927f, 128f, 0f);
+								mdTemp.initForImg(pxlImage, 0);
+								Matrix4x4 currentMatrix = mdTemp.getCurrentMatrix();
+								num31 = X.NI(pxlImage.width, 140, 0.6f);
+								mdTemp.TranslateP((num25 + num18) % (float)this.Base.width, (num26 + num19) % (float)this.Base.height, true).Rotate(num17 + X.NI(-0.03f, 0.03f, X.RAN(num5, 2252)) * 3.1415927f, true).Scale(num31 * num21 * 0.015625f / 4f, 1f, true);
+								BetobetoManager.BzPict.drawTo(mdTemp, 0f, 0f, num22 * (float)pxlImage.height * 2f * 0.015625f, true);
+								mdTemp.setCurrentMatrix(currentMatrix, false);
+								num31 *= 1.5f;
+							}
+							else
+							{
+								mdTemp.RotaPF((num25 + num18) % (float)this.Base.width, (num26 + num19) % (float)this.Base.height, num21, num22, X.RAN(num5, 2342) * 6.2831855f, pxlFrame, (num5 & 1U) > 0U, false, false, uint.MaxValue, false, 0);
+							}
+							num15 = num25;
+							num16 = num26;
+							num6++;
+							num7++;
+							float num32 = num31 * num21 * (float)pxlImage.height * num22;
+							num14 += num32;
+							if (num13 > 0f)
+							{
+								num13 -= num32;
+								if (num13 <= 0f)
+								{
+									mdTemp.Col = info.Col;
+								}
+							}
+							BLIT.RenderToGLOneTask(mdTemp, mdTemp.getTriMax(), false);
+						}
+						BLIT.RenderToGLOneTask(mdTemp, mdTemp.getTriMax(), false);
+						GL.End();
+					}
+				}
+				else
+				{
+					Material material = null;
+					float num33 = (float)this.Base.width / 512f / info.scale;
+					float num34 = (float)this.Base.height / 512f / info.scale;
+					for (int i = 2; i >= 0; i--)
+					{
+						material = ((i == 2) ? BetobetoManager.MtrFrozenGdtS : ((i == 1) ? BetobetoManager.MtrFrozenGdtA : BetobetoManager.MtrFrozen));
+						material.SetFloat("_Level", info.level);
+						material.SetFloat("_ScaleX", num33);
+						material.SetFloat("_ScaleY", num34);
 						material.SetFloat("_ZTest", 4f);
 						if (i >= 1)
 						{
@@ -1101,171 +1436,47 @@ namespace nel
 					material.SetColor("_Color", C32.d2c(4288008150U));
 					material.SetColor("_BColor", C32.d2c(4279786863U));
 					material.SetColor("_WColor", C32.d2c(4292867578U));
-					mdTemp.activate("frozen", material, true, info.Col, null);
-					mdTemp.initForImgAndTexture(this.Base);
-					material.SetPass(0);
-					GL.Begin(4);
-					mdTemp.Col = MTRX.ColWhite;
-					mdTemp.RectBL(0f, 0f, (float)this.Base.width, (float)this.Base.height, false);
-					BLIT.RenderToGLOneTask(mdTemp, mdTemp.getTriMax(), false);
-					GL.End();
+					BetobetoManager.SvTexture.RenderWhole(this.Base, material);
 					GL.Flush();
-					num6 = global::XX.X.IntC((float)(this.Base.width * this.Base.height) * global::XX.X.ZPOW(info.level - 0.4f, 0.6f) / 6000f);
-					num7 = global::XX.X.Mx(1, (int)((float)num6 * 0.45f));
-					mdTemp.activate("frozen", MTR.MtrFrozenGdtS, true, info.Col, null);
+					num6 = X.IntC((float)(this.Base.width * this.Base.height) * X.ZPOW(info.level - 0.4f, 0.6f) / 6000f);
+					num7 = X.Mx(1, (int)((float)num6 * 0.45f));
+					mdTemp.activate("frozen", BetobetoManager.MtrFrozenGdtS, true, info.Col, null);
 					mdTemp.Col = C32.d2c(1714631435U);
-					MTR.MtrFrozenGdtS.SetPass(0);
+					BetobetoManager.MtrFrozenGdtS.SetPass(0);
 					GL.Begin(4);
 					while (--num6 >= 0)
 					{
 						num5 = BCon.GETRAN2(num6 * 13 + (int)(num5 & 255U), num6 % 7 + (int)(num5 & 7U));
-						PxlFrame pxlFrame = MTR.ANoelBreakCloth[(long)((ulong)num5 % (ulong)((long)MTR.ANoelBreakCloth.Length))];
-						mdTemp.initForImg(pxlFrame.getLayer(0).Img, 0);
-						mdTemp.RotaGraph(global::XX.X.RAN(num5, 453) * (float)this.Base.width, global::XX.X.RAN(num5, 1280) * (float)this.Base.height, global::XX.X.NI(2.2f, 2.7f, global::XX.X.RAN(num5, 1143)), global::XX.X.RAN(num5, 1212) * 6.2831855f, null, global::XX.X.RAN(num5, 567) < 0.5f);
+						PxlFrame pxlFrame2 = MTR.ANoelBreakCloth[(long)((ulong)num5 % (ulong)((long)MTR.ANoelBreakCloth.Length))];
+						mdTemp.initForImg(pxlFrame2.getLayer(0).Img, 0);
+						mdTemp.RotaGraph(X.RAN(num5, 453) * (float)this.Base.width, X.RAN(num5, 1280) * (float)this.Base.height, X.NI(2.2f, 2.7f, X.RAN(num5, 1143)), X.RAN(num5, 1212) * 6.2831855f, null, X.RAN(num5, 567) < 0.5f);
 						BLIT.RenderToGLOneTask(mdTemp, mdTemp.getTriMax(), false);
 						if (--num7 == 0)
 						{
 							GL.End();
 							GL.Flush();
-							mdTemp.activate("frozen", MTR.MtrFrozenGdtA, true, info.Col, null);
-							MTR.MtrFrozenGdtA.SetPass(0);
+							mdTemp.activate("frozen", BetobetoManager.MtrFrozenGdtA, true, info.Col, null);
+							BetobetoManager.MtrFrozenGdtA.SetPass(0);
 							mdTemp.Col = C32.d2c(4282104531U);
 							GL.Begin(4);
 						}
 					}
 					GL.End();
 				}
-				else
-				{
-					int num10 = (int)(num5 & 3U);
-					float num11 = (float)(this.Base.width * this.Base.height) * num * 0.75f * global::XX.X.NI(0.4f, 1f, global::XX.X.ZLINE(info.scale));
-					float num12 = num11 * 0.35f;
-					float num13 = 0f;
-					Material material = BetobetoManager.MtrBetoImg;
-					mdTemp.activate("svnel_betobeto", material, true, info.Col, null);
-					if (info.BloodReplaceCol.a > 0 && CFG.blood_weaken > 0)
-					{
-						num13 = global::XX.X.Mx(0.125f, num11 * (1f - global::XX.X.ZSINV(1f - (float)CFG.blood_weaken / (float)CFG.BLOOD_WEAKEN_MAX) * global::XX.X.NI(0.75f, 1f, global::XX.X.RAN(num5, 1953))));
-						mdTemp.Col = info.BloodReplaceCol;
-					}
-					material.SetColor("_BColor", info.Col2);
-					material.SetFloat("_TextureScale", info.scale);
-					material.SetFloat("_Density", (float)CFG.ui_effect_density / 10f);
-					material.SetPass(0);
-					GL.Begin(4);
-					float num14 = 0f;
-					float num15 = 0f;
-					float num16 = 0f;
-					float num17 = 0f;
-					float num18 = global::XX.X.RAN(num5, 2896) * (float)this.Base.width;
-					float num19 = global::XX.X.RAN(num5, 526) * (float)this.Base.height;
-					float num20 = info.jumprate * global::XX.X.NI(0.6f, 1f, global::XX.X.RAN(num5, 1700));
-					while (num14 < num11)
-					{
-						num5 = BCon.GETRAN2(num6 * 13 + (int)(num5 & 255U), num6 % 44 + (int)(num5 & 31U));
-						PxlSequence pxlSequence = null;
-						PxlImage pxlImage = null;
-						switch (info.type)
-						{
-						case BetoInfo.TYPE.SMOKE:
-							pxlSequence = ((num12 > num14) ? MTR.SqParticleSperm : MTR.SqParticleSplash);
-							break;
-						case BetoInfo.TYPE.LIQUID:
-							pxlSequence = MTR.SqParticleSperm;
-							break;
-						case BetoInfo.TYPE.STAIN:
-							pxlSequence = MTR.SqEfSabi;
-							break;
-						case BetoInfo.TYPE.CUTTED:
-						{
-							PxlSequence sqBezierCutted = MTR.SqBezierCutted;
-							pxlImage = sqBezierCutted.getFrame((int)((ulong)num5 % (ulong)((long)sqBezierCutted.countFrames()))).getLayer(0).Img;
-							break;
-						}
-						default:
-							continue;
-						}
-						PxlFrame pxlFrame2 = null;
-						if (pxlSequence != null)
-						{
-							pxlFrame2 = pxlSequence.getFrame((int)((ulong)num5 % (ulong)((long)pxlSequence.countFrames())));
-							pxlImage = pxlFrame2.getLayer(0).Img;
-						}
-						float num21 = 1f;
-						float num22 = 1f;
-						if (num7 > 0 && global::XX.X.RAN(num5, 493) < num20)
-						{
-							num7 = 0;
-						}
-						float num25;
-						float num26;
-						if (num7 == 0)
-						{
-							float num23 = global::XX.X.RAN(num5, 1494);
-							float num24 = global::XX.X.RAN(num5, 670);
-							if (((num23 >= 0.5f) ? 1 : 0) + ((num24 >= 0.5f) ? 2 : 0) == num10)
-							{
-								num6++;
-								continue;
-							}
-							num25 = (float)this.Base.width * num23;
-							num26 = (float)this.Base.height * num24;
-							num17 = 3.1415927f * global::XX.X.NI(-0.15f, 0.15f, global::XX.X.RAN(num5, 510));
-						}
-						else
-						{
-							float num27 = global::XX.X.RAN(num5, 2100) * 6.2831855f;
-							float num28 = (global::XX.X.NI(12, 30, global::XX.X.RAN(num5, 728)) + (float)((num7 == 1) ? 25 : 0)) * num3;
-							float num29 = global::XX.X.NI(0.06f, 0.3f, global::XX.X.ZPOW(global::XX.X.RAN(num5, 782)));
-							num25 = num15 + num28 * global::XX.X.Cos(num27);
-							num26 = num16 + num28 * global::XX.X.Sin(num27);
-							num21 *= num29;
-							num22 *= num29;
-						}
-						float num30 = global::XX.X.NI(0.75f, 2.25f, global::XX.X.RAN(num5, 1530));
-						num21 *= num3 * num30;
-						num22 *= num4 * (num30 + global::XX.X.NI(-0.1f, 0.1f, global::XX.X.RAN(num5, 1478)));
-						float num31 = (float)pxlImage.width;
-						if (info.type == BetoInfo.TYPE.CUTTED)
-						{
-							BetobetoManager.BzPict.PtCenterPx(-128f, 0f, 0f, (20f + 14f * global::XX.X.RAN(num5, 2754)) * (float)global::XX.X.MPF(global::XX.X.RAN(num5, 2851) < 0.5f), global::XX.X.NI(8, 11, global::XX.X.RAN(num5, 1629)) * 4f, global::XX.X.NI(-0.06f, 0.06f, global::XX.X.RAN(num5, 2989)) * 3.1415927f, 128f, 0f);
-							mdTemp.initForImg(pxlImage, 0);
-							Matrix4x4 currentMatrix = mdTemp.getCurrentMatrix();
-							num31 = global::XX.X.NI(pxlImage.width, 140, 0.6f);
-							mdTemp.TranslateP((num25 + num18) % (float)this.Base.width, (num26 + num19) % (float)this.Base.height, true).Rotate(num17 + global::XX.X.NI(-0.03f, 0.03f, global::XX.X.RAN(num5, 2252)) * 3.1415927f, true).Scale(num31 * num21 * 0.015625f / 4f, 1f, true);
-							BetobetoManager.BzPict.drawTo(mdTemp, 0f, 0f, num22 * (float)pxlImage.height * 2f * 0.015625f, true);
-							mdTemp.setCurrentMatrix(currentMatrix, false);
-							num31 *= 1.5f;
-						}
-						else
-						{
-							mdTemp.RotaPF((num25 + num18) % (float)this.Base.width, (num26 + num19) % (float)this.Base.height, num21, num22, global::XX.X.RAN(num5, 2342) * 6.2831855f, pxlFrame2, (num5 & 1U) > 0U, false, false, uint.MaxValue, false, 0);
-						}
-						num15 = num25;
-						num16 = num26;
-						num6++;
-						num7++;
-						float num32 = num31 * num21 * (float)pxlImage.height * num22;
-						num14 += num32;
-						if (num13 > 0f)
-						{
-							num13 -= num32;
-							if (num13 <= 0f)
-							{
-								mdTemp.Col = info.Col;
-							}
-						}
-						BLIT.RenderToGLOneTask(mdTemp, mdTemp.getTriMax(), false);
-					}
-					BLIT.RenderToGLOneTask(mdTemp, mdTemp.getTriMax(), false);
-					GL.End();
-				}
 				Graphics.SetRenderTarget(null);
 				GL.PopMatrix();
 				GL.Flush();
-				int num33 = this.dirt_index + 1;
-				this.dirt_index = num33;
-				return num33 == cur_dirt && !flag;
+				int num35 = this.dirt_index + 1;
+				this.dirt_index = num35;
+				return num35 == cur_dirt && !flag;
+			}
+
+			private static void RenderWhole(RenderTexture Base, Material Mtr)
+			{
+				RenderTexture temporary = RenderTexture.GetTemporary(Base.descriptor);
+				Graphics.Blit(Base, temporary, BLIT.MtrJustPaste);
+				Graphics.Blit(temporary, Base, Mtr);
+				RenderTexture.ReleaseTemporary(temporary);
 			}
 
 			private RenderTexture Base;
@@ -1359,7 +1570,7 @@ namespace nel
 
 		private struct BetoThread
 		{
-			public void readBinaryFrom(ByteArray Ba, int vers)
+			public void readBinaryFrom(ByteReader Ba, int vers)
 			{
 				this.stock = Ba.readFloat();
 			}
@@ -1373,7 +1584,7 @@ namespace nel
 			{
 				if (this.lockf > 0)
 				{
-					this.lockf = global::XX.X.Mx(this.lockf - fcnt, 0);
+					this.lockf = X.Mx(this.lockf - fcnt, 0);
 				}
 				return this.lockf > 0;
 			}

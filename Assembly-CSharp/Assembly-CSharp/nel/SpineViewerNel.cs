@@ -7,9 +7,10 @@ namespace nel
 {
 	public sealed class SpineViewerNel : SpineViewer
 	{
-		public SpineViewerNel(string _key, string chara_key)
+		public SpineViewerNel(UIPictureBodySpine _Con, string _key, string chara_key)
 			: base(_key)
 		{
+			this.Con = _Con;
 			this.BetoMng = BetobetoManager.GetManager(chara_key);
 			this.CurSvt = this.BetoMng.Assign(_key);
 		}
@@ -65,7 +66,8 @@ namespace nel
 
 		public override Texture prepareTexture()
 		{
-			this.Tex = this.CurSvt.preapreAtlasDepth().prepareTexture(false);
+			this.CurSvt.preapreAtlasDepth();
+			this.Tex = this.CurSvt.prepareTexture(false);
 			return this.Tex;
 		}
 
@@ -86,12 +88,8 @@ namespace nel
 				}
 				base.prepareMaterial(null);
 			}
-			if (!this.CurSvt.runBetobeto(this.cur_dirt, null))
-			{
-				SpineViewerNel.CurDrawUpdating = this;
-				return false;
-			}
-			return true;
+			SpineViewerNel.CurDrawUpdating = this;
+			return SpineViewerNel.updateTexture();
 		}
 
 		public override void fineAtlasMaterial()
@@ -115,6 +113,36 @@ namespace nel
 			if (!texture_prepared && this.CurSvt.texture_prepared)
 			{
 				fine_material = true;
+			}
+			this.BetoTextureUpdated(fine_material, false);
+		}
+
+		public void BetoTextureUpdated(bool mateial_reupdated, bool _fine_material = true)
+		{
+			if (this.CurSvt.texture_prepared && !SpineViewerNel.lock_betotexture_updated && (mateial_reupdated || this.CurSvt.dirt_index == 0 || this.CurSvt.dirt_index == 1))
+			{
+				SpineViewerNel.lock_betotexture_updated = true;
+				try
+				{
+					if (_fine_material)
+					{
+						this.fineAtlasMaterial();
+					}
+					if (this.Con != null && this.cur_dirt > 0 && this.Con.PCon != null)
+					{
+						int frozen_stone_index = this.BetoMng.frozen_stone_index;
+						if (frozen_stone_index >= 0 && this.CurSvt.dirt_index >= 0)
+						{
+							while (frozen_stone_index > this.CurSvt.dirt_index && !this.CurSvt.runBetobeto(this.cur_dirt, this.BetoMng))
+							{
+							}
+						}
+					}
+				}
+				catch
+				{
+				}
+				SpineViewerNel.lock_betotexture_updated = false;
 			}
 		}
 
@@ -168,12 +196,10 @@ namespace nel
 				return true;
 			}
 			bool texture_prepared = SpineViewerNel.CurDrawUpdating.CurSvt.texture_prepared;
-			bool flag = SpineViewerNel.CurDrawUpdating.CurSvt.runBetobeto(SpineViewerNel.CurDrawUpdating.cur_dirt, SpineViewerNel.CurDrawUpdating.BetoMng);
-			if (!texture_prepared && SpineViewerNel.CurDrawUpdating.CurSvt.texture_prepared)
-			{
-				SpineViewerNel.CurDrawUpdating.fineAtlasMaterial();
-			}
-			if (flag)
+			bool flag = SpineViewerNel.CurDrawUpdating.cur_dirt <= 0;
+			bool flag2 = SpineViewerNel.CurDrawUpdating.CurSvt.runBetobeto(SpineViewerNel.CurDrawUpdating.cur_dirt, SpineViewerNel.CurDrawUpdating.BetoMng);
+			SpineViewerNel.CurDrawUpdating.BetoTextureUpdated(flag || (!texture_prepared && SpineViewerNel.CurDrawUpdating.CurSvt.texture_prepared), true);
+			if (flag2)
 			{
 				SpineViewerNel.CurDrawUpdating = null;
 				return true;
@@ -186,6 +212,8 @@ namespace nel
 			return this.CurSvt == _SvT;
 		}
 
+		private UIPictureBodySpine Con;
+
 		private BetobetoManager.SvTexture CurSvt;
 
 		private BetobetoManager BetoMng;
@@ -195,5 +223,7 @@ namespace nel
 		public string replace_json_key;
 
 		private static SpineViewerNel CurDrawUpdating;
+
+		private static bool lock_betotexture_updated;
 	}
 }

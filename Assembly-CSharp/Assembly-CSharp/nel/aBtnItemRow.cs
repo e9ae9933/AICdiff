@@ -11,116 +11,143 @@ namespace nel
 			if (key != null)
 			{
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(key);
-				if (num > 1995765084U)
+				if (num <= 2166136261U)
 				{
-					if (num <= 2626997781U)
+					if (num <= 999080129U)
 					{
-						if (num != 2166136261U)
+						if (num != 291972474U)
 						{
-							if (num != 2348494829U)
+							if (num != 881576750U)
 							{
-								if (num != 2626997781U)
+								if (num != 999080129U)
 								{
-									goto IL_0321;
+									goto IL_0366;
 								}
-								if (!(key == "recipe_trm"))
+								if (!(key == "enhancer"))
 								{
-									goto IL_0321;
+									goto IL_0366;
 								}
-								this.click_snd = "enter_small";
-								return this.Skin = (this.RowSkin = new ButtonSkinRecipeRowTrm(this, this.w, this.h));
+								return this.Skin = (this.RowSkin = new ButtonSkinEnhancerRow(this, this.w, this.h));
 							}
 							else
 							{
-								if (!(key == "recipe_trm_ingredient"))
+								if (!(key == "lunchtime"))
 								{
-									goto IL_0321;
+									goto IL_0366;
 								}
-								return this.Skin = (this.RowSkin = new ButtonSkinTrmIngItemRow(this, this.w, this.h));
+								return this.Skin = (this.RowSkin = new ButtonSkinItemLunchTimeRow(this, this.w, this.h));
 							}
 						}
 						else
 						{
+							if (!(key == "alchemy_ingredient"))
+							{
+								goto IL_0366;
+							}
+							return this.Skin = (this.RowSkin = new ButtonSkinAlchemyIngredientRow(this, this.w, this.h));
+						}
+					}
+					else if (num != 1713201584U)
+					{
+						if (num != 1995765084U)
+						{
+							if (num != 2166136261U)
+							{
+								goto IL_0366;
+							}
 							if (key == null)
 							{
-								goto IL_0321;
+								goto IL_0366;
 							}
 							if (key.Length != 0)
 							{
-								goto IL_0321;
+								goto IL_0366;
 							}
 						}
-					}
-					else if (num != 3353852974U)
-					{
-						if (num != 3867909202U)
+						else
 						{
-							if (num != 3967719375U)
+							if (!(key == "alchemy_ingredient_trm"))
 							{
-								goto IL_0321;
+								goto IL_0366;
 							}
-							if (!(key == "recipe"))
-							{
-								goto IL_0321;
-							}
-							this.click_snd = "enter_small";
-							return this.Skin = (this.RowSkin = new ButtonSkinRecipeRow(this, this.w, this.h));
-						}
-						else if (!(key == "normal"))
-						{
-							goto IL_0321;
+							return this.Skin = (this.RowSkin = new ButtonSkinAlchemyIngredientTrmRow(this, this.w, this.h));
 						}
 					}
 					else
 					{
-						if (!(key == "store"))
+						if (!(key == "alchemy_use"))
 						{
-							goto IL_0321;
+							goto IL_0366;
 						}
-						return this.Skin = (this.RowSkin = new ButtonSkinStoreItemRow(this, this.w, this.h));
-					}
-					return this.Skin = (this.RowSkin = new ButtonSkinItemRow(this, this.w, this.h));
-				}
-				if (num <= 881576750U)
-				{
-					if (num != 291972474U)
-					{
-						if (num == 881576750U)
-						{
-							if (key == "lunchtime")
-							{
-								return this.Skin = (this.RowSkin = new ButtonSkinItemLunchTimeRow(this, this.w, this.h));
-							}
-						}
-					}
-					else if (key == "alchemy_ingredient")
-					{
-						return this.Skin = (this.RowSkin = new ButtonSkinAlchemyIngredientRow(this, this.w, this.h));
-					}
-				}
-				else if (num != 999080129U)
-				{
-					if (num != 1713201584U)
-					{
-						if (num == 1995765084U)
-						{
-							if (key == "alchemy_ingredient_trm")
-							{
-								return this.Skin = (this.RowSkin = new ButtonSkinAlchemyIngredientTrmRow(this, this.w, this.h));
-							}
-						}
-					}
-					else if (key == "alchemy_use")
-					{
 						return this.Skin = (this.RowSkin = new ButtonSkinAlchemyEntryRow(this, this.w, this.h));
 					}
 				}
-				else if (key == "enhancer")
+				else if (num <= 3353852974U)
 				{
-					return this.Skin = (this.RowSkin = new ButtonSkinEnhancerRow(this, this.w, this.h));
+					if (num != 2348494829U)
+					{
+						if (num != 2626997781U)
+						{
+							if (num != 3353852974U)
+							{
+								goto IL_0366;
+							}
+							if (!(key == "store"))
+							{
+								goto IL_0366;
+							}
+							return this.Skin = (this.RowSkin = new ButtonSkinStoreItemRow(this, this.w, this.h));
+						}
+						else
+						{
+							if (!(key == "recipe_trm"))
+							{
+								goto IL_0366;
+							}
+							this.click_snd = "enter_small";
+							return this.Skin = (this.RowSkin = new ButtonSkinRecipeRowTrm(this, this.w, this.h));
+						}
+					}
+					else
+					{
+						if (!(key == "recipe_trm_ingredient"))
+						{
+							goto IL_0366;
+						}
+						return this.Skin = (this.RowSkin = new ButtonSkinTrmIngItemRow(this, this.w, this.h));
+					}
 				}
+				else if (num != 3657089922U)
+				{
+					if (num != 3867909202U)
+					{
+						if (num != 3967719375U)
+						{
+							goto IL_0366;
+						}
+						if (!(key == "recipe"))
+						{
+							goto IL_0366;
+						}
+						this.click_snd = "enter_small";
+						return this.Skin = (this.RowSkin = new ButtonSkinRecipeRow(this, this.w, this.h));
+					}
+					else if (!(key == "normal"))
+					{
+						goto IL_0366;
+					}
+				}
+				else
+				{
+					if (!(key == "guildquest"))
+					{
+						goto IL_0366;
+					}
+					return this.Skin = (this.RowSkin = new ButtonSkinGuildQuestItemRow(this, this.w, this.h));
+				}
+				return this.Skin = (this.RowSkin = new ButtonSkinItemRow(this, this.w, this.h));
 			}
-			IL_0321:
+			IL_0366:
 			return base.makeButtonSkin(key);
 		}
 

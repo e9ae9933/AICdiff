@@ -45,6 +45,19 @@ namespace XX
 			}
 		}
 
+		public void addScript(STB Stb, int lcs = 0, int lce = -1)
+		{
+			if (lce < 0)
+			{
+				lce = Stb.Length;
+			}
+			if (this.StbInput.Length != 0)
+			{
+				this.StbInput.Add("\n");
+			}
+			this.StbInput.Add(Stb, lcs, lce - lcs);
+		}
+
 		public EfParticleLoader endCR()
 		{
 			this.StbInput.TrimCapacity();

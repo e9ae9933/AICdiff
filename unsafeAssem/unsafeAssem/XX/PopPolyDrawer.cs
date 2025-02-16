@@ -14,6 +14,13 @@ namespace XX
 			this.FnZX = (this.FnZY = new FnZoom(X.ZSIN));
 		}
 
+		public PopPolyDrawer(string load_str, int pos_capacity = 4)
+			: this(pos_capacity)
+		{
+			StringHolder stringHolder = new StringHolder(load_str, CsvReader.RegComma);
+			this.loadFromSH(stringHolder, 0);
+		}
+
 		public PopPolyDrawer AddPos(float x, float y)
 		{
 			return this.SetPos(this.pos_max, x, y, true);

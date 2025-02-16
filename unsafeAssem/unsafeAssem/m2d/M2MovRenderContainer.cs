@@ -25,9 +25,18 @@ namespace m2d
 			}
 		}
 
+		public bool is_submap
+		{
+			get
+			{
+				return this.Cam.MovRender != this;
+			}
+		}
+
 		public void initS(Map2d _Mp)
 		{
 			this.pre_floort = 0f;
+			this.z_cm_override = -1000f;
 			this.Mp = _Mp;
 			this.binding |= 4080U;
 			for (int i = 0; i < 4; i++)
@@ -36,7 +45,7 @@ namespace m2d
 			}
 		}
 
-		public void clearCameraComponent()
+		public void clearCameraComponent(bool completely = false)
 		{
 			for (int i = 0; i < 4; i++)
 			{
@@ -71,6 +80,10 @@ namespace m2d
 			{
 				this.binding &= 4294963199U;
 			}
+			if (completely)
+			{
+				this.binding &= 4294967280U;
+			}
 			this.BindB = (this.BindT = (this.BindBf = (this.BindCM = null)));
 		}
 
@@ -87,9 +100,12 @@ namespace m2d
 			}
 			this.pre_floort = 0f;
 			Camera cam = moverCameraCC.Cam;
-			M2MovRenderContainer.MdInsert.clear(false, false);
-			M2MovRenderContainer.MdInsert.initForImgAndTexture(cam.targetTexture);
-			M2MovRenderContainer.MdInsert.DrawCen(0f, 0f, null);
+			if (!this.is_submap)
+			{
+				M2MovRenderContainer.MdInsert.clear(false, false);
+				M2MovRenderContainer.MdInsert.initForImgAndTexture(cam.targetTexture);
+				M2MovRenderContainer.MdInsert.DrawCen(0f, 0f, null);
+			}
 			if ((this.binding & 1U) != 0U)
 			{
 				this.bindDrawer2Cam(0);
@@ -117,6 +133,60 @@ namespace m2d
 			}
 		}
 
+		private float getZ(int binder_id)
+		{
+			if (this.is_submap)
+			{
+				return this.Mp.gameObject.transform.localPosition.z + this.Mp.Dgn.getDrawZ(MAPMODE.SUBMAP, (binder_id >= 2) ? 2 : 0) + ((binder_id >= 2) ? 0.004f : (-0.004f));
+			}
+			if (binder_id == 3 && this.z_cm_override_ != -1000f)
+			{
+				return this.z_cm_override_;
+			}
+			float num;
+			if (binder_id != 2)
+			{
+				if (binder_id == 3)
+				{
+					num = 315f;
+				}
+				else
+				{
+					num = 401f;
+				}
+			}
+			else
+			{
+				num = 350f;
+			}
+			return num;
+		}
+
+		private int getLayer(int binder_id)
+		{
+			if (this.is_submap)
+			{
+				return M2MovRenderContainer.draw_cm_layer;
+			}
+			int num;
+			if (binder_id != 1)
+			{
+				if (binder_id != 3)
+				{
+					num = M2MovRenderContainer.drawer_t_layer;
+				}
+				else
+				{
+					num = M2MovRenderContainer.draw_cm_layer;
+				}
+			}
+			else
+			{
+				num = M2MovRenderContainer.drawer_mask_layer;
+			}
+			return num;
+		}
+
 		private void bindDrawer2Cam(int i)
 		{
 			CameraRenderBinderFunc cameraRenderBinderFunc;
@@ -140,64 +210,55 @@ namespace m2d
 				CameraRenderBinderFunc cameraRenderBinderFunc2;
 				if (i == 0)
 				{
-					cameraRenderBinderFunc2 = (this.BindB = new CameraRenderBinderFunc("MovRender::BindB", (XCameraBase XCon, ProjectionContainer JCon, Camera Cam) => this.RenderWholeMover(JCon, Cam, 0, M2Mover.DRAW_ORDER._ALL), 301f));
+					cameraRenderBinderFunc2 = (this.BindB = new CameraRenderBinderFunc("MovRender::BindB", delegate(XCameraBase XCon, ProjectionContainer JCon, Camera Cam)
+					{
+						bool flag = this.RenderWholeMover(JCon, Cam, 0, M2Mover.DRAW_ORDER._ALL);
+						if (!this.is_submap && this.AADob[1].Count > 0)
+						{
+							this.insertMoverCameraRendering(JCon, Cam, X.Mx(this.Mp.M2D.Cam.getScaleRev(), 1f));
+							flag = true;
+						}
+						return flag;
+					}, this.getZ(i)));
 				}
 				else if (i == 1)
 				{
-					cameraRenderBinderFunc2 = (this.BindBf = new CameraRenderBinderFunc("MovRender::BindBf", (XCameraBase XCon, ProjectionContainer JCon, Camera Cam) => this.RenderWholeMover(JCon, Cam, 1, M2Mover.DRAW_ORDER.PR0), 301f));
+					cameraRenderBinderFunc2 = (this.BindBf = new CameraRenderBinderFunc("MovRender::BindBf", (XCameraBase XCon, ProjectionContainer JCon, Camera Cam) => this.RenderWholeMover(JCon, Cam, 1, M2Mover.DRAW_ORDER.PR0), this.getZ(i)));
 				}
 				else if (i == 2)
 				{
-					cameraRenderBinderFunc2 = (this.BindT = new CameraRenderBinderFunc("MovRender::BindT", (XCameraBase XCon, ProjectionContainer JCon, Camera Cam) => this.RenderWholeMover(JCon, Cam, 2, M2Mover.DRAW_ORDER._ALL), 300f));
+					cameraRenderBinderFunc2 = (this.BindT = new CameraRenderBinderFunc("MovRender::BindT", (XCameraBase XCon, ProjectionContainer JCon, Camera Cam) => this.RenderWholeMover(JCon, Cam, 2, M2Mover.DRAW_ORDER._ALL), this.getZ(i)));
 				}
 				else
 				{
-					cameraRenderBinderFunc2 = (this.BindCM = new CameraRenderBinderFunc("MovRender::BindCM", (XCameraBase XCon, ProjectionContainer JCon, Camera Cam) => this.RenderWholeMover(JCon, Cam, 3, M2Mover.DRAW_ORDER._ALL), 300f));
+					cameraRenderBinderFunc2 = (this.BindCM = new CameraRenderBinderFunc("MovRender::BindCM", (XCameraBase XCon, ProjectionContainer JCon, Camera Cam) => this.RenderWholeMover(JCon, Cam, 3, M2Mover.DRAW_ORDER._ALL), this.getZ(i)));
 				}
-				M2Camera cam = this.Cam;
-				ICameraRenderBinder cameraRenderBinder = cameraRenderBinderFunc2;
-				int num;
-				if (i != 1)
-				{
-					if (i != 3)
-					{
-						num = M2MovRenderContainer.drawer_t_layer;
-					}
-					else
-					{
-						num = M2MovRenderContainer.draw_cm_layer;
-					}
-				}
-				else
-				{
-					num = M2MovRenderContainer.drawer_mask_layer;
-				}
-				cam.assignRenderFunc(cameraRenderBinder, num, false, null);
-				uint num2 = this.binding;
-				uint num3;
+				this.Cam.assignRenderFunc(cameraRenderBinderFunc2, this.getLayer(i), false, null);
+				uint num = this.binding;
+				uint num2;
 				switch (i)
 				{
 				case 0:
-					num3 = 257U;
+					num2 = 257U;
 					break;
 				case 1:
-					num3 = 514U;
+					num2 = 514U;
 					break;
 				case 2:
-					num3 = 1028U;
+					num2 = 1028U;
 					break;
 				default:
-					num3 = 2056U;
+					num2 = 2056U;
 					break;
 				}
-				this.binding = num2 | num3;
+				this.binding = num | num2;
 				if ((this.binding & 4096U) == 0U)
 				{
 					this.binding |= 4096U;
 				}
-				if (i == 1 && (this.binding & 4U) == 0U)
+				if (i == 1 && (this.binding & 1U) == 0U)
 				{
-					this.bindDrawer2Cam(2);
+					this.bindDrawer2Cam(0);
 				}
 			}
 		}
@@ -251,10 +312,6 @@ namespace m2d
 			Material material = null;
 			this.ADobBuf.Clear();
 			this.ADobBuf.AddRange(list);
-			if (draw_id == 2 && this.AADob[1].Count > 0)
-			{
-				this.insertMoverCameraRendering(JCon, Cam);
-			}
 			int count = this.ADobBuf.Count;
 			int num = 0;
 			for (int i = 0; i < 2; i++)
@@ -417,10 +474,10 @@ namespace m2d
 			this.assignDrawable(Tk);
 		}
 
-		private void insertMoverCameraRendering(ProjectionContainer JCon, Camera Cam)
+		private void insertMoverCameraRendering(ProjectionContainer JCon, Camera Cam, float scale)
 		{
 			Vector3 posMainTransform = this.Cam.PosMainTransform;
-			BLIT.RenderToGLMtr(M2MovRenderContainer.MdInsert, posMainTransform.x, posMainTransform.y, 1f, M2MovRenderContainer.MdInsert.getMaterial(), JCon.CameraProjectionTransformed, M2MovRenderContainer.MdInsert.getTriMax(), false, false);
+			BLIT.RenderToGLMtr(M2MovRenderContainer.MdInsert, posMainTransform.x, posMainTransform.y, scale, M2MovRenderContainer.MdInsert.getMaterial(), JCon.CameraProjectionTransformed, M2MovRenderContainer.MdInsert.getTriMax(), false, false);
 		}
 
 		public bool need_clip_check
@@ -430,6 +487,27 @@ namespace m2d
 				if (value)
 				{
 					this.binding |= 3840U;
+				}
+			}
+		}
+
+		public float z_cm_override
+		{
+			get
+			{
+				return this.z_cm_override_;
+			}
+			set
+			{
+				if (this.z_cm_override == value)
+				{
+					return;
+				}
+				this.z_cm_override_ = value;
+				if (this.BindCM != null)
+				{
+					this.BindCM.z_far = this.getZ(3);
+					this.Mp.M2D.Cam.resortRenderFunc(this.getLayer(3));
 				}
 			}
 		}
@@ -495,6 +573,8 @@ namespace m2d
 		private const uint CLIP_CHECK_CM = 2048U;
 
 		private const uint CLIP_CHECK_ALL = 3840U;
+
+		private float z_cm_override_ = -1000f;
 
 		private static MeshDrawer MdInsert;
 	}

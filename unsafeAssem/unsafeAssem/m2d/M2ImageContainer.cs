@@ -12,6 +12,14 @@ namespace m2d
 {
 	public class M2ImageContainer
 	{
+		public uint imgs_capacity
+		{
+			get
+			{
+				return (uint)this.AImgsId.Length;
+			}
+		}
+
 		public M2ImageContainer(M2DBase _M2D)
 		{
 			this.M2D = _M2D;
@@ -19,8 +27,8 @@ namespace m2d
 			this.Atlas = new M2ImageAtlas(this.M2D, this);
 			this.PriorityCon = new M2ImagePriority(this.M2D);
 			this.AImgsId = null;
-			this.Otag_name_chip_create = new NDic<M2ImageContainer.FnCreateOneChip>("Otag_name_chip_create", 22);
-			this.Otag_name_drawer_create = new NDic<M2CImgDrawer.FnCreateDrawer>("Otag_name_drawer_create", 22);
+			this.Otag_name_chip_create = new NDic<M2ImageContainer.FnCreateOneChip>("Otag_name_chip_create", 22, 0);
+			this.Otag_name_drawer_create = new NDic<M2CImgDrawer.FnCreateDrawer>("Otag_name_drawer_create", 22, 0);
 		}
 
 		public float CLEN
@@ -37,35 +45,48 @@ namespace m2d
 			this.Atlas.destruct();
 		}
 
+		private ByteReader prepareLoadBytes()
+		{
+			if (this.BaLoad == null)
+			{
+				this.BaLoad = NKT.PopSpecificFileStream(Path.Combine(Application.streamingAssetsPath, "m2d/__m2d_chips.dat"), 0, 0, false, 1024, null);
+			}
+			return this.BaLoad;
+		}
+
 		public void prepareChipsScript()
 		{
 			if (this.M2D.FnCreateChipPreparation != null)
 			{
 				this.M2D.FnCreateChipPreparation(this.Otag_name_chip_create, this.Otag_name_drawer_create);
 			}
-			byte[] array = NKT.readSpecificFileBinary(Path.Combine(Application.streamingAssetsPath, "m2d/__m2d_chips.dat"), 0, 0, false);
-			ByteArray byteArray = (this.BaLoad = new ByteArray(array, false, true));
+			ByteReader byteReader = this.prepareLoadBytes();
 			this.Otag_name_chip_create.scriptFinalize();
 			this.Otag_name_drawer_create.scriptFinalize();
 			this.chips_id_max = 1U;
-			this.loading_version = (byte)byteArray.readByte();
-			int num = (int)byteArray.readUInt();
-			byteArray.readUInt();
-			int num2 = (int)byteArray.readUShort();
+			this.loading_version = (byte)byteReader.readByte();
+			int num = (int)byteReader.readUInt();
+			byteReader.readUInt();
+			int num2 = (int)byteReader.readUShort();
 			this.Afamily_mem = new List<string>(num2);
 			for (int i = 0; i < num2; i++)
 			{
-				this.Afamily_mem.Add(byteArray.readPascalString("utf-8", false));
+				this.Afamily_mem.Add(byteReader.readPascalString("utf-8", false));
 			}
 			if (this.loading_version >= 7)
 			{
-				int num3 = (int)byteArray.readUShort();
+				int num3 = (int)byteReader.readUShort();
 				this.OOImgs = new BDic<string, M2ImageContainer.ImgDir>(num3);
 				for (int j = 0; j < num3; j++)
 				{
-					string text = byteArray.readPascalString("utf-8", false);
-					uint num4 = byteArray.readUInt();
-					this.OOImgs[text] = new M2ImageContainer.ImgDir((int)num4);
+					string text = byteReader.readPascalString("utf-8", false);
+					uint num4 = byteReader.readUInt();
+					M2ImageContainer.ImgDir imgDir = (this.OOImgs[text] = new M2ImageContainer.ImgDir((int)num4));
+					if (this.loading_version >= 11)
+					{
+						imgDir.ba_position = byteReader.readUInt();
+						imgDir.ba_len = byteReader.readUInt();
+					}
 				}
 			}
 			else
@@ -78,28 +99,98 @@ namespace m2d
 			}
 			else
 			{
-				int num5 = (int)byteArray.readUShort();
+				int num5 = (int)byteReader.readUShort();
 				this.AMeta_mem = new List<METACImg>(num5);
 				for (int k = 0; k < num5; k++)
 				{
 					METACImg metacimg = new METACImg(k, "");
-					metacimg.readFromBytes(byteArray, this.loading_version);
+					metacimg.readFromBytes(byteReader, this.loading_version);
 					this.AMeta_mem.Add(metacimg);
 				}
 			}
 			this.MetaEmpty = new METACImg(65535, "_");
 			this.AImgsId = new IM2CLItem[num];
+			if (this.loading_version >= 11)
+			{
+				this.initializeChipsDirectory("whole/", -1, true);
+			}
 			this.loading_dir = "";
 		}
 
-		public bool progressChipsScriptRead(int count = -1)
+		public bool initializeChipsDirectory(string dirname, int progress = -1, bool no_make_dir = false)
 		{
-			ByteArray baLoad = this.BaLoad;
+			return this.initializeChipsDirectory(dirname, ref progress, no_make_dir);
+		}
+
+		public bool initializeChipsDirectory(string dirname, ref int progress, bool no_make_dir = false)
+		{
+			M2ImageContainer.ImgDir imgDir;
+			if (!this.OOImgs.TryGetValue(dirname, out imgDir))
+			{
+				if (no_make_dir)
+				{
+					return false;
+				}
+				imgDir = (this.OOImgs[dirname] = new M2ImageContainer.ImgDir(64));
+				X.dl("directory created:" + dirname, null, false, false);
+			}
+			if (imgDir.ba_len != 0U)
+			{
+				this.prepareLoadBytes();
+				ulong num = (ulong)(imgDir.ba_position + imgDir.ba_len);
+				if (this.BaLoad.position < (ulong)imgDir.ba_position || num <= this.BaLoad.position)
+				{
+					this.BaLoad.position = (ulong)imgDir.ba_position;
+				}
+				for (;;)
+				{
+					if (progress >= 0)
+					{
+						int num2 = progress;
+						progress = num2 - 1;
+						if (num2 == 0)
+						{
+							break;
+						}
+					}
+					M2ImageContainer.BA_TYPE ba_TYPE = (M2ImageContainer.BA_TYPE)this.BaLoad.readByte();
+					if (ba_TYPE != (M2ImageContainer.BA_TYPE)0 && !this.progressChipsScriptInner(ba_TYPE, this.BaLoad, dirname))
+					{
+						goto Block_8;
+					}
+					if (this.BaLoad.position >= num)
+					{
+						goto Block_9;
+					}
+				}
+				return true;
+				Block_8:
+				X.de("dir " + dirname + " のチップ情報展開中にエラー", null);
+				imgDir.ba_len = 0U;
+				return false;
+				Block_9:
+				imgDir.ba_position += imgDir.ba_len;
+				imgDir.ba_len = 0U;
+				return false;
+			}
+			return false;
+		}
+
+		public bool progressChipsScriptReadOld(int count = -1)
+		{
+			if (this.loading_version >= 11)
+			{
+				if (this.loading_dir == "")
+				{
+					this.loading_dir = "obj/";
+				}
+				return this.initializeChipsDirectory(this.loading_dir, -1, true) || !(this.loading_dir == "obj/");
+			}
+			ByteReader baLoad = this.BaLoad;
 			if (baLoad == null)
 			{
 				return false;
 			}
-			bool flag = this.OPat != null;
 			while (baLoad.bytesAvailable > 0UL && (count < 0 || --count >= 0))
 			{
 				M2ImageContainer.BA_TYPE ba_TYPE = (M2ImageContainer.BA_TYPE)baLoad.readByte();
@@ -107,67 +198,74 @@ namespace m2d
 				{
 					this.loading_dir = baLoad.readPascalString("utf-8", false);
 				}
-				else if (ba_TYPE != (M2ImageContainer.BA_TYPE)0)
+				else if (ba_TYPE != (M2ImageContainer.BA_TYPE)0 && !this.progressChipsScriptInner(ba_TYPE, baLoad, this.loading_dir))
 				{
-					uint num = 1U;
-					switch (ba_TYPE)
-					{
-					case M2ImageContainer.BA_TYPE.CM:
-					{
-						M2ChipImage m2ChipImage = M2ChipImage.readFromBytes(baLoad, this.loading_version, this, this.loading_dir, true);
-						if (m2ChipImage != null)
-						{
-							num = this.FixId(this.assignNewImage(m2ChipImage, false), false);
-						}
-						break;
-					}
-					case M2ImageContainer.BA_TYPE.PAT:
-					{
-						M2ChipPattern m2ChipPattern = M2ChipPattern.readFromBytes(baLoad, this.loading_version, this, this.loading_dir, flag);
-						if (m2ChipPattern != null)
-						{
-							num = this.FixId(this.assignNewImage(m2ChipPattern, true), false);
-						}
-						break;
-					}
-					case M2ImageContainer.BA_TYPE.SM:
-					{
-						M2SmartChipImage m2SmartChipImage = M2SmartChipImage.readFromBytes(baLoad, this.loading_version, this, this.loading_dir, flag);
-						if (m2SmartChipImage != null)
-						{
-							num = this.FixId(this.assignNewImage(m2SmartChipImage, false), false);
-						}
-						break;
-					}
-					case M2ImageContainer.BA_TYPE.STAMP:
-					case M2ImageContainer.BA_TYPE.STAMP_BUILT_IN:
-					{
-						M2StampImage m2StampImage = M2StampImage.readFromBytes(baLoad, this.loading_version, this, this.loading_dir, flag, ba_TYPE == M2ImageContainer.BA_TYPE.STAMP_BUILT_IN);
-						if (m2StampImage != null)
-						{
-							num = this.FixId(this.assignNewImage(m2StampImage, false), false);
-						}
-						break;
-					}
-					case M2ImageContainer.BA_TYPE.CM_NESTED:
-					{
-						M2ChipImageNestedParent m2ChipImageNestedParent = M2ChipImageNestedParent.readFromBytesN(baLoad, this.loading_version, this, this.loading_dir, true);
-						if (m2ChipImageNestedParent != null)
-						{
-							num = this.FixId(this.assignNewImage(m2ChipImageNestedParent, false), false);
-							m2ChipImageNestedParent.reserveId();
-						}
-						break;
-					}
-					default:
-						global::XX.X.de("不明なtype" + ba_TYPE.ToString() + " position: " + (baLoad.position - 1UL).ToString(), null);
-						this.BaLoad.position = baLoad.Length;
-						return false;
-					}
-					this.chips_id_max = global::XX.X.Mx(this.chips_id_max, num);
+					return false;
 				}
 			}
 			return baLoad.bytesAvailable != 0UL;
+		}
+
+		private bool progressChipsScriptInner(M2ImageContainer.BA_TYPE type, ByteReader Ba, string loading_dir)
+		{
+			bool flag = this.OPat != null;
+			uint num = 1U;
+			switch (type)
+			{
+			case M2ImageContainer.BA_TYPE.CM:
+			{
+				M2ChipImage m2ChipImage = M2ChipImage.readFromBytes(Ba, this.loading_version, this, loading_dir, true);
+				if (m2ChipImage != null)
+				{
+					num = this.FixId(this.assignNewImage(m2ChipImage, false), false);
+				}
+				break;
+			}
+			case M2ImageContainer.BA_TYPE.PAT:
+			{
+				M2ChipPattern m2ChipPattern = M2ChipPattern.readFromBytes(Ba, this.loading_version, this, loading_dir, flag);
+				if (m2ChipPattern != null)
+				{
+					num = this.FixId(this.assignNewImage(m2ChipPattern, true), false);
+				}
+				break;
+			}
+			case M2ImageContainer.BA_TYPE.SM:
+			{
+				M2SmartChipImage m2SmartChipImage = M2SmartChipImage.readFromBytes(Ba, this.loading_version, this, loading_dir, flag);
+				if (m2SmartChipImage != null)
+				{
+					num = this.FixId(this.assignNewImage(m2SmartChipImage, false), false);
+				}
+				break;
+			}
+			case M2ImageContainer.BA_TYPE.STAMP:
+			case M2ImageContainer.BA_TYPE.STAMP_BUILT_IN:
+			{
+				M2StampImage m2StampImage = M2StampImage.readFromBytes(Ba, this.loading_version, this, loading_dir, flag, type == M2ImageContainer.BA_TYPE.STAMP_BUILT_IN);
+				if (m2StampImage != null)
+				{
+					num = this.FixId(this.assignNewImage(m2StampImage, false), false);
+				}
+				break;
+			}
+			case M2ImageContainer.BA_TYPE.CM_NESTED:
+			{
+				M2ChipImageNestedParent m2ChipImageNestedParent = M2ChipImageNestedParent.readFromBytesN(Ba, this.loading_version, this, loading_dir, true);
+				if (m2ChipImageNestedParent != null)
+				{
+					num = this.FixId(this.assignNewImage(m2ChipImageNestedParent, false), false);
+					m2ChipImageNestedParent.reserveId();
+				}
+				break;
+			}
+			default:
+				X.de("不明なtype" + type.ToString() + " position: " + (Ba.position - 1UL).ToString(), null);
+				this.BaLoad.position = Ba.Length;
+				return false;
+			}
+			this.chips_id_max = X.Mx(this.chips_id_max, num);
+			return true;
 		}
 
 		public M2ChipImage assignNewImage(M2ChipImage I, bool checking = false)
@@ -239,7 +337,7 @@ namespace m2d
 			{
 				return null;
 			}
-			return global::XX.X.Get<string, M2ChipImage>(Dir, basename_noext);
+			return X.Get<string, M2ChipImage>(Dir, basename_noext);
 		}
 
 		public IM2CLItem GetById(uint chip_id)
@@ -281,7 +379,7 @@ namespace m2d
 
 		public string getFamilyName(ushort i)
 		{
-			if (i == 65535 || !global::XX.X.BTW(0f, (float)i, (float)this.Afamily_mem.Count))
+			if (i == 65535 || !X.BTW(0f, (float)i, (float)this.Afamily_mem.Count))
 			{
 				return "";
 			}
@@ -305,7 +403,7 @@ namespace m2d
 
 		public METACImg getCImgMeta(ushort i = 65535)
 		{
-			if (i == 65535 || !global::XX.X.BTW(0f, (float)i, (float)this.AMeta_mem.Count))
+			if (i == 65535 || !X.BTW(0f, (float)i, (float)this.AMeta_mem.Count))
 			{
 				return this.MetaEmpty;
 			}
@@ -367,8 +465,10 @@ namespace m2d
 		{
 		}
 
-		public M2ChipImage assignPxlLayerToImage(PxlLayer Lay, string dirname, M2ImageAtlas.AtlasRect Atlas, float atlas_rescale_x, float atlas_rescale_y, bool consider_prefix_data = true)
+		public M2ChipImage assignPxlLayerToImage(out bool create_new, PxlLayer Lay, string dirname, M2ImageAtlas.AtlasRect Atlas, float atlas_rescale_x, float atlas_rescale_y, bool consider_prefix_data = true)
 		{
+			create_new = false;
+			string name = Lay.name;
 			M2ChipImagePrefixed m2ChipImagePrefixed = (consider_prefix_data ? M2ChipImagePrefixed.checkPrefix(dirname, Lay, Atlas) : default(M2ChipImagePrefixed));
 			if (m2ChipImagePrefixed.valid)
 			{
@@ -379,13 +479,13 @@ namespace m2d
 				this.ABackGround.Add(m2ChipImagePrefixed);
 				return null;
 			}
-			if (TX.isStart(Lay.name, "_", 0))
+			if (TX.isStart(name, "_", 0))
 			{
 				return null;
 			}
 			M2ImageContainer.ImgDir imgDir;
 			M2ChipImage m2ChipImage;
-			if ((m2ChipImage = this.Get(out imgDir, dirname, Lay.name)) != null)
+			if ((m2ChipImage = this.Get(out imgDir, dirname, name)) != null)
 			{
 				if (m2ChipImage.chip_id == 0U)
 				{
@@ -403,10 +503,10 @@ namespace m2d
 				{
 					if (m2ChipImage.SourceLayer != null && m2ChipImage.SourceLayer != Lay)
 					{
-						global::XX.X.de(string.Concat(new string[]
+						X.de(string.Concat(new string[]
 						{
 							"重複したレイヤー名: ",
-							Lay.name,
+							name,
 							" (",
 							Lay.pFrm.ToString(),
 							")"
@@ -419,9 +519,9 @@ namespace m2d
 			return null;
 		}
 
-		public void assignPxlLayerFinalizeOnPose()
+		public void assignPxlLayerFinalizeOnPose(bool background_assign = true)
 		{
-			if (this.ABackGround != null && this.ABackGround.Count > 0)
+			if (background_assign && this.ABackGround != null && this.ABackGround.Count > 0)
 			{
 				int count = this.ABackGround.Count;
 				for (int i = 0; i < count; i++)
@@ -433,10 +533,19 @@ namespace m2d
 			}
 		}
 
+		private void closeChipsStream()
+		{
+			if (this.BaLoad != null)
+			{
+				this.BaLoad.Dispose();
+			}
+			this.BaLoad = null;
+		}
+
 		public void assignPxlLayerFinalize()
 		{
-			this.assignPxlLayerFinalizeOnPose();
-			this.BaLoad = null;
+			this.assignPxlLayerFinalizeOnPose(true);
+			this.closeChipsStream();
 			this.ABackGround = null;
 		}
 
@@ -454,7 +563,7 @@ namespace m2d
 				}
 				else if (update_id)
 				{
-					this.chips_id_max = global::XX.X.Mx(this.chips_id_max, m2ChipImage.chip_id);
+					this.chips_id_max = X.Mx(this.chips_id_max, m2ChipImage.chip_id);
 				}
 				if ((long)this.AImgsId.Length <= (long)((ulong)m2ChipImage.chip_id))
 				{
@@ -475,7 +584,7 @@ namespace m2d
 				}
 				else if (update_id)
 				{
-					this.chips_id_max = global::XX.X.Mx(this.chips_id_max, m2ChipImageMulti.chip_id);
+					this.chips_id_max = X.Mx(this.chips_id_max, m2ChipImageMulti.chip_id);
 				}
 				if ((long)this.AImgsId.Length <= (long)((ulong)m2ChipImageMulti.chip_id))
 				{
@@ -489,7 +598,7 @@ namespace m2d
 
 		public void reserveId(uint chip_id)
 		{
-			this.chips_id_max = global::XX.X.Mx(this.chips_id_max, chip_id);
+			this.chips_id_max = X.Mx(this.chips_id_max, chip_id);
 		}
 
 		public void SetFavForInputtable(IM2CLItem Item, bool flag)
@@ -519,14 +628,14 @@ namespace m2d
 			{
 				foreach (KeyValuePair<string, string[]> keyValuePair in dataObject)
 				{
-					M2ImageContainer.FnCreateOneChip fnCreateOneChip = global::XX.X.Get<string, M2ImageContainer.FnCreateOneChip>(this.Otag_name_chip_create, keyValuePair.Key);
+					M2ImageContainer.FnCreateOneChip fnCreateOneChip = X.Get<string, M2ImageContainer.FnCreateOneChip>(this.Otag_name_chip_create, keyValuePair.Key);
 					if (fnCreateOneChip != null)
 					{
 						return fnCreateOneChip;
 					}
 				}
 			}
-			return global::XX.X.Get<string, M2ImageContainer.FnCreateOneChip>(this.Otag_name_chip_create, "_");
+			return X.Get<string, M2ImageContainer.FnCreateOneChip>(this.Otag_name_chip_create, "_");
 		}
 
 		public M2CImgDrawer.FnCreateDrawer getCreateOneDrawerFunc(M2ChipImage Img)
@@ -536,14 +645,14 @@ namespace m2d
 			{
 				foreach (KeyValuePair<string, string[]> keyValuePair in dataObject)
 				{
-					M2CImgDrawer.FnCreateDrawer fnCreateDrawer = global::XX.X.Get<string, M2CImgDrawer.FnCreateDrawer>(this.Otag_name_drawer_create, keyValuePair.Key);
+					M2CImgDrawer.FnCreateDrawer fnCreateDrawer = X.Get<string, M2CImgDrawer.FnCreateDrawer>(this.Otag_name_drawer_create, keyValuePair.Key);
 					if (fnCreateDrawer != null)
 					{
 						return fnCreateDrawer;
 					}
 				}
 			}
-			return global::XX.X.Get<string, M2CImgDrawer.FnCreateDrawer>(this.Otag_name_drawer_create, "_");
+			return X.Get<string, M2CImgDrawer.FnCreateDrawer>(this.Otag_name_drawer_create, "_");
 		}
 
 		public readonly M2DBase M2D;
@@ -566,7 +675,7 @@ namespace m2d
 
 		private METACImg MetaEmpty;
 
-		private ByteArray BaLoad;
+		private ByteReader BaLoad;
 
 		public byte loading_version;
 
@@ -575,6 +684,8 @@ namespace m2d
 		public string prefix = "";
 
 		public const string OBJ_CHIP_DIR = "obj/";
+
+		public const string WHOLE_CHIP_DIR = "whole/";
 
 		public const string DUMMY_CHIP_BASENAME = "DUMMY_CHIP_IMAGE";
 
@@ -604,6 +715,10 @@ namespace m2d
 				: base(capacity)
 			{
 			}
+
+			public uint ba_position;
+
+			public uint ba_len;
 		}
 
 		public enum BA_TYPE

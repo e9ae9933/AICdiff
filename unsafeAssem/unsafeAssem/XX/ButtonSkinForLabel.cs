@@ -293,6 +293,26 @@ namespace XX
 			}
 		}
 
+		public override bool use_valotile
+		{
+			set
+			{
+				if (this.use_valotile == value)
+				{
+					return;
+				}
+				base.use_valotile = value;
+				if (this.TxR != null)
+				{
+					this.TxR.use_valotile = value;
+				}
+				if (this.TxLabel != null)
+				{
+					this.TxLabel.use_valotile = value;
+				}
+			}
+		}
+
 		private LabeledInputField LI;
 
 		protected MeshDrawer Md;

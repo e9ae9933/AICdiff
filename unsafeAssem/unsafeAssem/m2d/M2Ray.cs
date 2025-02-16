@@ -23,7 +23,7 @@ namespace m2d
 			}
 		}
 
-		public M2Ray Set(Map2d _Mp, M2Mover _Caster, float _radius = 0f, HITTYPE _hittype = (HITTYPE)15)
+		public M2Ray Set(Map2d _Mp, M2Mover _Caster, float _radius = 0f, HITTYPE _hittype = HITTYPE.PR | HITTYPE.EN | HITTYPE.WALL | HITTYPE.OTHER)
 		{
 			this.hittype = _hittype;
 			this.Mp = _Mp;
@@ -35,7 +35,7 @@ namespace m2d
 			this.hit_lock = 0f;
 			this.LenM(0f);
 			this.Pos = Vector2.zero;
-			this.Dir = Vector2.zero;
+			this.Dir_ = Vector3.zero;
 			this.shape = RAYSHAPE.CIRCLE;
 			this.hit_i = 0;
 			this.OHFTLinked = null;
@@ -43,6 +43,7 @@ namespace m2d
 			{
 				this.OHittedFloorT_.Clear();
 			}
+			this.check_hitlock_manual = false;
 			this.hit_target_max = 16;
 			this.projectile_power = -1;
 			this.ReflectAnotherRay = null;
@@ -59,7 +60,7 @@ namespace m2d
 			this.ACohitableCheck = Src.ACohitableCheck;
 			this.Caster = Src.Caster;
 			this.Pos = Src.Pos;
-			this.Dir = Src.Dir;
+			this.Dir_ = Src.Dir_;
 			this.len = Src.len;
 			this.lenmp = Src.lenmp;
 			this.shape = Src.shape;
@@ -69,6 +70,7 @@ namespace m2d
 			this.hittype = Src.hittype;
 			this.hittype_to_week_projectile = Src.hittype_to_week_projectile;
 			this.HitLock(Src.hit_lock, null);
+			this.check_hitlock_manual = Src.check_hitlock_manual;
 			this.hit_target_max = Src.hit_target_max;
 			X.Mx(16, this.hit_target_max);
 			this.cohitable_allow_berserk = Src.cohitable_allow_berserk;
@@ -95,7 +97,7 @@ namespace m2d
 		{
 			if (dx == 0f && dy == 0f)
 			{
-				this.Dir = new Vector2(0f, -1f);
+				this.Dir_ = new Vector3(0f, -1f, 1.5707964f);
 				this.len = (this.lenmp = 0f);
 			}
 			else
@@ -107,6 +109,19 @@ namespace m2d
 			return this;
 		}
 
+		public Vector2 Dir
+		{
+			get
+			{
+				return this.Dir_;
+			}
+			set
+			{
+				float num = X.GAR2(0f, 0f, value.x, value.y);
+				this.AngleR(num);
+			}
+		}
+
 		public M2Ray HitType(HITTYPE _h)
 		{
 			this.hittype = _h;
@@ -115,7 +130,7 @@ namespace m2d
 
 		public M2Ray AngleR(float agR)
 		{
-			this.Dir.Set(X.Cos(agR), X.Sin(agR));
+			this.Dir_.Set(X.Cos(agR), X.Sin(agR), agR);
 			return this;
 		}
 
@@ -133,12 +148,7 @@ namespace m2d
 
 		public float getAngleR()
 		{
-			return X.GAR2(0f, 0f, this.Dir.x, this.Dir.y);
-		}
-
-		public float getMapAngleR()
-		{
-			return this.Mp.GAR(0f, 0f, this.Dir.x, this.Dir.y);
+			return this.Dir_.z;
 		}
 
 		public Vector2 getUPos()
@@ -151,15 +161,15 @@ namespace m2d
 			Vector2 vector = new Vector2(this.Mp.uxToMapx(this.Mp.M2D.effectScreenx2ux(this.Pos.x)), this.Mp.uyToMapy(this.Mp.M2D.effectScreeny2uy(this.Pos.y)));
 			if (shift_level != 0f)
 			{
-				vector.x += this.Dir.x * this.lenmp * shift_level;
-				vector.y += -this.Dir.y * this.lenmp * shift_level;
+				vector.x += this.Dir_.x * this.lenmp * shift_level;
+				vector.y += -this.Dir_.y * this.lenmp * shift_level;
 			}
 			return vector;
 		}
 
 		public Vector2 getMapSpeed()
 		{
-			return new Vector2(this.Dir.x * this.lenmp, -this.Dir.y * this.lenmp);
+			return new Vector2(this.Dir_.x * this.lenmp, -this.Dir_.y * this.lenmp);
 		}
 
 		public M2Ray PosMapShift(float mapx, float mapy)
@@ -251,7 +261,7 @@ namespace m2d
 
 		public M2Ray clearReflectBuffer()
 		{
-			this.hittype &= (HITTYPE)(-12582945);
+			this.hittype &= ~(HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED);
 			this.ReflectAnotherRay = null;
 			return this;
 		}
@@ -272,10 +282,10 @@ namespace m2d
 		public virtual HITTYPE Cast(bool sort = true, RaycastHit2D[] AHit = null, bool hitlock_calc_after = false)
 		{
 			HITTYPE hittype = HITTYPE.NONE;
-			if ((this.hittype & (HITTYPE)12582912) != HITTYPE.NONE)
+			if ((this.hittype & (HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED)) != HITTYPE.NONE)
 			{
-				hittype |= (((this.hittype & HITTYPE.REFLECT_BROKEN) != HITTYPE.NONE) ? ((HITTYPE)4227072) : HITTYPE.NONE);
-				hittype |= (((this.hittype & HITTYPE.REFLECT_KILLED) != HITTYPE.NONE) ? ((HITTYPE)8454144) : HITTYPE.NONE);
+				hittype |= (((this.hittype & HITTYPE.REFLECT_BROKEN) != HITTYPE.NONE) ? (HITTYPE.BREAK | HITTYPE.REFLECT_BROKEN) : HITTYPE.NONE);
+				hittype |= (((this.hittype & HITTYPE.REFLECT_KILLED) != HITTYPE.NONE) ? (HITTYPE.KILLED | HITTYPE.REFLECT_KILLED) : HITTYPE.NONE);
 				if ((this.hittype & HITTYPE.WATER_CUT) != HITTYPE.NONE)
 				{
 					this.checkWaterCut();
@@ -286,7 +296,7 @@ namespace m2d
 					return hittype;
 				}
 			}
-			this.hittype &= (HITTYPE)(-237313);
+			this.hittype &= ~(HITTYPE.HITTED_PR | HITTYPE.HITTED_EN | HITTYPE.HITTED_WALL | HITTYPE.HITTED_OTHER | HITTYPE.HITTED_WATER | HITTYPE.BREAK | HITTYPE.KILLED | HITTYPE.NO_RETURN_MANA);
 			this.ensureHitCapacity();
 			AHit = ((AHit == null) ? M2Ray.AHit : AHit);
 			M2Ray.Flt.layerMask = (int)this.layerMask;
@@ -311,10 +321,8 @@ namespace m2d
 							this.hittype |= HITTYPE.HITTED_WALL;
 							if ((hittype & HITTYPE.WALL) == HITTYPE.NONE)
 							{
-								M2Ray.M2RayHittedItem[] ahitted = this.AHitted;
-								int num4 = this.hit_i;
-								this.hit_i = num4 + 1;
-								ahitted[num4].Set(HITTYPE.WALL, this.Mp, null, raycastHit2D);
+								this.AHitted[this.hit_i].SetHitMap(raycastHit2D, this.Mp, this);
+								this.hit_i++;
 								hittype |= HITTYPE.WALL;
 							}
 						}
@@ -326,8 +334,7 @@ namespace m2d
 						if (rayhit != RAYHIT.NONE && ((this.hittype & HITTYPE.AUTO_TARGET) == HITTYPE.NONE || (rayhit & RAYHIT.DO_NOT_AUTO_TARGET) == RAYHIT.NONE || ((this.hittype & HITTYPE.TARGET_CHECKER) != HITTYPE.NONE && (rayhit & RAYHIT.FINE_TARGET_CHECKER) != RAYHIT.NONE)))
 						{
 							M2Mover m2Mover = im2RayHitAble as M2Mover;
-							float num5;
-							if (this.hit_lock == 0f || !this.OHittedFloorT.TryGetValue(im2RayHitAble, out num5) || (this.hit_lock != -1f && num5 <= this.Mp.floort))
+							if (this.hit_lock == 0f || this.check_hitlock_manual || !this.checkHitLock(im2RayHitAble))
 							{
 								HITTYPE hitType = im2RayHitAble.getHitType(this);
 								if (hitType != HITTYPE.NONE)
@@ -339,41 +346,41 @@ namespace m2d
 										{
 											if ((this.hittype & HITTYPE.TEMP_OFFLINE) != HITTYPE.NONE || (this.hittype & HITTYPE.PR) == HITTYPE.NONE || (!sort && num3 >= this.hit_target_max))
 											{
-												goto IL_055F;
+												goto IL_054E;
 											}
 											M2MoverPr m2MoverPr = im2RayHitAble as M2MoverPr;
 											if ((m2MoverPr == this.Caster && (this.hittype & HITTYPE.BERSERK_MYSELF) == HITTYPE.NONE) || m2MoverPr == null)
 											{
-												goto IL_055F;
+												goto IL_054E;
 											}
 											this.hittype |= HITTYPE.HITTED_PR;
 											hittype |= HITTYPE.PR;
-											M2Ray.M2RayHittedItem[] ahitted2 = this.AHitted;
+											M2Ray.M2RayHittedItem[] ahitted = this.AHitted;
 											int num4 = this.hit_i;
 											this.hit_i = num4 + 1;
-											m2RayHittedItem = ahitted2[num4].Set(HITTYPE.PR, im2RayHitAble, m2MoverPr, this.Pos.x, this.Pos.y);
+											m2RayHittedItem = ahitted[num4].Set(HITTYPE.PR, im2RayHitAble, m2MoverPr, this.Pos.x, this.Pos.y, this.Dir_);
 											num3++;
 										}
 										else if ((hitType & HITTYPE.EN) != HITTYPE.NONE)
 										{
 											if ((this.hittype & HITTYPE.TEMP_OFFLINE) != HITTYPE.NONE)
 											{
-												goto IL_055F;
+												goto IL_054E;
 											}
 											if ((hitType & HITTYPE.WALL) != HITTYPE.NONE)
 											{
 												if ((this.hittype & HITTYPE.EN) == HITTYPE.NONE && (this.hittype & HITTYPE.WALL) == HITTYPE.NONE)
 												{
-													goto IL_055F;
+													goto IL_054E;
 												}
 											}
 											else if ((this.hittype & HITTYPE.EN) == HITTYPE.NONE)
 											{
-												goto IL_055F;
+												goto IL_054E;
 											}
 											if ((!sort && num3 >= this.hit_target_max) || (m2Mover == this.Caster && (this.hittype & HITTYPE.BERSERK_MYSELF) == HITTYPE.NONE))
 											{
-												goto IL_055F;
+												goto IL_054E;
 											}
 											m2Mover == null;
 											this.hittype |= HITTYPE.HITTED_EN;
@@ -382,22 +389,22 @@ namespace m2d
 											if ((hitType & HITTYPE.WALL) != HITTYPE.NONE)
 											{
 												hittype2 |= HITTYPE.WALL;
-												this.hittype |= (HITTYPE)1536;
-												hittype |= (HITTYPE)6;
+												this.hittype |= HITTYPE.HITTED_EN | HITTYPE.HITTED_WALL;
+												hittype |= HITTYPE.EN | HITTYPE.WALL;
 											}
 											if (m2Mover == null)
+											{
+												M2Ray.M2RayHittedItem[] ahitted2 = this.AHitted;
+												int num4 = this.hit_i;
+												this.hit_i = num4 + 1;
+												m2RayHittedItem = ahitted2[num4].Set(hittype2, this.Mp, im2RayHitAble, raycastHit2D);
+											}
+											else
 											{
 												M2Ray.M2RayHittedItem[] ahitted3 = this.AHitted;
 												int num4 = this.hit_i;
 												this.hit_i = num4 + 1;
-												m2RayHittedItem = ahitted3[num4].Set(hittype2, this.Mp, im2RayHitAble, raycastHit2D);
-											}
-											else
-											{
-												M2Ray.M2RayHittedItem[] ahitted4 = this.AHitted;
-												int num4 = this.hit_i;
-												this.hit_i = num4 + 1;
-												m2RayHittedItem = ahitted4[num4].Set(hittype2, im2RayHitAble, m2Mover, this.Pos.x, this.Pos.y);
+												m2RayHittedItem = ahitted3[num4].Set(hittype2, im2RayHitAble, m2Mover, this.Pos.x, this.Pos.y, this.Dir_);
 											}
 											num3++;
 										}
@@ -405,12 +412,12 @@ namespace m2d
 										{
 											if ((this.hittype & HITTYPE.TEMP_OFFLINE) != HITTYPE.NONE)
 											{
-												goto IL_055F;
+												goto IL_054E;
 											}
-											M2Ray.M2RayHittedItem[] ahitted5 = this.AHitted;
+											M2Ray.M2RayHittedItem[] ahitted4 = this.AHitted;
 											int num4 = this.hit_i;
 											this.hit_i = num4 + 1;
-											m2RayHittedItem = ahitted5[num4].Set(HITTYPE.OTHER, this.Mp, im2RayHitAble, raycastHit2D);
+											m2RayHittedItem = ahitted4[num4].Set(HITTYPE.OTHER, this.Mp, im2RayHitAble, raycastHit2D);
 											this.hittype |= HITTYPE.HITTED_OTHER;
 											hittype |= HITTYPE.OTHER;
 										}
@@ -451,7 +458,7 @@ namespace m2d
 						}
 					}
 				}
-				IL_055F:;
+				IL_054E:;
 			}
 			if ((this.hittype & HITTYPE.WATER_CUT) != HITTYPE.NONE)
 			{
@@ -462,31 +469,51 @@ namespace m2d
 				for (int j = this.ACohitableCheck.Count - 1; j >= 0; j--)
 				{
 					M2Ray m2Ray = this.ACohitableCheck[j];
-					float num6;
-					if (m2Ray != this && (m2Ray.hittype & HITTYPE.TARGET_CHECKER) == HITTYPE.NONE && !m2Ray.hit_full_count && (this.canCohit(m2Ray) || ((this.hittype & HITTYPE.PR) != HITTYPE.NONE && (m2Ray.hittype & HITTYPE.EN) != HITTYPE.NONE) || ((this.hittype & HITTYPE.EN) != HITTYPE.NONE && (m2Ray.hittype & HITTYPE.PR) != HITTYPE.NONE)) && (this.OHittedFloorT == null || !this.OHittedFloorT.TryGetValue(m2Ray, out num6) || num6 <= this.Mp.floort) && this.checkCohit(m2Ray))
+					float num5;
+					if (m2Ray != this && (m2Ray.hittype & HITTYPE.TARGET_CHECKER) == HITTYPE.NONE && !m2Ray.hit_full_count && (this.canCohit(m2Ray) || ((this.hittype & HITTYPE.PR) != HITTYPE.NONE && (m2Ray.hittype & HITTYPE.EN) != HITTYPE.NONE) || ((this.hittype & HITTYPE.EN) != HITTYPE.NONE && (m2Ray.hittype & HITTYPE.PR) != HITTYPE.NONE)) && (this.OHittedFloorT == null || !this.OHittedFloorT.TryGetValue(m2Ray, out num5) || num5 <= this.Mp.floort) && this.checkCohit(m2Ray))
 					{
 						hittype |= M2Ray.checkReflectCohitRay(this, m2Ray, true, hitlock_calc_after);
 					}
 				}
 			}
-			if (sort)
+			bool flag = (this.hittype & HITTYPE.ONLY_FIRST_BREAKER) > HITTYPE.NONE;
+			if (sort || flag)
 			{
 				if (this.FD_fnSortMv == null)
 				{
 					this.FD_fnSortMv = new Comparison<M2Ray.M2RayHittedItem>(this.fnSortMv);
 				}
 				M2Ray.SortMv.qSort(this.AHitted, this.FD_fnSortMv, this.hit_i);
-				int num7 = 0;
+				int num6 = 0;
+				Vector3 zero = Vector3.zero;
 				for (int k = 0; k < this.hit_i; k++)
 				{
 					M2Ray.M2RayHittedItem m2RayHittedItem2 = this.AHitted[k];
-					if ((m2RayHittedItem2.type & HITTYPE.PR_AND_EN) != HITTYPE.NONE && ++num7 > this.hit_target_max)
+					if (flag && (m2RayHittedItem2.type & (HITTYPE.PR | HITTYPE.EN | HITTYPE.WALL | HITTYPE.BREAK)) != HITTYPE.NONE)
+					{
+						if (zero.z == 0f)
+						{
+							zero = new Vector3(m2RayHittedItem2.hit_ux, m2RayHittedItem2.hit_uy, 1f);
+						}
+						else if (!X.chkLEN(zero.x, zero.y, m2RayHittedItem2.hit_ux, m2RayHittedItem2.hit_uy, this.radius))
+						{
+							m2RayHittedItem2.Mv = null;
+							m2RayHittedItem2.type = HITTYPE.NONE;
+						}
+					}
+					if ((m2RayHittedItem2.type & HITTYPE.PR_AND_EN) != HITTYPE.NONE && ++num6 > this.hit_target_max)
 					{
 						m2RayHittedItem2.type = HITTYPE.NONE;
 					}
 				}
 			}
 			return hittype;
+		}
+
+		public bool checkHitLock(IM2RayHitAble Hi)
+		{
+			float num;
+			return this.hit_lock != 0f && this.OHittedFloorT.TryGetValue(Hi, out num) && (this.hit_lock == -1f || num > this.Mp.floort);
 		}
 
 		private bool canCohit(M2Ray OtherRay)
@@ -535,14 +562,19 @@ namespace m2d
 			}
 		}
 
+		public float auto_target_priority(M2Mover CalcFrom)
+		{
+			return -1f;
+		}
+
 		private HITTYPE checkWaterCut()
 		{
 			Vector2 mapPos = this.getMapPos(0f);
 			float num = this.lenmp;
-			if (CCON.isWater(this.Mp.getConfig((int)(mapPos.x + this.Dir.x * num), (int)(mapPos.y - this.Dir.y * num))))
+			if (CCON.isWater(this.Mp.getConfig((int)(mapPos.x + this.Dir_.x * num), (int)(mapPos.y - this.Dir_.y * num))))
 			{
-				this.hittype |= (HITTYPE)36864;
-				return (HITTYPE)36864;
+				this.hittype |= HITTYPE.HITTED_WATER | HITTYPE.BREAK;
+				return HITTYPE.HITTED_WATER | HITTYPE.BREAK;
 			}
 			return HITTYPE.NONE;
 		}
@@ -564,10 +596,10 @@ namespace m2d
 
 		public int CastRayAndCollider(RaycastHit2D[] AHit = null)
 		{
-			return M2Ray.CastRayAndColliderS(this, this.shape, this.Pos, this.radius, this.Dir, this.len, this.layerMask, AHit);
+			return M2Ray.CastRayAndColliderS(this, this.shape, this.Pos, this.radius, this.Dir_, this.len, this.layerMask, AHit);
 		}
 
-		public static int CastRayAndColliderS(M2Ray Ray, RAYSHAPE shape, Vector2 Pos, float radius, Vector2 Dir, float len, uint layerMask, RaycastHit2D[] AHit = null)
+		public static int CastRayAndColliderS(M2Ray Ray, RAYSHAPE shape, Vector2 Pos, float radius, Vector2 Dir_, float len, uint layerMask, RaycastHit2D[] AHit = null)
 		{
 			int num = 0;
 			float num2 = 1f;
@@ -577,40 +609,44 @@ namespace m2d
 			{
 				if (shape == RAYSHAPE.RECT)
 				{
-					goto IL_005B;
+					goto IL_006E;
 				}
 				if (shape == RAYSHAPE.DAIA)
 				{
 					num4 = 45f;
-					goto IL_005B;
+					goto IL_006E;
 				}
 			}
 			else
 			{
-				if (shape == RAYSHAPE.RECT_HH)
+				switch (shape)
 				{
+				case RAYSHAPE.RECT_HH:
 					num2 = 1.33f;
-					goto IL_005B;
-				}
-				if (shape == RAYSHAPE.RECT_HH2)
-				{
+					goto IL_006E;
+				case RAYSHAPE.RECT_HH2:
 					num2 = 2f;
-					goto IL_005B;
-				}
-				if (shape == RAYSHAPE.RECT_VH)
-				{
-					num3 = 1.33f;
-					goto IL_005B;
+					goto IL_006E;
+				case RAYSHAPE.RECT_HH2C:
+					num3 = 0.5f;
+					goto IL_006E;
+				default:
+					if (shape == RAYSHAPE.RECT_VH)
+					{
+						num3 = 1.33f;
+						goto IL_006E;
+					}
+					break;
 				}
 			}
 			num2 = 0f;
 			num3 = radius;
-			IL_005B:
+			IL_006E:
 			if (num2 == 0f)
 			{
 				if (AHit != null)
 				{
-					num = Physics2D.CircleCastNonAlloc(Pos, radius, Dir, AHit, len, (int)layerMask);
+					num = Physics2D.CircleCastNonAlloc(Pos, radius, Dir_, AHit, len, (int)layerMask);
 				}
 			}
 			else
@@ -619,7 +655,7 @@ namespace m2d
 				num3 *= radius;
 				if (AHit != null)
 				{
-					num = Physics2D.BoxCastNonAlloc(Pos, new Vector2(num2 * 2f, num3 * 2f), num4, Dir, AHit, len, (int)layerMask);
+					num = Physics2D.BoxCastNonAlloc(Pos, new Vector2(num2 * 2f, num3 * 2f), num4, Dir_, AHit, len, (int)layerMask);
 				}
 			}
 			return num;
@@ -631,13 +667,13 @@ namespace m2d
 			bool flag2 = RayA.len > 0.3125f;
 			if (flag && flag2)
 			{
-				return X.chkLENLineCirc(this.Pos.x, this.Pos.y, this.Pos.x + this.Dir.x * this.len, this.Pos.y + this.Dir.y * this.len, RayA.Pos.x + RayA.Dir.x * RayA.len * 0.5f, RayA.Pos.y + RayA.Dir.y * RayA.len * 0.5f, this.radius + RayA.radius) || X.chkLENLineCirc(RayA.Pos.x, RayA.Pos.y, RayA.Pos.x + RayA.Dir.x * RayA.len, RayA.Pos.y + RayA.Dir.y * RayA.len, this.Pos.x + this.Dir.x * this.len * 0.5f, this.Pos.y + this.Dir.y * this.len * 0.5f, this.radius + RayA.radius) || X.vec_vec_X(this.Pos.x, this.Pos.y, this.Pos.x + this.Dir.x * this.len, this.Pos.y + this.Dir.y * this.len, RayA.Pos.x, RayA.Pos.y, RayA.Pos.x + RayA.Dir.x * RayA.len, RayA.Pos.y + RayA.Dir.y * RayA.len);
+				return X.chkLENLineCirc(this.Pos.x, this.Pos.y, this.Pos.x + this.Dir_.x * this.len, this.Pos.y + this.Dir_.y * this.len, RayA.Pos.x + RayA.Dir_.x * RayA.len * 0.5f, RayA.Pos.y + RayA.Dir_.y * RayA.len * 0.5f, this.radius + RayA.radius) || X.chkLENLineCirc(RayA.Pos.x, RayA.Pos.y, RayA.Pos.x + RayA.Dir_.x * RayA.len, RayA.Pos.y + RayA.Dir_.y * RayA.len, this.Pos.x + this.Dir_.x * this.len * 0.5f, this.Pos.y + this.Dir_.y * this.len * 0.5f, this.radius + RayA.radius) || X.vec_vec_X(this.Pos.x, this.Pos.y, this.Pos.x + this.Dir_.x * this.len, this.Pos.y + this.Dir_.y * this.len, RayA.Pos.x, RayA.Pos.y, RayA.Pos.x + RayA.Dir_.x * RayA.len, RayA.Pos.y + RayA.Dir_.y * RayA.len);
 			}
 			if (flag2)
 			{
-				return X.chkLENLineCirc(RayA.Pos.x, RayA.Pos.y, RayA.Pos.x + RayA.Dir.x * RayA.len, RayA.Pos.y + RayA.Dir.y * RayA.len, this.Pos.x + this.Dir.x * this.len * 0.5f, this.Pos.y + this.Dir.y * this.len * 0.5f, this.radius + RayA.radius);
+				return X.chkLENLineCirc(RayA.Pos.x, RayA.Pos.y, RayA.Pos.x + RayA.Dir_.x * RayA.len, RayA.Pos.y + RayA.Dir_.y * RayA.len, this.Pos.x + this.Dir_.x * this.len * 0.5f, this.Pos.y + this.Dir_.y * this.len * 0.5f, this.radius + RayA.radius);
 			}
-			return X.chkLENLineCirc(this.Pos.x, this.Pos.y, this.Pos.x + this.Dir.x * this.len, this.Pos.y + this.Dir.y * this.len, RayA.Pos.x + RayA.Dir.x * RayA.len * 0.5f, RayA.Pos.y + RayA.Dir.y * RayA.len * 0.5f, this.radius + RayA.radius);
+			return X.chkLENLineCirc(this.Pos.x, this.Pos.y, this.Pos.x + this.Dir_.x * this.len, this.Pos.y + this.Dir_.y * this.len, RayA.Pos.x + RayA.Dir_.x * RayA.len * 0.5f, RayA.Pos.y + RayA.Dir_.y * RayA.len * 0.5f, this.radius + RayA.radius);
 		}
 
 		public static HITTYPE checkReflectCohitRay(M2Ray MyRay, M2Ray Ray, bool assign_to_list = false, bool hitlock_calc_after = false)
@@ -673,7 +709,7 @@ namespace m2d
 
 		public M2Ray clearTempReflect()
 		{
-			this.hittype &= (HITTYPE)(-12582945);
+			this.hittype &= ~(HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED);
 			return this;
 		}
 
@@ -720,8 +756,8 @@ namespace m2d
 				m2RayHittedItem.type |= HITTYPE.BREAK;
 			}
 			Vector2 mergeUPos = M2Ray.getMergeUPos(this, RayA);
-			mergeUPos.x += (this.Dir.x + RayA.Dir.x) * 0.01f;
-			mergeUPos.y += (this.Dir.y + RayA.Dir.y) * 0.01f;
+			mergeUPos.x += (this.Dir_.x + RayA.Dir_.x) * 0.01f;
+			mergeUPos.y += (this.Dir_.y + RayA.Dir_.y) * 0.01f;
 			m2RayHittedItem.hit_ux = mergeUPos.x;
 			m2RayHittedItem.hit_uy = mergeUPos.y;
 			m2RayHittedItem.mv_mapx = this.Mp.globaluxToMapx(RayA.Pos.x);
@@ -738,14 +774,14 @@ namespace m2d
 
 		public static Vector2 getMergeUPos(M2Ray MyRay, M2Ray Ray)
 		{
-			if ((MyRay.Dir.x == 0f && MyRay.Dir.y == 0f) || (Ray.Dir.x == 0f && Ray.Dir.y == 0f))
+			if ((MyRay.Dir_.x == 0f && MyRay.Dir_.y == 0f) || (Ray.Dir_.x == 0f && Ray.Dir_.y == 0f))
 			{
 				float num = X.GAR2(MyRay.Pos.x, MyRay.Pos.y, Ray.Pos.x, Ray.Pos.y);
 				float num2 = X.LENGTHXYS(MyRay.Pos.x, MyRay.Pos.y, Ray.Pos.x, Ray.Pos.y);
 				num2 = X.Mn(num2, X.Mx(0.0625f, MyRay.radius));
 				return new Vector2(MyRay.Pos.x + num2 * X.Cos(num), MyRay.Pos.y + num2 * X.Sin(num));
 			}
-			Vector3 vector = X.crosspoint(MyRay.Pos.x, MyRay.Pos.y, MyRay.Pos.x + MyRay.Dir.x * MyRay.len, MyRay.Pos.y + MyRay.Dir.y * MyRay.len, Ray.Pos.x, Ray.Pos.y, Ray.Pos.x + Ray.Dir.x * Ray.len, Ray.Pos.y + Ray.Dir.y * Ray.len);
+			Vector3 vector = X.crosspoint(MyRay.Pos.x, MyRay.Pos.y, MyRay.Pos.x + MyRay.Dir_.x * MyRay.len, MyRay.Pos.y + MyRay.Dir_.y * MyRay.len, Ray.Pos.x, Ray.Pos.y, Ray.Pos.x + Ray.Dir_.x * Ray.len, Ray.Pos.y + Ray.Dir_.y * Ray.len);
 			if (vector.z == 0f)
 			{
 				Vector2 vector2 = (MyRay.Pos + Ray.Pos) * 0.5f;
@@ -764,17 +800,18 @@ namespace m2d
 			return vector;
 		}
 
-		public static M2Ray.M2RayHittedItem findAutoTarget(M2Mover CasterMv, float cx, float cy, float map_radius, HITTYPE ht, int projectile_power, float shift_len = 0f, float shift_agR = 0f, M2Mover NearSearch = null, M2Mover TargetMv = null)
+		public static M2Ray.M2RayHittedItem findAutoTarget(M2Mover CasterMv, float cx, float cy, float search_radius, float ray_thick, HITTYPE ht, int projectile_power, float shift_len = 0f, float shift_agR = 0f, M2Mover NearSearch = null, M2Mover TargetMv = null)
 		{
 			Map2d mp = CasterMv.Mp;
 			if (M2Ray.RaySearch == null || M2Ray.RaySearch.Mp != mp)
 			{
-				M2Ray.RaySearch = new M2Ray().Set(mp, CasterMv, 0f, (HITTYPE)15);
+				M2Ray.RaySearch = new M2Ray().Set(mp, CasterMv, 0f, HITTYPE.PR | HITTYPE.EN | HITTYPE.WALL | HITTYPE.OTHER);
 			}
-			M2Ray.RaySearch.hittype = ht;
+			bool flag = (ht & HITTYPE.WALL) > HITTYPE.NONE;
+			M2Ray.RaySearch.hittype = ht & ~HITTYPE.WALL;
 			M2Ray.RaySearch.PosMap(cx, cy);
 			M2Ray.RaySearch.projectile_power = projectile_power;
-			M2Ray.RaySearch.LenM(shift_len).AngleR(shift_agR).RadiusM(map_radius)
+			M2Ray.RaySearch.LenM(shift_len).AngleR(shift_agR).RadiusM(search_radius)
 				.Cast(false, null, true);
 			int hittedMax = M2Ray.RaySearch.getHittedMax();
 			if (hittedMax == 0)
@@ -789,34 +826,38 @@ namespace m2d
 				M2Ray.M2RayHittedItem hitted = M2Ray.RaySearch.GetHitted(i);
 				if (hitted.Hit != null)
 				{
-					float num2 = 0f;
-					float num3 = 0f;
-					if (hitted.Mv != null)
+					float num2 = hitted.Hit.auto_target_priority(CasterMv);
+					if (num2 > 0f)
 					{
-						num3 = X.Mx(hitted.Mv.sizex, hitted.Mv.sizey);
-					}
-					if (NearSearch != null)
-					{
-						float num4 = X.Mx(0f, X.LENGTHXYS(hitted.mv_mapx, hitted.mv_mapy, NearSearch.x, NearSearch.y) - num3);
-						num2 += ((num4 >= 4f) ? ((num4 - 4f) / 5f) : X.NI(3.8f, 1f, num4 / 4f));
-					}
-					if ((ht & HITTYPE.WALL) != HITTYPE.NONE && !mp.canThroughXy(mapPos.x, mapPos.y, hitted.mv_mapx, hitted.mv_mapy, map_radius))
-					{
-						num2 -= map_radius * 2f;
-					}
-					float num5 = X.LENGTHXYS(hitted.mv_mapx, hitted.mv_mapy, mapPos.x + X.Cos(shift_agR) * shift_len, mapPos.y - X.Sin(shift_agR) * shift_len);
-					num2 += 30f * (1f - X.ZPOW(X.Abs(X.angledifR(shift_agR, mp.GAR(cx, cy, hitted.mv_mapx, hitted.mv_mapy))), 1.5707964f));
-					num2 += 15f * (1f - X.ZPOW(X.LENGTHXYS(CasterMv.x, CasterMv.y, hitted.mv_mapx, hitted.mv_mapy) - 2f, 11f));
-					num2 /= X.NI(1, 12, X.ZLINE(num5, map_radius));
-					num2 += ((hitted.Mv != null && hitted.Mv == TargetMv) ? 1.2f : 0f);
-					if (hitted.Mv != null)
-					{
-						num2 += (float)((CasterMv.x < hitted.Mv.x == CAim._XD(CasterMv.aim, 1) > 0) ? 2000 : 0);
-					}
-					if (num < 0f || num < num2)
-					{
-						num = num2;
-						m2RayHittedItem = hitted;
+						float num3 = 0f;
+						float num4 = 0f;
+						if (hitted.Mv != null)
+						{
+							num4 = X.Mx(hitted.Mv.sizex, hitted.Mv.sizey);
+						}
+						if (NearSearch != null)
+						{
+							float num5 = X.Mx(0f, X.LENGTHXYS(hitted.mv_mapx, hitted.mv_mapy, NearSearch.x, NearSearch.y) - num4);
+							num3 += ((num5 >= 4f) ? ((num5 - 4f) / 5f) : X.NI(3.8f, 1f, num5 / 4f));
+						}
+						float num6 = X.LENGTHXYS(hitted.mv_mapx, hitted.mv_mapy, mapPos.x + X.Cos(shift_agR) * shift_len, mapPos.y - X.Sin(shift_agR) * shift_len);
+						num3 += 30f * (1f - X.ZSIN(X.Abs(X.angledifR(shift_agR, mp.GAR(cx, cy, hitted.mv_mapx, hitted.mv_mapy))), 1.5707964f));
+						num3 += 15f * (1f - X.ZPOW(X.LENGTHXYS(CasterMv.x, CasterMv.y, hitted.mv_mapx, hitted.mv_mapy) - 2f, 11f));
+						num3 /= X.NI(1, 12, X.ZLINE(num6, search_radius));
+						if (hitted.Mv != null)
+						{
+							num3 += (float)((CasterMv.x < hitted.Mv.x == CAim._XD(CasterMv.aim, 1) > 0) ? 2000 : 0);
+						}
+						num3 *= num2;
+						if (flag && !mp.canThroughXy(mapPos.x, mapPos.y, hitted.mv_mapx, hitted.mv_mapy, ray_thick))
+						{
+							num3 *= 0.05f;
+						}
+						if (num < 0f || num < num3)
+						{
+							num = num3;
+							m2RayHittedItem = hitted;
+						}
 					}
 				}
 			}
@@ -832,7 +873,7 @@ namespace m2d
 		{
 			get
 			{
-				return this.Dir.x * this.lenmp;
+				return this.Dir_.x * this.lenmp;
 			}
 		}
 
@@ -840,7 +881,7 @@ namespace m2d
 		{
 			get
 			{
-				return -this.Dir.y * this.lenmp;
+				return -this.Dir_.y * this.lenmp;
 			}
 		}
 
@@ -856,7 +897,7 @@ namespace m2d
 		{
 			get
 			{
-				return this.Dir.x;
+				return this.Dir_.x;
 			}
 		}
 
@@ -889,7 +930,7 @@ namespace m2d
 					this.hittype |= HITTYPE.PR;
 					return;
 				}
-				this.hittype &= (HITTYPE)(-2);
+				this.hittype &= ~HITTYPE.PR;
 			}
 		}
 
@@ -906,7 +947,7 @@ namespace m2d
 					this.hittype |= HITTYPE.EN;
 					return;
 				}
-				this.hittype &= (HITTYPE)(-3);
+				this.hittype &= ~HITTYPE.EN;
 			}
 		}
 
@@ -942,7 +983,7 @@ namespace m2d
 					this.layerMask |= 1U << this.Mp.M2D.map_object_layer;
 					return;
 				}
-				this.hittype &= (HITTYPE)(-5);
+				this.hittype &= ~HITTYPE.WALL;
 				this.layerMask &= ~(1U << this.Mp.M2D.map_object_layer);
 			}
 		}
@@ -960,7 +1001,7 @@ namespace m2d
 					this.hittype |= HITTYPE.OTHER;
 					return;
 				}
-				this.hittype &= (HITTYPE)(-9);
+				this.hittype &= ~HITTYPE.OTHER;
 			}
 		}
 
@@ -977,7 +1018,7 @@ namespace m2d
 					this.hittype |= HITTYPE.PR_AND_EN;
 					return;
 				}
-				this.hittype &= (HITTYPE)(-4);
+				this.hittype &= ~(HITTYPE.PR | HITTYPE.EN);
 			}
 		}
 
@@ -994,7 +1035,7 @@ namespace m2d
 					this.hittype |= HITTYPE.PENETRATE;
 					return;
 				}
-				this.hittype &= (HITTYPE)(-262145);
+				this.hittype &= ~HITTYPE.PENETRATE;
 			}
 		}
 
@@ -1050,6 +1091,14 @@ namespace m2d
 			return this.hit_lock;
 		}
 
+		public const float AT_PRIORITY_ENEMY = 10f;
+
+		public const float AT_PRIORITY_OBJECT_P = 4f;
+
+		public const float AT_PRIORITY_OBJECT = 2f;
+
+		public const float AT_PRIORITY_BASIC = 1f;
+
 		public static RaycastHit2D[] AHit;
 
 		public static RaycastHit2D[] AHitTest;
@@ -1068,7 +1117,9 @@ namespace m2d
 
 		public Vector2 Pos;
 
-		public Vector2 Dir;
+		private Vector3 Dir_;
+
+		public bool check_hitlock_manual;
 
 		public int projectile_power = -1;
 
@@ -1140,61 +1191,42 @@ namespace m2d
 				return this;
 			}
 
-			public M2Ray.M2RayHittedItem SetMapPos(HITTYPE _type, IM2RayHitAble _Hit, M2Mover _Mv, float mapcx, float mapcy)
+			public M2Ray.M2RayHittedItem SetMapPos(HITTYPE _type, IM2RayHitAble _Hit, M2Mover _Mv, float mapcx, float mapcy, Vector3 Dir)
 			{
-				return this.Set(_type, _Hit, _Mv, _Mv.Mp.ux2effectScreenx(_Mv.Mp.map2ux(mapcx)), _Mv.Mp.uy2effectScreeny(_Mv.Mp.map2uy(mapcy)));
+				return this.Set(_type, _Hit, _Mv, _Mv.Mp.ux2effectScreenx(_Mv.Mp.map2ux(mapcx)), _Mv.Mp.uy2effectScreeny(_Mv.Mp.map2uy(mapcy)), Dir);
 			}
 
-			public M2Ray.M2RayHittedItem Set(HITTYPE _type, IM2RayHitAble _Hit, M2Mover _Mv, float ray_cen_ux, float ray_cen_uy)
+			public M2Ray.M2RayHittedItem SetHitMap(RaycastHit2D HitPos, Map2d Mp, M2Ray Ray)
+			{
+				this.Set(HITTYPE.WALL, null);
+				Vector2 mapPos = Ray.getMapPos(0f);
+				float num = X.Mn(0.05f, Ray.radius_map);
+				float num2 = Ray.lenmp + 0.55f + Ray.radius_map;
+				Vector3 vector = Mp.BCC.crosspoint(mapPos.x, mapPos.y, mapPos.x + Ray.Dir.x * num2, mapPos.y - Ray.Dir.y * num2, num, num, null, false, null);
+				if (vector.z >= 2f)
+				{
+					this.mv_mapx = vector.x - Ray.Dir.x * num * 0.5f;
+					this.mv_mapy = vector.y + Ray.Dir.y * num * 0.5f;
+				}
+				else
+				{
+					this.mv_mapx = mapPos.x + Ray.Dir.x * (num2 - num);
+					this.mv_mapy = mapPos.y - Ray.Dir.y * (num2 - num);
+				}
+				this.hit_ux = Mp.ux2effectScreenx(Mp.map2ux(this.mv_mapx));
+				this.hit_uy = Mp.uy2effectScreeny(Mp.map2uy(this.mv_mapy));
+				return this;
+			}
+
+			public M2Ray.M2RayHittedItem Set(HITTYPE _type, IM2RayHitAble _Hit, M2Mover _Mv, float ray_cen_ux, float ray_cen_uy, Vector3 Dir)
 			{
 				this.Set(_type, _Hit);
 				this.Mv = _Mv;
 				this.mv_mapx = _Mv.x;
 				this.mv_mapy = _Mv.y;
-				float num = this.Mv.Mp.ux2effectScreenx(this.Mv.Mp.map2ux(this.Mv.x));
-				float num2 = this.Mv.Mp.uy2effectScreeny(this.Mv.Mp.map2uy(this.Mv.y));
-				float num3 = this.Mv.sizex * this.Mv.Mp.CLENB * 0.015625f;
-				float num4 = this.Mv.sizey * this.Mv.Mp.CLENB * 0.015625f;
-				float num5 = X.GAR(num, num2, ray_cen_ux, ray_cen_uy);
-				float num6 = num4 / num3;
-				AIM aim;
-				if (num5 >= 1.5707964f)
-				{
-					aim = ((X.Tan(num5) > -num6) ? AIM.L : AIM.T);
-				}
-				else if (num5 >= 0f)
-				{
-					aim = ((X.Tan(num5) > num6) ? AIM.T : AIM.R);
-				}
-				else if (num5 >= -1.5707964f)
-				{
-					aim = ((X.Tan(num5) > -num6) ? AIM.R : AIM.B);
-				}
-				else
-				{
-					aim = ((X.Tan(num5) > num6) ? AIM.B : AIM.L);
-				}
-				Vector3 vector;
-				if (aim == AIM.T || aim == AIM.B)
-				{
-					float num7 = num2 + num4 * (float)CAim._YD(aim, 1);
-					vector = X.crosspoint(0f, num7, 1f, num7, num, num2, ray_cen_ux, ray_cen_uy);
-				}
-				else
-				{
-					float num8 = num + num3 * (float)CAim._XD(aim, 1);
-					vector = X.crosspoint(num8, 0f, num8, 1f, num, num2, ray_cen_ux, ray_cen_uy);
-				}
-				if (vector.z == 0f)
-				{
-					this.hit_ux = ray_cen_ux;
-					this.hit_uy = ray_cen_uy;
-				}
-				else
-				{
-					this.hit_ux = vector.x;
-					this.hit_uy = vector.y;
-				}
+				Vector2 vector = this.Mv.calcHitUPosFromRay(this.Mv.Mp.uxToMapx(this.Mv.Mp.M2D.effectScreenx2ux(ray_cen_ux)), this.Mv.Mp.uyToMapy(this.Mv.Mp.M2D.effectScreeny2uy(ray_cen_uy)), Dir);
+				this.hit_ux = _Mv.Mp.ux2effectScreenx(_Mv.Mp.map2ux(vector.x));
+				this.hit_uy = _Mv.Mp.uy2effectScreeny(_Mv.Mp.map2uy(vector.y));
 				return this;
 			}
 

@@ -14,7 +14,7 @@ namespace nel
 		public override void setItem(UiItemManageBox _ItemMng, ItemStorage _Storage, ItemStorage.IRow _ItmRow)
 		{
 			base.use_exist_icon = 2;
-			this.Eh = EnhancerManager.Get(_ItmRow.Data);
+			this.Eh = ENHA.Get(_ItmRow.Data);
 			base.setItem(_ItemMng, _Storage, _ItmRow);
 			this.fineEquip();
 		}
@@ -55,13 +55,10 @@ namespace nel
 			}
 		}
 
-		protected override string getTitleString()
+		protected override STB getTitleString(STB Stb)
 		{
-			if (this.Eh == null)
-			{
-				return this.ItmRow.Data.key;
-			}
-			return this.Eh.title;
+			Stb.Add((this.Eh != null) ? this.Eh.title : this.ItmRow.Data.key);
+			return Stb;
 		}
 
 		protected override void drawIcon(float x, float y)
@@ -82,6 +79,6 @@ namespace nel
 
 		public const float DEFAULT_H_EH_ROW = 48f;
 
-		private EnhancerManager.Enhancer Eh;
+		private ENHA.Enhancer Eh;
 	}
 }

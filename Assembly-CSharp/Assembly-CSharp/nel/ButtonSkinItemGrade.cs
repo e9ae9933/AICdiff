@@ -85,16 +85,24 @@ namespace nel
 			this.Md.Col = C32.MulA(flag ? 4293321691U : 4283780170U, num);
 			this.Md.chooseSubMesh(1, true, false);
 			this.Md.RotaPF(-this.draw_w * 0.5f + 39f, 0f, 1f, 1f, 0f, MTR.AItemGradeStars[this.grade], false, false, false, uint.MaxValue, false, 0);
+			if (!this.available_)
+			{
+				this.Md.chooseSubMesh(2, true, false);
+				float num2 = -this.draw_w * 0.5f - 7f;
+				float num3 = 6f;
+				this.Md.Line(num2 - num3, 0f - num3, num2 + num3, 0f + num3, 2f, false, 0f, 0f);
+				this.Md.Line(num2 + num3, 0f - num3, num2 - num3, 0f + num3, 2f, false, 0f, 0f);
+			}
 			this.Md.chooseSubMesh(0, true, false);
-			float num2 = X.NI(this.draw_w, this.w * 64f, 0.25f);
+			float num4 = X.NI(this.draw_w, this.w * 64f, 0.25f);
 			if (this.Itm != null && !this.Itm.individual_grade && (base.isChecked() || base.isHoveredOrPushOut()))
 			{
-				this.Md.RectDashedM(0f, 0f, num2, 20f, X.IntC((this.draw_w + 20f) / 7f), 2f, 0.5f, false, false);
+				this.Md.RectDashedM(0f, 0f, num4, 20f, X.IntC((this.draw_w + 20f) / 7f), this.available_ ? 2f : 1.25f, 0.5f, false, false);
 			}
 			this.Md.updateForMeshRenderer(false);
 			if (flag)
 			{
-				this.Md.Rect(0f, 0f, num2, 20f, false);
+				this.Md.Rect(0f, 0f, num4, 20f, false);
 				this.Tx.Col(C32.MulA(4293321691U, num));
 			}
 			else
@@ -111,6 +119,28 @@ namespace nel
 				this.Tx.enabled = f;
 			}
 			base.setEnable(f);
+		}
+
+		public bool available
+		{
+			get
+			{
+				return this.available_;
+			}
+			set
+			{
+				if (this.available == value)
+				{
+					return;
+				}
+				this.available_ = value;
+				if (!this.available_ && this.Md.getSubMeshCount(false) == 2)
+				{
+					this.Md.chooseSubMesh(2, false, false);
+					this.Md.setMaterial(MTRX.getMtr(BLEND.NORMAL, base.container_stencil_ref), false);
+				}
+				this.fine_flag = true;
+			}
 		}
 
 		public UiItemManageBox getCurrentManager()
@@ -135,5 +165,7 @@ namespace nel
 		private TextRenderer Tx;
 
 		private UiItemManageBox ItemMng;
+
+		private bool available_ = true;
 	}
 }

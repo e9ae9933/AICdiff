@@ -17,6 +17,11 @@ namespace nel
 			return new Vector4(base.x, base.y, this.sizey * base.CLEN + 115f, -this.sizey * base.CLEN - 20f);
 		}
 
+		public float auto_target_priority(M2Mover CalcFrom)
+		{
+			return 1f;
+		}
+
 		public RAYHIT can_hit(M2Ray Ray)
 		{
 			bool flag = EnemySummoner.isActiveBorder();

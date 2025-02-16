@@ -136,6 +136,11 @@ namespace XX
 			return true;
 		}
 
+		public override string ToString()
+		{
+			return "<PadManager>";
+		}
+
 		private BDic<string, PadVibManager.VibInfo> OVib;
 
 		private float pre_left;

@@ -23,7 +23,7 @@ namespace nel
 			this.Mp.M2D.loadMaterialSnd("m2darea_insect");
 			this.Mp.M2D.Snd.Environment.AddLoop("areasnd_insect", this.Dr.unique_key, this.Dr.mcld_cx, this.Dr.mcld_cy, 6f, 6f, (float)this.Dr.mclms * 0.5f + 1f, (float)this.Dr.mrows * 0.5f + 1f, null);
 			base.gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
-			this.Mp.addLight(this.Lig = new M2LightFn(this.Mp, new M2LightFn.FnDrawLight(this.fnDrawLight), null, new Func<float, float, bool>(this.fnIsinCamera)));
+			this.Mp.addLight(this.Lig = new M2LightFn(this.Mp, new M2LightFn.FnDrawLight(this.fnDrawLight), null, new Func<float, float, bool>(this.fnIsinCamera)), -1);
 			this.Lig.Pos(this.Dr.mcld_cx, this.Dr.mcld_cy);
 			this.Lig.radius = X.Mx(this.Dr.mcld_right - this.Dr.mcld_left, this.Dr.mcld_bottom - this.Dr.mcld_top) * this.Mp.CLEN;
 			this.ran0 = X.xorsi();
@@ -143,7 +143,7 @@ namespace nel
 							else
 							{
 								float num = X.ZLINE(value.t - 60f, 120f) * 0.3f;
-								if (key.walkWormTrapped(this, value.t <= -20f && this.isCovering(key, this.extend_in_x + num, this.extend_in_y + num, this.shift_pr_x)))
+								if (key.DMG.walkWormTrapped(this, value.t <= -20f && this.isCovering(key, this.extend_in_x + num, this.extend_in_y + num, this.shift_pr_x)))
 								{
 									value.t = 0f;
 									value.phase = 0;
@@ -191,7 +191,7 @@ namespace nel
 						else
 						{
 							bool flag3 = this.wormTrapApplyDamageTo(key, value);
-							key.walkWormTrapped(this, true);
+							key.DMG.walkWormTrapped(this, true);
 							if (!value.submitted)
 							{
 								value.t += Map2d.TS;
@@ -673,6 +673,11 @@ namespace nel
 			{
 				return this.Dr.mcld_right;
 			}
+		}
+
+		public float auto_target_priority(M2Mover CalcFrom)
+		{
+			return -1f;
 		}
 
 		public RAYHIT can_hit(M2Ray Ray)

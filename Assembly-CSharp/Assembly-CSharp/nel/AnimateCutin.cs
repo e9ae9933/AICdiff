@@ -38,15 +38,17 @@ namespace nel
 			this.Mp = _Mp;
 			this.cutin_name = _cutin_name;
 			this.fader_key = null;
+			this.xorsp = X.XORSP();
 			this.stencil_ref_ = -1;
 			this.fineMaterial();
 			this.setMulColor(uint.MaxValue, 0f);
+			base.transform.localScale = Vector3.one;
 			this.TS_spv = 1f;
 			this.restarted = false;
 			this.position_consider_basepos = true;
-			this.t = 0f;
-			base.gameObject.SetActive(true);
-			this.prepareValot(true, null);
+			this.t = (this.anim_t = 0f);
+			base.gameObject.SetActive(false);
+			this.prepareValot(false, null);
 			if (this.MdB == null)
 			{
 				this.MdB = MeshDrawer.prepareMeshRenderer(base.gameObject, MTRX.MtrMeshNormal, 0f, -1, null, true, true);
@@ -174,7 +176,7 @@ namespace nel
 			{
 				bool flag = true;
 				this.Spw.updateAnim(true, (float)X.AF * this.TS_spv);
-				if (!this.fnDrawAC(this, this.Mp, this.MdB, this.MdT, this.t, ref flag))
+				if (!this.fnDrawAC(this, this.Mp, this.MdB, this.MdT, this.t, this.anim_t, ref flag))
 				{
 					this.deactivate(true);
 					return false;
@@ -193,6 +195,7 @@ namespace nel
 					this.MdT.updateForMeshRenderer(false);
 				}
 				this.t += (float)X.AF;
+				this.anim_t += (float)X.AF;
 			}
 			return true;
 		}
@@ -204,7 +207,7 @@ namespace nel
 			this.fader_key = _fader_key;
 			this.BetoMng = Pr.BetoMng;
 			this.setBase(0f, 0f, 1f);
-			BetobetoManager.SvTexture svTexture = Pr.BetoMng.prepareTexture(this.PictBody.getViewer().key, false);
+			BetobetoManager.SvTexture svTexture = Pr.BetoMng.prepareTexture(this.PictBody.getViewer().key, this.Mtr, false);
 			if (svTexture.isAsyncLoadFinished())
 			{
 				this.PictBodyFinalize(svTexture);
@@ -219,6 +222,8 @@ namespace nel
 			{
 				this.AMtrPict = new Material[1];
 			}
+			base.gameObject.SetActive(true);
+			this.prepareValot(true, null);
 			this.AMtrPict[0] = this.Mtr;
 			SpineAtlasAsset spineAtlasAsset;
 			SkeletonDataAsset skeletonDataAsset;
@@ -226,6 +231,7 @@ namespace nel
 			this.Spw.attachPreloadAssets(spineAtlasAsset, skeletonDataAsset, CurSvt.prepareTexture(true), this.Mtr);
 			this.animRandomize(this.Spw, this.pictstate, out this.pictstate);
 			this.Mosaic.setTarget(this, false);
+			this.Mosaic.resolution = X.IntC(X.Mx(5f, 4f * base.transform.localScale.x));
 			this.pictbody_async_load = false;
 			if (this.valotile_enabled)
 			{
@@ -237,6 +243,11 @@ namespace nel
 		{
 			string text;
 			this.PictBody.animRandomize(this.Spw, this.pictstate, out text, out current_state);
+		}
+
+		public void setTimePositionAll(float second)
+		{
+			this.Spw.setTimePositionAll(second);
 		}
 
 		public int countMosaic(bool only_sensitive)
@@ -251,7 +262,11 @@ namespace nel
 
 		public void restart(float start_t)
 		{
-			this.t = start_t;
+			if (!base.gameObject.activeSelf)
+			{
+				return;
+			}
+			this.anim_t = start_t;
 			this.restarted = true;
 			if (this.Spw.GetSkeletonAnimation() != null)
 			{
@@ -381,6 +396,10 @@ namespace nel
 
 		protected float t;
 
+		protected float anim_t;
+
+		public float xorsp;
+
 		public bool position_consider_basepos = true;
 
 		protected SpineViewer Spw;
@@ -419,6 +438,6 @@ namespace nel
 
 		private ValotileRendererFilter Valot;
 
-		public delegate bool FnDrawAC(AnimateCutin Cti, Map2d Mp, MeshDrawer Md, MeshDrawer MdT, float t, ref bool update_meshdrawer);
+		public delegate bool FnDrawAC(AnimateCutin Cti, Map2d Mp, MeshDrawer Md, MeshDrawer MdT, float t, float anim_t, ref bool update_meshdrawer);
 	}
 }

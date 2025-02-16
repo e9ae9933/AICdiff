@@ -87,6 +87,16 @@ namespace nel
 				store_title_tx_key = null,
 				FnAutoLoadOnSave = func2
 			};
+			StoreManager.OStorage["scl_koubai"] = new StoreManager("scl_koubai", true, null)
+			{
+				store_title_tx_key = null,
+				FnAutoLoadOnSave = func2
+			};
+			StoreManager.OStorage["city_guild"] = new StoreManager("city_guild", true, null)
+			{
+				store_title_tx_key = null,
+				FnAutoLoadOnSave = func2
+			};
 		}
 
 		public static void newGame()
@@ -144,35 +154,55 @@ namespace nel
 			{
 				_mode &= StoreManager.MODE.FLUSH;
 			}
-			CsvReaderA csvReaderA = new CsvReaderA(St.getTextResource(), true);
-			csvReaderA.tilde_replace = true;
-			csvReaderA.VarCon.define("_MODE", _mode.ToString(), true);
-			csvReaderA.VarCon.define("_vers", St.load_vers.ToString(), true);
-			if (M2DBase.Instance != null)
-			{
-				NelM2DBase nelM2DBase = M2DBase.Instance as NelM2DBase;
-				if (nelM2DBase.WM != null)
-				{
-					WholeMapItem curWM = nelM2DBase.WM.CurWM;
-					csvReaderA.VarCon.define("_WM", (curWM != null) ? curWM.text_key : "", true);
-				}
-			}
 			StoreManager.cur_line_key = "";
 			St.createListenerEval();
-			RecipeManager.Recipe recipe = null;
-			RecipeManager.MakeDishDescription makeDishDescription = null;
+			StoreManager.readStorageInner(St, St.name, _mode, flag2, flag, null);
+			TX.removeListenerEval(St);
+			St.load_vers = 4;
+			St.need_summon_flush_ = StoreManager.MODE.NONE;
+		}
+
+		private static void readStorageInner(StoreManager St, string name, StoreManager.MODE _mode, bool read_basic, bool only_basic, CsvVariableContainer PreVarCon = null)
+		{
+			string textResourceByName = StoreManager.getTextResourceByName(name);
+			if (TX.noe(textResourceByName))
+			{
+				return;
+			}
+			CsvReaderA csvReaderA = new CsvReaderA(textResourceByName, PreVarCon == null);
+			csvReaderA.tilde_replace = true;
+			if (PreVarCon == null)
+			{
+				csvReaderA.VarCon.define("_MODE", _mode.ToString(), true);
+				csvReaderA.VarCon.define("_vers", St.load_vers.ToString(), true);
+				if (M2DBase.Instance != null)
+				{
+					NelM2DBase nelM2DBase = M2DBase.Instance as NelM2DBase;
+					if (nelM2DBase.WM != null)
+					{
+						WholeMapItem curWM = nelM2DBase.WM.CurWM;
+						csvReaderA.VarCon.define("_WM", (curWM != null) ? curWM.text_key : "", true);
+					}
+				}
+			}
+			else
+			{
+				csvReaderA.VarCon = PreVarCon;
+			}
+			RCP.Recipe recipe = null;
+			RCP.MakeDishDescription makeDishDescription = null;
 			List<List<UiCraftBase.IngEntryRow>> list = null;
 			BDic<string, List<List<UiCraftBase.IngEntryRow>>> bdic = null;
 			int num = -1;
-			bool flag3 = false;
-			bool flag4;
-			while ((flag4 = csvReaderA.read()) || recipe != null)
+			bool flag = false;
+			bool flag2;
+			while ((flag2 = csvReaderA.read()) || recipe != null)
 			{
 				if (recipe != null && csvReaderA.get_cur_line() >= num)
 				{
 					if (makeDishDescription != null)
 					{
-						RecipeManager.RecipeDish recipeDish = recipe.createDish(list, false, makeDishDescription);
+						RCP.RecipeDish recipeDish = recipe.createDish(list, false, makeDishDescription);
 						recipeDish.finalizeDishEffect();
 						if (makeDishDescription.price < 0)
 						{
@@ -182,7 +212,7 @@ namespace nel
 						{
 							recipeDish.price = makeDishDescription.price;
 						}
-						RecipeManager.RecipeDish recipeDish2 = RecipeManager.findSameDish(recipeDish);
+						RCP.RecipeDish recipeDish2 = RCP.findSameDish(recipeDish);
 						if (recipeDish2 != null)
 						{
 							recipeDish = recipeDish2;
@@ -192,31 +222,35 @@ namespace nel
 						{
 							recipeDish.fineTitle(list, true, makeDishDescription);
 							recipeDish.referred = 1 + makeDishDescription.count;
-							RecipeManager.assignDish(recipeDish);
+							RCP.assignDish(recipeDish);
 						}
-						St.Add(recipeDish.ItemData, makeDishDescription.count, recipeDish.calced_grade, StoreManager.cur_line_key, !flag3);
-						flag3 = true;
+						St.Add(recipeDish.ItemData, makeDishDescription.count, recipeDish.calced_grade, StoreManager.cur_line_key, !flag);
+						flag = true;
 					}
 					makeDishDescription = null;
 					list = null;
 					recipe = null;
-					if (!flag4)
+					if (!flag2)
 					{
 						break;
 					}
 				}
-				if (TX.isStart(csvReaderA.cmd, "#", 0))
+				if (csvReaderA.cmd == "##SCRIPT")
 				{
-					if (flag2)
+					StoreManager.readStorageInner(St, csvReaderA._1, _mode, read_basic, only_basic, csvReaderA.VarCon);
+				}
+				else if (TX.isStart(csvReaderA.cmd, "#", 0))
+				{
+					if (read_basic)
 					{
 						StoreManager.ITMMATCH itmmatch4;
 						if (csvReaderA.cmd == "#SELL_RATIO")
 						{
-							St.sell_ratio = global::XX.X.Mx(0f, csvReaderA.Nm(1, 0.4f));
+							St.sell_ratio = X.Mx(0f, csvReaderA.Nm(1, 0.4f));
 						}
 						else if (csvReaderA.cmd == "#BUY_RATIO")
 						{
-							St.buy_ratio = global::XX.X.Mx(0f, csvReaderA.Nm(1, 0f));
+							St.buy_ratio = X.Mx(0f, csvReaderA.Nm(1, 0f));
 						}
 						else if (csvReaderA.cmd == "#CANNOT_SELL_NOT_PREMIRE")
 						{
@@ -286,7 +320,7 @@ namespace nel
 						}
 					}
 				}
-				else if (!flag)
+				else if (!only_basic)
 				{
 					if (recipe != null)
 					{
@@ -306,6 +340,11 @@ namespace nel
 										makeDishDescription.cost_add = csvReaderA.Int(2, 0);
 										continue;
 									}
+									if (text5 == "cost_fix")
+									{
+										makeDishDescription.cost_fix = csvReaderA.Int(2, 0);
+										continue;
+									}
 									if (text5 == "power_multiply")
 									{
 										makeDishDescription.power_multiply = csvReaderA.Nm(2, 1f);
@@ -322,13 +361,13 @@ namespace nel
 								{
 									while (i >= makeDishDescription.Count)
 									{
-										makeDishDescription.Add(new RecipeManager.MakeDishIngDescription(1f));
+										makeDishDescription.Add(new RCP.MakeDishIngDescription(1f));
 									}
-									RecipeManager.MakeDishIngDescription makeDishIngDescription = makeDishDescription[i];
+									RCP.MakeDishIngDescription makeDishIngDescription = makeDishDescription[i];
 									text5 = csvReaderA._2;
 									if (text5 == null)
 									{
-										goto IL_06AD;
+										goto IL_06BB;
 									}
 									if (!(text5 == "power_multiply"))
 									{
@@ -340,7 +379,7 @@ namespace nel
 												{
 													if (!(text5 == "tx_ignore"))
 													{
-														goto IL_06AD;
+														goto IL_06BB;
 													}
 													makeDishIngDescription.tx_ignore = csvReaderA.Int(3, 1) != 0;
 												}
@@ -356,19 +395,19 @@ namespace nel
 										}
 										else
 										{
-											makeDishIngDescription.power_weeken_ignore = global::XX.X.Nm(csvReaderA._3, 1f, true);
+											makeDishIngDescription.power_weeken_ignore = X.Nm(csvReaderA._3, 1f, true);
 										}
 									}
 									else
 									{
-										makeDishIngDescription.power_multiply = global::XX.X.Nm(csvReaderA._3, 1f, true);
+										makeDishIngDescription.power_multiply = X.Nm(csvReaderA._3, 1f, true);
 									}
-									IL_06C4:
+									IL_06D2:
 									makeDishDescription[i] = makeDishIngDescription;
 									continue;
-									IL_06AD:
+									IL_06BB:
 									csvReaderA.tError("不明な DESC 2:" + csvReaderA._2);
-									goto IL_06C4;
+									goto IL_06D2;
 								}
 								csvReaderA.tError("不明な DESC:" + csvReaderA._1);
 							}
@@ -450,7 +489,7 @@ namespace nel
 					else if (TX.isStart(csvReaderA.cmd, '@'))
 					{
 						StoreManager.cur_line_key = TX.slice(csvReaderA.cmd, 1);
-						flag3 = false;
+						flag = false;
 					}
 					else if (csvReaderA.cmd == "%CLIP_CATEGORY_KIND")
 					{
@@ -464,7 +503,7 @@ namespace nel
 						}
 						else
 						{
-							recipe = RecipeManager.Get(csvReaderA._1);
+							recipe = RCP.Get(csvReaderA._1);
 							if (recipe == null)
 							{
 								csvReaderA.tError("不明な Recipe: " + csvReaderA._1);
@@ -473,7 +512,7 @@ namespace nel
 							{
 								if (csvReaderA.clength == 5)
 								{
-									makeDishDescription = new RecipeManager.MakeDishDescription(recipe.AIng.Count)
+									makeDishDescription = new RCP.MakeDishDescription(recipe.AIng.Count)
 									{
 										count = csvReaderA.Int(2, 0),
 										price = csvReaderA.Int(3, -1)
@@ -536,23 +575,20 @@ namespace nel
 						else
 						{
 							int num13 = csvReaderA.IntE(1, 1);
-							int num14 = global::XX.X.MMX(0, csvReaderA.IntE(2, 0), 4);
+							int num14 = X.MMX(0, csvReaderA.IntE(2, 0), 4);
 							if (num10 == 0)
 							{
-								num13 = global::XX.X.Mx(0, num13 - St.getCount(byId2, num14, StoreManager.cur_line_key));
+								num13 = X.Mx(0, num13 - St.getCount(byId2, num14, StoreManager.cur_line_key));
 							}
 							if (num13 > 0)
 							{
-								St.Add(byId2, num13, num14, StoreManager.cur_line_key, !flag3);
-								flag3 = true;
+								St.Add(byId2, num13, num14, StoreManager.cur_line_key, !flag);
+								flag = true;
 							}
 						}
 					}
 				}
 			}
-			TX.removeListenerEval(St);
-			St.load_vers = 4;
-			St.need_summon_flush_ = StoreManager.MODE.NONE;
 		}
 
 		public void createListenerEval()
@@ -562,7 +598,7 @@ namespace nel
 				this.EvalLsn = TX.createListenerEval(this, 1, false);
 				this.EvalLsn.Add("category_count", delegate(TxEvalListenerContainer O, List<string> Aargs)
 				{
-					TX.InputE((float)this.getCategoryCount(global::XX.X.Get<string>(Aargs, 0)));
+					TX.InputE((float)this.getCategoryCount(X.Get<string>(Aargs, 0)));
 				}, Array.Empty<string>());
 				this.EvalLsn.Add("already_created", delegate(TxEvalListenerContainer O, List<string> Aargs)
 				{
@@ -589,7 +625,7 @@ namespace nel
 							TX.InputE(0f);
 							return;
 						}
-						int num = ((Aargs.Count >= 2) ? global::XX.X.NmI(Aargs[1], 0, false, false) : 0);
+						int num = ((Aargs.Count >= 2) ? X.NmI(Aargs[1], 0, false, false) : 0);
 						int num2 = 0;
 						for (int i = num; i < 5; i++)
 						{
@@ -613,10 +649,10 @@ namespace nel
 			{
 				StoreManager.initG();
 			}
-			StoreManager storeManager = global::XX.X.Get<string, StoreManager>(StoreManager.OStorage, k);
+			StoreManager storeManager = X.Get<string, StoreManager>(StoreManager.OStorage, k);
 			if (storeManager == null && !no_error)
 			{
-				global::XX.X.de("不明なストアマネージャ: " + k, null);
+				X.de("不明なストアマネージャ: " + k, null);
 			}
 			return storeManager;
 		}
@@ -649,9 +685,17 @@ namespace nel
 			}
 		}
 
+		public static void fineStorageBeforeSaveS()
+		{
+			foreach (KeyValuePair<string, StoreManager> keyValuePair in StoreManager.OStorage)
+			{
+				keyValuePair.Value.fineStorageBeforeSave();
+			}
+		}
+
 		public static ByteArray StoreWholeWriteBinaryTo(ByteArray Ba)
 		{
-			using (BList<string> blist = global::XX.X.objKeysB<string, StoreManager>(StoreManager.OStorage))
+			using (BList<string> blist = X.objKeysB<string, StoreManager>(StoreManager.OStorage))
 			{
 				Ba.writeByte(1);
 				int count = blist.Count;
@@ -665,7 +709,7 @@ namespace nel
 			return Ba;
 		}
 
-		public static ByteArray StoreWholeReadBinaryFrom(ByteArray Ba)
+		public static void StoreWholeReadBinaryFrom(ByteReader Ba)
 		{
 			StoreManager.newGame();
 			int num = (int)Ba.readUByte();
@@ -679,7 +723,6 @@ namespace nel
 				}
 				storeManager.readBinaryFrom(Ba, num);
 			}
-			return Ba;
 		}
 
 		public StoreManager(string _name, bool _wandering = false, Type _TUi = null)
@@ -695,7 +738,12 @@ namespace nel
 
 		private string getTextResource()
 		{
-			return TX.getResource("Data/store/" + this.name + ".store", ".csv", false);
+			return StoreManager.getTextResourceByName(this.name);
+		}
+
+		private static string getTextResourceByName(string name)
+		{
+			return TX.getResource("Data/store/" + name + ".store", ".csv", false);
 		}
 
 		public void newGameItem()
@@ -766,7 +814,7 @@ namespace nel
 			StoreManager.StoreEntry storeEntry = this.GetEntry(_Data, _grade, _line_key);
 			if (storeEntry != null)
 			{
-				storeEntry.count = global::XX.X.Mn(storeEntry.count + _count, 999);
+				storeEntry.count = X.Mn(storeEntry.count + _count, 999);
 				return storeEntry;
 			}
 			storeEntry = new StoreManager.StoreEntry(_Data, _count, (byte)_grade, _line_key);
@@ -785,7 +833,7 @@ namespace nel
 			{
 				return 0;
 			}
-			_count = global::XX.X.Mn(entry.count, _count);
+			_count = X.Mn(entry.count, _count);
 			entry.count -= _count;
 			if (entry.count <= 0)
 			{
@@ -803,7 +851,7 @@ namespace nel
 				StoreManager.StoreEntry storeEntry = this.AItm[num2];
 				if (storeEntry.Data == _Data && (int)storeEntry.grade == _grade)
 				{
-					int num3 = global::XX.X.Mn(storeEntry.count, _count);
+					int num3 = X.Mn(storeEntry.count, _count);
 					storeEntry.count -= num3;
 					_count -= num3;
 					num += num3;
@@ -943,7 +991,7 @@ namespace nel
 			return uiItemStore;
 		}
 
-		public void confirmCheckout(ItemStorage StBuy, ItemStorage StSell, UiItemStore.StoreResult SRes)
+		public void confirmCheckout(NelM2DBase M2D, ItemStorage StBuy, ItemStorage StSell, UiItemStore.StoreResult SRes)
 		{
 			for (int i = 0; i < 2; i++)
 			{
@@ -959,15 +1007,20 @@ namespace nel
 							{
 								if (i == 1)
 								{
-									num -= this.Reduce(keyValuePair.Key, num, j, "_");
+									num -= this.Reduce(keyValuePair.Key, num, j, "_SELL");
 									if (num > 0)
 									{
+										keyValuePair.Key.addObtainCount(num);
+										if (M2D != null && M2D.GUILD != null)
+										{
+											M2D.GUILD.addObtainItemForGQ(keyValuePair.Key, num, j);
+										}
 										this.Reduce(keyValuePair.Key, num, j);
 									}
 								}
 								else
 								{
-									this.Add(keyValuePair.Key, num, j, "_", false);
+									this.Add(keyValuePair.Key, num, j, "_SELL", false);
 								}
 							}
 						}
@@ -1033,8 +1086,8 @@ namespace nel
 			{
 				return;
 			}
-			global::XX.X.shuffle<StoreManager.StoreEntry>(list, -1, null);
-			max = global::XX.X.Mn(max, list.Count);
+			X.shuffle<StoreManager.StoreEntry>(list, -1, null);
+			max = X.Mn(max, list.Count);
 			for (int j = 0; j < max; j++)
 			{
 				this.AItm.Add(list[j]);
@@ -1117,8 +1170,8 @@ namespace nel
 			}
 			else if (itmmatch == StoreManager.ITMMATCH.RPI_CATEG_AND || itmmatch == StoreManager.ITMMATCH.RPI_CATEG_OR || itmmatch == StoreManager.ITMMATCH.RPI_CATEG_EQ)
 			{
-				RecipeManager.RPI_CATEG rpi_CATEG;
-				num = (uint)RecipeManager.calcCateg(idstr, out rpi_CATEG);
+				RCP.RPI_CATEG rpi_CATEG;
+				num = (uint)RCP.calcCateg(idstr, out rpi_CATEG);
 				if (num == 0U)
 				{
 					return "不明な RPI_CATEG: " + idstr;
@@ -1255,7 +1308,7 @@ namespace nel
 							int num4 = storeEntry2.count;
 							if ((float)num4 > (float)storeEntry2.Data.stock * 0.8f)
 							{
-								num4 = global::XX.X.MMX(1, (int)((float)num4 * 0.8f), storeEntry2.Data.stock);
+								num4 = X.MMX(1, (int)((float)num4 * 0.8f), storeEntry2.Data.stock);
 							}
 							Dest.Add(new NelItemEntry(storeEntry2.Data, num4, storeEntry2.grade));
 							storeEntry2.count -= num4;
@@ -1328,12 +1381,16 @@ namespace nel
 			return this.AWholeItem;
 		}
 
-		private void writeBinaryTo(ByteArray Ba)
+		public void fineStorageBeforeSave()
 		{
 			if ((this.need_summon_flush_ & (StoreManager.MODE)(-5)) != StoreManager.MODE.NONE && (this.FnAutoLoadOnSave == null || this.FnAutoLoadOnSave()))
 			{
 				StoreManager.reloadStorage(this.name, this, this.need_summon_flush_);
 			}
+		}
+
+		private void writeBinaryTo(ByteArray Ba)
+		{
 			Ba.writeByte(4);
 			Ba.writeByte((int)this.need_summon_flush_);
 			int num = this.AItm.Count;
@@ -1356,7 +1413,7 @@ namespace nel
 			Ba.writeUInt(this.total_sell);
 		}
 
-		private void readBinaryFrom(ByteArray Ba, int whole_vers)
+		private void readBinaryFrom(ByteReader Ba, int whole_vers)
 		{
 			this.newGameItem();
 			if (whole_vers >= 1)
@@ -1467,6 +1524,8 @@ namespace nel
 
 		private StoreManager.FnGetServiceRatio FD_GetServiceRatio;
 
+		public const string line_key_sell = "_SELL";
+
 		private const int LOAD_VERS = 4;
 
 		public delegate void FnGetServiceRatio(StoreManager Store, ItemStorage St, ref float buy_ratio, out string tx_key_buy, ref float sell_ratio, out string tx_key_sell);
@@ -1510,11 +1569,11 @@ namespace nel
 				case StoreManager.ITMMATCH.CATEG_EQ:
 					return Itm.category == (NelItem.CATEG)id;
 				case StoreManager.ITMMATCH.RPI_CATEG_OR:
-					return Itm.RecipeInfo != null && (Itm.RecipeInfo.categ & (RecipeManager.RPI_CATEG)id) > (RecipeManager.RPI_CATEG)0;
+					return Itm.RecipeInfo != null && (Itm.RecipeInfo.categ & (RCP.RPI_CATEG)id) > (RCP.RPI_CATEG)0;
 				case StoreManager.ITMMATCH.RPI_CATEG_AND:
-					return Itm.RecipeInfo != null && (Itm.RecipeInfo.categ & (RecipeManager.RPI_CATEG)id) == (RecipeManager.RPI_CATEG)id;
+					return Itm.RecipeInfo != null && (Itm.RecipeInfo.categ & (RCP.RPI_CATEG)id) == (RCP.RPI_CATEG)id;
 				case StoreManager.ITMMATCH.RPI_CATEG_EQ:
-					return Itm.RecipeInfo != null && Itm.RecipeInfo.categ == (RecipeManager.RPI_CATEG)id;
+					return Itm.RecipeInfo != null && Itm.RecipeInfo.categ == (RCP.RPI_CATEG)id;
 				default:
 					return id == (uint)Itm.id;
 				}

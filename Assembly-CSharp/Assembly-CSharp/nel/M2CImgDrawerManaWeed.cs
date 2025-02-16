@@ -95,6 +95,10 @@ namespace nel
 
 		private bool fnDrawWeedLight(EffectItem Ef, M2DrawBinder Ed)
 		{
+			if (!this.Cp.Img.SourceAtlas.valid)
+			{
+				return false;
+			}
 			Ef.x = this.Cp.mapcx;
 			Ef.y = this.Cp.mapcy;
 			if (!this.is_active || !Ed.isinCamera(Ef, 3f, 3f))
@@ -103,7 +107,7 @@ namespace nel
 			}
 			MeshDrawer meshDrawer = Ef.GetMeshImg("", MTRX.MIicon, BLEND.ADD, true);
 			MeshDrawer meshImg = Ef.GetMeshImg("_", MTRX.MIicon, BLEND.ADD, true);
-			meshImg.base_z = 314.9969f;
+			meshImg.base_z = 419.9969f;
 			Bench.P("FLYMOTH");
 			EffectItemNel.drawFlyingMoth(meshImg, meshDrawer, 0f, 28f, base.Mp.floort, 4, 220f, 28f, 8f, 40f, 22f, 4292931769U, 14741689U, this.Cp.index * 17, 2f);
 			Bench.Pend("FLYMOTH");

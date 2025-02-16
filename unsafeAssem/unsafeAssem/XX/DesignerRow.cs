@@ -31,7 +31,7 @@ namespace XX
 			return this;
 		}
 
-		public virtual DesignerRow Clear()
+		public virtual DesignerRow Clear(bool destruct_block = false)
 		{
 			this.row_w = (this.row_h = (this.putted_w = (this.putted_h = 0f)));
 			this.row_w_marg = 0f;

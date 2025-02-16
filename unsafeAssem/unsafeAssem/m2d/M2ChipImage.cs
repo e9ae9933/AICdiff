@@ -81,7 +81,7 @@ namespace m2d
 		{
 			get
 			{
-				return global::XX.X.Mx(this.mesh_type - 1, 0);
+				return X.Mx(this.mesh_type - 1, 0);
 			}
 		}
 
@@ -217,8 +217,8 @@ namespace m2d
 			: this(_IMGS)
 		{
 			this.src_ = _src;
-			this.dirname = global::XX.X.dirname(_src);
-			this.basename = global::XX.X.basename_noext(_src);
+			this.dirname = X.dirname(_src);
+			this.basename = X.basename_noext(_src);
 		}
 
 		public M2ChipImage(M2ImageContainer _IMGS, string _dirname, string _basename_noext)
@@ -240,12 +240,12 @@ namespace m2d
 			}
 		}
 
-		public static M2ChipImage readFromBytes(ByteArray Ba, byte load_ver, M2ImageContainer IMGS, string dirname, bool create = true)
+		public static M2ChipImage readFromBytes(ByteReader Ba, byte load_ver, M2ImageContainer IMGS, string dirname, bool create = true)
 		{
 			string text = Ba.readPascalString("utf-8", false);
 			if (load_ver <= 6)
 			{
-				text = global::XX.X.basename_noext(text);
+				text = X.basename_noext(text);
 			}
 			int num = (int)Ba.readUShort();
 			int num2 = (int)Ba.readUShort();
@@ -335,13 +335,13 @@ namespace m2d
 				this.rows_ = 1;
 				if (Lay == null || Lay.Img == null)
 				{
-					global::XX.X.de("イメージ不明: " + this.src, null);
+					X.de("イメージ不明: " + this.src, null);
 				}
 				this.iwidth = Lay.Img.width;
 				this.iheight = Lay.Img.height;
 				this.getChipFixedShiftPos(false, 3, 1);
 				this.getChipFixedShiftPos(true, 3, 1);
-				this.horizony = global::XX.X.IntR((float)this.iheight * 0.5f);
+				this.horizony = X.IntR((float)this.iheight * 0.5f);
 				this.fineWH();
 				this.ImgMain = null;
 			}
@@ -383,7 +383,7 @@ namespace m2d
 			this.copyBasicAttributesFrom(Src);
 			if (this.clms_ == Src.clms_ && this.rows_ == Src.rows_)
 			{
-				this.Aconfig = global::XX.X.concat<byte>(Src.Aconfig, null, -1, -1);
+				this.Aconfig = X.concat<byte>(Src.Aconfig, null, -1, -1);
 			}
 			else if (this.is_background)
 			{
@@ -422,7 +422,7 @@ namespace m2d
 			}
 			if (num2 != num || flag2 != flag)
 			{
-				DBlk = global::XX.X.dl("回転フィックス => rot:" + num2.ToString() + " flip: " + flag2.ToString(), DBlk, false, false);
+				DBlk = X.dl("回転フィックス => rot:" + num2.ToString() + " flip: " + flag2.ToString(), DBlk, false, false);
 			}
 			return num2 + (flag2 ? 4 : 0);
 		}
@@ -431,9 +431,9 @@ namespace m2d
 		{
 			int num = this.clms_;
 			int num2 = this.rows_;
-			this.clms_ = global::XX.X.IntC((float)this.width / (float)this.CLEN);
-			this.rows_ = global::XX.X.IntC((float)this.height / (float)this.CLEN);
-			this.horizony = global::XX.X.MMX(0, this.horizony, this.iheight - 1);
+			this.clms_ = X.IntC((float)this.width / (float)this.CLEN);
+			this.rows_ = X.IntC((float)this.height / (float)this.CLEN);
+			this.horizony = X.MMX(0, this.horizony, this.iheight - 1);
 			if (this.Aconfig == null)
 			{
 				return this;
@@ -441,7 +441,7 @@ namespace m2d
 			int num3 = this.clms_ * this.rows_;
 			if (this.Aconfig.Length != num3 || num != this.clms_ || num2 != this.rows_)
 			{
-				this.Aconfig = global::XX.X.copyTwoDimensionArray<byte>(new byte[num3], this.clms_, this.rows_, this.Aconfig, num, num2, true);
+				this.Aconfig = X.copyTwoDimensionArray<byte>(new byte[num3], this.clms_, this.rows_, this.Aconfig, num, num2, true);
 			}
 			return this;
 		}
@@ -571,7 +571,7 @@ namespace m2d
 			{
 				if (!no_error)
 				{
-					global::XX.X.de("チップリストに登録されていない画像: " + this.src, null);
+					X.de("チップリストに登録されていない画像: " + this.src, null);
 				}
 				return;
 			}
@@ -615,7 +615,7 @@ namespace m2d
 							{
 								if (this.is_background)
 								{
-									global::XX.X.dl(string.Concat(new string[]
+									X.dl(string.Concat(new string[]
 									{
 										"! ",
 										this.src,
@@ -633,7 +633,7 @@ namespace m2d
 						}
 						else
 						{
-							global::XX.X.de("! " + this.src + " に複数レイヤーが指定されています。", null);
+							X.de("! " + this.src + " に複数レイヤーが指定されています。", null);
 						}
 					}
 				}
@@ -657,13 +657,13 @@ namespace m2d
 			{
 				if (!is_remover && this.mesh_type <= 1)
 				{
-					global::XX.X.de("メッシュレイヤー0コンフリクト " + this.src, null);
+					X.de("メッシュレイヤー0コンフリクト " + this.src, null);
 					return;
 				}
 			}
 			else if (layer == 2 && !is_remover && this.mesh_type == 3)
 			{
-				global::XX.X.de("メッシュレイヤー2コンフリクト " + this.src, null);
+				X.de("メッシュレイヤー2コンフリクト " + this.src, null);
 				return;
 			}
 			this.MeshPushFromAdditionalLayer(Lay, nAtlas, layer | (is_remover ? 32 : 0));
@@ -681,27 +681,37 @@ namespace m2d
 
 		protected void MeshPush(PxlLayer Lay, M2ImageAtlas.AtlasRect nAtlas, int layer)
 		{
+			this.MeshPush(Lay, nAtlas, layer, ref this.ACIMesh);
+		}
+
+		protected void MeshPush(PxlLayer Lay, M2ImageAtlas.AtlasRect nAtlas, int layer, ref M2ChipImage.CIMesh[] ACIMesh)
+		{
 			if (!nAtlas.valid)
 			{
 				return;
 			}
 			PxlMeshDrawer pxlMeshDrawer = nAtlas.makeMesh(this.IMGS.MIchip, Lay.rot_center_x - this.SourceLayer_.rot_center_x, -(Lay.rot_center_y - this.SourceLayer_.rot_center_y), Lay.zmx, Lay.zmy, Lay.rotR, this.getSrcMesh(layer));
-			this.MeshPush(pxlMeshDrawer, layer);
+			this.MeshPush(pxlMeshDrawer, layer, ref ACIMesh);
 		}
 
 		public void MeshPush(PxlMeshDrawer Img, int layer)
 		{
+			this.MeshPush(Img, layer, ref this.ACIMesh);
+		}
+
+		protected void MeshPush(PxlMeshDrawer Img, int layer, ref M2ChipImage.CIMesh[] ACIMesh)
+		{
 			int i = 0;
-			if (this.ACIMesh == null)
+			if (ACIMesh == null)
 			{
-				this.ACIMesh = new M2ChipImage.CIMesh[1];
+				ACIMesh = new M2ChipImage.CIMesh[1];
 			}
 			else
 			{
-				int num = this.ACIMesh.Length;
+				int num = ACIMesh.Length;
 				for (i = 0; i < num; i++)
 				{
-					M2ChipImage.CIMesh cimesh = this.ACIMesh[i];
+					M2ChipImage.CIMesh cimesh = ACIMesh[i];
 					if (cimesh.Img == null || (int)cimesh.layer == layer)
 					{
 						break;
@@ -709,10 +719,10 @@ namespace m2d
 				}
 				if (i >= num)
 				{
-					Array.Resize<M2ChipImage.CIMesh>(ref this.ACIMesh, i + 1);
+					Array.Resize<M2ChipImage.CIMesh>(ref ACIMesh, i + 1);
 				}
 			}
-			this.ACIMesh[i] = new M2ChipImage.CIMesh(Img, layer);
+			ACIMesh[i] = new M2ChipImage.CIMesh(Img, layer);
 			if ((layer & 32) != 0)
 			{
 				this.has_remover_mesh = true;
@@ -733,10 +743,10 @@ namespace m2d
 			{
 				float num = rect.x + rect.width;
 				float num2 = rect.y + rect.height;
-				rect.x = global::XX.X.Mn(rect.x, (float)x);
-				rect.y = global::XX.X.Mn(rect.y, (float)y);
-				num = global::XX.X.Mx(num, (float)(x + this.CLEN));
-				num2 = global::XX.X.Mx(num2, (float)(y + this.CLEN));
+				rect.x = X.Mn(rect.x, (float)x);
+				rect.y = X.Mn(rect.y, (float)y);
+				num = X.Mx(num, (float)(x + this.CLEN));
+				num2 = X.Mx(num2, (float)(y + this.CLEN));
 				rect.width = num - rect.x;
 				rect.height = num2 - rect.y;
 			}
@@ -760,7 +770,7 @@ namespace m2d
 				}
 				x -= 1f;
 			}
-			return global::XX.X.Mn((float)this.shiftx + x * (float)this.CLEN, (float)this.SourceAtlas_.w);
+			return X.Mn((float)this.shiftx + x * (float)this.CLEN, (float)this.SourceAtlas_.w);
 		}
 
 		private float calc_sprite_vertice_y(float y)
@@ -773,7 +783,7 @@ namespace m2d
 				}
 				y -= 1f;
 			}
-			return global::XX.X.Mx(0f, (float)this.SourceAtlas_.h - ((float)this.shifty + y * (float)this.CLEN));
+			return X.Mx(0f, (float)this.SourceAtlas_.h - ((float)this.shifty + y * (float)this.CLEN));
 		}
 
 		public virtual void AtlasRescale(float x, float y)
@@ -821,7 +831,7 @@ namespace m2d
 
 		public virtual bool isWithinOnPicture(float px_x, float px_y)
 		{
-			return global::XX.X.BTW(0f, px_x, (float)this.iwidth) && global::XX.X.BTW(0f, px_y, (float)this.iheight);
+			return X.BTW(0f, px_x, (float)this.iwidth) && X.BTW(0f, px_y, (float)this.iheight);
 		}
 
 		public PxlMeshDrawer getSrcMesh(int layer)
@@ -832,15 +842,20 @@ namespace m2d
 				this.prepareImageMesh();
 				return this.ImgMain;
 			}
-			if (this.ACIMesh == null)
+			return this.getSrcMeshCI(layer, this.ACIMesh);
+		}
+
+		protected PxlMeshDrawer getSrcMeshCI(int layer, M2ChipImage.CIMesh[] ACIMesh)
+		{
+			if (ACIMesh == null)
 			{
 				return null;
 			}
-			int num2 = this.ACIMesh.Length;
+			int num = ACIMesh.Length;
 			byte b = (byte)layer;
-			for (int i = 0; i < num2; i++)
+			for (int i = 0; i < num; i++)
 			{
-				M2ChipImage.CIMesh cimesh = this.ACIMesh[i];
+				M2ChipImage.CIMesh cimesh = ACIMesh[i];
 				if (cimesh.Img != null && cimesh.layer == b)
 				{
 					return cimesh.Img;
@@ -905,10 +920,10 @@ namespace m2d
 			switch (id)
 			{
 			case 1:
-				i = global::XX.X.Int(((float)(global::XX.X.IntC((float)(num / this.CLEN)) * this.CLEN) - (float)num) * 0.5f);
+				i = X.Int(((float)(X.IntC((float)(num / this.CLEN)) * this.CLEN) - (float)num) * 0.5f);
 				break;
 			case 2:
-				i = global::XX.X.Int((float)(global::XX.X.IntC((float)(num / this.CLEN)) * this.CLEN) - (float)num);
+				i = X.Int((float)(X.IntC((float)(num / this.CLEN)) * this.CLEN) - (float)num);
 				break;
 			case 3:
 			{
@@ -942,7 +957,7 @@ namespace m2d
 
 		public List<M2Chip> MakeChip(M2MapLayer Lay, int x, int y, int opacity, int rotation, bool flip)
 		{
-			M2Chip m2Chip = (M2Chip)Lay.MakeChip(this, this.shiftx, this.shifty, global::XX.X.Abs(opacity), 0, false);
+			M2Chip m2Chip = (M2Chip)Lay.MakeChip(this, this.shiftx, this.shifty, X.Abs(opacity), 0, false);
 			if (m2Chip == null)
 			{
 				return null;
@@ -1007,7 +1022,7 @@ namespace m2d
 		{
 			if (cr == INPUT_CR.SNAP_CHIPBTN && this.Meta.is_small_image)
 			{
-				return new Vector2Int(global::XX.X.IntC((float)this.iwidth / (float)this.CLEN), global::XX.X.IntC((float)this.iheight / (float)this.CLEN));
+				return new Vector2Int(X.IntC((float)this.iwidth / (float)this.CLEN), X.IntC((float)this.iheight / (float)this.CLEN));
 			}
 			if (cr != INPUT_CR.PIXELS)
 			{
@@ -1023,13 +1038,13 @@ namespace m2d
 				float mapcx = Mcp.mapcx;
 				float mapcy = Mcp.mapcy;
 				M2ChipImage.RcBuf.Set(0f, 0f, 0f, 0f);
-				float num = global::XX.X.Cos(Mcp.draw_rotR);
-				float num2 = -global::XX.X.Sin(Mcp.draw_rotR);
+				float num = X.Cos(Mcp.draw_rotR);
+				float num2 = -X.Sin(Mcp.draw_rotR);
 				float num3 = 1f / CLEN;
-				Vector2 vector = global::XX.X.ROTV2e(new Vector2((float)(-(float)this.SourceLayer.Img.width) * num3 * 0.5f, (float)this.SourceLayer.Img.height * num3 * 0.5f), num, num2);
-				Vector2 vector2 = global::XX.X.ROTV2e(new Vector2((float)this.SourceLayer.Img.width * num3 * 0.5f, (float)this.SourceLayer.Img.height * num3 * 0.5f), num, num2);
-				Vector2 vector3 = global::XX.X.ROTV2e(new Vector2((float)this.SourceLayer.Img.width * num3 * 0.5f, (float)(-(float)this.SourceLayer.Img.height) * num3 * 0.5f), num, num2);
-				Vector2 vector4 = global::XX.X.ROTV2e(new Vector2((float)(-(float)this.SourceLayer.Img.width) * num3 * 0.5f, (float)(-(float)this.SourceLayer.Img.height) * num3 * 0.5f), num, num2);
+				Vector2 vector = X.ROTV2e(new Vector2((float)(-(float)this.SourceLayer.Img.width) * num3 * 0.5f, (float)this.SourceLayer.Img.height * num3 * 0.5f), num, num2);
+				Vector2 vector2 = X.ROTV2e(new Vector2((float)this.SourceLayer.Img.width * num3 * 0.5f, (float)this.SourceLayer.Img.height * num3 * 0.5f), num, num2);
+				Vector2 vector3 = X.ROTV2e(new Vector2((float)this.SourceLayer.Img.width * num3 * 0.5f, (float)(-(float)this.SourceLayer.Img.height) * num3 * 0.5f), num, num2);
+				Vector2 vector4 = X.ROTV2e(new Vector2((float)(-(float)this.SourceLayer.Img.width) * num3 * 0.5f, (float)(-(float)this.SourceLayer.Img.height) * num3 * 0.5f), num, num2);
 				M2ChipImage.RcBuf.Expand(vector.x, vector.y, 0f, 0f, true);
 				M2ChipImage.RcBuf.Expand(vector2.x, vector2.y, 0f, 0f, true);
 				M2ChipImage.RcBuf.Expand(vector3.x, vector3.y, 0f, 0f, true);
@@ -1038,14 +1053,14 @@ namespace m2d
 				M2ChipImage.RcBuf.y += mapcy;
 				l = (int)M2ChipImage.RcBuf.x;
 				t = (int)M2ChipImage.RcBuf.y;
-				r = global::XX.X.IntC(M2ChipImage.RcBuf.right);
-				b = global::XX.X.IntC(M2ChipImage.RcBuf.bottom);
+				r = X.IntC(M2ChipImage.RcBuf.right);
+				b = X.IntC(M2ChipImage.RcBuf.bottom);
 				return;
 			}
 			l = Mcp.mapx;
 			t = Mcp.mapy;
-			r = global::XX.X.IntC((float)(Mcp.drawx + Mcp.iwidth) / CLEN);
-			b = global::XX.X.IntC((float)(Mcp.drawy + Mcp.iheight) / CLEN);
+			r = X.IntC((float)(Mcp.drawx + Mcp.iwidth) / CLEN);
+			b = X.IntC((float)(Mcp.drawy + Mcp.iheight) / CLEN);
 		}
 
 		public string getTitle()
@@ -1086,7 +1101,7 @@ namespace m2d
 				Texture i = img.get_I();
 				if (i != null)
 				{
-					Rect rect = global::XX.X.rectDivide(this.getClipArea(pattern_for_picture), (float)i.width, (float)i.height);
+					Rect rect = X.rectDivide(this.getClipArea(pattern_for_picture), (float)i.width, (float)i.height);
 					Rect rectIUv = img.RectIUv;
 					Md.initForImg(i, new Rect(rectIUv.x + rect.x, rectIUv.y + rect.y, rect.width, rect.height), false);
 				}

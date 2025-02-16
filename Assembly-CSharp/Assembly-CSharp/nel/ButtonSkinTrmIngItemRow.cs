@@ -10,14 +10,14 @@ namespace nel
 		{
 		}
 
-		protected override string getTitleString()
+		protected override STB getTitleString(STB Stb)
 		{
-			string text = base.getTitleString();
+			base.getTitleString(Stb);
 			if (UiAlchemyTRM.Instance != null && this.ItmRow != null && UiAlchemyTRM.Instance.CurrentTargetTrmItem != null && UiAlchemyTRM.Instance.CurrentTargetTrmItem.RcmHerb == this.ItmRow.Data)
 			{
-				text += "<img mesh=\"IconLaeviLaugh\" scale=\"1\" />";
+				Stb.Add("<img mesh=\"IconLaeviLaugh\" scale=\"1\" />");
 			}
-			return text;
+			return Stb;
 		}
 	}
 }

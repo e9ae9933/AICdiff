@@ -21,8 +21,8 @@ namespace nel.gm
 			this.BxR.item_margin_x_px = 0f;
 			this.BxR.item_margin_y_px = 4f;
 			this.BxR.init();
-			this.RTabBar = ColumnRowNel.NCreateT<aBtnNel>(this.BxR, "ctg_tab", "row_tab", (int)UiGMCScenario.scn_tab, FEnum<UiGMCScenario.SCN_CTG>.ToStrListUp(3, "&&Scenario_Tab_", true), new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnScnTabChanged), this.BxR.use_w, 0f, false, false);
-			this.RTabBar.setNewIcon(1, base.M2D.QUEST.hasNewProg(QuestTracker.CATEG.MAIN)).setNewIcon(2, base.M2D.QUEST.hasNewProg(QuestTracker.CATEG.SUB)).LrInput(false);
+			this.RTabBar = ColumnRowNel.NCreateT<aBtnNel>(this.BxR, "ctg_tab", "row_tab", (int)UiGMCScenario.scn_tab, FEnum<UiGameMenu.SCENARIO_CTG>.ToStrListUp(3, "&&Scenario_Tab_", true), new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnScnTabChanged), this.BxR.use_w, 0f, false, false);
+			this.RTabBar.setNewIcon(1, base.M2D.QUEST.hasNewProg(QuestTracker.CATEG.MAIN)).setNewIcon(2, base.M2D.QUEST.hasNewProg(QuestTracker.CATEG.SUB));
 			this.BxR.Br();
 			this.MainTab = this.BxR.addTab("scn_area", this.BxR.use_w, this.BxR.use_h - 10f, this.BxR.use_w, this.BxR.use_h - 10f, true);
 			this.MainTab.use_scroll = true;
@@ -33,17 +33,17 @@ namespace nel.gm
 
 		internal override void initEdit()
 		{
-			if (UiGMCScenario.scn_tab == UiGMCScenario.SCN_CTG.MAIN_QUEST || UiGMCScenario.scn_tab == UiGMCScenario.SCN_CTG.SUB_QUEST)
+			if (UiGMCScenario.scn_tab == UiGameMenu.SCENARIO_CTG.MAIN_QUEST || UiGMCScenario.scn_tab == UiGameMenu.SCENARIO_CTG.SUB_QUEST)
 			{
 				if (!base.M2D.QUEST.selectGmFirstButton() && this.RTabBar != null)
 				{
-					this.RTabBar.Get((int)UiGMCScenario.scn_tab).Select(false);
+					this.RTabBar.Get((int)UiGMCScenario.scn_tab).Select(true);
 					return;
 				}
 			}
 			else
 			{
-				this.DsShowerTextLog.getScrollBox().BView.Select(false);
+				this.DsShowerTextLog.getScrollBox().BView.Select(true);
 			}
 		}
 
@@ -73,23 +73,37 @@ namespace nel.gm
 			{
 				return false;
 			}
-			UiGMCScenario.SCN_CTG scn_CTG;
-			FEnum<UiGMCScenario.SCN_CTG>.TryParse(TX.slice(_B.Get(cur_value).title, "&&Scenario_Tab_".Length).ToUpper(), out scn_CTG, true);
-			if (UiGMCScenario.scn_tab != scn_CTG)
+			UiGameMenu.SCENARIO_CTG scenario_CTG;
+			FEnum<UiGameMenu.SCENARIO_CTG>.TryParse(TX.slice(_B.Get(cur_value).title, "&&Scenario_Tab_".Length).ToUpper(), out scenario_CTG, true);
+			if (UiGMCScenario.scn_tab != scenario_CTG)
 			{
 				this.AEvCon[(int)UiGMCScenario.scn_tab] = new Designer.EvacuateContainer(this.MainTab, false);
 				this.fineFocusedQProg();
-				UiGMCScenario.scn_tab = scn_CTG;
+				UiGMCScenario.scn_tab = scenario_CTG;
 				this.initScnTab();
 			}
 			return true;
 		}
 
-		internal void initScnTab(UiGMCScenario.SCN_CTG categ)
+		internal void initScnTab(UiGameMenu.SCENARIO_CTG categ)
 		{
 			if (UiGMCScenario.scn_tab != categ)
 			{
 				this.RTabBar.setValue((int)categ, true);
+			}
+		}
+
+		internal void revealQuest(QuestTracker.Quest Q)
+		{
+			this.initScnTab((Q.categ == QuestTracker.CATEG.MAIN) ? UiGameMenu.SCENARIO_CTG.MAIN_QUEST : UiGameMenu.SCENARIO_CTG.SUB_QUEST);
+			UiQuestCard tabForQuest = base.M2D.QUEST.getTabForQuest(Q);
+			if (tabForQuest != null)
+			{
+				Designer tab = this.MainTab.getTab("-Quest");
+				if (tab != null)
+				{
+					tab.reveal(tabForQuest.transform, 0f, 0f, false);
+				}
 			}
 		}
 
@@ -102,7 +116,7 @@ namespace nel.gm
 			mainTab.Clear();
 			if (base.reassignEvacuated(ref this.AEvCon[(int)UiGMCScenario.scn_tab], null))
 			{
-				if (UiGMCScenario.scn_tab == UiGMCScenario.SCN_CTG.MAIN_QUEST || UiGMCScenario.scn_tab == UiGMCScenario.SCN_CTG.SUB_QUEST)
+				if (UiGMCScenario.scn_tab == UiGameMenu.SCENARIO_CTG.MAIN_QUEST || UiGMCScenario.scn_tab == UiGameMenu.SCENARIO_CTG.SUB_QUEST)
 				{
 					base.M2D.QUEST.reassign(mainTab, mainTab.getTab("-Quest"), this.tab2categ);
 				}
@@ -114,7 +128,7 @@ namespace nel.gm
 				mainTab.Small();
 				mainTab.init();
 				mainTab.effect_confusion = false;
-				if (UiGMCScenario.scn_tab == UiGMCScenario.SCN_CTG.LOG)
+				if (UiGMCScenario.scn_tab == UiGameMenu.SCENARIO_CTG.LOG)
 				{
 					NelEvTextLog nelEvTextLog = NEL.createTextLog();
 					this.DsShowerTextLog = nelEvTextLog.createContainer(mainTab, mainTab.use_h - 50f, -1);
@@ -169,11 +183,28 @@ namespace nel.gm
 			}
 			if (this.RTabBar != null)
 			{
-				this.RTabBar.runLRInput(-2);
+				this.RTabBar.runLRInput(-2, false);
 			}
-			if ((UiGMCScenario.scn_tab == UiGMCScenario.SCN_CTG.MAIN_QUEST || UiGMCScenario.scn_tab == UiGMCScenario.SCN_CTG.SUB_QUEST) && IN.isUiSortPD())
+			if (UiGMCScenario.scn_tab == UiGameMenu.SCENARIO_CTG.MAIN_QUEST || UiGMCScenario.scn_tab == UiGameMenu.SCENARIO_CTG.SUB_QUEST)
 			{
-				base.M2D.QUEST.progressSortByLshKey();
+				if (IN.isUiSortPD())
+				{
+					base.M2D.QUEST.progressSortByLshKey();
+				}
+				if (base.M2D.isRbkPD())
+				{
+					object obj = null;
+					UiQuestCard tabForButton = base.M2D.QUEST.getTabForButton(aBtn.PreSelected);
+					if (tabForButton != null)
+					{
+						QuestTracker.QuestProgress prog = tabForButton.Prog;
+						prog.Q.getFieldGuideTarget(prog.phase, out obj);
+					}
+					if (this.GM.initRecipeBook(tabForButton.getQuest(), obj))
+					{
+						return GMC_RES.QUIT_GM;
+					}
+				}
 			}
 			return GMC_RES.CONTINUE;
 		}
@@ -187,17 +218,32 @@ namespace nel.gm
 				{
 					if (!(title == "quest_tracking"))
 					{
+						if (title == "&&KD_go_to_def_in_catalog")
+						{
+							UiQuestCard uiQuestCard = base.M2D.QUEST.getTabForButton(B);
+							if (uiQuestCard == null || !base.M2D.IMNG.has_recipe_collection)
+							{
+								return false;
+							}
+							QuestTracker.Quest quest = uiQuestCard.getQuest();
+							object obj;
+							if (quest.getFieldGuideTarget(uiQuestCard.Prog.phase, out obj))
+							{
+								this.GM.initRecipeBook(quest, obj);
+								return true;
+							}
+						}
 					}
 				}
 				else
 				{
-					UiQuestCard tabForButton = base.M2D.QUEST.getTabForButton(B);
-					if (tabForButton == null)
+					UiQuestCard uiQuestCard = base.M2D.QUEST.getTabForButton(B);
+					if (uiQuestCard == null)
 					{
 						return false;
 					}
-					QuestTracker.Quest quest = tabForButton.getQuest();
-					QuestTracker.QuestDeperture currentDepert = tabForButton.getCurrentDepert();
+					QuestTracker.Quest quest = uiQuestCard.getQuest();
+					QuestTracker.QuestDeperture currentDepert = uiQuestCard.getCurrentDepert();
 					if (!currentDepert.isActiveMap())
 					{
 						return false;
@@ -207,7 +253,7 @@ namespace nel.gm
 					if (uiGMCMap != null)
 					{
 						this.MapCancelingQuestJump = quest;
-						uiGMCMap.reveal(currentDepert.WmDepert, false);
+						uiGMCMap.reveal(currentDepert.WmDepert(uiQuestCard.Prog, uiQuestCard.Prog.phase), false);
 					}
 				}
 			}
@@ -233,12 +279,12 @@ namespace nel.gm
 						this.PreFocusedQProg.need_redraw_background = true;
 						if (this.RTabBar != null)
 						{
-							if (UiGMCScenario.scn_tab == UiGMCScenario.SCN_CTG.MAIN_QUEST && !base.M2D.QUEST.hasNewProg(QuestTracker.CATEG.MAIN))
+							if (UiGMCScenario.scn_tab == UiGameMenu.SCENARIO_CTG.MAIN_QUEST && !base.M2D.QUEST.hasNewProg(QuestTracker.CATEG.MAIN))
 							{
 								this.RTabBar.setNewIcon(1, false);
 								this.GM.refineLeftCategoriesHilight();
 							}
-							if (UiGMCScenario.scn_tab == UiGMCScenario.SCN_CTG.SUB_QUEST && !base.M2D.QUEST.hasNewProg(QuestTracker.CATEG.SUB))
+							if (UiGMCScenario.scn_tab == UiGameMenu.SCENARIO_CTG.SUB_QUEST && !base.M2D.QUEST.hasNewProg(QuestTracker.CATEG.SUB))
 							{
 								this.RTabBar.setNewIcon(2, false);
 								this.GM.refineLeftCategoriesHilight();
@@ -257,7 +303,7 @@ namespace nel.gm
 		{
 			get
 			{
-				if (UiGMCScenario.scn_tab == UiGMCScenario.SCN_CTG.MAIN_QUEST)
+				if (UiGMCScenario.scn_tab == UiGameMenu.SCENARIO_CTG.MAIN_QUEST)
 				{
 					return QuestTracker.CATEG.MAIN;
 				}
@@ -286,7 +332,7 @@ namespace nel.gm
 
 		private QuestTracker.Quest MapCancelingQuestJump;
 
-		internal static UiGMCScenario.SCN_CTG scn_tab;
+		internal static UiGameMenu.SCENARIO_CTG scn_tab;
 
 		private Designer MainTab;
 
@@ -297,13 +343,5 @@ namespace nel.gm
 		private Designer DsShowerTextLog;
 
 		protected Designer.EvacuateContainer[] AEvCon;
-
-		internal enum SCN_CTG
-		{
-			LOG,
-			MAIN_QUEST,
-			SUB_QUEST,
-			_MAX
-		}
 	}
 }

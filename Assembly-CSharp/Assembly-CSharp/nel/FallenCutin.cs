@@ -76,7 +76,7 @@ namespace nel
 			{
 				return;
 			}
-			this.Pxl = MTRX.loadMtiPxc(out this.Mti, "noel_fallen_uipic", "PxlNoel/noel_fallen_uipic.pxls", "NEL", false, true);
+			this.Pxl = MTRX.loadMtiPxc(out this.Mti, "noel_fallen_uipic", "PxlNoel/noel_fallen_uipic.pxls", "NEL", false, true, false);
 		}
 
 		public bool setE(PR _Pr)
@@ -384,11 +384,11 @@ namespace nel
 				this.MdT.Uv3(num14, num14, false).Uv3(num15, num15, false).Uv3(num15, num15, false)
 					.Uv3(num14, num14, false);
 			}
-			if (this.Efi == null && this.Pr.Mp != null)
+			if (this.Efi == null && this.Pr.Mp != null && this.Pr.Mp.getEffectTop() != null)
 			{
 				this.Efi = this.Pr.Mp.getEffectTop().setEffectWithSpecificFn("FCUTIN", 0f, 0f, 0f, 0, 0, (EffectItem Ef) => true);
 			}
-			if (this.Efi != null && (CFG.sp_dmgcounter_position & CFG.UIPIC_DMGCNT.MAP) != CFG.UIPIC_DMGCNT.NONE)
+			if (this.Efi != null && (CFGSP.dmgcounter_position & CFGSP.UIPIC_DMGCNT.MAP) != CFGSP.UIPIC_DMGCNT.NONE)
 			{
 				this.Efi.x = cam.x * this.Pr.Mp.rCLEN;
 				this.Efi.y = cam.y * this.Pr.Mp.rCLEN;

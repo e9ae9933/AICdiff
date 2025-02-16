@@ -58,6 +58,26 @@ namespace XX
 			return null;
 		}
 
+		public static MTIOneImage GetOneImageFor(MImage MI)
+		{
+			if (MI == null)
+			{
+				return null;
+			}
+			foreach (KeyValuePair<string, MTI> keyValuePair in MTI.OCon)
+			{
+				if (keyValuePair.Value is MTIOneImage)
+				{
+					MTIOneImage mtioneImage = keyValuePair.Value as MTIOneImage;
+					if (mtioneImage.MI == MI)
+					{
+						return mtioneImage;
+					}
+				}
+			}
+			return null;
+		}
+
 		public MTI(string key, string load_key = "_")
 		{
 			this.Aload_keys = new List<string>(4);
@@ -80,6 +100,11 @@ namespace XX
 			{
 				this.addLoadKey(load_key, false);
 			}
+		}
+
+		public static bool existsFile(string key)
+		{
+			return File.Exists(Path.Combine(Application.streamingAssetsPath, key + ".dat"));
 		}
 
 		public bool hasLoadKey(string load_key)
@@ -206,7 +231,7 @@ namespace XX
 			}
 		}
 
-		public T Load<T>(string path) where T : Object
+		public T Load<T>(string path) where T : global::UnityEngine.Object
 		{
 			if (this.Aload_keys.Count == 0)
 			{
@@ -286,6 +311,25 @@ namespace XX
 				{
 					Shader shader = this.Bset.LoadAsset<Shader>(text);
 					this.Oshader[shader.name] = shader;
+				}
+			}
+		}
+
+		public void listUpAllFiles(string prefix, string suffix, List<string> Aout)
+		{
+			string[] allAssetNames = this.Bset.GetAllAssetNames();
+			if (prefix == null && suffix == null)
+			{
+				Aout.AddRange(allAssetNames);
+				return;
+			}
+			int num = allAssetNames.Length;
+			for (int i = 0; i < num; i++)
+			{
+				string text = allAssetNames[i];
+				if ((prefix == null || TX.isStart(text, prefix, 0)) && (suffix == null || TX.isEnd(text, suffix)))
+				{
+					Aout.Add(text);
 				}
 			}
 		}

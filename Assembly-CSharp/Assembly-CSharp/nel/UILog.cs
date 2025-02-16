@@ -222,7 +222,7 @@ namespace nel
 		public void RenderOneSide(bool bottom_flag, Matrix4x4 Multiple, Camera Cam = null)
 		{
 			int len = this.LEN;
-			int num = ((!bottom_flag) ? 14 : 2);
+			int num = ((!bottom_flag) ? 15 : 2);
 			for (int i = 0; i < num; i++)
 			{
 				bool flag = false;

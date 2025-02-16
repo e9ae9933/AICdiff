@@ -98,11 +98,6 @@ namespace nel
 			return ((ulong)this.eye_bits & (ulong)(1L << (layer_index & 31))) > 0UL;
 		}
 
-		public static EnemyFrameDataBasic Create(EnemyAnimator Anm, PxlFrame F)
-		{
-			return new EnemyFrameDataBasic(Anm, F);
-		}
-
 		public uint eye_bits;
 
 		public int eye_count_pxl;
@@ -114,6 +109,8 @@ namespace nel
 		public uint mask_layer;
 
 		public uint normal_render_layer;
+
+		public static EnemyAnimator.FnCreate Create = (EnemyAnimator Anm, PxlFrame F) => new EnemyFrameDataBasic(Anm, F);
 
 		public enum FD_RES : byte
 		{

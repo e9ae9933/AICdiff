@@ -181,7 +181,7 @@ namespace m2d
 			}
 			else
 			{
-				this.MovRender.clearCameraComponent();
+				this.MovRender.clearCameraComponent(false);
 				camera = this.ACam[0].Cam;
 				this.ForMainProjection = this.ACam[0].getProjectionContainer();
 				this.MMRD.OnDestroy();
@@ -197,6 +197,7 @@ namespace m2d
 			}
 			this.MMRD.use_valotile = false;
 			this.MMRD.ValotConnetcable = null;
+			this.pre_calced_scale = 0f;
 			IN.getGUICamera().clearFlags = CameraClearFlags.Color;
 			if (this.CurDgn == null)
 			{
@@ -221,13 +222,13 @@ namespace m2d
 			return this;
 		}
 
-		public MeshDrawer createMeshDrawer(Camera DCam, string name_suffix, RenderTexture Rd, Material Mtr, int layer, uint mesh_col = 4294967295U, float fillscale = 1f, bool transparent = true)
+		public MeshDrawer createMeshDrawer(Camera DCam, string name_suffix, RenderTexture Rd, Material Mtr, int layer, uint mesh_col = 4294967295U, float fillscale = 1f, bool transparent = true, float z_shift = 440f)
 		{
 			if (Mtr == null)
 			{
 				throw new Exception("Mtr is Empty");
 			}
-			MeshDrawer meshDrawer = this.createMeshDrawer(DCam, name_suffix, Mtr, layer, fillscale, transparent);
+			MeshDrawer meshDrawer = this.createMeshDrawer(DCam, name_suffix, Mtr, layer, fillscale, transparent, z_shift);
 			meshDrawer.Col = C32.d2c(mesh_col);
 			this.drawScaledMesh(meshDrawer, fillscale, fillscale, Rd);
 			CameraComponentCollecter cameraCollecter = this.GetCameraCollecter(DCam);
@@ -238,14 +239,14 @@ namespace m2d
 			return meshDrawer;
 		}
 
-		public MeshDrawer createMeshDrawer(Camera DCam, string name_suffix, Material Mtr, int layer, float scale, bool transparent = true)
+		public MeshDrawer createMeshDrawer(Camera DCam, string name_suffix, Material Mtr, int layer, float scale, bool transparent = true, float z_shift = 440f)
 		{
 			if (Mtr == null)
 			{
 				throw new Exception("Mtr is Empty");
 			}
 			MdMap mdMap = null;
-			this.MMRD.CreateMesh(ref mdMap, name_suffix, 440f - (float)this.MMRD.getLength() * 0.001f, Mtr, layer, false, false, true, false);
+			this.MMRD.CreateMesh(ref mdMap, name_suffix, z_shift - (float)this.MMRD.getLength() * 0.001f, Mtr, layer, false, false, true, false);
 			this.Ameshdrawer_scale.Add(scale);
 			int index = this.getIndex(DCam);
 			bool flag = true;
@@ -316,6 +317,25 @@ namespace m2d
 			return cameraComponentCollecter;
 		}
 
+		public void resortRenderFunc(int layer)
+		{
+			if (layer == M2Camera.layerlight)
+			{
+				this.LightCamX.need_sort_binds = true;
+				return;
+			}
+			int num = this.ACam.Length;
+			layer = 1 << layer;
+			for (int i = num - 1; i >= 0; i--)
+			{
+				CameraComponentCollecter cameraComponentCollecter = this.ACam[i];
+				if ((cameraComponentCollecter.Cam.cullingMask & layer) != 0)
+				{
+					cameraComponentCollecter.need_sort_binds = true;
+				}
+			}
+		}
+
 		public void deassignRenderFunc(ICameraRenderBinder Fn, int layer)
 		{
 			if (layer == IN.LAY("M2DLight"))
@@ -374,7 +394,7 @@ namespace m2d
 			return SrcCamera.targetTexture;
 		}
 
-		public Camera initBufferScreenCamera(string name, Material Mtr, int lay_buf, Camera SrcCamera = null, float scale = 1f, uint mesh_col = 4294967295U, bool transparent = true, bool use_depth = false)
+		public Camera initBufferScreenCamera(string name, Material Mtr, int lay_buf, Camera SrcCamera = null, float scale = 1f, uint mesh_col = 4294967295U, bool transparent = true, bool use_depth = false, float z_shift = 440f)
 		{
 			RenderTexture renderTexture = this.initBufferScreen(SrcCamera, scale, null, RenderTextureFormat.ARGB32, use_depth);
 			if (lay_buf == -1)
@@ -384,7 +404,7 @@ namespace m2d
 			SrcCamera.gameObject.layer = lay_buf;
 			Camera camera = this.createCamera(name, true, transparent);
 			camera.cullingMask = 1 << lay_buf;
-			this.createMeshDrawer(camera, name, renderTexture, Mtr, lay_buf, mesh_col, 1f, transparent);
+			this.createMeshDrawer(camera, name, renderTexture, Mtr, lay_buf, mesh_col, 1f, transparent, z_shift);
 			return camera;
 		}
 
@@ -456,7 +476,7 @@ namespace m2d
 								bool stabilize_draw = this.MMRD.stabilize_draw;
 								this.MMRD.stabilize_draw = true;
 								this.ForMainProjection = cameraComponentCollecter2.getProjectionContainer();
-								this.initBufferScreenCamera("final_rendered", this.MtrFinalRendered, num2, cameraComponentCollecter2.Cam, 1f, uint.MaxValue, false, true);
+								this.initBufferScreenCamera("final_rendered", this.MtrFinalRendered, num2, cameraComponentCollecter2.Cam, 1f, uint.MaxValue, false, true, 440f);
 								this.CCFinalCamera = this.ACam[this.ACam.Length - 1];
 								this.CCFinalCamera.final_render = true;
 								this.MMRD.stabilize_draw = stabilize_draw;
@@ -573,7 +593,7 @@ namespace m2d
 				RenderTexture finalizeExportTexture = this.getFinalizeExportTexture();
 				if (finalizeExportTexture != null)
 				{
-					bool flag = IN.pixel_scale == (float)((int)IN.pixel_scale);
+					bool flag = IN.pixel_scale == (float)((int)IN.pixel_scale) && this.scale >= 1f;
 					finalizeExportTexture.filterMode = (flag ? FilterMode.Point : FilterMode.Bilinear);
 				}
 			}
@@ -623,7 +643,7 @@ namespace m2d
 			this.MvCenter = null;
 			this.FocusTo_ = null;
 			this.fine_focus_area_ = 2;
-			this.do_not_consider_decline_area_ = false;
+			this.do_not_consider_decline_area_ = 0;
 			this.scale = (this.scale_rev = 1f);
 			this.Qu.clear();
 			this.AFoc.Clear();
@@ -1020,15 +1040,43 @@ namespace m2d
 					cameraComponentCollecter.PxC.float_scaling = cameraComponentCollecter.scale * (flag ? this.scale : 1f);
 				}
 			}
+			if (this.scale < 1f || this.pre_calced_scale < 1f)
+			{
+				float num2 = X.Mx(1f, this.scale_rev);
+				for (int k = this.MMRD.Length - 1; k >= 0; k--)
+				{
+					GameObject gob = this.MMRD.GetGob(k);
+					this.MMRD.Get(k);
+					if (!(gob == this.GobFinalize))
+					{
+						Transform transform = gob.transform;
+						Vector3 localScale = transform.localScale;
+						localScale.x = num2;
+						localScale.y = num2;
+						transform.localScale = localScale;
+					}
+				}
+				FilterMode filterMode = ((this.scale >= 1f) ? FilterMode.Point : FilterMode.Bilinear);
+				for (int l = this.ACam.Length - 1; l >= 0; l--)
+				{
+					RenderTexture targetTexture = this.ACam[l].Cam.targetTexture;
+					if (targetTexture != null)
+					{
+						targetTexture.filterMode = filterMode;
+					}
+				}
+				this.fineRenderedTextureAntiAlias();
+			}
+			this.pre_calced_scale = this.scale;
 			if (first && this.Ameshdrawer_scale != null)
 			{
-				for (int k = this.Ameshdrawer_scale.Count - 1; k >= 0; k--)
+				for (int m = this.Ameshdrawer_scale.Count - 1; m >= 0; m--)
 				{
-					float num2 = this.Ameshdrawer_scale[k];
-					if (num2 > 0f)
+					float num3 = this.Ameshdrawer_scale[m];
+					if (num3 > 0f)
 					{
-						MeshDrawer meshDrawer = this.MMRD.Get(k);
-						this.drawScaledMesh(meshDrawer, num2, num2, null);
+						MeshDrawer meshDrawer = this.MMRD.Get(m);
+						this.drawScaledMesh(meshDrawer, num3, num3, null);
 					}
 				}
 			}
@@ -1282,16 +1330,23 @@ namespace m2d
 
 		public bool moveBy(float mpx = 0f, float mpy = 0f, float _speed = 4f)
 		{
-			return this.moveTo(this.depx + mpx, this.depy + mpy, _speed);
+			return this.moveTo(this.depx * this.rCLEN + mpx, this.depy * this.rCLEN + mpy, _speed);
 		}
 
 		public bool moveTo(float mpx, float mpy, float _speed = 4f)
 		{
+			float num = this.depx;
+			float num2 = this.depy;
 			this.fixPosition(ref this.depx, ref this.depy, mpx * this.CLEN, mpy * this.CLEN);
 			if (_speed > 0f)
 			{
 				this.cam_walk_speed_y = _speed;
 				this.cam_walk_speed_x = _speed;
+			}
+			if (_speed == -1000f)
+			{
+				this.x += this.depx - num;
+				this.y += this.depy - num2;
 			}
 			this.pos_center &= (M2Camera.IMMD)252;
 			this.fine_focus_area = true;
@@ -1396,8 +1451,10 @@ namespace m2d
 				float num19 = num2 - num9 * num7;
 				float num20 = num + num8 * num7;
 				float num21 = num2 + num9 * num7;
-				if (!this.do_not_consider_decline_area_)
+				if (this.do_not_consider_decline_area_ < 3)
 				{
+					bool flag = (this.do_not_consider_decline_area_ & 1) == 0;
+					bool flag2 = (this.do_not_consider_decline_area_ & 2) == 0;
 					for (int j = 0; j < num3; j++)
 					{
 						M2LpCamDecline m2LpCamDecline = this.ADecl[j];
@@ -1405,34 +1462,46 @@ namespace m2d
 						{
 							float num22 = m2LpCamDecline.x + m2LpCamDecline.width * 0.5f;
 							float num23 = m2LpCamDecline.y + m2LpCamDecline.height * 0.5f;
-							bool flag = X.isContaining(m2LpCamDecline.x, m2LpCamDecline.right, num18, num20, -2f);
-							bool flag2 = X.isContaining(m2LpCamDecline.y, m2LpCamDecline.bottom, num19, num21, -2f);
-							bool flag3 = m2LpCamDecline.isPushoutEnable(AIM.L);
-							bool flag4 = m2LpCamDecline.isPushoutEnable(AIM.R);
-							bool flag5 = m2LpCamDecline.isPushoutEnable(AIM.B);
-							bool flag6 = m2LpCamDecline.isPushoutEnable(AIM.T);
+							bool flag3 = false;
+							bool flag4 = false;
+							bool flag5 = false;
+							bool flag6 = false;
+							bool flag7 = false;
+							bool flag8 = false;
+							if (flag)
+							{
+								flag3 = X.isContaining(m2LpCamDecline.x, m2LpCamDecline.right, num18, num20, -2f);
+								flag5 = m2LpCamDecline.isPushoutEnable(AIM.L);
+								flag6 = m2LpCamDecline.isPushoutEnable(AIM.R);
+							}
+							if (flag2)
+							{
+								flag4 = X.isContaining(m2LpCamDecline.y, m2LpCamDecline.bottom, num19, num21, -2f);
+								flag7 = m2LpCamDecline.isPushoutEnable(AIM.B);
+								flag8 = m2LpCamDecline.isPushoutEnable(AIM.T);
+							}
 							float num24 = 0f;
 							float num25 = 0f;
-							if (!flag && (flag3 || flag4))
+							if (!flag3 && (flag5 || flag6))
 							{
-								if (flag3 && flag4)
+								if (flag5 && flag6)
 								{
 									num24 = ((num < num22) ? X.Mn(m2LpCamDecline.x - num20, 0f) : X.Mx(m2LpCamDecline.right - num18, 0f));
 								}
 								else
 								{
-									num24 = (flag4 ? X.Mx(m2LpCamDecline.right - num18, 0f) : X.Mn(m2LpCamDecline.x - num20, 0f));
+									num24 = (flag6 ? X.Mx(m2LpCamDecline.right - num18, 0f) : X.Mn(m2LpCamDecline.x - num20, 0f));
 								}
 							}
-							if (!flag2 && (flag6 || flag5))
+							if (!flag4 && (flag8 || flag7))
 							{
-								if (flag6 && flag5)
+								if (flag8 && flag7)
 								{
 									num25 = ((num2 < num23) ? X.Mn(m2LpCamDecline.y - num21, 0f) : X.Mx(m2LpCamDecline.bottom - num19, 0f));
 								}
 								else
 								{
-									num25 = (flag5 ? X.Mx(m2LpCamDecline.bottom - num19, 0f) : X.Mn(m2LpCamDecline.y - num21, 0f));
+									num25 = (flag7 ? X.Mx(m2LpCamDecline.bottom - num19, 0f) : X.Mn(m2LpCamDecline.y - num21, 0f));
 								}
 							}
 							if (num24 != 0f && num25 != 0f)
@@ -1446,19 +1515,19 @@ namespace m2d
 									num24 = 0f;
 								}
 							}
-							if (num24 < 0f && flag3)
+							if (num24 < 0f && flag5)
 							{
 								num11 = X.Mn(num15 + num24, num11);
 							}
-							if (num24 > 0f && flag4)
+							if (num24 > 0f && flag6)
 							{
 								num10 = X.Mx(num14 + num24, num10);
 							}
-							if (num25 < 0f && flag6)
+							if (num25 < 0f && flag8)
 							{
 								num13 = X.Mn(num17 + num25, num13);
 							}
-							if (num25 > 0f && flag5)
+							if (num25 > 0f && flag7)
 							{
 								num12 = X.Mx(num16 + num25, num12);
 							}
@@ -1883,7 +1952,7 @@ namespace m2d
 
 		public bool isCoveringMp(float mapl, float mapt, float mapr, float mapb, float extend_pixel)
 		{
-			return X.isCovering(this.x - this.areawh, this.x + this.areawh, mapl * this.CLEN, mapr * this.CLEN, extend_pixel) && X.isCovering(this.y - this.areahh, this.y + this.areahh, mapt * this.CLEN, mapb * this.CLEN, extend_pixel);
+			return X.isCovering(this.x - this.areawh * this.scale_rev, this.x + this.areawh * this.scale_rev, mapl * this.CLEN, mapr * this.CLEN, extend_pixel) && X.isCovering(this.y - this.areahh * this.scale_rev, this.y + this.areahh * this.scale_rev, mapt * this.CLEN, mapb * this.CLEN, extend_pixel);
 		}
 
 		public bool isCoveringCenMeshPixel(float cen_x, float cen_y, float _w, float _h, float extend_pixel = 0f)
@@ -1895,7 +1964,7 @@ namespace m2d
 		{
 			_w *= 0.5f;
 			_h *= 0.5f;
-			return X.isCovering(this.x - this.areawh, this.x + this.areawh, cen_x - _w, cen_x + _w, extend_pixel) && X.isCovering(this.y - this.areahh, this.y + this.areahh, cen_y - _h, cen_y + _h, extend_pixel);
+			return X.isCovering(this.x - this.areawh * this.scale_rev, this.x + this.areawh * this.scale_rev, cen_x - _w, cen_x + _w, extend_pixel) && X.isCovering(this.y - this.areahh * this.scale_rev, this.y + this.areahh * this.scale_rev, cen_y - _h, cen_y + _h, extend_pixel);
 		}
 
 		public bool isCoveringEffectPixel(float elpx, float erpx, float ebpx, float etpx, float extend_pixel = 0f, float base_x_u = 0f, float base_y_u = 0f)
@@ -2031,7 +2100,7 @@ namespace m2d
 			}
 		}
 
-		public bool do_not_consider_decline_area
+		public byte do_not_consider_decline_area
 		{
 			get
 			{
@@ -2043,8 +2112,17 @@ namespace m2d
 				{
 					return;
 				}
+				bool flag = (this.do_not_consider_decline_area_ & 1) != (value & 1);
+				byte b = this.do_not_consider_decline_area_;
 				this.do_not_consider_decline_area_ = value;
-				this.pos_center &= (M2Camera.IMMD)252;
+				if (flag)
+				{
+					this.pos_center &= (M2Camera.IMMD)254;
+				}
+				if (flag)
+				{
+					this.pos_center &= (M2Camera.IMMD)253;
+				}
 				this.fine_focus_area = true;
 			}
 		}
@@ -2149,11 +2227,14 @@ namespace m2d
 			return this.LightCamX.getTexture();
 		}
 
-		public void getTextureForUiBg(ref RenderTexture TxB, ref RenderTexture TxG)
+		public void getTextureForUiBg(out RenderTexture TxB, out RenderTexture TxG)
 		{
+			RenderTexture renderTexture;
+			TxG = (renderTexture = null);
+			TxB = renderTexture;
 			if (this.CurDgn != null)
 			{
-				this.CurDgn.getTextureForUiBg(ref TxB, ref TxG);
+				this.CurDgn.getTextureForUiBg(out TxB, out TxG);
 			}
 			if (TxB == null)
 			{
@@ -2247,6 +2328,16 @@ namespace m2d
 			{
 				X.pushToEmptyRI<FnMapFinalized>(ref this.AFnMapFinalized, Fn, -1);
 			}
+		}
+
+		public Vector2 Screen2UPos(Vector2 ScrP)
+		{
+			return new Vector2(this.PosMainTransform.x + ScrP.x * this.scale_rev, this.PosMainTransform.y + ScrP.y * this.scale_rev);
+		}
+
+		public Vector2 UPos2Screen(Vector2 ScrU)
+		{
+			return new Vector2(ScrU.x * this.scale - this.PosMainTransform.x, ScrU.y * this.scale - this.PosMainTransform.y);
 		}
 
 		private bool runMapFinalized()
@@ -2343,7 +2434,7 @@ namespace m2d
 
 		private byte fine_focus_area_ = 2;
 
-		private bool do_not_consider_decline_area_;
+		private byte do_not_consider_decline_area_;
 
 		public float cam_shift_x;
 
@@ -2480,6 +2571,8 @@ namespace m2d
 		private float effect_confuse_;
 
 		private Vector2 PreRenderTicketChecked;
+
+		private float pre_calced_scale;
 
 		public Matrix4x4 FinalProjBuffer;
 

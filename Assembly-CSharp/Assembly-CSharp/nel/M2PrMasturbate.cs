@@ -6,37 +6,31 @@ using XX;
 
 namespace nel
 {
-	public sealed class M2PrMasturbate : IGachaListener, IEventWaitListener
+	public sealed class M2PrMasturbate : ISpecialPrRunner, IGachaListener, IEventWaitListener
 	{
-		public M2PrMasturbate(PR _Pr, bool on_bench = true)
+		public M2PrMasturbate(PR _Pr, bool _on_bench = true)
 		{
 			this.Pr = _Pr;
 			this.M2D = this.Pr.NM2D;
 			this.Anm = this.Pr.getAnimator();
+			this.on_bench = _on_bench;
 			this.PE = new EffectHandlerPE(2);
-			if (this.Pr.isBenchState())
+			if (_on_bench)
 			{
 				(M2DBase.Instance as NelM2DBase).FlagOpenGm.Add("MASTURBATE");
 			}
-			if (this.Pr.Onnie != null)
-			{
-				this.Pr.Onnie.quit();
-			}
 			this.pre_orgasm_count = this.Pr.EpCon.masturbate_count;
 			EV.isActive(false);
-			if (!X.SENSITIVE)
-			{
-				this.Pr.Onnie = this;
-			}
 		}
 
-		public M2PrMasturbate init(int delay = 0)
+		public M2PrMasturbate init(int delay = 0, bool is_first = false)
 		{
 			if (X.SENSITIVE)
 			{
 				return null;
 			}
 			this.t = (float)(-1000 - delay);
+			this.Pr.addD(M2MoverPr.DECL.ORGASM_INJECTABLE);
 			this.intro_pose_title = null;
 			if (this.Pr.isBenchState())
 			{
@@ -64,12 +58,22 @@ namespace nel
 			{
 				this.Pr.EpCon.quitOrasmSageTime(true);
 			}
-			if (this.level < 3 && this.Tx == null && this.type == M2PrMasturbate.TYPE.ON_BENCH)
+			if (EnemySummoner.isActiveBorder())
 			{
-				this.Tx = UiGO.CreateBottomRightText("Ui-Masturb", -6.125f);
-				this.Tx.use_valotile = true;
-				this.Tx.alpha = 0f;
-				this.Tx.text_content = TX.Get("Mstb_KeyHelp", "");
+				this.Pr.EpCon.attachable_ser_oazuke = false;
+			}
+			if (this.level < 3 && this.type == M2PrMasturbate.TYPE.ON_BENCH)
+			{
+				this.prepareTxKD(true);
+			}
+			if (this.TkKD != null)
+			{
+				this.TkKD.hold_blink = false;
+				this.TkKD.need_fine = true;
+			}
+			if (is_first)
+			{
+				this.Pr.VO.breath_key = "breath_e";
 			}
 			return this;
 		}
@@ -96,25 +100,57 @@ namespace nel
 			}
 		}
 
-		public M2PrMasturbate quit()
+		public void quitSPPR(PR Pr, PR.STATE aftstate)
 		{
 			this.AbsorbMng = null;
-			if (this.Tx != null)
-			{
-				this.M2D.remValotAddition(this.Tx);
-				IN.DestroyOne(this.Tx.gameObject);
-				this.Tx = null;
-			}
+			this.prepareTxKD(false);
 			this.canceling = false;
 			this.PE.deactivate(true);
 			this.t = -1140f;
 			this.level = -1;
 			this.intro_pose_title = null;
 			(M2DBase.Instance as NelM2DBase).FlagOpenGm.Rem("MASTURBATE");
-			return null;
+			if (this.isFinished() && !Pr.isBenchState(aftstate))
+			{
+				Pr.cureMpNotHunger(false);
+			}
 		}
 
-		public bool runMusturbate(float fcnt)
+		public bool runPreSPPR(PR Pr, float fcnt, ref float t_state)
+		{
+			Pr.clipCrouchTime(1f);
+			Pr.getAbsorbContainer().runAbsorbPr(Pr, this.t, Pr.TS);
+			if (this.is_bench)
+			{
+				if (!this.runMusturbate(Pr.TS))
+				{
+					if (!Pr.poseIsBenchMusturbOrgasm())
+					{
+						this.Anm.setPose("bench_shamed", -1, false);
+					}
+					if (!EV.isActive(false) && !this.M2D.GM.isBenchMenuActive())
+					{
+						UIBase.Instance.gameMenuSlide(false, false);
+						UIBase.Instance.gameMenuBenchSlide(false, false);
+					}
+					this.M2D.FlagOpenGm.Rem("MASTURBATE");
+					Pr.changeState(PR.STATE.BENCH_LOADAFTER);
+					Pr.addD(M2MoverPr.DECL.INIT_A);
+					if (this.M2D.GM.isBenchMenuActive() && !EV.isActive(false))
+					{
+						this.M2D.GM.evClose(true);
+					}
+					return true;
+				}
+			}
+			else if (!Pr.canStartFrustratedMasturbate(false) || !this.runMusturbate(Pr.TS))
+			{
+				return false;
+			}
+			return true;
+		}
+
+		private bool runMusturbate(float fcnt)
 		{
 			if (X.SENSITIVE)
 			{
@@ -135,7 +171,7 @@ namespace nel
 				this.tapped = 0;
 				this.intro_pose_title = null;
 				int i = this.level;
-				this.Pr.EpCon.breath_key = null;
+				this.Pr.VO.breath_key = null;
 				if (i == 4)
 				{
 					this.Pr.SpSetPose(this.is_bench ? "bench_must_orgasm" : "must_orgasm", -1, null, false);
@@ -143,10 +179,10 @@ namespace nel
 				}
 				else
 				{
-					NoelAnimator.PoseInfo poseInfo = null;
+					PrPoseContainer.PoseInfo poseInfo = null;
 					while (i >= 0)
 					{
-						poseInfo = NoelAnimator.getPoseInfo((this.is_bench ? "bench_must" : "must") + i.ToString());
+						poseInfo = this.Pr.getAnimator().getPoseInfo((this.is_bench ? "bench_must" : "must") + i.ToString());
 						if (poseInfo != null)
 						{
 							break;
@@ -157,7 +193,7 @@ namespace nel
 					{
 						return false;
 					}
-					if (NoelAnimator.getPoseInfo((this.is_bench ? "bench_must" : "must") + i.ToString() + "l") == null)
+					if (this.Pr.getAnimator().getPoseInfo((this.is_bench ? "bench_must" : "must") + i.ToString() + "l") == null)
 					{
 						this.t = 0f;
 						this.Pr.SpSetPose(poseInfo.title, -1, null, false);
@@ -226,6 +262,10 @@ namespace nel
 					int num4 = currentSequence.getDuration() - num3;
 					this.Anm.timescale = (float)num4 / (this.ef_intv * (float)num2);
 					this.Pdr.resetTime(12, false);
+					if (this.Pr.Rebagacha != null)
+					{
+						this.Pr.Rebagacha.need_reposit = true;
+					}
 				}
 				if (this.level <= 3)
 				{
@@ -282,7 +322,7 @@ namespace nel
 						}
 						if (this.type == M2PrMasturbate.TYPE.ON_ROAD)
 						{
-							this.Pr.splitMpByDamage(MDAT.AtkMasturbate_road, MDAT.AtkMasturbate_road.mpdmg0, MANA_HIT.EN, 0, 0f, null, false);
+							this.Pr.DMG.splitMpByDamage(MDAT.AtkMasturbate_road, MDAT.AtkMasturbate_road.mpdmg0, MANA_HIT.EN | MANA_HIT.FALL | MANA_HIT.FROM_ABSORB_SPLIT, 0, 0f, null, false);
 						}
 						this.Pr.PtcVar("level", (double)this.level).PtcST("masturbate_hit_s", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 						this.Pr.UP.applyMasturbate(0.4f + 0.17f * (float)this.level, 5f, (float)(30 - this.level * 8));
@@ -304,15 +344,11 @@ namespace nel
 					}
 					if (flag)
 					{
-						this.Pr.playVo((this.level == 0) ? "must" : ((this.level == 1) ? "mustl" : "mustll"), false, false);
+						this.Pr.VO.playMasturbVo(this.level);
 					}
 					if (flag3)
 					{
-						this.init(20);
-					}
-					if (this.Tx != null && this.Tx.alpha < 1f)
-					{
-						this.Tx.alpha = X.ZLINE(this.Tx.alpha + 0.022727273f);
+						this.init(20, false);
 					}
 				}
 				else if (this.level == 3)
@@ -329,16 +365,12 @@ namespace nel
 							this.changeLevel(4, 20);
 							return true;
 						}
-						this.Pr.playVo("must_come", false, false);
+						this.Pr.VO.playMasturbVo(3);
 						this.M2D.Snd.play("kuchul");
 						this.Pr.Mp.DropCon.setLoveJuice(this.Pr, 6, 2868903935U, 1f, false);
 						this.Pr.UP.applyMasturbate(0.33f, 40f, 12f);
 						this.Pr.PtcVar("level", 3.0).PtcST("masturbate_hit_s", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 						this.tapped = num8;
-					}
-					if (this.Tx != null && this.Tx.alpha > 0f)
-					{
-						this.Tx.alpha = X.ZLINE(this.Tx.alpha - 0.025f);
 					}
 				}
 				else
@@ -366,6 +398,10 @@ namespace nel
 				}
 				else if (IN.isCancelOn(0) || IN.isMenuO(0))
 				{
+					if (this.TkKD != null)
+					{
+						this.TkKD.hold_blink = true;
+					}
 					if (IN.isCancelOn(60) || IN.isMenuO(60))
 					{
 						this.Pr.recheck_emot = (this.Pr.recheck_emot_in_gm = true);
@@ -374,6 +410,10 @@ namespace nel
 				}
 				else
 				{
+					if (this.TkKD != null)
+					{
+						this.TkKD.hold_blink = false;
+					}
 					this.canceling = false;
 				}
 			}
@@ -436,7 +476,7 @@ namespace nel
 
 		bool IEventWaitListener.EvtWait(bool is_first)
 		{
-			if (!is_first && this != this.Pr.Onnie)
+			if (!is_first && this != this.Pr.SpRunner)
 			{
 				CsvVariableContainer variableContainer = EV.getVariableContainer();
 				if (variableContainer != null)
@@ -446,6 +486,35 @@ namespace nel
 				return false;
 			}
 			return true;
+		}
+
+		public void prepareTxKD(bool flag)
+		{
+			if (flag)
+			{
+				if (this.TkKD == null)
+				{
+					if (this.FD_KeyDesc == null)
+					{
+						this.FD_KeyDesc = new TxKeyDesc.FnGetKD(this.getKD);
+					}
+					this.TkKD = this.M2D.TxKD.AddTicket(170, this.FD_KeyDesc, this);
+					this.TkKD.showable_front_ui = true;
+					return;
+				}
+			}
+			else if (this.TkKD != null)
+			{
+				this.TkKD = this.TkKD.destruct();
+			}
+		}
+
+		public void getKD(STB Stb, object Target)
+		{
+			if (this.level < 3)
+			{
+				Stb.AddTxA("Mstb_KeyHelp", false);
+			}
 		}
 
 		public float get_time()
@@ -471,7 +540,7 @@ namespace nel
 			return this.level >= 4;
 		}
 
-		private float t = -1000f;
+		private float t = -2000f;
 
 		private int level = -1;
 
@@ -489,6 +558,8 @@ namespace nel
 
 		public readonly NoelAnimator Anm;
 
+		public readonly bool on_bench;
+
 		private string intro_pose_title;
 
 		private float ep_0;
@@ -499,7 +570,7 @@ namespace nel
 
 		private const int LEVEL_ORGASM = 4;
 
-		private const int LEVEL_TO_COME = 3;
+		public const int LEVEL_TO_COME = 3;
 
 		private const float COMING_TAP = 12f;
 
@@ -507,7 +578,7 @@ namespace nel
 
 		private PendulumDrawer Pdr;
 
-		private TextRenderer Tx;
+		private TxKeyDesc.KDTicket TkKD;
 
 		private EffectHandlerPE PE;
 
@@ -518,6 +589,8 @@ namespace nel
 		public const string varname_orgasm_success = "_masturb_success";
 
 		public const UIPictureBase.EMSTATE BENCH_MASTURB_READ_STATE = UIPictureBase.EMSTATE.TORNED;
+
+		private TxKeyDesc.FnGetKD FD_KeyDesc;
 
 		private enum TYPE
 		{

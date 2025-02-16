@@ -8,6 +8,7 @@ namespace m2d
 		NORMAL,
 		TEMP,
 		SUBMAP,
-		TEMP_WHOLE
+		TEMP_WHOLE,
+		LOAD_AND_CFG
 	}
 }

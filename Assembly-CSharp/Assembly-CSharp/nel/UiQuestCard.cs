@@ -20,9 +20,10 @@ namespace nel
 				this.FD_fnDrawTreasure = new FillImageBlock.FnDrawInFIB(this.fnDrawTreasure);
 			}
 			this.Prog = _Prog;
+			this.treasure_image_load_rest = 0;
 			base.Small();
 			this.radius = (float)(this.small_mode ? 18 : 34);
-			base.bgcol = C32.d2c(4291806147U);
+			base.bgcol = C32.d2c(this.Prog.aborted ? 4289043355U : 4291806147U);
 			this.use_button_connection = false;
 			this.selectable_loop = 1;
 			float num = 1f;
@@ -79,18 +80,11 @@ namespace nel
 			}
 			base.Area.clearNavi(15U, false);
 			int num4 = X.Mn(this.Prog.phase, this.Prog.Q.end_phase - 1);
-			Color32 color;
-			if (this.Prog.finished)
-			{
-				color = C32.d2c(4288252036U);
-			}
-			else
-			{
-				color = C32.d2c(4283780170U);
-			}
+			Color32 color = C32.MulA(4283780170U, (this.Prog.finished || this.Prog.aborted) ? 0.66f : 1f);
 			DsnDataButton dsnDataButton = null;
 			FnBtnBindings fnBtnBindings = null;
-			for (int i = 0; i <= num4; i++)
+			int i = 0;
+			while (i <= num4)
 			{
 				if (this.Prog.Q.cascade_show_phase(i) && num4 < this.Prog.Q.end_phase - 1)
 				{
@@ -109,6 +103,7 @@ namespace nel
 				bool flag2 = true;
 				bool flag3;
 				NelItemEntry[] collectTarget = this.Prog.Q.getCollectTarget(i, out flag3);
+				QuestTracker.SummonerEntry[] summonerEntryTarget = this.Prog.Q.getSummonerEntryTarget(i);
 				EvImg evImg = ((!this.small_mode || !flag) ? this.Prog.Q.getTreasureImg(i) : null);
 				if (i < num4 && this.Prog.Q.getDescription(i + 1) == this.Prog.Q.getDescription(i))
 				{
@@ -150,9 +145,23 @@ namespace nel
 					if (num3 > 0f)
 					{
 						base.addHr(new DsnDataHr().H(20f));
+						num3 = 0f;
 					}
 					base.XSh(36f);
-					EV.getLoaderForPxl(evImg.PF.pChar).preparePxlImage(false);
+					EV.getLoaderForPxl(evImg.PF.pChar).preparePxlChar(true, true);
+					this.treasure_image_load_rest++;
+					LoadTicketManager.AddTicket("UiQuestCard", "loadTreasure", delegate(LoadTicketManager.LoadTicket Tk)
+					{
+						UiQuestCard uiQuestCard = Tk.Target as UiQuestCard;
+						UiQuestCard uiQuestCard2 = uiQuestCard;
+						int num11 = uiQuestCard2.treasure_image_load_rest - 1;
+						uiQuestCard2.treasure_image_load_rest = num11;
+						if (num11 == 0)
+						{
+							uiQuestCard.redrawAllFillImageBlock();
+						}
+						return false;
+					}, this, 200);
 					float num5 = ((i < this.Prog.phase) ? 0.3f : 1f);
 					float num6 = (float)evImg.PF.pSq.width * num5;
 					float num7 = (float)evImg.PF.pSq.height * num5;
@@ -177,52 +186,57 @@ namespace nel
 				{
 					ushort[] collectedCount = this.Prog.getCollectedCount(i);
 					int num8 = collectTarget.Length;
-					for (int k = 0; k < num8; k++)
+					using (STB stb2 = TX.PopBld(null, 0))
 					{
-						NelItemEntry nelItemEntry = collectTarget[k];
-						int num9 = (int)((collectedCount != null && X.BTW(0f, (float)k, (float)collectedCount.Length)) ? collectedCount[k] : 0);
-						bool flag4 = num9 >= nelItemEntry.count;
-						Color32 color3 = color2;
-						if (flag4)
+						for (int k = 0; k < num8; k++)
 						{
-							color3 = C32.d2c(4288252036U);
+							NelItemEntry nelItemEntry = collectTarget[k];
+							int num9 = (int)((collectedCount != null && X.BTW(0f, (float)k, (float)collectedCount.Length)) ? collectedCount[k] : 0);
+							bool flag4 = num9 >= nelItemEntry.count;
+							string text2 = num9.ToString() + " / " + nelItemEntry.count.ToString();
+							nelItemEntry.getLocalizedName(stb2.Clear(), 0, 2, false);
+							this.createCollectTargetRow(i, k, flag4, color2, num3, num, stb2, text2);
 						}
-						base.XSh((float)(this.small_mode ? 30 : 68)).addImg(new DsnDataImg
-						{
-							name = "collect_target_" + i.ToString() + "_" + k.ToString(),
-							text = nelItemEntry.getLocalizedName(1, -1, false),
-							html = true,
-							alignx = ALIGN.LEFT,
-							sheight = (float)(this.small_mode ? 18 : 27),
-							TxCol = color3,
-							FnDrawInFIB = this.FD_fnDrawPCollectTarget,
-							swidth = base.use_w - 90f - num3,
-							text_auto_condense = true,
-							size = num * 14f
-						});
-						num3 = 0f;
-						base.addP(new DsnDataP("", false)
-						{
-							text = num9.ToString() + " / " + nelItemEntry.count.ToString(),
-							TxCol = color3,
-							swidth = base.use_w - 8f,
-							sheight = (float)(this.small_mode ? 18 : 27),
-							size = num * 14f,
-							text_auto_condense = true
-						}, false);
-						base.Br();
+						goto IL_07C1;
 					}
+					goto IL_0748;
 				}
+				goto IL_0748;
+				IL_07C1:
+				i++;
+				continue;
+				IL_0748:
+				if (summonerEntryTarget != null)
+				{
+					int num10 = summonerEntryTarget.Length;
+					using (STB stb3 = TX.PopBld(null, 0))
+					{
+						for (int l = 0; l < num10; l++)
+						{
+							QuestTracker.SummonerEntry summonerEntry = summonerEntryTarget[l];
+							bool flag5 = this.Prog.collectionFinished(i);
+							stb3.SetTxA("Summoner_" + summonerEntry.summoner_key, false);
+							this.createCollectTargetRow(i, l, flag5, color2, num3, num, stb3, null);
+						}
+					}
+					goto IL_07C1;
+				}
+				goto IL_07C1;
 			}
 			if (!this.Prog.finished)
 			{
 				base.alignx = ALIGN.RIGHT;
-				bool flag5 = X.ENG_MODE && this.small_mode;
+				bool flag6 = X.ENG_MODE && this.small_mode;
 				using (BList<string> blist = ListBuffer<string>.Pop(0))
 				{
 					if (!this.small_mode)
 					{
 						blist.Add("quest_tracking");
+					}
+					object obj;
+					if (this.QM.M2D.IMNG.has_recipe_collection && this.Prog.Q.getFieldGuideTarget(num4, out obj))
+					{
+						blist.Add("&&KD_go_to_def_in_catalog");
 					}
 					if (this.Prog.CurrentDepert.isActiveMap())
 					{
@@ -235,15 +249,15 @@ namespace nel
 					int count = blist.Count;
 					aBtn aBtn = null;
 					aBtn aBtn2 = null;
-					for (int l = 0; l < count; l++)
+					for (int m = 0; m < count; m++)
 					{
-						string text2 = blist[l];
+						string text3 = blist[m];
 						if (dsnDataButton == null)
 						{
 							dsnDataButton = new DsnDataButton();
 						}
 						dsnDataButton.def = false;
-						dsnDataButton.title = text2;
+						dsnDataButton.title = text3;
 						dsnDataButton.skin = "row_center";
 						dsnDataButton.click_snd = null;
 						dsnDataButton.skin_title = null;
@@ -252,11 +266,11 @@ namespace nel
 						dsnDataButton.fnClick = fnClickBtn;
 						dsnDataButton.fnHover = this.FD_fnBtnHover;
 						FnBtnBindings fnBtnBindings2 = null;
-						if (text2 != null)
+						if (text3 != null)
 						{
-							if (!(text2 == "reveal_map"))
+							if (!(text3 == "reveal_map"))
 							{
-								if (text2 == "quest_tracking")
+								if (text3 == "quest_tracking")
 								{
 									dsnDataButton.skin_title = "<img mesh=\"quest_tracking\" width=\"22\" />";
 									dsnDataButton.skin = "row";
@@ -277,40 +291,41 @@ namespace nel
 							}
 						}
 						dsnDataButton.w = X.Mn(this.w - this.margin_in_lr * 2f, dsnDataButton.w);
-						aBtn aBtn3 = this.addButtonT<aBtnNel>(dsnDataButton);
-						ButtonSkinNelQuestPin buttonSkinNelQuestPin = aBtn3.get_Skin() as ButtonSkinNelQuestPin;
+						UiQuestCard.aBtnNelQuestCard aBtnNelQuestCard = this.addButtonT<UiQuestCard.aBtnNelQuestCard>(dsnDataButton);
+						aBtnNelQuestCard.DsCard = this;
+						ButtonSkinNelQuestPin buttonSkinNelQuestPin = aBtnNelQuestCard.get_Skin() as ButtonSkinNelQuestPin;
 						if (buttonSkinNelQuestPin != null)
 						{
 							buttonSkinNelQuestPin.Q = this.Prog.Q;
 						}
 						if (fnBtnBindings2 != null)
 						{
-							aBtn3.addClickFn(fnBtnBindings2);
+							aBtnNelQuestCard.addClickFn(fnBtnBindings2);
 						}
 						if (aBtn2 != null)
 						{
-							if (flag5)
+							if (flag6)
 							{
-								aBtn2.setNaviB(aBtn3, true, false);
+								aBtn2.setNaviB(aBtnNelQuestCard, true, false);
 							}
 							else
 							{
-								aBtn2.setNaviR(aBtn3, true, false);
+								aBtn2.setNaviR(aBtnNelQuestCard, true, false);
 							}
 						}
-						if (flag5)
+						if (flag6)
 						{
 							base.Br();
 						}
 						if (aBtn == null)
 						{
-							aBtn = aBtn3;
+							aBtn = aBtnNelQuestCard;
 						}
-						aBtn2 = aBtn3;
+						aBtn2 = aBtnNelQuestCard;
 					}
 					if (aBtn != null)
 					{
-						if (flag5)
+						if (flag6)
 						{
 							aBtn.setNaviT(aBtn2, true, false);
 						}
@@ -322,6 +337,52 @@ namespace nel
 				}
 			}
 			return this;
+		}
+
+		private void redrawAllFillImageBlock()
+		{
+			foreach (KeyValuePair<IDesignerBlock, DesignerRowMem.DsnMem> keyValuePair in this.OBlockMem)
+			{
+				if (keyValuePair.Value.Blk is FillImageBlock)
+				{
+					(keyValuePair.Value.Blk as FillImageBlock).redraw_flag = true;
+				}
+			}
+		}
+
+		private void createCollectTargetRow(int phase, int itmi, bool already_collected, Color32 __TxCol, float clip_w, float fontscl, STB StbMain, string countstr)
+		{
+			if (already_collected)
+			{
+				__TxCol = C32.d2c(4288252036U);
+			}
+			base.XSh((float)(this.small_mode ? 30 : 68)).addImg(new DsnDataImg
+			{
+				name = "collect_target_" + phase.ToString() + "_" + itmi.ToString(),
+				Stb = StbMain,
+				html = true,
+				alignx = ALIGN.LEFT,
+				sheight = (float)(this.small_mode ? 18 : 27),
+				TxCol = __TxCol,
+				FnDrawInFIB = this.FD_fnDrawPCollectTarget,
+				swidth = base.use_w - (float)(TX.valid(countstr) ? 90 : 14) - clip_w,
+				text_auto_condense = true,
+				size = fontscl * 14f
+			});
+			clip_w = 0f;
+			if (TX.valid(countstr))
+			{
+				base.addP(new DsnDataP("", false)
+				{
+					text = countstr,
+					TxCol = __TxCol,
+					swidth = base.use_w - 8f,
+					sheight = (float)(this.small_mode ? 18 : 27),
+					size = fontscl * 14f,
+					text_auto_condense = true
+				}, false);
+			}
+			base.Br();
 		}
 
 		public void repositTxClient()
@@ -533,12 +594,7 @@ namespace nel
 			{
 				return false;
 			}
-			EvPerson.EvPxlsLoader loaderForPxl = EV.getLoaderForPxl(treasureImg.PF.pChar);
-			bool flag = false;
-			if (loaderForPxl.preparePxlImage(false))
-			{
-				flag = true;
-			}
+			EV.getLoaderForPxl(treasureImg.PF.pChar);
 			if (!Md.hasMultipleTriangle())
 			{
 				Md.chooseSubMesh(0, false, false);
@@ -557,10 +613,10 @@ namespace nel
 			num3 -= 10f;
 			Md.Box(0f, 0f, num2, num3, 10f, false);
 			Md.chooseSubMesh(1, false, true);
-			if (FI.text_alpha > 0f && !flag)
+			if (FI.text_alpha > 0f && this.treasure_image_load_rest == 0)
 			{
 				Md.Col = Md.ColGrd.White().mulA(alpha).C;
-				Material mtr = MTRX.getMI(treasureImg.PF.pChar).getMtr(FI.stencil_ref);
+				Material mtr = MTRX.getMI(treasureImg.PF.pChar, false).getMtr(FI.stencil_ref);
 				if (mtr != Md.getMaterial())
 				{
 					Md.setMaterial(mtr, false);
@@ -624,6 +680,21 @@ namespace nel
 					}
 					update_meshdrawer = true;
 				}
+				else
+				{
+					QuestTracker.SummonerEntry[] summonerEntryTarget = this.Prog.Q.getSummonerEntryTarget(num);
+					if (summonerEntryTarget != null)
+					{
+						Md.Col = C32.MulA(this.Prog.finished ? 4288252036U : 4283780170U, alpha);
+						float num4 = -16f - FI.get_swidth_px() * 0.5f + (float)(this.small_mode ? 14 : 0);
+						float num5 = (float)(this.small_mode ? 12 : 20);
+						Md.Box(num4, 0f, num5, num5, 2f, false);
+						if (this.Prog.summonerAlreadyDefeated(num, summonerEntryTarget[num2].summoner_key))
+						{
+							Md.CheckMark(num4, 0f, num5 - 2f, 3f, false);
+						}
+					}
+				}
 			}
 			return true;
 		}
@@ -659,23 +730,23 @@ namespace nel
 			{
 				if (b_key == "designer_area" && this.BCon.Length <= 1)
 				{
-					base.Area.Select(false);
+					base.Area.Select(true);
 					return base.Area;
 				}
 				aBtn = this.BCon.Get(b_key);
 				if (aBtn != null)
 				{
-					aBtn.Select(false);
+					aBtn.Select(true);
 					return aBtn;
 				}
 			}
 			if (this.BCon.Length <= 1)
 			{
-				base.Area.Select(false);
+				base.Area.Select(true);
 				return base.Area;
 			}
 			aBtn = this.BCon.Get(1);
-			aBtn.Select(false);
+			aBtn.Select(true);
 			return aBtn;
 		}
 
@@ -698,15 +769,23 @@ namespace nel
 					this.MdKadomaru.chooseSubMesh(0, false, true);
 				}
 				base.kadomaruRedraw(_t, false);
+				if (this.Prog.aborted)
+				{
+					this.MdKadomaru.Col = C32.MulA(4284570202U, this.alpha_);
+					float num = this.w * 0.5f - 20f;
+					float num2 = this.h * 0.5f - 15f;
+					this.MdKadomaru.Line(num, num2, -num, -num2, 8f, false, 0f, 0f);
+					this.MdKadomaru.Line(num, -num2, -num, num2, 8f, false, 0f, 0f);
+				}
 				this.MdKadomaru.Col = C32.MulA(this.Prog.new_icon ? 4294926244U : 4286477940U, this.alpha_);
-				float num = -this.w * 0.5f + (float)(this.small_mode ? 8 : 12);
-				float num2 = 0f;
-				this.MdKadomaru.Poly(num, num2, (float)(this.small_mode ? 3 : 5), 0f, 15, 0f, false, 0f, 0f);
+				float num3 = -this.w * 0.5f + (float)(this.small_mode ? 8 : 12);
+				float num4 = 0f;
+				this.MdKadomaru.Poly(num3, num4, (float)(this.small_mode ? 3 : 5), 0f, 15, 0f, false, 0f, 0f);
 				if (this.Prog.tracking)
 				{
 					base.need_redraw_background = true;
 					this.MdKadomaru.Col = C32.MulA(this.Prog.Q.PinColor, this.alpha_);
-					NEL.drawQuestTrackingCircle(this.MdKadomaru, num, num2, 0.75f);
+					NEL.drawQuestTrackingCircle(this.MdKadomaru, num3, num4, 0.75f);
 				}
 				if (this.PFClient != null)
 				{
@@ -796,6 +875,13 @@ namespace nel
 		public TextRenderer TxClient;
 
 		private PxlFrame PFClient;
+
+		private int treasure_image_load_rest;
+
+		public class aBtnNelQuestCard : aBtnNel
+		{
+			public UiQuestCard DsCard;
+		}
 
 		public delegate void FnQuestBtnDefine(UiQuestCard Tab, List<string> Acmd_list);
 

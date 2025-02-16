@@ -4,13 +4,13 @@ using XX;
 
 namespace nel.gm
 {
-	internal abstract class UiGMC
+	public abstract class UiGMC
 	{
 		public static void newGame()
 		{
 			UiGMCStat.newGameStat();
 			UiGMCItem.item_tab = UiGMCItem.ITEM_CTG.MAIN;
-			UiGMCScenario.scn_tab = UiGMCScenario.SCN_CTG.LOG;
+			UiGMCScenario.scn_tab = UiGameMenu.SCENARIO_CTG.LOG;
 		}
 
 		internal static void releaseGMCInstance(ref UiGMC Instance)
@@ -205,11 +205,11 @@ namespace nel.gm
 			}
 		}
 
-		internal float bounds_w
+		internal static float bounds_w
 		{
 			get
 			{
-				return this.GM.bounds_w;
+				return UiGameMenu.bounds_w;
 			}
 		}
 
@@ -221,19 +221,19 @@ namespace nel.gm
 			}
 		}
 
-		internal float bounds_wh
+		internal static float bounds_wh
 		{
 			get
 			{
-				return this.GM.bounds_wh;
+				return UiGameMenu.bounds_wh;
 			}
 		}
 
-		internal float bounds_h
+		internal static float bounds_h
 		{
 			get
 			{
-				return this.GM.bounds_h;
+				return UiGameMenu.bounds_h;
 			}
 		}
 

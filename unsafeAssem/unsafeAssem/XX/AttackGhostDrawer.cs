@@ -18,7 +18,7 @@ namespace XX
 		public AttackGhostDrawer(CsvReader CR)
 		{
 			this.ran0 = X.xors(16777215);
-			this.initCR(CR);
+			this.initCR();
 			this.FD_EfDraw = new FnEffectRun(this.EfDrawInner);
 		}
 
@@ -334,7 +334,7 @@ namespace XX
 			return this;
 		}
 
-		public AttackGhostDrawer initCR(CsvReader CR)
+		public AttackGhostDrawer initCR()
 		{
 			this.zd_agR = -1000f;
 			this.ColFS = (this.ColFE = C32.d2c(uint.MaxValue));

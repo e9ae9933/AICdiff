@@ -51,7 +51,7 @@ namespace nel
 						{
 							mist.clearAt(this.AttachedKind, nelChipWater.mapx, nelChipWater.mapy);
 						}
-						this.Lay.removeChip(nelChipWater, true, true);
+						this.Lay.removeChip(nelChipWater, true, true, false);
 					}
 				}
 				this.AList = null;

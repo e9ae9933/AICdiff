@@ -37,7 +37,7 @@ namespace XX
 				SND.OOCue2Acb = null;
 				return;
 			}
-			Object.DontDestroyOnLoad(CriAtomServer.instance.gameObject);
+			global::UnityEngine.Object.DontDestroyOnLoad(CriAtomServer.instance.gameObject);
 			List<string> list2 = new List<string>(6);
 			while (csvReaderA.read())
 			{
@@ -488,6 +488,12 @@ namespace XX
 		private static List<SND.InitSndLoad> AInitializeSoundSheet;
 
 		private static CriAtom[] AAtomBehaviour;
+
+		public const float SND_VOL_DEFAULT = 0.8f;
+
+		public const float VO_VOL_DEFAULT = 0.85f;
+
+		public const float BGM_VOL_DEFAULT = 0.7f;
 
 		private static float volume01_ = 0.8f;
 

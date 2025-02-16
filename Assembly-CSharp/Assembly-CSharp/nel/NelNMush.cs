@@ -13,33 +13,39 @@ namespace nel
 			this.Mp = _Mp;
 			this.kind = ENEMYKIND.DEVIL;
 			float num = 9f;
-			this.Od = new OverDriveManager(this, 110, 81)
-			{
-				enlarge_on_transforming = false
-			};
 			NOD.BasicData basicData = null;
-			ENEMYID id = this.id;
-			if (id != ENEMYID.MUSH_FROZEN)
+			if (this.id == ENEMYID.MUSH_0_FLW)
 			{
-				if (id != ENEMYID.MUSH_0_FLW)
-				{
-					this.id = ENEMYID.MUSH_0;
-				}
-				else
-				{
-					this.id = ENEMYID.MUSH_0_FLW;
-					basicData = NOD.getBasicData("MUSH_0_FLW");
-					this.shot_after_time += 160;
-				}
+				this.id = ENEMYID.MUSH_0_FLW;
+				basicData = NOD.getBasicData("MUSH_0_FLW");
+				this.shot_after_time += 160;
 			}
 			else
 			{
-				this.id = ENEMYID.MUSH_FROZEN;
-				this.Amist_index = NelNMush.Amist_index_frozen;
+				this.id = ENEMYID.MUSH_0;
 			}
 			if (this.Amist_index == null)
 			{
-				this.Amist_index = NelNMush.Amist_index_base;
+				if ((this.nattr & ENATTR.ICE) != ENATTR.NORMAL)
+				{
+					this.Amist_index = NelNMush.Amist_index_frozen;
+				}
+				else if ((this.nattr & ENATTR.ACME) != ENATTR.NORMAL)
+				{
+					this.Amist_index = NelNMush.Amist_index_acme;
+				}
+				else if ((this.nattr & ENATTR.THUNDER) != ENATTR.NORMAL)
+				{
+					this.FnMistMushShotBreak = new MagicItem.FnMagicRun(this.shotThunderSplash);
+				}
+				else if ((this.nattr & ENATTR._MATTR) != ENATTR.NORMAL)
+				{
+					this.FnMistMushShotBreak = EnemyAttr.AFnSplash[EnemyAttr.mattrIndex(this.nattr & ENATTR._MATTR)];
+				}
+				else
+				{
+					this.Amist_index = NelNMush.Amist_index_base;
+				}
 			}
 			if (basicData == null)
 			{
@@ -56,12 +62,9 @@ namespace nel
 			this.Nai.fnAwakeLogic = new NAI.FnNaiLogic(this.considerNormal);
 			this.Nai.fnOverDriveLogic = new NAI.FnNaiLogic(this.considerOverDrive);
 			this.absorb_weight = 1;
-			if (NelNMush.PtcMagicGas == null)
-			{
-				NelNMush.PtcMagicGas = EfParticle.Get("mush_shot_living_gas", false);
-			}
 			this.FD_MgRunMushShot = new MagicItem.FnMagicRun(this.MgRunMushShot);
 			this.FD_MgDrawMushShot = new MagicItem.FnMagicRun(this.MgDrawMushShot);
+			this.AtkOdAbsorb.Prepare(this, true);
 		}
 
 		public override void initOverDriveAppear()
@@ -91,12 +94,7 @@ namespace nel
 		{
 			if (this.t <= 0f && !this.Od.pre_overdrive)
 			{
-				EnemySummoner.EnemySummonedInfo enemySummonedInfo = ((this.Summoner != null) ? this.Summoner.getSummonedInfo(this) : null);
-				if (enemySummonedInfo == null || enemySummonedInfo.PosInfo.Lp == this.Summoner.getSummonedArea())
-				{
-					float footableY = this.Mp.getFootableY(base.x, (int)(base.mbottom - 0.125f), 12, true, -1f, false, true, true, 0f);
-					this.moveBy(0f, footableY - base.mbottom - 0.004f, true);
-				}
+				base.moveToFootablePosition();
 			}
 			return base.runSummoned() || this.t < 60f + X.NI(33, 66, this.Nai.RANn(5690));
 		}
@@ -190,7 +188,7 @@ namespace nel
 
 		private bool considerNormal(NAI Nai)
 		{
-			if (Nai.fnAwakeBasicHead(Nai))
+			if (Nai.fnAwakeBasicHead(Nai, NAI.TYPE.GAZE))
 			{
 				return true;
 			}
@@ -221,22 +219,30 @@ namespace nel
 					}
 					flag = true;
 				}
-				if (base.Useable(this.McsShot, 1f, 0f) && !base.hasPT(6, false, false))
+				if (this.Useable(this.McsShot, 1f, 0f) && !base.hasPT(6, false, false))
 				{
 					int num = (Nai.isPrGaraakiState() ? 40 : (Nai.isPrMagicChanting(1f) ? 20 : 0));
 					float num2 = ((base.mp_ratio >= 0.5f) ? ((float)(33 + num)) : ((float)(10 + num) + 38f * (base.mp_ratio * 2f)));
-					for (int i = 0; i < 4; i++)
+					if (this.Amist_index == null)
 					{
-						NelNMush.Aratio_buf[i] = ((i >= this.Amist_index.Length) ? 0 : ((int)(num2 * (float)(this.Amist_index.Length - i) * 0.5f)));
+						X.ALL0(NelNMush.Aratio_buf);
+						NelNMush.Aratio_buf[0] = 50;
 					}
-					if (this.Amist_index.Length > 1)
+					else
 					{
-						for (int j = this.Amist_index.Length - 1; j >= 0; j--)
+						for (int i = 0; i < 4; i++)
 						{
-							SER first = NelNMush.AMistKind[this.Amist_index[j]].AAtk[0].SerDmg.GetFirst();
-							if (Nai.hasPrSer(first))
+							NelNMush.Aratio_buf[i] = ((i >= this.Amist_index.Length) ? 0 : ((int)(num2 * (float)(this.Amist_index.Length - i) * 0.5f)));
+						}
+						if (this.Amist_index.Length > 1)
+						{
+							for (int j = this.Amist_index.Length - 1; j >= 0; j--)
 							{
-								NelNMush.Aratio_buf[j] = (int)((float)NelNMush.Aratio_buf[j] * 0.04f);
+								SER first = NelNMush.AMistKind[this.Amist_index[j]].AAtk[0].SerDmg.GetFirst();
+								if (Nai.hasPrSer(first))
+								{
+									NelNMush.Aratio_buf[j] = (int)((float)NelNMush.Aratio_buf[j] * 0.04f);
+								}
 							}
 						}
 					}
@@ -547,7 +553,7 @@ namespace nel
 			if (this.t >= 18f && num == 1)
 			{
 				this.walk_st--;
-				base.tackleInit(this.AtkSmallPunch, this.TkSmallPunch);
+				base.tackleInit(this.AtkSmallPunch, this.TkSmallPunch, MGHIT.AUTO);
 				base.PtcVar("scl", (double)this.Anm.scaleX).PtcST("mush_small_punch_swing", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 			}
 			else
@@ -585,7 +591,7 @@ namespace nel
 		{
 			if (init_flag)
 			{
-				if (!base.Useable(this.McsShot, 1f, 0f))
+				if (!this.Useable(this.McsShot, 1f, 0f))
 				{
 					return false;
 				}
@@ -599,15 +605,31 @@ namespace nel
 			}
 			if (this.t >= 57f && Tk.prog == PROG.ACTIVE)
 			{
-				if (!base.Useable(this.McsShot, 1f, 0f))
+				if (!this.Useable(this.McsShot, 1f, 0f))
 				{
 					return false;
 				}
 				this.SpSetPose("shot_1", -1, null, false);
 				Tk.prog = PROG.PROG0;
 				MagicItem magicItem = base.nM2D.MGC.setMagic(this, MGKIND.BASIC_SHOT, base.mg_hit | MGHIT.IMMEDIATE).initFunc(this.FD_MgRunMushShot, this.FD_MgDrawMushShot);
-				magicItem.phase = this.Amist_index[Tk.type - NAI.TYPE.MAG];
-				base.MpConsume(this.McsShot, magicItem, 1f, 1f);
+				if (this.Amist_index == null)
+				{
+					magicItem.Other = this.FnMistMushShotBreak;
+				}
+				else
+				{
+					int num = this.Amist_index[Tk.type - NAI.TYPE.MAG];
+					if (num >= 0)
+					{
+						magicItem.Other = NelNMush.AMistKind[num];
+					}
+					else
+					{
+						ENATTR enattr = (ENATTR)(-(ENATTR)num);
+						magicItem.Other = EnemyAttr.AFnSplash[EnemyAttr.mattrIndex(enattr)];
+					}
+				}
+				this.MpConsume(this.McsShot, magicItem, 1f, 1f);
 				this.Nai.delay = 30f;
 			}
 			return this.t < (float)this.shot_after_time || Tk.prog != PROG.PROG0;
@@ -671,7 +693,7 @@ namespace nel
 				this.Phy.addFoc(FOCTYPE.WALK, (Tk.depx - this.walk_time) * 0.75f / 12f, 0f, -1f, 0, 12, 0, -1, 0);
 				base.PtcVar("ydf", (double)(this.sizey * 2.3f * this.Mp.CLENB)).PtcST("enemy_backstep", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				this.Phy.addLockMoverHitting(HITLOCK.AIR, 12f);
-				base.tackleInit(this.AtkTackleBackStep, this.TkOdBackStep);
+				base.tackleInit(this.AtkTackleBackStep, this.TkOdBackStep, MGHIT.AUTO);
 			}
 			if (Tk.prog == PROG.PROG0 && this.t >= 12f)
 			{
@@ -726,7 +748,7 @@ namespace nel
 				this.Nai.fine_target_pos_lock = 80f;
 				if (Tk.type == NAI.TYPE.PUNCH)
 				{
-					base.tackleInit(this.AtkTackleOdMisogi, this.TkOdMisogi).Ray.hittype &= (HITTYPE)(-3);
+					base.tackleInit(this.AtkTackleOdMisogi, this.TkOdMisogi, MGHIT.AUTO).Ray.hittype &= ~HITTYPE.EN;
 				}
 			}
 			if (Tk.prog >= PROG.PROG1)
@@ -766,7 +788,7 @@ namespace nel
 						base.PtcVar("xdf", (double)(this.sizex * 2.2f * this.Mp.CLENB)).PtcST("enemy_bigfall", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 						this.SpSetPose("od_jump_3", -1, null, false);
 						this.Phy.addFoc(FOCTYPE.JUMP | FOCTYPE._RELEASE | FOCTYPE._GRAVITY_LOCK | FOCTYPE._CHECK_WALL, 0f, 0.6f, -1f, 0, 36, 0, -1, 0);
-						base.tackleInit(this.AtkTackleOdMisogi, this.TkOdMisogiFall);
+						base.tackleInit(this.AtkTackleOdMisogi, this.TkOdMisogiFall, MGHIT.AUTO);
 					}
 					if (base.hasFoot())
 					{
@@ -778,6 +800,7 @@ namespace nel
 						base.remF(NelEnemy.FLAG.NO_AUTO_LANDFALL_POSE_SET);
 						if (flag)
 						{
+							EnemyAttr.Splash(this, 2.5f);
 							this.SpSetPose("od_land_jump3", -1, null, false);
 							base.PtcVar("by", (double)base.mbottom).PtcST("od_explode", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 						}
@@ -819,7 +842,7 @@ namespace nel
 			}
 			if (Tk.prog == PROG.ACTIVE)
 			{
-				this.walk_time -= ((!base.Useable(this.McsOdCharge, 1f, 0f)) ? 0.5f : 1f) * this.TS;
+				this.walk_time -= ((!this.Useable(this.McsOdCharge, 1f, 0f)) ? 0.5f : 1f) * this.TS;
 				if (this.walk_time <= 0f)
 				{
 					this.t = 0f;
@@ -827,7 +850,7 @@ namespace nel
 					base.PtcST("od_mush_charge_mist_end", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 					this.SpSetPose("od_charge_end", -1, null, false);
 					this.initChargeMist();
-					base.MpConsume(this.McsOdCharge, null, 1f, 1f);
+					this.MpConsume(this.McsOdCharge, null, 1f, 1f);
 				}
 			}
 			if (Tk.prog == PROG.PROG0 && Tk.Progress(ref this.t, 30, true))
@@ -886,7 +909,7 @@ namespace nel
 					{
 						Tk.prog = PROG.PROG5;
 					}
-					base.tackleInit(this.AtkTackleBackStep, this.TkOdMisogi);
+					base.tackleInit(this.AtkTackleBackStep, this.TkOdMisogi, MGHIT.AUTO);
 				}
 			}
 			else if (Tk.prog == PROG.PROG0 || Tk.prog == PROG.PROG5)
@@ -895,7 +918,23 @@ namespace nel
 				{
 					this.walk_time = 20f;
 					NelNMush.MkOd.fnApply = new MistManager.FnMistApply(this.fnOdMistApply);
-					base.nM2D.MIST.addMistGenerator(NelNMush.MkOd, NelNMush.MkOd.calcAmount(140, 1.5f), (int)base.x, (int)base.y - 1, false);
+					MistManager.MistKind mistKind = NelNMush.MkOd;
+					if (base.nattr_has_mattr)
+					{
+						if (this.Amist_index != null)
+						{
+							int num = this.Amist_index[0];
+							if (num >= 0)
+							{
+								mistKind = NelNMush.AMistKind[num];
+							}
+						}
+						else if (this.FnMistMushShotBreak is MagicItem.FnMagicRun)
+						{
+							(this.FnMistMushShotBreak as MagicItem.FnMagicRun)(null, X.XORSP() * 6.2831855f);
+						}
+					}
+					base.nM2D.MIST.addMistGenerator(mistKind, mistKind.calcAmount(140, 1.5f), (int)base.x, (int)base.y - 1, false);
 				}
 				this.walk_time -= this.TS;
 				if (this.t >= 10f)
@@ -905,6 +944,10 @@ namespace nel
 					{
 						this.can_hold_tackle = false;
 						this.SpSetPose("od_land_from_bigjump_1", -1, null, false);
+						if (base.nattr_has_mattr && this.Amist_index == null && this.FnMistMushShotBreak != null && this.FnMistMushShotBreak is EnemyAttr.FnDelegateSetSplash)
+						{
+							(this.FnMistMushShotBreak as EnemyAttr.FnDelegateSetSplash)(this, base.x, base.y + this.sizey * 0.66f, 1.6f, 1f);
+						}
 						if (Tk.prog == PROG.PROG5)
 						{
 							if (this.Nai.target_slen < 4f)
@@ -989,7 +1032,7 @@ namespace nel
 		public bool plantEggToPr(PR Pr, float check_ratio = 1f)
 		{
 			PrEggManager.CATEG categ = PrEggManager.CATEG.MUSH;
-			if (Pr.applyEggPlantDamage(0.08f, categ, true, check_ratio) > 0)
+			if (Pr.EggCon.applyEggPlantDamage(0.08f, categ, true, check_ratio) > 0)
 			{
 				this.TeCon.setQuakeSinH(15f, 40, X.NI(19f, 38f, 0.5f), 0f, 0);
 				return true;
@@ -1084,9 +1127,9 @@ namespace nel
 					}
 					if (X.XORSP() < 0.4f)
 					{
-						this.Anm.randomizeFrame();
+						this.Anm.randomizeFrame(0.5f, 0.5f);
 					}
-					base.applyAbsorbDamageTo(pr, this.AtkOdAbsorb, X.XORSP() < 0.68f, false, false, 0f, false, null, false);
+					base.applyAbsorbDamageTo(pr, this.AtkOdAbsorb, X.XORSP() < 0.68f, false, false, 0f, false, null, false, true);
 					if (X.XORSP() < 0.67f)
 					{
 						this.Mp.DropCon.setLoveJuice(base.AimPr, num, uint.MaxValue, 1f, false);
@@ -1129,19 +1172,13 @@ namespace nel
 
 		public static bool MgRunMushShotS(MagicItem Mg, float fcnt, string init_ptcst_key, int _mist_amount_frm, float _shot_gravity_scale, float bounce_vx, float bounce_vy, float rotate_spd_ratio = 1f, int explode_center_shift_y = -1, float reduce_ax_in_ground = 0.007f)
 		{
-			MistManager.MistKind mistKind = NelNMush.AMistKind[Mg.phase];
-			return NelNMush.MgRunMushShotS(Mg, mistKind, fcnt, init_ptcst_key, _mist_amount_frm, _shot_gravity_scale, bounce_vx, bounce_vy, rotate_spd_ratio, explode_center_shift_y, reduce_ax_in_ground);
-		}
-
-		public static bool MgRunMushShotS(MagicItem Mg, MistManager.MistKind Mk, float fcnt, string init_ptcst_key, int _mist_amount_frm, float _shot_gravity_scale, float bounce_vx, float bounce_vy, float rotate_spd_ratio = 1f, int explode_center_shift_y = -1, float reduce_ax_in_ground = 0.007f)
-		{
 			if (Mg.t <= 0f)
 			{
 				Mg.Ray.RadiusM(0.12f).HitLock(40f, null);
 				Mg.wind_apply_s_level = 1f;
 				Mg.efpos_s = (Mg.raypos_s = true);
 				float sa = Mg.sa;
-				Mg.sz = (float)Mk.calcAmount(_mist_amount_frm, 1.4f);
+				object other = Mg.Other;
 				Mg.sa = X.NIXP(0f, 6.2831855f);
 				Mg.da = X.NIXP(70f, 100f);
 				Mg.PtcVar("agR", (double)sa).PtcVar("hagR", (double)(sa + 1.5707964f)).PtcST(init_ptcst_key, PTCThread.StFollow.NO_FOLLOW, false);
@@ -1161,6 +1198,10 @@ namespace nel
 			if (Mg.sz < (float)num)
 			{
 				Mg.sz = (float)num;
+				if (NelNMush.PtcMagicGas == null)
+				{
+					NelNMush.PtcMagicGas = EfParticle.Get("mush_shot_living_gas", false);
+				}
 				Mg.Mp.PtcN(NelNMush.PtcMagicGas, Mg.sx, Mg.sy, 0f, 0, 0);
 			}
 			if (Mg.Dro.on_ground)
@@ -1172,7 +1213,22 @@ namespace nel
 				{
 					Mg.PtcST("mush_shot_bomb_gas", PTCThread.StFollow.NO_FOLLOW, false);
 					Mg.explode(false);
-					Mg.M2D.MIST.addMistGenerator(Mk, (int)Mg.sz, (int)Mg.sx, (int)(Mg.sy - 0.2f + (float)explode_center_shift_y), false);
+					if (Mg.Other is MistManager.MistKind)
+					{
+						MistManager.MistKind mistKind = Mg.Other as MistManager.MistKind;
+						Mg.M2D.MIST.addMistGenerator(mistKind, mistKind.calcAmount(_mist_amount_frm, 1.4f), (int)Mg.sx, (int)(Mg.sy - 0.2f + (float)explode_center_shift_y), false);
+					}
+					else if (Mg.Other is EnemyAttr.FnDelegateSetSplash)
+					{
+						if (Mg.Caster is NelEnemy)
+						{
+							(Mg.Other as EnemyAttr.FnDelegateSetSplash)(Mg.Caster as NelEnemy, Mg.sx, Mg.sy, 0.25f, 0.4f);
+						}
+					}
+					else if (Mg.Other is MagicItem.FnMagicRun)
+					{
+						(Mg.Other as MagicItem.FnMagicRun)(Mg, 1.5707964f);
+					}
 					return false;
 				}
 			}
@@ -1192,7 +1248,7 @@ namespace nel
 					Mg.Dro.vy -= 0.125f;
 				}
 				HITTYPE hittype = Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0.Burst(X.absmin(Mg.Dro.vx, 0.25f), 0f), HITTYPE.NONE);
-				if ((hittype & (HITTYPE)4259840) != HITTYPE.NONE || Mg.t >= 280f)
+				if ((hittype & (HITTYPE.KILLED | HITTYPE.REFLECT_BROKEN)) != HITTYPE.NONE || Mg.t >= 280f)
 				{
 					Mg.kill(0.125f);
 					return false;
@@ -1216,8 +1272,13 @@ namespace nel
 				meshDrawer.Col = C32.d2c(2865219527U);
 			}
 			MeshDrawer mesh = ef.GetMesh("", MTRX.getMtr(BLEND.NORMAL, -1), false);
-			mesh.ColGrd.Set(4289335742U);
-			Color32 color = C32.d2c((Mg.da <= 50f) ? 2289353909U : 2007749066U);
+			mesh.ColGrd.Set(EnemyAttr.get_mcolor2(this, 4289335742U));
+			MTRX.cola.Set(EnemyAttr.get_mcolor(this, 2007749066U));
+			if (Mg.da <= 50f)
+			{
+				MTRX.cola.blend(2868903935U, 0.5f);
+			}
+			Color32 c = MTRX.cola.C;
 			mesh.Rotate(Mg.sa, false);
 			if (meshDrawer != null)
 			{
@@ -1230,11 +1291,33 @@ namespace nel
 				float num3 = X.SINI(Mg.t, 14f + X.RAN(ran, 2019) * 20f) * 4f;
 				if (meshDrawer == null)
 				{
-					mesh.Col = color;
+					mesh.Col = c;
 				}
 				(meshDrawer ?? mesh).Poly(num2, num3, 13f, X.RAN(ran, 1052) * 6.2831855f, 5, 0f, false, 0f, 0f);
 				mesh.Col = mesh.ColGrd.C;
 				mesh.Poly(num2, num3, 10f, 0f, 9, 2.5f, false, 0f, 0f);
+			}
+			return true;
+		}
+
+		private bool shotThunderSplash(MagicItem Mg, float agR)
+		{
+			if (!this.is_alive || base.destructed)
+			{
+				return false;
+			}
+			float num = base.x;
+			float num2 = base.y;
+			if (Mg != null)
+			{
+				num = Mg.sx;
+				num2 = Mg.sy;
+			}
+			int num3 = (base.isOverDrive() ? 2 : 2);
+			for (int i = 0; i < num3; i++)
+			{
+				float num4 = agR + X.XORSPS() * 3.1415927f * 0.35f;
+				MgNThunderBallShot.addThunderBallShot(base.nM2D, this, base.mg_hit, num, num2, num4);
 			}
 			return true;
 		}
@@ -1427,6 +1510,37 @@ namespace nel
 			damage_cooltime = 160
 		};
 
+		public static MistManager.MistKind MkAcme = new MistManager.MistKind(MistManager.MISTTYPE.POISON)
+		{
+			AAtk = new MistAttackInfo[]
+			{
+				new MistAttackInfo(0)
+				{
+					SerDmg = new FlagCounter<SER>(4).Add(SER.SEXERCISE, 80f),
+					EpDmg = new EpAtk(45, "smoke")
+					{
+						other = 10,
+						mouth = 3
+					},
+					no_cough_move = true,
+					corrupt_gacha = true,
+					attr = MGATTR.ACME,
+					mpdmg0 = 8
+				}
+			},
+			color0 = C32.d2c(4293869240U),
+			color1 = C32.d2c(4288811102U),
+			max_influence = 4,
+			damage_cooltime = 45,
+			apply_o2 = 50
+		};
+
+		public static MistManager.MistKind MkAcmeS = new MistManager.MistKind(NelNMush.MkAcme)
+		{
+			max_influence = 3,
+			damage_cooltime = 55
+		};
+
 		private const float misogi_mist_amount_ratio = 1.5f;
 
 		protected static MistManager.MistKind[] AMistKind = new MistManager.MistKind[]
@@ -1435,12 +1549,15 @@ namespace nel
 			NelNMush.MkConfuse,
 			NelNMush.MkPalalyse,
 			NelNMush.MkSleepW,
-			NelNMush.MkFrozen
+			NelNMush.MkFrozen,
+			NelNMush.MkAcme
 		};
 
 		protected static int[] Amist_index_base = new int[] { 0, 1, 2, 3 };
 
 		protected static int[] Amist_index_frozen = new int[] { 4 };
+
+		protected static int[] Amist_index_acme = new int[] { 5 };
 
 		protected static int[] Aratio_buf = new int[4];
 
@@ -1479,7 +1596,7 @@ namespace nel
 
 		private MagicItem.FnMagicRun FD_MgDrawMushShot;
 
-		protected NelAttackInfo AtkOdAbsorb = new NelAttackInfo
+		protected EnAttackInfo AtkOdAbsorb = new EnAttackInfo
 		{
 			mpdmg0 = 1,
 			split_mpdmg = 2,
@@ -1556,6 +1673,8 @@ namespace nel
 		private List<PTCThread> APtcPowerHolder;
 
 		private static EfParticle PtcMagicGas;
+
+		private object FnMistMushShotBreak;
 
 		private const int PRI_SHOT = 6;
 

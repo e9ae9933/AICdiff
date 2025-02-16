@@ -91,6 +91,7 @@ namespace m2d
 			this.MyDrawerT = null;
 			this.MyDrawerTT = null;
 			this.MyDrawerL = null;
+			this.MyDrawerLT = null;
 			this.MyDrawerUGrd = null;
 			this.MyDrawerBGrd = null;
 			this.MyDrawerGGrd = null;
@@ -111,9 +112,7 @@ namespace m2d
 			this.key = _key;
 			this.loadOnlyBasicFlag = _loadOnlyBasicFlag;
 			this.AMov = new M2Mover[4];
-			this.APxlAnim = new M2PxlAnimator[4];
 			this.mover_count = 0;
-			this.pxlanim_count = 0;
 			this.AEvStack = new M2EventCommand[4];
 		}
 
@@ -130,15 +129,16 @@ namespace m2d
 			return this.EVC;
 		}
 
-		public void prepareCommand(TextAsset LT)
+		public void prepareCommandFromAsset(TextAsset LT)
 		{
 			this.prepareCommand((LT != null) ? LT.text : "");
 		}
 
-		public void prepareCommand(string data)
+		public M2EventContainer prepareCommand(string data)
 		{
 			this.EVC = new M2EventContainer(this, data);
 			this.cmd_reload_flg = 1U;
+			return this.EVC;
 		}
 
 		public void reloadCommand(string data)
@@ -180,7 +180,7 @@ namespace m2d
 			this.binary_version = 0;
 			this.BaLoad.position = 0UL;
 			this.binary_version = (byte)this.BaLoad.readByte();
-			while (this.setBasicData(this.BaLoad, true, null))
+			while (this.setBasicData(this.BaLoad, true))
 			{
 			}
 			if (this.Meta == null)
@@ -237,12 +237,12 @@ namespace m2d
 			IL_011A:
 			if (!no_error)
 			{
-				global::XX.X.de("MAPS 不明なbasicDataキー: " + CR.cmd, null);
+				X.de("MAPS 不明なbasicDataキー: " + CR.cmd, null);
 			}
 			return false;
 		}
 
-		private bool setBasicData(ByteArray BaLoad, bool no_error = false, M2MapMaterialLoader Loader = null)
+		private bool setBasicData(ByteArray BaLoad, bool no_error = false)
 		{
 			if (BaLoad.bytesAvailable == 0UL)
 			{
@@ -253,34 +253,88 @@ namespace m2d
 			{
 			case Map2d.BIN_CTG.NAME:
 				BaLoad.readPascalString("utf-8", false);
-				break;
+				return true;
 			case Map2d.BIN_CTG.SIZE:
 			{
 				int num = (int)BaLoad.readUShort() / (int)this.CLEN;
 				int num2 = (int)BaLoad.readUShort() / (int)this.CLEN;
-				if (Loader == null || this.clms != num || this.rows != num2)
+				if (this.clms != num || this.rows != num2)
 				{
 					this.resize(num, num2, true);
+					return true;
 				}
-				break;
+				return true;
 			}
 			case Map2d.BIN_CTG.BGCOL:
 				this.bgcol0 = new Color32((byte)BaLoad.readByte(), (byte)BaLoad.readByte(), (byte)BaLoad.readByte(), byte.MaxValue);
-				break;
+				return true;
 			case Map2d.BIN_CTG.COMMENT:
 			{
 				string text = BaLoad.readString("utf-8", false);
-				if (Loader == null || this.comment != text)
+				if (this.comment != text)
 				{
 					this.setComment(text, null, false);
+					return true;
 				}
-				break;
+				return true;
 			}
-			case Map2d.BIN_CTG.CSP:
+			case Map2d.BIN_CTG.EDITOR_ADDITIONAL:
 			{
 				int num3 = BaLoad.readByte();
-				int num4 = BaLoad.readByte();
-				bool flag = num3 == M2DBase.Achip_pxl_key.Length;
+				this.Aadditional_for_editor = new string[num3];
+				for (int i = 0; i < num3; i++)
+				{
+					this.Aadditional_for_editor[i] = BaLoad.readPascalString("utf-8", false);
+				}
+				return true;
+			}
+			case Map2d.BIN_CTG.MESH_RECT:
+				this.GetRcPreDefined(BaLoad.readByte(), false).Set(BaLoad.readFloat(), BaLoad.readFloat(), BaLoad.readFloat(), BaLoad.readFloat());
+				return true;
+			}
+			if (!no_error)
+			{
+				X.de("MAPS 不明なbasicDataキー: " + bin_CTG.ToString(), null);
+			}
+			ulong position = BaLoad.position;
+			BaLoad.position = position - 1UL;
+			return false;
+		}
+
+		private bool readDataForLoader(ByteArray BaLoad, M2MapMaterialLoader Loader, bool no_error = false)
+		{
+			if (BaLoad.bytesAvailable == 0UL)
+			{
+				return false;
+			}
+			Map2d.BIN_CTG bin_CTG = (Map2d.BIN_CTG)BaLoad.readByte();
+			if (bin_CTG != Map2d.BIN_CTG.CSP)
+			{
+				if (bin_CTG != Map2d.BIN_CTG.IMGDIR)
+				{
+					if (!no_error)
+					{
+						X.de("MAPS 不明なbasicDataキー: " + bin_CTG.ToString(), null);
+					}
+					ulong position = BaLoad.position;
+					BaLoad.position = position - 1UL;
+					return false;
+				}
+				int num = BaLoad.readByte();
+				while (--num >= 0)
+				{
+					string text = BaLoad.readPascalString("utf-8", Loader == null);
+					if (Loader != null && !(text == "obj/") && !(text == "whole/"))
+					{
+						this.M2D.IMGS.Atlas.prepareChipImageDirectory(text, false);
+					}
+				}
+			}
+			else
+			{
+				int num2 = BaLoad.readByte();
+				int num = BaLoad.readByte();
+				bool flag = num2 == M2DBase.Achip_pxl_key.Length;
 				if (Loader != null)
 				{
 					if (!Loader.pxl_loaded && flag)
@@ -290,46 +344,14 @@ namespace m2d
 					}
 					this.M2D.IMGS.Atlas.prepareChipImageDirectory("obj/", false);
 				}
-				while (--num4 >= 0)
+				while (--num >= 0)
 				{
-					string text2 = BaLoad.readPascalString("utf-8", false);
+					string text2 = BaLoad.readPascalString("utf-8", Loader == null);
 					if (Loader != null && flag && text2 != M2DBase.Achip_pxl_key[0])
 					{
 						this.M2D.IMGS.Atlas.initCspAtlas(text2);
 					}
 				}
-				break;
-			}
-			case Map2d.BIN_CTG.EDITOR_ADDITIONAL:
-			{
-				int num4 = BaLoad.readByte();
-				if (Loader == null)
-				{
-					this.Aadditional_for_editor = new string[num4];
-					for (int i = 0; i < num4; i++)
-					{
-						this.Aadditional_for_editor[i] = BaLoad.readPascalString("utf-8", false);
-					}
-				}
-				else
-				{
-					for (int j = 0; j < num4; j++)
-					{
-						BaLoad.readPascalString("utf-8", false);
-					}
-				}
-				break;
-			}
-			case Map2d.BIN_CTG.MESH_RECT:
-				this.GetRcPreDefined(BaLoad.readByte(), false).Set(BaLoad.readFloat(), BaLoad.readFloat(), BaLoad.readFloat(), BaLoad.readFloat());
-				break;
-			default:
-				if (!no_error)
-				{
-					global::XX.X.de("MAPS 不明なbasicDataキー: " + bin_CTG.ToString(), null);
-				}
-				BaLoad.position -= 1UL;
-				return false;
 			}
 			return true;
 		}
@@ -340,8 +362,9 @@ namespace m2d
 			{
 				while (load_line_cnt != 0 && this.BaLoad.position < this.BaLoad.Length)
 				{
-					if (!this.setBasicData(this.BaLoad, true, Loader))
+					if (!this.readDataForLoader(this.BaLoad, Loader, true))
 					{
+						load_line_cnt--;
 						Map2d.BIN_CTG bin_CTG = (Map2d.BIN_CTG)this.BaLoad.readByte();
 						if (bin_CTG != Map2d.BIN_CTG.LAYER_REVERSE)
 						{
@@ -372,7 +395,6 @@ namespace m2d
 								{
 									this.M2D.IMGS.Atlas.prepareChipImageDirectory(m2ChipImage, false);
 								}
-								load_line_cnt--;
 								break;
 							}
 							case Map2d.BIN_CTG.LP:
@@ -382,7 +404,6 @@ namespace m2d
 								if (load_additional)
 								{
 									this.M2D.loadMaterialForLabelPoint(this, lpLoader);
-									load_line_cnt--;
 								}
 								break;
 							}
@@ -400,8 +421,14 @@ namespace m2d
 								}
 								break;
 							}
+							case Map2d.BIN_CTG.LAY_CHIPS_CONTENT:
+							{
+								uint num = this.BaLoad.readUInt();
+								this.BaLoad.position += (ulong)num;
+								break;
+							}
 							default:
-								global::XX.X.de("prepareMaterialFromCurrentReader: 不明なバイトブロック: " + bin_CTG.ToString() + " @" + this.key, null);
+								X.de("prepareMaterialFromCurrentReader: 不明なバイトブロック: " + bin_CTG.ToString() + " @" + this.key, null);
 								break;
 							}
 						}
@@ -476,10 +503,6 @@ namespace m2d
 							if (m2ChipImage2 != null)
 							{
 								this.M2D.IMGS.Atlas.prepareChipImageDirectory(m2ChipImage2, false);
-								if (load_additional && !m2ChipImage2.loaded_additional_material)
-								{
-									this.M2D.loadAdditionalMaterialForChip(m2ChipImage2);
-								}
 								load_line_cnt--;
 							}
 						}
@@ -514,7 +537,7 @@ namespace m2d
 			int num = 0;
 			if (this.BaLoad != null)
 			{
-				if (this.mode == MAPMODE.NORMAL || this.mode == MAPMODE.TEMP)
+				if (this.mode == MAPMODE.NORMAL || this.mode == MAPMODE.TEMP || this.mode == MAPMODE.LOAD_AND_CFG)
 				{
 					if (this.AAPt == null)
 					{
@@ -535,7 +558,7 @@ namespace m2d
 				uint num2 = 0U;
 				while (this.BaLoad.position < this.BaLoad.Length)
 				{
-					if (m2MapLayer == null || !m2MapLayer.load(this.BaLoad, ref num2, ref num, 0, 0))
+					if ((m2MapLayer == null || !m2MapLayer.load(this.BaLoad, ref num2, ref num, 0, 0)) && !this.readDataForLoader(this.BaLoad, null, true))
 					{
 						Map2d.BIN_CTG bin_CTG = (Map2d.BIN_CTG)this.BaLoad.readByte();
 						if (bin_CTG != Map2d.BIN_CTG.LAYER_REVERSE)
@@ -572,12 +595,12 @@ namespace m2d
 								M2SubMap m2SubMap = M2SubMap.readBytesContentSm(this.BaLoad, this, this.ASubMaps.Length, out text, (int)this.get_binary_version());
 								if (m2SubMap != null)
 								{
-									global::XX.X.push<M2SubMap>(ref this.ASubMaps, m2SubMap, -1);
+									X.push<M2SubMap>(ref this.ASubMaps, m2SubMap, -1);
 								}
 								break;
 							}
 							default:
-								global::XX.X.de("load: バイナリに不明なデータ " + bin_CTG.ToString() + " @" + this.key, null);
+								X.de("load: バイナリに不明なデータ " + bin_CTG.ToString() + " @" + this.key, null);
 								break;
 							}
 						}
@@ -611,11 +634,11 @@ namespace m2d
 				}
 				else if (flag)
 				{
-					global::XX.X.unshiftEmpty<M2MapLayer>(this.ALay, m2MapLayer, 0, 1, -1);
+					X.unshiftEmpty<M2MapLayer>(this.ALay, m2MapLayer, 0, 1, -1);
 				}
 				else
 				{
-					global::XX.X.push<M2MapLayer>(ref this.ALay, m2MapLayer, -1);
+					X.push<M2MapLayer>(ref this.ALay, m2MapLayer, -1);
 				}
 			}
 			for (int k = this.ALay.Length - 1; k >= 0; k--)
@@ -628,7 +651,7 @@ namespace m2d
 			}
 			if (num > 0)
 			{
-				global::XX.X.dl("不明なチップが" + num.ToString() + " 枚あります", null, false, false);
+				X.de("不明なチップが" + num.ToString() + " 枚あります", null);
 			}
 			return this;
 		}
@@ -650,7 +673,7 @@ namespace m2d
 		{
 			this.prepared = true;
 			float num = (float)this.get_crop_value();
-			return new Vector2(global::XX.X.saturate((mapx - num) / ((float)this.clms - num * 2f)), global::XX.X.saturate((mapy - num) / ((float)this.rows - num * 2f)));
+			return new Vector2(X.saturate((mapx - num) / ((float)this.clms - num * 2f)), X.saturate((mapy - num) / ((float)this.rows - num * 2f)));
 		}
 
 		public Vector2 getMapWmLevel(float mapx, float mapy, float showw, float showh, bool check_wm_xy_calcuration = true, bool integerize = true)
@@ -680,9 +703,9 @@ namespace m2d
 			}
 			if (integerize)
 			{
-				return new Vector2(global::XX.X.MMX(0.5f, (float)global::XX.X.IntR(vector.x * (showw - 1f)) + 0.5f, showw - 0.5f), global::XX.X.MMX(0.5f, (float)global::XX.X.IntR(vector.y * (showh - 1f)) + 0.5f, showh - 0.5f));
+				return new Vector2(X.MMX(0.5f, (float)X.IntR(vector.x * (showw - 1f)) + 0.5f, showw - 0.5f), X.MMX(0.5f, (float)X.IntR(vector.y * (showh - 1f)) + 0.5f, showh - 0.5f));
 			}
-			return new Vector2(global::XX.X.MMX(0.5f, (float)global::XX.X.IntR(vector.x * (showw - 1f) / 0.25f) * 0.25f + 0.5f, showw - 0.5f), global::XX.X.MMX(0.5f, (float)global::XX.X.IntR(vector.y * (showh - 1f) / 0.25f) * 0.25f + 0.5f, showh - 0.5f));
+			return new Vector2(X.MMX(0.5f, (float)X.IntR(vector.x * (showw - 1f) / 0.25f) * 0.25f + 0.5f, showw - 0.5f), X.MMX(0.5f, (float)X.IntR(vector.y * (showh - 1f) / 0.25f) * 0.25f + 0.5f, showh - 0.5f));
 		}
 
 		public int crop
@@ -714,7 +737,7 @@ namespace m2d
 			this.prepareMeshDrawer(this.SubMapData, ref this.MMRD);
 			this.openSubMaps();
 			this.need_reentry_flag_ = (this.need_reentry_gradation_flag_ = true);
-			this.update_mesh_flag_ = 26367 | ((this.mode == MAPMODE.NORMAL) ? 2048 : 0);
+			this.update_mesh_flag_ = 52991 | ((this.mode == MAPMODE.NORMAL) ? 4096 : 0);
 			return true;
 		}
 
@@ -744,9 +767,9 @@ namespace m2d
 			}
 			if (name_check)
 			{
-				CL.name = global::XX.X.fineIndividualName<M2MapLayer>(this.ALay, CL.name, CL);
+				CL.name = X.fineIndividualName<M2MapLayer>(this.ALay, CL.name, CL);
 			}
-			if (!global::XX.X.DEBUG || global::XX.X.DEBUG_PLAYER)
+			if (!X.DEBUG || X.DEBUG_PLAYER)
 			{
 				debug_layer_mode = CL.name.IndexOf("DEBUG") == 0;
 			}
@@ -779,11 +802,11 @@ namespace m2d
 			}
 			else if (reverse)
 			{
-				global::XX.X.unshiftEmpty<M2MapLayer>(this.ALay, m2MapLayer, 0, 1, -1);
+				X.unshiftEmpty<M2MapLayer>(this.ALay, m2MapLayer, 0, 1, -1);
 			}
 			else
 			{
-				global::XX.X.push<M2MapLayer>(ref this.ALay, m2MapLayer, index);
+				X.push<M2MapLayer>(ref this.ALay, m2MapLayer, index);
 			}
 			return m2MapLayer;
 		}
@@ -812,14 +835,31 @@ namespace m2d
 
 		public void reconnectWholeChips()
 		{
-			this.AAPt = new M2Pt[this.clms, this.rows];
+			if (this.AAPt == null || this.AAPt.GetLength(0) != this.clms || this.AAPt.GetLength(1) != this.rows)
+			{
+				this.AAPt = new M2Pt[this.clms, this.rows];
+			}
+			else
+			{
+				for (int i = 0; i < this.clms; i++)
+				{
+					for (int j = 0; j < this.rows; j++)
+					{
+						M2Pt m2Pt = this.AAPt[i, j];
+						if (m2Pt != null)
+						{
+							m2Pt.clear();
+						}
+					}
+				}
+			}
 			if (this.ALay == null)
 			{
 				return;
 			}
-			for (int i = this.ALay.Length - 1; i >= 0; i--)
+			for (int k = this.ALay.Length - 1; k >= 0; k--)
 			{
-				this.ALay[i].copyValuesFromMap(this);
+				this.ALay[k].copyValuesFromMap(this);
 			}
 		}
 
@@ -827,17 +867,17 @@ namespace m2d
 		{
 			if (_clms <= 0 || _rows <= 0)
 			{
-				global::XX.X.de("Map2d::setBasicData 不正なclms/rows", null);
-				_clms = global::XX.X.Mx(this.clms, 1);
-				_rows = global::XX.X.Mx(this.rows, 1);
+				X.de("Map2d::setBasicData 不正なclms/rows", null);
+				_clms = X.Mx(this.clms, 1);
+				_rows = X.Mx(this.rows, 1);
 			}
-			_clms = (int)global::XX.X.Mn((float)_clms, 500f * this.CLEN);
-			_rows = (int)global::XX.X.Mn((float)_rows, 500f * this.CLEN);
+			_clms = (int)X.Mn((float)_clms, 500f * this.CLEN);
+			_rows = (int)X.Mn((float)_rows, 500f * this.CLEN);
 			this.clms = _clms;
 			this.rows = _rows;
 			this.width = (int)((float)this.clms * this.CLEN);
 			this.height = (int)((float)this.rows * this.CLEN);
-			if (this.mode == MAPMODE.NORMAL || this.mode == MAPMODE.TEMP || this.AAPt != null)
+			if (this.mode == MAPMODE.NORMAL || this.mode == MAPMODE.TEMP || this.mode == MAPMODE.LOAD_AND_CFG || this.AAPt != null)
 			{
 				this.AAPt = new M2Pt[this.clms, this.rows];
 			}
@@ -867,7 +907,7 @@ namespace m2d
 
 		public void considerConfig4(DRect Rc, int sx, int sy)
 		{
-			this.considerConfig4((int)Rc.x + sx, (int)Rc.y + sy, global::XX.X.IntC(Rc.right) + sx, global::XX.X.IntC(Rc.bottom) + sy);
+			this.considerConfig4((int)Rc.x + sx, (int)Rc.y + sy, X.IntC(Rc.right) + sx, X.IntC(Rc.bottom) + sy);
 		}
 
 		public void considerConfig4(M2LabelPoint Rc)
@@ -881,15 +921,15 @@ namespace m2d
 			{
 				return;
 			}
-			int num = global::XX.X.Mx(0, this.crop - 2);
+			int num = X.Mx(0, this.crop - 2);
 			int num2 = this.clms;
 			for (int i = _l; i < _r; i++)
 			{
-				if (global::XX.X.BTW(0f, (float)i, (float)this.clms))
+				if (X.BTW(0f, (float)i, (float)this.clms))
 				{
 					for (int j = _t; j < _b; j++)
 					{
-						if (global::XX.X.BTW(0f, (float)j, (float)this.rows))
+						if (X.BTW(0f, (float)j, (float)this.rows))
 						{
 							M2Pt m2Pt = this.AAPt[i, j];
 							if (m2Pt != null)
@@ -919,11 +959,11 @@ namespace m2d
 			}
 			for (int i = _l; i < _r; i++)
 			{
-				if (global::XX.X.BTW(0f, (float)i, (float)this.clms))
+				if (X.BTW(0f, (float)i, (float)this.clms))
 				{
 					for (int j = _t; j < _b; j++)
 					{
-						if (global::XX.X.BTW(0f, (float)j, (float)this.rows))
+						if (X.BTW(0f, (float)j, (float)this.rows))
 						{
 							M2Pt m2Pt2 = this.AAPt[i, j];
 							if (m2Pt2 != null)
@@ -942,7 +982,7 @@ namespace m2d
 
 		public void setDangerousFlag(DRect Rc)
 		{
-			this.setDangerousFlag((int)Rc.x, (int)Rc.y, global::XX.X.IntC(Rc.right), global::XX.X.IntC(Rc.bottom));
+			this.setDangerousFlag((int)Rc.x, (int)Rc.y, X.IntC(Rc.right), X.IntC(Rc.bottom));
 		}
 
 		public void setDangerousFlag(int l, int t, int w, int h)
@@ -951,11 +991,11 @@ namespace m2d
 			int num2 = t + h;
 			for (int i = l; i < num; i++)
 			{
-				if (global::XX.X.BTW(0f, (float)i, (float)this.clms))
+				if (X.BTW(0f, (float)i, (float)this.clms))
 				{
 					for (int j = t; j < num2; j++)
 					{
-						if (global::XX.X.BTW(0f, (float)j, (float)this.rows))
+						if (X.BTW(0f, (float)j, (float)this.rows))
 						{
 							M2Pt m2Pt = this.AAPt[i, j];
 							if (m2Pt == null)
@@ -982,8 +1022,8 @@ namespace m2d
 		{
 			l = Mcp.mapx;
 			t = Mcp.mapy;
-			r = global::XX.X.IntC((float)(Mcp.drawx + Mcp.iwidth) / CLEN);
-			b = global::XX.X.IntC((float)(Mcp.drawy + Mcp.iheight) / CLEN);
+			r = X.IntC((float)(Mcp.drawx + Mcp.iwidth) / CLEN);
+			b = X.IntC((float)(Mcp.drawy + Mcp.iheight) / CLEN);
 		}
 
 		public int connectImgLink(M2Puts Mcp, Map2d.CONNECTIMG connect = Map2d.CONNECTIMG.ASSIGN, DRect LayerBounds = null, bool no_consider_config = true)
@@ -1004,11 +1044,11 @@ namespace m2d
 			{
 				for (int i = num3; i < num5; i++)
 				{
-					if (global::XX.X.BTW(0f, (float)i, (float)this.rows))
+					if (X.BTW(0f, (float)i, (float)this.rows))
 					{
 						for (int j = num2; j < num4; j++)
 						{
-							if (global::XX.X.BTW(0f, (float)j, (float)this.clms))
+							if (X.BTW(0f, (float)j, (float)this.clms))
 							{
 								M2Pt m2Pt = this.AAPt[j, i];
 								if (connect != Map2d.CONNECTIMG.ASSIGN)
@@ -1046,10 +1086,10 @@ namespace m2d
 
 		public void extendBounds(DRect Bounds, int l, int t, int w, int h)
 		{
-			global::XX.X.Mn(this.clms, l + w);
-			global::XX.X.Mn(this.rows, t + h);
-			l = global::XX.X.Mx(0, l);
-			t = global::XX.X.Mx(0, t);
+			X.Mn(this.clms, l + w);
+			X.Mn(this.rows, t + h);
+			l = X.Mx(0, l);
+			t = X.Mx(0, t);
 			float x = Bounds.x;
 			float y = Bounds.y;
 			Bounds.Expand((float)l, (float)t, (float)w, (float)h, false);
@@ -1059,15 +1099,14 @@ namespace m2d
 		{
 			if (this.AAPt == null)
 			{
-				global::XX.X.de("AAPtが存在しない状態で getPointPuts がコールされた " + this.key, null);
 				return null;
 			}
 			if (clipping)
 			{
-				x = global::XX.X.MMX(0, x, this.clms - 1);
-				y = global::XX.X.MMX(0, y, this.rows - 1);
+				x = X.MMX(0, x, this.clms - 1);
+				y = X.MMX(0, y, this.rows - 1);
 			}
-			else if (!global::XX.X.BTW(0f, (float)x, (float)this.clms) || !global::XX.X.BTW(0f, (float)y, (float)this.rows))
+			else if (!X.BTW(0f, (float)x, (float)this.clms) || !X.BTW(0f, (float)y, (float)this.rows))
 			{
 				return null;
 			}
@@ -1142,7 +1181,7 @@ namespace m2d
 
 		public bool removeChip(M2Puts obj, bool no_consider_config = false, bool no_sort = false)
 		{
-			return obj.Lay.removeChip(obj, no_consider_config, no_sort);
+			return obj.Lay.removeChip(obj, no_consider_config, no_sort, false);
 		}
 
 		public int removeChip(List<M2Puts> ACp, bool no_consider_config = false, bool no_sort = false)
@@ -1151,7 +1190,7 @@ namespace m2d
 			int num = 0;
 			for (int i = 0; i < count; i++)
 			{
-				num = (ACp[i].Lay.removeChip(ACp[i], no_consider_config, no_sort) ? 1 : 0);
+				num = (ACp[i].Lay.removeChip(ACp[i], no_consider_config, no_sort, false) ? 1 : 0);
 			}
 			return num;
 		}
@@ -1169,18 +1208,18 @@ namespace m2d
 		{
 			if (this.AAPt == null)
 			{
-				global::XX.X.de("AAPt が指定されていない", null);
+				X.de("AAPt が指定されていない", null);
 				return;
 			}
 			int num = x + w;
 			int num2 = y + h;
 			for (int i = x; i < num; i++)
 			{
-				if (global::XX.X.BTW(0f, (float)i, (float)this.clms))
+				if (X.BTW(0f, (float)i, (float)this.clms))
 				{
 					for (int j = y; j < num2; j++)
 					{
-						if (global::XX.X.BTW(0f, (float)j, (float)this.rows))
+						if (X.BTW(0f, (float)j, (float)this.rows))
 						{
 							M2Pt m2Pt = this.AAPt[i, j];
 							if (m2Pt != null)
@@ -1202,7 +1241,7 @@ namespace m2d
 			}
 		}
 
-		public GameObject createMoverGob<T>(string key, float mapx, float mapy, bool find_already_exist = false) where T : Object
+		public GameObject createMoverGob<T>(string key, float mapx, float mapy, bool find_already_exist = false) where T : global::UnityEngine.Object
 		{
 			GameObject gameObject = null;
 			if (find_already_exist)
@@ -1211,7 +1250,7 @@ namespace m2d
 				T t;
 				if (gameObject != null && gameObject.TryGetComponent<T>(out t))
 				{
-					gameObject.transform.localPosition = new Vector3(this.map2ux(mapx), this.map2uy(mapy), 300f);
+					gameObject.transform.localPosition = new Vector3(this.map2ux(mapx), this.map2uy(mapy), 400f);
 					return gameObject;
 				}
 			}
@@ -1223,7 +1262,7 @@ namespace m2d
 			}
 			Transform transform = gameObject.transform;
 			transform.localScale = new Vector3(1f / this.mover_scale, 1f / this.mover_scale, 1f);
-			transform.localPosition = new Vector3(this.map2ux(mapx), this.map2uy(mapy), 300f);
+			transform.localPosition = new Vector3(this.map2ux(mapx), this.map2uy(mapy), 400f);
 			return gameObject;
 		}
 
@@ -1242,9 +1281,9 @@ namespace m2d
 		{
 			if (Mov.Mp != null)
 			{
-				if (global::XX.X.isinC<M2Mover>(this.AMov, Mov, this.mover_count) >= 0)
+				if (X.isinC<M2Mover>(this.AMov, Mov, this.mover_count) >= 0)
 				{
-					global::XX.X.dl("重複して assign しようとしています: " + Mov.key, null, false, false);
+					X.dl("重複して assign しようとしています: " + Mov.key, null, false, false);
 					return Mov;
 				}
 				try
@@ -1255,12 +1294,12 @@ namespace m2d
 				{
 				}
 			}
-			global::XX.X.dl("assign: " + Mov.key, null, false, false);
-			if ((this.update_mesh_flag_ & 2048) > 0)
+			X.dl("assign: " + Mov.key, null, false, false);
+			if ((this.update_mesh_flag_ & 4096) > 0)
 			{
 				this.initAction(true);
 			}
-			global::XX.X.pushToEmptyS<M2Mover>(ref this.AMov, Mov, ref this.mover_count, 16);
+			X.pushToEmptyS<M2Mover>(ref this.AMov, Mov, ref this.mover_count, 16);
 			Mov.appear(this);
 			if (Mov is M2MoverPr)
 			{
@@ -1268,9 +1307,9 @@ namespace m2d
 				{
 					this.assignCenterPlayer(Mov as M2MoverPr);
 				}
-				global::XX.X.push<M2MoverPr>(ref this.AMovP, Mov as M2MoverPr, -1);
+				X.push<M2MoverPr>(ref this.AMovP, Mov as M2MoverPr, -1);
 			}
-			IN.setZ(Mov.transform, 300f);
+			IN.setZ(Mov.transform, 400f);
 			Mov.gameObject.SetActive(true);
 			this.M2D.AssignPauseable(Mov);
 			this.M2D.AssignPauseableP(Mov.getPhysic());
@@ -1380,7 +1419,7 @@ namespace m2d
 			}
 			if (this.AMovP != null)
 			{
-				int num = global::XX.X.isinC<M2Mover>(this.AMov, Mov);
+				int num = X.isinC<M2Mover>(this.AMov, Mov);
 				if (this.mover_running_i >= 0 && num >= 0 && num <= this.mover_running_i)
 				{
 					this.mover_running_i--;
@@ -1388,31 +1427,16 @@ namespace m2d
 				int num2 = this.mover_count;
 				if (num >= 0)
 				{
-					global::XX.X.spliceEmpty<M2Mover>(this.AMov, num, 1);
+					X.spliceEmpty<M2Mover>(this.AMov, num, 1);
 					this.mover_count--;
 				}
 				M2Mover[] amovP = this.AMovP;
-				int num3 = global::XX.X.isinC<M2Mover>(amovP, Mov);
+				int num3 = X.isinC<M2Mover>(amovP, Mov);
 				if (num3 >= 0)
 				{
-					global::XX.X.splice<M2MoverPr>(ref this.AMovP, num3, 1);
+					X.splice<M2MoverPr>(ref this.AMovP, num3, 1);
 				}
-				for (int i = this.pxlanim_count - 1; i >= 0; i--)
-				{
-					if (this.APxlAnim[i].get_Mv() == Mov)
-					{
-						try
-						{
-							this.APxlAnim[i].OnDestroy();
-							IN.DestroyOne(this.APxlAnim[i].gameObject);
-						}
-						catch
-						{
-						}
-						global::XX.X.shiftEmpty<M2PxlAnimator>(this.APxlAnim, 1, i, -1);
-						this.pxlanim_count--;
-					}
-				}
+				this.destructPxlAnimByMover(Mov);
 				if (Mov == this.MovP)
 				{
 					this.assignCenterPlayer((this.AMovP.Length != 0) ? this.AMovP[0] : null);
@@ -1435,7 +1459,7 @@ namespace m2d
 				{
 					Mov.destruct();
 				}
-				Object gameObject = Mov.gameObject;
+				global::UnityEngine.Object gameObject = Mov.gameObject;
 				IN.DestroyOne(Mov);
 				IN.DestroyOne(gameObject);
 				if (Mov is ITortureListener)
@@ -1454,8 +1478,49 @@ namespace m2d
 			t.pose_title = pose_key;
 			t.gameObject.layer = M2MovRenderContainer.drawer_t_layer;
 			t.assignMover(Mov, auto_start);
-			global::XX.X.pushToEmptyS<M2PxlAnimator>(ref this.APxlAnim, t, ref this.pxlanim_count, 16);
+			this.addPxlAnim(t);
 			return t;
+		}
+
+		public void addPxlAnim(M2PxlAnimator P)
+		{
+			if (this.is_submap)
+			{
+				this.SubMapData.getBaseMap().addPxlAnim(P);
+				return;
+			}
+			if (this.APxlAnim == null)
+			{
+				this.APxlAnim = new List<M2PxlAnimator>(4);
+			}
+			this.APxlAnim.Add(P);
+		}
+
+		public void destructPxlAnimByMover(M2Mover Mov)
+		{
+			if (this.is_submap)
+			{
+				this.SubMapData.getBaseMap().destructPxlAnimByMover(Mov);
+				return;
+			}
+			if (this.APxlAnim != null)
+			{
+				for (int i = this.APxlAnim.Count - 1; i >= 0; i--)
+				{
+					if (this.APxlAnim[i].get_Mv() == Mov)
+					{
+						try
+						{
+							this.APxlAnim[i].OnDestroy();
+							IN.DestroyOne(this.APxlAnim[i].gameObject);
+						}
+						catch
+						{
+						}
+						this.APxlAnim.RemoveAt(i);
+					}
+				}
+			}
 		}
 
 		public M2EventItem destructEvent(M2EventItem Ev)
@@ -1516,7 +1581,7 @@ namespace m2d
 				}
 				if (this.stack_to_map)
 				{
-					global::XX.X.pushToEmptyR<M2EventCommand>(ref this.AEvStack, C, 0);
+					X.pushToEmptyR<M2EventCommand>(ref this.AEvStack, C, 0);
 				}
 				else
 				{
@@ -1537,17 +1602,24 @@ namespace m2d
 
 		public bool hasLight()
 		{
-			return this.ALight != null && this.light_cnt > 0;
+			return this.ALight != null && this.ALight.Count > 0;
 		}
 
-		public void addLight(M2Light Lig)
+		public void addLight(M2Light Lig, int insert = -1)
 		{
 			if (!this.isGameMode() || Lig == null)
 			{
 				return;
 			}
-			global::XX.X.pushToEmptyS<M2Light>(ref this.ALight, Lig, ref this.light_cnt, 4);
-			if (this.light_cnt == 1 && this.mode == MAPMODE.NORMAL)
+			if (insert < 0)
+			{
+				this.ALight.Add(Lig);
+			}
+			else
+			{
+				this.ALight.Insert(insert, Lig);
+			}
+			if (this.ALight.Count == 1 && this.mode == MAPMODE.NORMAL)
 			{
 				this.Unstb.FineAuto().Resume();
 			}
@@ -1555,14 +1627,11 @@ namespace m2d
 
 		public void remLight(M2Light Lig)
 		{
-			if (!this.isGameMode() || Lig == null)
+			if (!this.isGameMode() || Lig == null || this.ALight == null)
 			{
 				return;
 			}
-			if (global::XX.X.emptySpecific<M2Light>(this.ALight, Lig, this.light_cnt))
-			{
-				this.light_cnt--;
-			}
+			this.ALight.Remove(Lig);
 		}
 
 		public void prepareTransferAfter()
@@ -1589,7 +1658,7 @@ namespace m2d
 			{
 				this.t_load_cover++;
 			}
-			if ((this.update_mesh_flag_ & 2048) > 0)
+			if ((this.update_mesh_flag_ & 4096) > 0)
 			{
 				this.initAction(true);
 			}
@@ -1651,55 +1720,20 @@ namespace m2d
 			Bench.P("TS running");
 			if (ts > 0f)
 			{
-				Bench.P("Mv runPre - ");
-				this.mover_running_i = 0;
-				while (this.mover_running_i < this.mover_count)
-				{
-					M2Mover m2Mover = this.AMov[this.mover_running_i];
-					Bench.P(m2Mover.key);
-					m2Mover.runPre();
-					Bench.Pend(m2Mover.key);
-					this.mover_running_i++;
-				}
-				Bench.Pend("Mv runPre - ");
-				this.mover_running_i = -1;
+				this.mvRunPre();
 				this.executeRemoveMoverStack("pre_remove Mv");
 				Bench.P("PxlAnim");
-				for (int i = 0; i < this.pxlanim_count; i++)
+				int count = this.APxlAnim.Count;
+				for (int i = 0; i < count; i++)
 				{
 					this.APxlAnim[i].runPre(1f);
 				}
 				Bench.Pend("PxlAnim");
-				if (this.ARunningObject != null)
-				{
-					Bench.P("Runner - ");
-					for (int j = this.ARunningObject.Count - 1; j >= 0; j--)
-					{
-						IRunAndDestroy runAndDestroy = this.ARunningObject[j];
-						string text = Bench.P(runAndDestroy.ToString());
-						if (!runAndDestroy.run(ts))
-						{
-							this.ARunningObject.RemoveAt(j);
-						}
-						Bench.Pend(text);
-					}
-					Bench.Pend("Runner - ");
-				}
+				this.runnerRun();
 				Bench.P("CameraRun");
 				this.M2D.Cam.run(false);
 				Bench.Pend("CameraRun");
-				Bench.P("Mv runPost - ");
-				this.mover_running_i = 0;
-				while (this.mover_running_i < this.mover_count)
-				{
-					M2Mover m2Mover2 = this.AMov[this.mover_running_i];
-					Bench.P(m2Mover2.key);
-					this.AMov[this.mover_running_i].runPost();
-					Bench.Pend(m2Mover2.key);
-					this.mover_running_i++;
-				}
-				this.mover_running_i = -1;
-				Bench.Pend("Mv runPost - ");
+				this.mvRunPost();
 				this.executeRemoveMoverStack("post_remove Mv");
 				Bench.P("DropCon");
 				this.DropCon.run(ts);
@@ -1707,9 +1741,9 @@ namespace m2d
 				Bench.P("Torture");
 				if (this.ATortureListener != null)
 				{
-					for (int k = this.ATortureListener.Count - 1; k >= 0; k--)
+					for (int j = this.ATortureListener.Count - 1; j >= 0; j--)
 					{
-						this.ATortureListener[k].runPostTorture();
+						this.ATortureListener[j].runPostTorture();
 					}
 				}
 				Bench.Pend("Torture");
@@ -1723,22 +1757,91 @@ namespace m2d
 			this.runEffect();
 			Bench.Pend("RunEf");
 			Bench.P("PreDraw");
-			if (global::XX.X.D && this.mode == MAPMODE.NORMAL)
+			if (this.mode == MAPMODE.NORMAL)
 			{
-				Map2d.TScur = 1f;
-				float num2 = (float)global::XX.X.AF * Map2d.TSbase;
-				int num3 = this.ASubMaps.Length;
-				for (int l = 0; l < num3; l++)
+				int num2 = this.ASubMaps.Length;
+				if (X.D)
 				{
-					M2SubMap m2SubMap = this.ASubMaps[l];
-					m2SubMap.runEffect(num2);
-					m2SubMap.getTargetMap().drawCheck(num2);
+					Map2d.TScur = 1f;
+					float num3 = (float)X.AF * Map2d.TSbase;
+					for (int k = 0; k < num2; k++)
+					{
+						M2SubMap m2SubMap = this.ASubMaps[k];
+						m2SubMap.runEffect(num3);
+						m2SubMap.getTargetMap().drawCheck(num3);
+					}
+					Map2d.TScur = fcnt;
 				}
-				Map2d.TScur = fcnt;
+				for (int l = 0; l < num2; l++)
+				{
+					M2SubMap m2SubMap2 = this.ASubMaps[l];
+					if (!m2SubMap2.temporary_duped)
+					{
+						Map2d targetMap = m2SubMap2.getTargetMap();
+						targetMap.floort = this.floort;
+						targetMap.mvRunPre();
+						targetMap.runnerRun();
+						targetMap.mvRunPost();
+					}
+				}
 			}
 			Bench.Pend("PreDraw");
 			this.floort += ts;
 			return true;
+		}
+
+		private void mvRunPre()
+		{
+			Bench.P("Mv runPre - ");
+			this.mover_running_i = 0;
+			while (this.mover_running_i < this.mover_count)
+			{
+				M2Mover m2Mover = this.AMov[this.mover_running_i];
+				Bench.P(m2Mover.key);
+				m2Mover.runPre();
+				Bench.Pend(m2Mover.key);
+				this.mover_running_i++;
+			}
+			Bench.Pend("Mv runPre - ");
+			this.mover_running_i = -1;
+		}
+
+		private void mvRunPost()
+		{
+			Bench.P("Mv runPost - ");
+			this.mover_running_i = 0;
+			while (this.mover_running_i < this.mover_count)
+			{
+				M2Mover m2Mover = this.AMov[this.mover_running_i];
+				Bench.P(m2Mover.key);
+				this.AMov[this.mover_running_i].runPost();
+				Bench.Pend(m2Mover.key);
+				this.mover_running_i++;
+			}
+			this.mover_running_i = -1;
+			Bench.Pend("Mv runPost - ");
+		}
+
+		private void runnerRun()
+		{
+			if (this.ARunningObject != null)
+			{
+				Bench.P("Runner - ");
+				this.runner_running_i = 0;
+				while (this.runner_running_i < this.ARunningObject.Count)
+				{
+					IRunAndDestroy runAndDestroy = this.ARunningObject[this.runner_running_i];
+					string text = Bench.P(runAndDestroy.ToString());
+					if (!runAndDestroy.run(Map2d.TS))
+					{
+						this.ARunningObject.RemoveAt(this.runner_running_i);
+					}
+					Bench.Pend(text);
+					this.runner_running_i++;
+				}
+				this.runner_running_i = -1;
+				Bench.Pend("Runner - ");
+			}
 		}
 
 		public bool runUi()
@@ -1758,21 +1861,53 @@ namespace m2d
 		public void drawLights(MeshDrawer MyDrawerLight, M2SubMap Sm, float alpha_smp, float fcnt, bool auto_blit = false)
 		{
 			Bench.P("LightDraw");
-			for (int i = 0; i < this.light_cnt; i++)
+			int count = this.ALight.Count;
+			Material material = null;
+			if (auto_blit)
+			{
+				if (!MyDrawerLight.hasMultipleTriangle())
+				{
+					material = MyDrawerLight.getMaterial();
+					material.SetPass(0);
+				}
+				GL.Begin(4);
+			}
+			for (int i = 0; i < count; i++)
 			{
 				this.ALight[i].drawLight(MyDrawerLight, Sm, alpha_smp, fcnt);
 				if (auto_blit)
 				{
-					BLIT.RenderToGLOneTask(MyDrawerLight, -1, false);
+					if (!MyDrawerLight.hasMultipleTriangle())
+					{
+						BLIT.RenderToGLOneTask(MyDrawerLight, -1, false);
+					}
+					else
+					{
+						Material material2 = MyDrawerLight.getMaterial();
+						if (material2 != material)
+						{
+							GL.End();
+							material2.SetPass(0);
+							material = material2;
+							GL.Begin(4);
+						}
+						BLIT.RenderToGLOneTask(MyDrawerLight, -1, false);
+						MyDrawerLight.clearSimple();
+						MyDrawerLight.chooseSubMesh(0, false, true);
+					}
 				}
 			}
 			Bench.Pend("LightDraw");
 			MyDrawerLight.updateForMeshRenderer(true);
+			if (auto_blit)
+			{
+				GL.End();
+			}
 		}
 
 		public bool runPost()
 		{
-			if ((this.update_mesh_flag_ & 2048) == 0 && this.need_update_collider && this.mode == MAPMODE.NORMAL)
+			if ((this.update_mesh_flag_ & 4096) == 0 && this.need_update_collider && this.mode == MAPMODE.NORMAL)
 			{
 				this.need_update_collider = false;
 				if (this.MyCollider != null)
@@ -1807,30 +1942,30 @@ namespace m2d
 		{
 			if (this.EF != null)
 			{
-				this.EF.runDrawOrRedrawMesh(global::XX.X.D_EF, (float)global::XX.X.AF_EF, Map2d.TS);
+				this.EF.runDrawOrRedrawMesh(X.D_EF, (float)X.AF_EF, Map2d.TS);
 			}
 			if (this.EFT != null)
 			{
-				this.EFT.runDrawOrRedrawMesh(global::XX.X.D_EF, (float)global::XX.X.AF_EF, Map2d.TS);
+				this.EFT.runDrawOrRedrawMesh(X.D_EF, (float)X.AF_EF, Map2d.TS);
 			}
 			if (this.EFC != null)
 			{
-				this.EFC.runDrawOrRedrawMesh(global::XX.X.D, (float)global::XX.X.AF, Map2d.TS);
+				this.EFC.runDrawOrRedrawMesh(X.D, (float)X.AF, Map2d.TS);
 			}
-			if (global::XX.X.D_EF)
+			if (X.D_EF)
 			{
 				if (this.EFD != null)
 				{
-					this.EFD.run((float)global::XX.X.AF_EF * Map2d.TSbase);
+					this.EFD.run((float)X.AF_EF * Map2d.TSbase);
 				}
 				if (this.EFDT != null)
 				{
-					this.EFDT.run((float)global::XX.X.AF_EF * Map2d.TSbase);
+					this.EFDT.run((float)X.AF_EF * Map2d.TSbase);
 				}
 			}
-			if (global::XX.X.D && this.EFDC != null)
+			if (X.D && this.EFDC != null)
 			{
-				this.EFDC.run((float)global::XX.X.AF * Map2d.TSbase);
+				this.EFDC.run((float)X.AF * Map2d.TSbase);
 			}
 		}
 
@@ -1870,7 +2005,7 @@ namespace m2d
 				for (int j = 0; j < num2; j++)
 				{
 					Map2d targetMap = this.ASubMaps[j].getTargetMap();
-					if ((targetMap.update_mesh_flag_ & 2048) > 0)
+					if ((targetMap.update_mesh_flag_ & 4096) > 0)
 					{
 						targetMap.initActionPre();
 					}
@@ -1889,7 +2024,7 @@ namespace m2d
 				this.drawCheck(0f);
 				return this;
 			}
-			this.update_mesh_flag_ &= -2049;
+			this.update_mesh_flag_ &= -4097;
 			if (this.mode != MAPMODE.NORMAL && this.mode != MAPMODE.SUBMAP)
 			{
 				return this;
@@ -1916,7 +2051,7 @@ namespace m2d
 					Map2d targetMap = this.ASubMaps[k].getTargetMap();
 					if (targetMap != this)
 					{
-						targetMap.addUpdateMesh(2048, false);
+						targetMap.addUpdateMesh(4096, false);
 					}
 				}
 				if (do_init_action_pre)
@@ -1924,7 +2059,7 @@ namespace m2d
 					for (int l = 0; l < num2; l++)
 					{
 						Map2d targetMap2 = this.ASubMaps[l].getTargetMap();
-						if ((targetMap2.update_mesh_flag_ & 2048) > 0)
+						if ((targetMap2.update_mesh_flag_ & 4096) > 0)
 						{
 							targetMap2.initAction(true);
 						}
@@ -1961,7 +2096,7 @@ namespace m2d
 			if (!no_set_init_flag)
 			{
 				this.need_reentry_flag = true;
-				this.update_mesh_flag_ |= 2048;
+				this.update_mesh_flag_ |= 4096;
 			}
 			if (this.NM != null)
 			{
@@ -2022,9 +2157,25 @@ namespace m2d
 
 		public void addRedrawingChip(M2Puts Cp)
 		{
-			if (global::XX.X.pushToEmptyRI<M2Puts>(ref this.ARedrawingChip, Cp, this.redrawing_chip_count))
+			if (this.ARedrawingChip == null)
+			{
+				this.ARedrawingChip = new M2Puts[8];
+			}
+			if (X.pushToEmptyRI<M2Puts>(ref this.ARedrawingChip, Cp, this.redrawing_chip_count))
 			{
 				this.redrawing_chip_count++;
+			}
+		}
+
+		public void removeRedrawingChip(M2Puts Cp)
+		{
+			for (int i = this.redrawing_chip_count - 1; i >= 0; i--)
+			{
+				if (this.ARedrawingChip[i] == Cp)
+				{
+					X.shiftEmpty<M2Puts>(this.ARedrawingChip, 1, i, this.redrawing_chip_count);
+					this.redrawing_chip_count--;
+				}
 			}
 		}
 
@@ -2037,7 +2188,7 @@ namespace m2d
 			if (this.need_reentry_flag_)
 			{
 				this.need_reentry_flag_ = false;
-				if (!Map2d.editor_decline_lighting && (this.update_mesh_flag_ & 2048) > 0)
+				if (!Map2d.editor_decline_lighting && (this.update_mesh_flag_ & 4096) > 0)
 				{
 					this.initActionPre();
 					flag2 = false;
@@ -2046,12 +2197,12 @@ namespace m2d
 				{
 					this.clearGradation();
 					flag = true;
-					this.update_mesh_flag_ |= 16384;
+					this.update_mesh_flag_ |= 32768;
 				}
 				this.reentryAllChips();
 				if (Map2d.editor_decline_lighting)
 				{
-					this.update_mesh_flag_ |= 16384;
+					this.update_mesh_flag_ |= 32768;
 				}
 				flag4 = true;
 			}
@@ -2063,7 +2214,7 @@ namespace m2d
 			{
 				fcnt = 0f;
 			}
-			if (!Map2d.editor_decline_lighting && (this.update_mesh_flag_ & 2048) > 0)
+			if (!Map2d.editor_decline_lighting && (this.update_mesh_flag_ & 4096) > 0)
 			{
 				this.initAction(flag2);
 			}
@@ -2090,7 +2241,7 @@ namespace m2d
 			}
 			if (this.update_mesh_flag_ > 0)
 			{
-				if ((this.update_mesh_flag_ & 16384) != 0)
+				if ((this.update_mesh_flag_ & 32768) != 0)
 				{
 					this.MMRD.fineActivateState(this.SubMapData, this.SubMapData != null);
 					flag3 = true;
@@ -2115,7 +2266,11 @@ namespace m2d
 				{
 					this.MyDrawerL.updateForMeshRenderer(true);
 				}
-				if ((this.update_mesh_flag_ & 8192) > 0)
+				if ((this.update_mesh_flag_ & 1024) > 0)
+				{
+					this.MyDrawerLT.updateForMeshRenderer(true);
+				}
+				if ((this.update_mesh_flag_ & 16384) > 0)
 				{
 					this.MyDrawerTT.updateForMeshRenderer(true);
 				}
@@ -2135,7 +2290,7 @@ namespace m2d
 				{
 					this.MyDrawerBGrd.updateForMeshRenderer(true);
 				}
-				if ((this.update_mesh_flag_ & 1024) > 0 && this.MyDrawerWater != null)
+				if ((this.update_mesh_flag_ & 2048) > 0 && this.MyDrawerWater != null)
 				{
 					this.MyDrawerWater.updateForMeshRenderer(true);
 					if (this.is_submap)
@@ -2143,7 +2298,7 @@ namespace m2d
 						this.MMRD.getIndex(this.MyDrawerWater);
 					}
 				}
-				if ((this.update_mesh_flag_ & 4096) > 0 && this.BlurDraw != null)
+				if ((this.update_mesh_flag_ & 8192) > 0 && this.BlurDraw != null)
 				{
 					this.BlurDraw.updateAll(this);
 				}
@@ -2293,8 +2448,24 @@ namespace m2d
 				}
 				return this;
 			}
+			if (_mode == MAPMODE.LOAD_AND_CFG)
+			{
+				if (this.mode == MAPMODE.CLOSED || this.mode == MAPMODE.LOAD_AND_CFG)
+				{
+					this.mode = _mode;
+					if (this.prepared && !this.loaded)
+					{
+						this.load(false);
+					}
+				}
+				if (this.AAPt == null)
+				{
+					this.reconnectWholeChips();
+				}
+				this.considerConfig4(0, 0, this.clms, this.rows);
+				return this;
+			}
 			this.SubMapData = ((_mode == MAPMODE.SUBMAP) ? SubMapData : null);
-			this.light_cnt = 0;
 			this.mode = _mode;
 			this.Gob = IN.CreateGob(GobBase, "-" + this.key);
 			this.Gob.isStatic = false;
@@ -2329,7 +2500,6 @@ namespace m2d
 					this.Unstb.openMap();
 				}
 				this.APhysics = new List<M2Phys>(2);
-				this.AMovRemoveStack = new List<M2Mover>(1);
 				this.OGob2Physics = new BDic<GameObject, M2Phys>(2);
 				if (this.M2D.curMap != this)
 				{
@@ -2340,6 +2510,15 @@ namespace m2d
 					this.M2D.readMapEventContent(this, false);
 				}
 				this.cmd_loadevent_execute = 0U;
+				this.AMovRemoveStack = new List<M2Mover>(1);
+				if (this.APxlAnim == null)
+				{
+					this.APxlAnim = new List<M2PxlAnimator>(4);
+				}
+				else
+				{
+					this.APxlAnim.Clear();
+				}
 			}
 			else
 			{
@@ -2348,10 +2527,20 @@ namespace m2d
 					this.Unstb = this.Unstb.destruct(false);
 				}
 				this.EVC = null;
+				if (this.is_submap)
+				{
+					this.APhysics = SubMapData.getBaseMap().APhysics;
+					this.OGob2Physics = SubMapData.getBaseMap().OGob2Physics;
+					this.OGob_tags = SubMapData.getBaseMap().OGob_tags;
+				}
 			}
-			if (this.isGameMode())
+			if (this.isGameMode() && this.ALight == null)
 			{
-				this.ALight = new M2Light[4];
+				this.ALight = new List<M2Light>(4);
+			}
+			if (this.ALight != null)
+			{
+				this.ALight.Clear();
 			}
 			bool flag = true;
 			int num;
@@ -2407,7 +2596,7 @@ namespace m2d
 				this.NM = new NearManager(this);
 				this.DmgCntCon = new M2DmgCounterContainer(this);
 				this.initEffect(SubMapData);
-				this.update_mesh_flag_ |= 16384;
+				this.update_mesh_flag_ |= 32768;
 				this.BCC = this.M2D.BufferBCC ?? new M2BlockColliderContainer(this, null);
 				if (this.M2D.BufferBCC == this.BCC)
 				{
@@ -2418,6 +2607,11 @@ namespace m2d
 			else if (this.mode == MAPMODE.SUBMAP)
 			{
 				this.initEffect(SubMapData);
+				if (this.MovRenderer_ != null)
+				{
+					this.MovRenderer_.clearCameraComponent(true);
+					this.MovRenderer_.initS(this);
+				}
 			}
 			if (this.mode == MAPMODE.NORMAL || this.mode == MAPMODE.SUBMAP)
 			{
@@ -2437,7 +2631,7 @@ namespace m2d
 			else
 			{
 				this.need_reentry_flag_ = (this.need_reentry_gradation_flag_ = true);
-				this.update_mesh_flag_ = 26367 | (this.isGameMode() ? 2048 : 0);
+				this.update_mesh_flag_ = 52991 | (this.isGameMode() ? 4096 : 0);
 			}
 			return this;
 		}
@@ -2474,10 +2668,10 @@ namespace m2d
 		public void prepareMeshDrawer(M2SubMap SubMapData, ref M2MeshContainer MMRD)
 		{
 			this.releaseBlurDraw();
-			Map2d.prepareMeshDrawer(this.Gob, this, this.mode, SubMapData, ref MMRD, ref this.MyDrawerUCol, ref this.MyDrawerB, ref this.MyDrawerG, ref this.MyDrawerT, ref this.MyDrawerL, ref this.MyDrawerTT, ref this.MyDrawerUGrd, ref this.MyDrawerBGrd, ref this.MyDrawerGGrd, ref this.MyDrawerTGrd);
+			Map2d.prepareMeshDrawer(this.Gob, this, this.mode, SubMapData, ref MMRD, ref this.MyDrawerUCol, ref this.MyDrawerB, ref this.MyDrawerG, ref this.MyDrawerT, ref this.MyDrawerL, ref this.MyDrawerLT, ref this.MyDrawerTT, ref this.MyDrawerUGrd, ref this.MyDrawerBGrd, ref this.MyDrawerGGrd, ref this.MyDrawerTGrd);
 		}
 
-		private static void prepareMeshDrawer(GameObject Gob, Map2d Mp, MAPMODE mode, M2SubMap SubMapData, ref M2MeshContainer MMRD, ref MdMap MyDrawerUCol, ref MdMap MyDrawerB, ref MdMap MyDrawerG, ref MdMap MyDrawerT, ref MdMap MyDrawerL, ref MdMap MyDrawerTT, ref MdMap MyDrawerUGrd, ref MdMap MyDrawerBGrd, ref MdMap MyDrawerGGrd, ref MdMap MyDrawerTGrd)
+		private static void prepareMeshDrawer(GameObject Gob, Map2d Mp, MAPMODE mode, M2SubMap SubMapData, ref M2MeshContainer MMRD, ref MdMap MyDrawerUCol, ref MdMap MyDrawerB, ref MdMap MyDrawerG, ref MdMap MyDrawerT, ref MdMap MyDrawerL, ref MdMap MyDrawerLT, ref MdMap MyDrawerTT, ref MdMap MyDrawerUGrd, ref MdMap MyDrawerBGrd, ref MdMap MyDrawerGGrd, ref MdMap MyDrawerTGrd)
 		{
 			if (Mp.Dgn != null && Mp.Dgn.key == "_editor" != Map2d.editor_decline_lighting)
 			{
@@ -2517,11 +2711,12 @@ namespace m2d
 			if (material != null)
 			{
 				float num2;
-				MMRD.CreateMesh(ref MyDrawerB, "-B", num2 = dgn.getDrawZ(mode, 0), dgn.getChipMaterial(0, null), dgn.getLayerForChip(0, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 0), num2 + num > 300f, false);
-				MMRD.CreateMesh(ref MyDrawerG, "-G", num2 = dgn.getDrawZ(mode, 1), material, dgn.getLayerForChip(1, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 1), num2 + num > 300f, false);
-				MMRD.CreateMesh(ref MyDrawerT, "-T", num2 = dgn.getDrawZ(mode, 2), dgn.getChipMaterial(2, null), dgn.getLayerForChip(2, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 2), num2 + num > 300f, false);
-				MMRD.CreateMesh(ref MyDrawerL, "-L", num2 = dgn.getDrawZ(mode, 3), dgn.getChipMaterial(3, null), dgn.getLayerForChip(3, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 3), num2 + num > 300f, false);
-				MMRD.CreateMesh(ref MyDrawerTT, "-TT", num2 = dgn.getDrawZ(mode, 4), dgn.getChipMaterial(4, null), dgn.getLayerForChip(4, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 4), num2 + num > 300f, false);
+				MMRD.CreateMesh(ref MyDrawerB, "-B", num2 = dgn.getDrawZ(mode, 0), dgn.getChipMaterial(0, null), dgn.getLayerForChip(0, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 0), num2 + num > 400f, false);
+				MMRD.CreateMesh(ref MyDrawerG, "-G", num2 = dgn.getDrawZ(mode, 1), material, dgn.getLayerForChip(1, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 1), num2 + num > 400f, false);
+				MMRD.CreateMesh(ref MyDrawerT, "-T", num2 = dgn.getDrawZ(mode, 2), dgn.getChipMaterial(2, null), dgn.getLayerForChip(2, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 2), num2 + num > 400f, false);
+				MMRD.CreateMesh(ref MyDrawerL, "-L", num2 = dgn.getDrawZ(mode, 3), dgn.getChipMaterial(3, null), dgn.getLayerForChip(3, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 3), num2 + num > 400f, false);
+				MMRD.CreateMesh(ref MyDrawerTT, "-TT", num2 = dgn.getDrawZ(mode, 4), dgn.getChipMaterial(4, null), dgn.getLayerForChip(4, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 4), num2 + num > 400f, false);
+				MMRD.CreateMesh(ref MyDrawerLT, "-LT", num2 = dgn.getDrawZ(mode, 5), dgn.getChipMaterial(3, null), dgn.getLayerForChip(3, Dungeon.MESHTYPE.CHIP), false, dgn.canBakeSimplify(false, 3), num2 + num > 400f, false);
 			}
 			else
 			{
@@ -2535,10 +2730,10 @@ namespace m2d
 			if (material != null)
 			{
 				float num2;
-				MMRD.CreateMesh(ref MyDrawerUGrd, "-UGrd", num2 = dgn.getDrawZ(mode, 19), dgn.getGradationMaterial(-1, null), dgn.getLayerForChip(-1, Dungeon.MESHTYPE.GRADATION), false, dgn.canBakeSimplify(true, -1), num2 + num > 300f, false);
-				MMRD.CreateMesh(ref MyDrawerBGrd, "-BGrd", num2 = dgn.getDrawZ(mode, 20), dgn.getGradationMaterial(0, null), dgn.getLayerForChip(0, Dungeon.MESHTYPE.GRADATION), false, dgn.canBakeSimplify(true, 0), num2 + num > 300f, false);
-				MMRD.CreateMesh(ref MyDrawerGGrd, "-GGrd", num2 = dgn.getDrawZ(mode, 21), dgn.getGradationMaterial(1, null), dgn.getLayerForChip(1, Dungeon.MESHTYPE.GRADATION), false, dgn.canBakeSimplify(true, 1), num2 + num > 300f, false);
-				MMRD.CreateMesh(ref MyDrawerTGrd, "-TGrd", num2 = dgn.getDrawZ(mode, 22), dgn.getGradationMaterial(2, null), dgn.getLayerForChip(2, Dungeon.MESHTYPE.GRADATION), false, dgn.canBakeSimplify(true, 2), num2 + num > 300f, false);
+				MMRD.CreateMesh(ref MyDrawerUGrd, "-UGrd", num2 = dgn.getDrawZ(mode, 19), dgn.getGradationMaterial(-1, null), dgn.getLayerForChip(-1, Dungeon.MESHTYPE.GRADATION), false, dgn.canBakeSimplify(true, -1), num2 + num > 400f, false);
+				MMRD.CreateMesh(ref MyDrawerBGrd, "-BGrd", num2 = dgn.getDrawZ(mode, 20), dgn.getGradationMaterial(0, null), dgn.getLayerForChip(0, Dungeon.MESHTYPE.GRADATION), false, dgn.canBakeSimplify(true, 0), num2 + num > 400f, false);
+				MMRD.CreateMesh(ref MyDrawerGGrd, "-GGrd", num2 = dgn.getDrawZ(mode, 21), dgn.getGradationMaterial(1, null), dgn.getLayerForChip(1, Dungeon.MESHTYPE.GRADATION), false, dgn.canBakeSimplify(true, 1), num2 + num > 400f, false);
+				MMRD.CreateMesh(ref MyDrawerTGrd, "-TGrd", num2 = dgn.getDrawZ(mode, 22), dgn.getGradationMaterial(2, null), dgn.getLayerForChip(2, Dungeon.MESHTYPE.GRADATION), false, dgn.canBakeSimplify(true, 2), num2 + num > 400f, false);
 			}
 			else
 			{
@@ -2631,7 +2826,7 @@ namespace m2d
 			{
 				return this.Dgn.getLayerForChip(2, Dungeon.MESHTYPE.CHIP);
 			}
-			if (Md == this.MyDrawerL)
+			if (Md == this.MyDrawerL || Md == this.MyDrawerLT)
 			{
 				return this.Dgn.getLayerForChip(3, Dungeon.MESHTYPE.CHIP);
 			}
@@ -2687,6 +2882,10 @@ namespace m2d
 				Mtr = this.Dgn.getChipMaterial(2, Mtr);
 			}
 			else if (Md == this.MyDrawerL)
+			{
+				Mtr = this.Dgn.getChipMaterial(3, Mtr);
+			}
+			else if (Md == this.MyDrawerLT)
 			{
 				Mtr = this.Dgn.getChipMaterial(3, Mtr);
 			}
@@ -2799,7 +2998,7 @@ namespace m2d
 			if (this.MyDrawerWater == null)
 			{
 				this.MMRD.CreateMesh(ref this.MyDrawerWater, "-Water", this.Dgn.getDrawZ(this.mode, -10), this.Dgn.getWaterMaterial(), this.Dgn.getLayerForWater(), true, false, false, true);
-				if (this.Unstb != null && (this.update_mesh_flag_ & 16384) == 0)
+				if (this.Unstb != null && (this.update_mesh_flag_ & 32768) == 0)
 				{
 					this.Unstb.FineAuto();
 				}
@@ -2844,7 +3043,7 @@ namespace m2d
 				Map2d targetMap = this.ASubMaps[i].getTargetMap();
 				if (targetMap == null || this.M2D.Get(targetMap.key, false) != targetMap)
 				{
-					global::XX.X.splice<M2SubMap>(ref this.ASubMaps, 1, i);
+					X.splice<M2SubMap>(ref this.ASubMaps, 1, i);
 				}
 			}
 			return this;
@@ -2852,7 +3051,7 @@ namespace m2d
 
 		public void openSubMaps()
 		{
-			if (this.mode == MAPMODE.SUBMAP || this.mode == MAPMODE.CLOSED)
+			if (this.mode == MAPMODE.SUBMAP || this.mode == MAPMODE.CLOSED || this.mode == MAPMODE.LOAD_AND_CFG)
 			{
 				return;
 			}
@@ -2864,7 +3063,7 @@ namespace m2d
 
 		public void closeSubMaps(bool with_stock = true)
 		{
-			if (this.mode == MAPMODE.SUBMAP || this.mode == MAPMODE.CLOSED)
+			if (this.mode == MAPMODE.SUBMAP || this.mode == MAPMODE.CLOSED || this.mode == MAPMODE.LOAD_AND_CFG)
 			{
 				return;
 			}
@@ -2876,7 +3075,7 @@ namespace m2d
 
 		public void fineSubMap()
 		{
-			if (this.mode == MAPMODE.SUBMAP || this.mode == MAPMODE.CLOSED)
+			if (this.mode == MAPMODE.SUBMAP || this.mode == MAPMODE.CLOSED || this.mode == MAPMODE.LOAD_AND_CFG)
 			{
 				return;
 			}
@@ -2890,7 +3089,7 @@ namespace m2d
 
 		public M2SubMap getSubMap(Map2d MpTarget)
 		{
-			if (this.mode == MAPMODE.SUBMAP || this.mode == MAPMODE.CLOSED)
+			if (this.mode == MAPMODE.SUBMAP || this.mode == MAPMODE.CLOSED || this.mode == MAPMODE.LOAD_AND_CFG)
 			{
 				return null;
 			}
@@ -2908,7 +3107,7 @@ namespace m2d
 
 		public void reopenSubMaps()
 		{
-			if (this.mode == MAPMODE.SUBMAP || this.mode == MAPMODE.CLOSED)
+			if (this.mode == MAPMODE.SUBMAP || this.mode == MAPMODE.CLOSED || this.mode == MAPMODE.LOAD_AND_CFG)
 			{
 				return;
 			}
@@ -2919,13 +3118,13 @@ namespace m2d
 				m2SubMap.close(false);
 				m2SubMap.open("");
 			}
-			this.update_mesh_flag_ |= 16384;
+			this.update_mesh_flag_ |= 32768;
 			this.fineSubMap();
 		}
 
 		public void initEffect(M2SubMap SubMapData)
 		{
-			if (Map2d.isTempMode(this.mode) || this.mode == MAPMODE.CLOSED)
+			if (Map2d.isTempMode(this.mode) || this.mode == MAPMODE.CLOSED || this.mode == MAPMODE.LOAD_AND_CFG)
 			{
 				return;
 			}
@@ -2992,7 +3191,7 @@ namespace m2d
 				{
 					this.AMovP[i].destruct();
 				}
-				global::XX.X.clrA<M2MoverPr>(this.AMovP);
+				X.clrA<M2MoverPr>(this.AMovP);
 				Array.Resize<M2MoverPr>(ref this.AMovP, 0);
 			}
 			if (this.opened)
@@ -3041,26 +3240,29 @@ namespace m2d
 					{
 						m2Mover.destruct();
 					}
-					Object gameObject = m2Mover.gameObject;
+					global::UnityEngine.Object gameObject = m2Mover.gameObject;
 					IN.DestroyOne(m2Mover);
 					IN.DestroyOne(gameObject);
 				}
 			}
-			global::XX.X.clrA<M2Mover>(this.AMov);
+			X.clrA<M2Mover>(this.AMov);
 			this.mover_count = 0;
-			for (int i = this.pxlanim_count - 1; i >= 0; i--)
+			if (this.APxlAnim != null)
 			{
-				M2PxlAnimator m2PxlAnimator = this.APxlAnim[i];
-				try
+				for (int i = this.APxlAnim.Count - 1; i >= 0; i--)
 				{
-					m2PxlAnimator.OnDestroy();
+					M2PxlAnimator m2PxlAnimator = this.APxlAnim[i];
+					try
+					{
+						m2PxlAnimator.OnDestroy();
+					}
+					catch
+					{
+					}
+					IN.DestroyOne(m2PxlAnimator.gameObject);
 				}
-				catch
-				{
-				}
-				IN.DestroyOne(m2PxlAnimator.gameObject);
+				this.APxlAnim.Clear();
 			}
-			this.pxlanim_count = 0;
 			if (this.mode == MAPMODE.NORMAL || Map2d.isTempMode(this.mode))
 			{
 				this.closeSubMaps(!Map2d.editor_decline_lighting);
@@ -3074,7 +3276,6 @@ namespace m2d
 			this.TalkTarget_ = null;
 			this.handle = false;
 			this.bgcol = this.bgcol0;
-			this.light_cnt = 0;
 			this.ALight = null;
 			this.ATortureListener = null;
 			this.DropCon = null;
@@ -3082,6 +3283,11 @@ namespace m2d
 			this.NM = null;
 			this.ARunningObject = null;
 			this.OGob_tags = null;
+			if (this.MovRenderer_ != null)
+			{
+				this.MovRenderer_.clearCameraComponent(true);
+				this.MovRenderer_ = null;
+			}
 			IN.DestroyOne(this.Gob);
 			if (this.MyCollider != null)
 			{
@@ -3148,7 +3354,7 @@ namespace m2d
 			else if (REG.match(label_key, M2DBase.RegFindPointLayerIndex))
 			{
 				label_key = REG.rightContext;
-				int num = global::XX.X.NmI(REG.R1, 0, false, false);
+				int num = X.NmI(REG.R1, 0, false, false);
 				M2MapLayer m2MapLayer = ((num < this.ALay.Length) ? this.ALay[num] : null);
 				M2LabelPointContainer m2LabelPointContainer2 = ((m2MapLayer != null) ? m2MapLayer.remakeLabelPoint(false) : null);
 				if (m2LabelPointContainer2 != null)
@@ -3173,7 +3379,7 @@ namespace m2d
 				}
 				if (!no_error)
 				{
-					global::XX.X.de("Map2d:: ラベルポイント " + label_key + " が見つかりません", null);
+					X.de("Map2d:: ラベルポイント " + label_key + " が見つかりません", null);
 				}
 			}
 			return null;
@@ -3181,7 +3387,7 @@ namespace m2d
 
 		public int getConfig(int x, int y)
 		{
-			if (this.AAPt == null || !global::XX.X.BTW(0f, (float)x, (float)this.clms) || !global::XX.X.BTW(0f, (float)y, (float)this.rows))
+			if (this.AAPt == null || !X.BTW(0f, (float)x, (float)this.clms) || !X.BTW(0f, (float)y, (float)this.rows))
 			{
 				return 128;
 			}
@@ -3193,7 +3399,7 @@ namespace m2d
 			return m2Pt.cfg;
 		}
 
-		public M2BlockColliderContainer.BCCLine getSideBcc(int x, int y, global::XX.AIM aim = global::XX.AIM.B)
+		public M2BlockColliderContainer.BCCLine getSideBcc(int x, int y, AIM aim = AIM.B)
 		{
 			M2Pt pointPuts = this.getPointPuts(x, y, true, false);
 			if (pointPuts == null)
@@ -3203,14 +3409,14 @@ namespace m2d
 			return pointPuts.getSideBcc(this, x, y, aim);
 		}
 
-		public M2BlockColliderContainer.BCCLine getFallableBcc(float x, float y, float margx, float search_margy, float near_y = -1f, bool check_main = true, bool check_lift = true)
+		public M2BlockColliderContainer.BCCLine getFallableBcc(float x, float y, float margx, float search_margy, float near_y = -1f, bool check_main = true, bool check_lift = true, M2BlockColliderContainer.BCCLine BccCalcStartFrom = null)
 		{
 			if (this.BCC == null || !this.BCC.is_prepared)
 			{
 				return null;
 			}
 			M2BlockColliderContainer.BCCLine bccline;
-			this.BCC.isFallable(x, y, margx, search_margy, out bccline, check_main, check_lift, -1f);
+			this.BCC.isFallable(x, y, margx, search_margy, out bccline, check_main, check_lift, -1f, BccCalcStartFrom);
 			return bccline;
 		}
 
@@ -3232,7 +3438,7 @@ namespace m2d
 
 		public bool canStandArea(M2Puts P)
 		{
-			return this.canStandArea((int)((float)P.drawx / this.CLEN), (int)((float)P.drawy / this.CLEN), global::XX.X.IntC(((float)P.drawx + (float)P.rwidth / this.base_scale) / this.CLEN), global::XX.X.IntC(((float)P.drawy + (float)P.rheight / this.base_scale) / this.CLEN));
+			return this.canStandArea((int)((float)P.drawx / this.CLEN), (int)((float)P.drawy / this.CLEN), X.IntC(((float)P.drawx + (float)P.rwidth / this.base_scale) / this.CLEN), X.IntC(((float)P.drawy + (float)P.rheight / this.base_scale) / this.CLEN));
 		}
 
 		public bool canStandArea(int x, int y, int r, int b)
@@ -3349,7 +3555,7 @@ namespace m2d
 
 		public bool canThroughBccR(float mapx, float mapy, float len, float agR, float radius = 0f)
 		{
-			return this.canThroughBcc(mapx, mapy, mapx + len * global::XX.X.Cos(agR), mapy - len * global::XX.X.Sin(agR), radius, -1000f, -1, false, false, null, true, null);
+			return this.canThroughBcc(mapx, mapy, mapx + len * X.Cos(agR), mapy - len * X.Sin(agR), radius, -1000f, -1, false, false, null, true, null);
 		}
 
 		public Vector3 checkThroughBccNearestHitPos(float mapx, float mapy, float dmapx, float dmapy, float radiusx = 0f, float radiusy = -1000f, int aim = -1, bool directional_check = false, bool check_other_bcc = false, Func<M2BlockColliderContainer.BCCLine, Vector3, bool> FnReturnable = null, bool set_gizmo = true)
@@ -3368,7 +3574,7 @@ namespace m2d
 				for (int i = Map2d.APosInfoBuf.Count - 1; i >= 0; i--)
 				{
 					M2BlockColliderContainer.BCCHitInfo bcchitInfo = Map2d.APosInfoBuf[i];
-					float num = global::XX.X.LENGTHXY2(mapx, mapy, bcchitInfo.x, bcchitInfo.y);
+					float num = X.LENGTHXY2(mapx, mapy, bcchitInfo.x, bcchitInfo.y);
 					if (vector.z < 0f || num < vector.z)
 					{
 						BCCHit = bcchitInfo.Hit;
@@ -3393,12 +3599,12 @@ namespace m2d
 				Map2d.initThrowRay();
 			}
 			Vector2 vector = new Vector2(this.ux2effectScreenx(this.map2ux(mapx)), this.uy2effectScreeny(this.map2uy(mapy)));
-			Vector2 vector2 = new Vector2(global::XX.X.Cos(agR), global::XX.X.Sin(agR));
+			Vector2 vector2 = new Vector2(X.Cos(agR), X.Sin(agR));
 			radius *= this.CLENB * 0.015625f;
 			return Physics2D.CircleCastNonAlloc(vector, radius, vector2, Map2d.AHit, len, Map2d.ulayermask) == 0;
 		}
 
-		public bool canThroughRectR(float mapx, float mapy, float mapw, float maph, float len, global::XX.AIM a)
+		public bool canThroughRectR(float mapx, float mapy, float mapw, float maph, float len, AIM a)
 		{
 			if (Map2d.AHit == null)
 			{
@@ -3406,7 +3612,7 @@ namespace m2d
 			}
 			len *= this.CLENB * 0.015625f;
 			Vector2 vector = new Vector2(this.ux2effectScreenx(this.map2ux(mapx)), this.uy2effectScreeny(this.map2uy(mapy)));
-			Vector2 vector2 = new Vector2((float)global::XX.CAim._XD(a, 1), (float)global::XX.CAim._YD(a, 1));
+			Vector2 vector2 = new Vector2((float)CAim._XD(a, 1), (float)CAim._YD(a, 1));
 			float num = mapw * this.CLENB * 0.015625f;
 			float num2 = maph * this.CLENB * 0.015625f;
 			return Physics2D.BoxCastNonAlloc(vector + vector2 * len, new Vector2(num, num2), 0f, vector2, Map2d.AHit, 0f, Map2d.ulayermask) == 0;
@@ -3420,7 +3626,7 @@ namespace m2d
 			}
 			len *= this.CLENB * 0.015625f;
 			Vector2 vector = new Vector2(this.ux2effectScreenx(this.map2ux(mapx)), this.uy2effectScreeny(this.map2uy(mapy)));
-			Vector2 vector2 = new Vector2(global::XX.X.Cos(agR), global::XX.X.Sin(agR));
+			Vector2 vector2 = new Vector2(X.Cos(agR), X.Sin(agR));
 			float num = mapw * this.CLENB * 0.015625f;
 			float num2 = maph * this.CLENB * 0.015625f;
 			return Physics2D.BoxCastNonAlloc(vector, new Vector2(num, num2), 0f, vector2, Map2d.AHit, len, Map2d.ulayermask) == 0;
@@ -3428,7 +3634,7 @@ namespace m2d
 
 		public bool canThroughXy(float mapx, float mapy, float dmapx, float dmapy, float radius = 0f)
 		{
-			return this.canThroughR(mapx, mapy, global::XX.X.LENGTHXY(mapx, mapy, dmapx, dmapy), this.GAR(mapx, mapy, dmapx, dmapy), radius);
+			return this.canThroughR(mapx, mapy, X.LENGTHXYQ(mapx, mapy, dmapx, dmapy), this.GAR(mapx, mapy, dmapx, dmapy), radius);
 		}
 
 		public float getFootableY(float mapx, int sy, int seek = 12, bool check_slope = false, float near_y = -1f, bool force_calc_cfg = false, bool check_main = true, bool check_lift = true, float rect_size_x = 0f)
@@ -3495,14 +3701,14 @@ namespace m2d
 				{
 					float slopeLevel = CCON.getSlopeLevel(num, false);
 					float slopeLevel2 = CCON.getSlopeLevel(num, true);
-					return (float)num2 + global::XX.X.NI(slopeLevel, slopeLevel2, global::XX.X.frac(mapx)) - rect_size_x * global::XX.X.Abs(CCON.getTiltLevel01(num));
+					return (float)num2 + X.NI(slopeLevel, slopeLevel2, X.frac(mapx)) - rect_size_x * X.Abs(CCON.getTiltLevel01(num));
 				}
 				return (float)num2;
 			}
 			else
 			{
 				M2BlockColliderContainer.BCCLine bccline;
-				this.BCC.isFallable(mapx, (float)sy, 0f, (float)seek, out bccline, check_main, check_lift, near_y);
+				this.BCC.isFallable(mapx, (float)sy, 0f, (float)seek, out bccline, check_main, check_lift, near_y, null);
 				if (bccline == null)
 				{
 					return (float)(flag ? (-1000) : sy);
@@ -3510,7 +3716,7 @@ namespace m2d
 				float num7 = bccline.slopeBottomY(mapx);
 				if (!check_slope)
 				{
-					return (float)global::XX.X.IntC(num7);
+					return (float)X.IntC(num7);
 				}
 				if (bccline.is_naname)
 				{
@@ -3518,7 +3724,7 @@ namespace m2d
 					{
 						num7 += (float)bccline._yd * bccline.line_a * rect_size_x;
 					}
-					return global::XX.X.MMX(bccline.y, num7, bccline.bottom);
+					return X.MMX(bccline.y, num7, bccline.bottom);
 				}
 				return num7;
 			}
@@ -3526,10 +3732,10 @@ namespace m2d
 
 		public float getSafeRoomPosition(float cx, float cy, float sizex, float sizey, bool no_slope, bool no_water, bool no_dangerous = true, bool ensure_all_canstand = true)
 		{
-			int num = (int)global::XX.X.Mx(cx - sizex, 0f);
-			int num2 = (int)global::XX.X.Mx(cy - sizey, 0f);
-			int num3 = global::XX.X.Mx(num + 1, global::XX.X.Mn(global::XX.X.IntC(cx + sizex), this.clms));
-			int num4 = global::XX.X.Mx(num2 + 1, global::XX.X.Mn(global::XX.X.IntC(cy + sizey), this.rows));
+			int num = (int)X.Mx(cx - sizex, 0f);
+			int num2 = (int)X.Mx(cy - sizey, 0f);
+			int num3 = X.Mx(num + 1, X.Mn(X.IntC(cx + sizex), this.clms));
+			int num4 = X.Mx(num2 + 1, X.Mn(X.IntC(cy + sizey), this.rows));
 			float num5 = 0f;
 			for (int i = num2; i < num4; i++)
 			{
@@ -3747,8 +3953,8 @@ namespace m2d
 			if (REG.match(key, M2DBase.RegFindShift))
 			{
 				key = REG.leftContext;
-				_shx += global::XX.X.Nm(REG.R1, 0f, false) / this.CLEN;
-				_shy += global::XX.X.Nm(REG.R2, 0f, false) / this.CLEN;
+				_shx += X.Nm(REG.R1, 0f, false) / this.CLEN;
+				_shy += X.Nm(REG.R2, 0f, false) / this.CLEN;
 			}
 			if (REG.match(key, M2DBase.RegFindMover))
 			{
@@ -3759,7 +3965,7 @@ namespace m2d
 				}
 				else
 				{
-					global::XX.X.de("Map2d::getPos - Mover が見つかりません :" + key, null);
+					X.de("Map2d::getPos - Mover が見つかりません :" + key, null);
 				}
 			}
 			else if (key.IndexOf("%") >= 0)
@@ -3770,7 +3976,7 @@ namespace m2d
 				}
 				else
 				{
-					global::XX.X.de("Map2d::getPos - Pr が見つかりません: " + key, null);
+					X.de("Map2d::getPos - Pr が見つかりません: " + key, null);
 				}
 			}
 			else
@@ -3836,7 +4042,15 @@ namespace m2d
 			}
 			if (this.ARunningObject != null)
 			{
-				this.ARunningObject.Remove(Lp);
+				int num = this.ARunningObject.IndexOf(Lp);
+				if (num >= 0)
+				{
+					if (this.runner_running_i >= 0 && num <= this.runner_running_i)
+					{
+						this.runner_running_i--;
+					}
+					this.ARunningObject.RemoveAt(num);
+				}
 			}
 		}
 
@@ -3922,6 +4136,20 @@ namespace m2d
 			{
 				this.ALay[i].EachLP(Func);
 			}
+		}
+
+		public M2LabelPoint FindLP(M2LabelPoint.fnCheckLP Func)
+		{
+			int num = this.ALay.Length;
+			for (int i = 0; i < num; i++)
+			{
+				M2LabelPoint m2LabelPoint;
+				if (this.ALay[i].CheckLP(Func, out m2LabelPoint))
+				{
+					return m2LabelPoint;
+				}
+			}
+			return null;
 		}
 
 		public IActivatable evItemActivate(string event_key, int activation = 1)
@@ -4053,7 +4281,7 @@ namespace m2d
 					return;
 				}
 				flag = true;
-				if (this.APhysics != null && this.APhysics.Count > 0)
+				if (!this.is_submap && this.APhysics != null && this.APhysics.Count > 0)
 				{
 					list = Map2d.ABccInfoCache;
 					list.Clear();
@@ -4155,21 +4383,21 @@ namespace m2d
 			{
 				if (vx0 != 0f)
 				{
-					M2BlockColliderContainer.BCCLine sideBcc = pointPuts.getSideBcc(this, num3, num4, (vx0 > 0f) ? global::XX.AIM.R : global::XX.AIM.L);
-					if (sideBcc != null && global::XX.X.Abs(x + (float)global::XX.X.MPF(vx0 > 0f) * size - sideBcc.x) <= size + 0.02f + global::XX.X.Abs(num))
+					M2BlockColliderContainer.BCCLine sideBcc = pointPuts.getSideBcc(this, num3, num4, (vx0 > 0f) ? AIM.R : AIM.L);
+					if (sideBcc != null && X.Abs(x + (float)X.MPF(vx0 > 0f) * size * 0.5f - sideBcc.x) <= size * 0.5f + 0.02f + X.Abs(num))
 					{
 						num5 |= 1;
 						vx0 *= -bounce_x_reduce;
 					}
 				}
-				M2BlockColliderContainer.BCCLine sideBcc2 = pointPuts.getSideBcc(this, num3, num4, (vy0 > 0f) ? global::XX.AIM.B : global::XX.AIM.T);
+				M2BlockColliderContainer.BCCLine sideBcc2 = pointPuts.getSideBcc(this, num3, num4, (vy0 > 0f) ? AIM.B : AIM.T);
 				if (sideBcc2 != null)
 				{
 					float num6 = sideBcc2.slopeBottomY(x, sideBcc2.BCC.base_shift_x, sideBcc2.BCC.base_shift_y, true);
-					if (global::XX.X.Abs(y + (float)global::XX.X.MPF(vy0 > 0f) * size - num6) <= size + 0.18f + global::XX.X.Abs(num2))
+					if (X.Abs(y + (float)X.MPF(vy0 > 0f) * size * 0.5f - num6) <= size * 0.5f + 0.18f + X.Abs(num2))
 					{
 						num5 |= 2;
-						if (global::XX.X.Abs(vy0) < gravityVelocity + 0.03f)
+						if (X.Abs(vy0) < gravityVelocity + 0.03f)
 						{
 							vy0 = 0f;
 							num5 |= 4;
@@ -4379,7 +4607,7 @@ namespace m2d
 
 		public M2DrawBinder setED(string name, M2DrawBinder.FnEffectBind fnEf, float saf = 0f)
 		{
-			return this.EFD.Add(name, fnEf, saf);
+			return (this.EFD ?? this.EFDC).Add(name, fnEf, saf);
 		}
 
 		public M2DrawBinder setEDT(string name, M2DrawBinder.FnEffectBind fnEf, float saf = 0f)
@@ -4426,7 +4654,7 @@ namespace m2d
 
 		public float GAR(float mpx, float mpy, float mpx2, float mpy2)
 		{
-			return global::XX.X.GAR2(mpx, -mpy, mpx2, -mpy2);
+			return X.GAR2(mpx, -mpy, mpx2, -mpy2);
 		}
 
 		public float pixel2meshx(float x)
@@ -4449,6 +4677,16 @@ namespace m2d
 			return -y + (float)this.height * 0.5f;
 		}
 
+		public float meshx2map(float x)
+		{
+			return (x - (float)this.width * 0.5f) * this.rCLEN;
+		}
+
+		public float meshy2map(float y)
+		{
+			return -(y - (float)this.height * 0.5f) * this.rCLEN;
+		}
+
 		public float pixel2ux(float x)
 		{
 			return this.pixel2meshx(x) * 0.015625f;
@@ -4461,12 +4699,12 @@ namespace m2d
 
 		public float pixel2ux_rounded(float x)
 		{
-			return (float)global::XX.X.IntR(this.pixel2meshx(x) * this.mover_scale) / this.mover_scale * 0.015625f;
+			return (float)X.IntR(this.pixel2meshx(x) * this.mover_scale) / this.mover_scale * 0.015625f;
 		}
 
 		public float pixel2uy_rounded(float y)
 		{
-			return (float)global::XX.X.IntR(this.pixel2meshy(y) * this.mover_scale) / this.mover_scale * 0.015625f;
+			return (float)X.IntR(this.pixel2meshy(y) * this.mover_scale) / this.mover_scale * 0.015625f;
 		}
 
 		public float map2ux(float x)
@@ -4565,13 +4803,13 @@ namespace m2d
 		{
 			get
 			{
-				return (this.update_mesh_flag_ & -2049) > 0;
+				return (this.update_mesh_flag_ & -4097) > 0;
 			}
 			set
 			{
 				if (value)
 				{
-					this.update_mesh_flag_ = 15 | (this.update_mesh_flag_ & 2048);
+					this.update_mesh_flag_ = 15 | (this.update_mesh_flag_ & 4096);
 				}
 			}
 		}
@@ -4580,7 +4818,7 @@ namespace m2d
 		{
 			get
 			{
-				return (this.update_mesh_flag_ & 16384) != 0;
+				return (this.update_mesh_flag_ & 32768) != 0;
 			}
 		}
 
@@ -4588,7 +4826,7 @@ namespace m2d
 		{
 			get
 			{
-				return (this.update_mesh_flag_ & 2048) != 0;
+				return (this.update_mesh_flag_ & 4096) != 0;
 			}
 		}
 
@@ -4610,13 +4848,17 @@ namespace m2d
 			{
 				return 512;
 			}
+			if (Md == this.MyDrawerLT)
+			{
+				return 1024;
+			}
 			if (Md == this.MyDrawerTT)
 			{
-				return 8192;
+				return 16384;
 			}
 			if (Md == this.MyDrawerWater)
 			{
-				return 1024;
+				return 2048;
 			}
 			return 0;
 		}
@@ -4675,7 +4917,7 @@ namespace m2d
 
 		public static void reentryAllChipsForOneLayer(Map2d Mp, M2MapLayer Lay)
 		{
-			Mp.update_mesh_flag_ |= Lay.reentryAllChips(Mp.MyDrawerB, Mp.MyDrawerG, Mp.MyDrawerT, Mp.MyDrawerL, Mp.MyDrawerTT, ref Mp.ARedrawingChip, ref Mp.redrawing_chip_count);
+			Mp.update_mesh_flag_ |= Lay.reentryAllChips(Mp.MyDrawerB, Mp.MyDrawerG, Mp.MyDrawerT, Mp.MyDrawerL, Mp.MyDrawerLT, Mp.MyDrawerTT, ref Mp.ARedrawingChip, ref Mp.redrawing_chip_count);
 		}
 
 		public void entryChipPlaying(M2Puts Cp)
@@ -4685,7 +4927,37 @@ namespace m2d
 				this.drawCheck(0f);
 			}
 			Cp.arrangeable = true;
-			this.update_mesh_flag_ |= Cp.entryChipMesh(this.MyDrawerB, this.MyDrawerG, this.MyDrawerT, this.MyDrawerL, this.MyDrawerTT, 0f, 0f, 1f, 0f);
+			int num = Cp.entryChipMesh(this.MyDrawerB, this.MyDrawerG, this.MyDrawerT, this.MyDrawerL, this.MyDrawerLT, this.MyDrawerTT, 0f, 0f, 1f, 0f);
+			if ((num & 256) != 0)
+			{
+				num &= -257;
+				this.addRedrawingChip(Cp);
+			}
+			if ((num & 1) != 0)
+			{
+				this.MMRD.GetGob(this.MyDrawerB).SetActive(true);
+			}
+			if ((num & 2) != 0)
+			{
+				this.MMRD.GetGob(this.MyDrawerG).SetActive(true);
+			}
+			if ((num & 4) != 0)
+			{
+				this.MMRD.GetGob(this.MyDrawerT).SetActive(true);
+			}
+			if ((num & 16384) != 0)
+			{
+				this.MMRD.GetGob(this.MyDrawerTT).SetActive(true);
+			}
+			if ((num & 512) != 0)
+			{
+				this.MMRD.GetGob(this.MyDrawerL).SetActive(true);
+			}
+			if ((num & 1024) != 0)
+			{
+				this.MMRD.GetGob(this.MyDrawerLT).SetActive(true);
+			}
+			this.update_mesh_flag_ |= num;
 		}
 
 		private void clearGradation()
@@ -4693,7 +4965,7 @@ namespace m2d
 			if (!this.is_submap)
 			{
 				this.MMRD.clearBit(new MdMap[] { this.MyDrawerUGrd, this.MyDrawerBGrd, this.MyDrawerGGrd, this.MyDrawerTGrd });
-				this.update_mesh_flag_ |= 16384;
+				this.update_mesh_flag_ |= 32768;
 			}
 			this.MyDrawerUGrd.prepareReentry();
 			this.MyDrawerBGrd.prepareReentry();
@@ -4720,6 +4992,10 @@ namespace m2d
 
 		public bool isinCamera(float mapx, float mapy, float mapw, float maph, float extend_pixel = 0f)
 		{
+			if (this.is_submap)
+			{
+				return this.SubMapData.isinCamera(mapx, mapy, mapw + mapx, maph + mapy, extend_pixel);
+			}
 			return this.M2D.Cam.isCoveringMp(mapx, mapy, mapw + mapx, maph + mapy, extend_pixel);
 		}
 
@@ -4935,58 +5211,62 @@ namespace m2d
 			{
 				return null;
 			}
-			List<int> list2 = new List<int>();
-			List<M2Puts> list3 = null;
-			new List<M2Puts>();
-			int num = 0;
-			int num2 = 0;
-			int num3 = this.clms;
-			int num4 = this.rows;
-			if (ClipRect != null)
+			using (BList<int> blist = ListBuffer<int>.Pop(2))
 			{
-				num = (int)(ClipRect.x / this.CLEN);
-				num2 = (int)(ClipRect.y / this.CLEN);
-				num3 = global::XX.X.IntC(ClipRect.right / this.CLEN);
-				num4 = global::XX.X.IntC(ClipRect.bottom / this.CLEN);
-			}
-			List<int> list4 = new List<int>(24);
-			list4.Add((mapx << 10) | mapy);
-			while (list3 == null || list3.Count > 0)
-			{
-				list3 = new List<M2Puts>();
-				int count = list.Count;
-				for (int i = 0; i < count; i++)
+				List<M2Puts> list2 = null;
+				new List<M2Puts>();
+				int num = 0;
+				int num2 = 0;
+				int num3 = this.clms;
+				int num4 = this.rows;
+				if (ClipRect != null)
 				{
-					M2Puts m2Puts = list[i];
-					if (list2.IndexOf(m2Puts.index) < 0)
+					num = (int)(ClipRect.x / this.CLEN);
+					num2 = (int)(ClipRect.y / this.CLEN);
+					num3 = X.IntC(ClipRect.right / this.CLEN);
+					num4 = X.IntC(ClipRect.bottom / this.CLEN);
+				}
+				using (BList<int> blist2 = ListBuffer<int>.Pop(24))
+				{
+					blist2.Add((mapx << 10) | mapy);
+					while (list2 == null || list2.Count > 0)
 					{
-						list2.Add(m2Puts.index);
-						ACp.Add(m2Puts);
-						int num5 = global::XX.X.IntC((float)(m2Puts.drawx + m2Puts.iwidth) / this.CLEN);
-						int num6 = global::XX.X.IntC((float)(m2Puts.drawy + m2Puts.iheight) / this.CLEN);
-						for (int j = m2Puts.mapy; j < num6; j++)
+						list2 = new List<M2Puts>();
+						int count = list.Count;
+						for (int i = 0; i < count; i++)
 						{
-							for (int k = m2Puts.mapx; k < num5; k++)
+							M2Puts m2Puts = list[i];
+							if (blist.IndexOf(m2Puts.index) < 0)
 							{
-								for (int l = -1; l < 4; l++)
+								blist.Add(m2Puts.index);
+								ACp.Add(m2Puts);
+								int num5 = X.IntC((float)(m2Puts.drawx + m2Puts.iwidth) / this.CLEN);
+								int num6 = X.IntC((float)(m2Puts.drawy + m2Puts.iheight) / this.CLEN);
+								for (int j = m2Puts.mapy; j < num6; j++)
 								{
-									int num7 = ((l == -1) ? k : (k + global::XX.CAim._XD(l, 1)));
-									int num8 = ((l == -1) ? j : (j + global::XX.CAim._YD(l, 1)));
-									if (global::XX.X.BTW((float)num, (float)num7, (float)num3) && global::XX.X.BTW((float)num2, (float)num8, (float)num4))
+									for (int k = m2Puts.mapx; k < num5; k++)
 									{
-										int num9 = (num7 << 10) | num8;
-										if (list4.IndexOf(num9) < 0)
+										for (int l = -1; l < 4; l++)
 										{
-											list4.Add(num9);
-											this.findPuts(num7, num8, FnAttract, list3);
+											int num7 = ((l == -1) ? k : (k + CAim._XD(l, 1)));
+											int num8 = ((l == -1) ? j : (j + CAim._YD(l, 1)));
+											if (X.BTW((float)num, (float)num7, (float)num3) && X.BTW((float)num2, (float)num8, (float)num4))
+											{
+												int num9 = (num7 << 10) | num8;
+												if (blist2.IndexOf(num9) < 0)
+												{
+													blist2.Add(num9);
+													this.findPuts(num7, num8, FnAttract, list2);
+												}
+											}
 										}
 									}
 								}
 							}
 						}
+						list = list2;
 					}
 				}
-				list = list3;
 			}
 			return ACp;
 		}
@@ -5087,7 +5367,7 @@ namespace m2d
 		{
 			get
 			{
-				return global::XX.X.countNotEmpty<M2Mover>(this.AMov);
+				return X.countNotEmpty<M2Mover>(this.AMov);
 			}
 		}
 
@@ -5163,13 +5443,22 @@ namespace m2d
 					return m2MoverPr;
 				}
 			}
-			global::XX.X.dl("プレイヤー " + key + " が見つかりません ", null, false, false);
+			X.dl("プレイヤー " + key + " が見つかりません ", null, false, false);
 			return this.Pr;
 		}
 
 		public M2PxlAnimator getPxlAnimator(M2Mover Mv)
 		{
-			for (int i = 0; i < this.pxlanim_count; i++)
+			if (this.is_submap)
+			{
+				return this.SubMapData.getBaseMap().getPxlAnimator(Mv);
+			}
+			if (this.APxlAnim == null)
+			{
+				return null;
+			}
+			int count = this.APxlAnim.Count;
+			for (int i = 0; i < count; i++)
 			{
 				M2PxlAnimator m2PxlAnimator = this.APxlAnim[i];
 				if (m2PxlAnimator.get_Mv() == Mv)
@@ -5182,11 +5471,19 @@ namespace m2d
 
 		public M2PxlAnimator PxlAnimatorReinsert(M2PxlAnimator Pxl)
 		{
-			int num = global::XX.X.isinC<M2PxlAnimator>(this.APxlAnim, Pxl, this.pxlanim_count);
-			if (num >= 0 && num < this.pxlanim_count - 1)
+			if (this.is_submap)
 			{
-				global::XX.X.shiftNotInput<M2PxlAnimator>(this.APxlAnim, 1, num, this.pxlanim_count);
-				this.APxlAnim[this.pxlanim_count - 1] = Pxl;
+				return this.SubMapData.getBaseMap().PxlAnimatorReinsert(Pxl);
+			}
+			if (this.APxlAnim == null)
+			{
+				return null;
+			}
+			int num = this.APxlAnim.IndexOf(Pxl);
+			if (num >= 0 && num < this.APxlAnim.Count - 1)
+			{
+				this.APxlAnim.RemoveAt(num);
+				this.APxlAnim.Add(Pxl);
 			}
 			return null;
 		}
@@ -5212,14 +5509,21 @@ namespace m2d
 			}
 		}
 
-		public void getMapBodyContentReader(ref CsvReader CR, ref ByteArray BaLoad)
+		public void getMapBodyContentReader(ref CsvReader CR, ref ByteArray BaLoad, bool fix_to_content_head = false)
 		{
 			if (this.BaLoad != null)
 			{
 				BaLoad = this.BaLoad;
-				return;
+				if (fix_to_content_head)
+				{
+					BaLoad.position = (ulong)this.binary_content_position;
+					return;
+				}
 			}
-			CR = this.CR;
+			else
+			{
+				CR = this.CR;
+			}
 		}
 
 		public bool isJustOpened
@@ -5269,7 +5573,7 @@ namespace m2d
 
 		public M2Mover getMv(int i)
 		{
-			if (!global::XX.X.BTW(0f, (float)i, (float)this.AMov.Length))
+			if (!X.BTW(0f, (float)i, (float)this.AMov.Length))
 			{
 				return null;
 			}
@@ -5278,7 +5582,7 @@ namespace m2d
 
 		public M2MoverPr getPr(int i)
 		{
-			if (!global::XX.X.BTW(0f, (float)i, (float)this.AMovP.Length))
+			if (!X.BTW(0f, (float)i, (float)this.AMovP.Length))
 			{
 				return null;
 			}
@@ -5292,7 +5596,7 @@ namespace m2d
 
 		public M2Puts getChipAtLayerByIndex(int layind, int cind)
 		{
-			if (!global::XX.X.BTW(0f, (float)layind, (float)this.ALay.Length))
+			if (!X.BTW(0f, (float)layind, (float)this.ALay.Length))
 			{
 				return null;
 			}
@@ -5431,7 +5735,20 @@ namespace m2d
 		{
 			get
 			{
-				return this.M2D.Cam.MovRender;
+				if (this.is_submap && this.MovRenderer_ == null)
+				{
+					this.MovRenderer_ = new M2MovRenderContainer(this.M2D.Cam);
+					this.MovRenderer_.initS(this);
+				}
+				return this.MovRenderer_ ?? this.M2D.Cam.MovRender;
+			}
+		}
+
+		public void releaseSubmapMovRender()
+		{
+			if (this.is_submap && this.MovRenderer_ != null)
+			{
+				this.MovRenderer_.clearCameraComponent(true);
 			}
 		}
 
@@ -5441,7 +5758,7 @@ namespace m2d
 			{
 				this.checkCachedSimplifiedImageExists();
 				this.need_reentry_flag_ = true;
-				this.update_mesh_flag_ |= 519 | ((this.MyDrawerWater != null) ? 1024 : 0);
+				this.update_mesh_flag_ |= 1543 | ((this.MyDrawerWater != null) ? 2048 : 0);
 			}
 			if (grad)
 			{
@@ -5489,7 +5806,7 @@ namespace m2d
 				this.checkCachedSimplifiedImageExists();
 				if (value)
 				{
-					this.update_mesh_flag_ |= 519 | ((this.MyDrawerWater != null) ? 1024 : 0);
+					this.update_mesh_flag_ |= 1543 | ((this.MyDrawerWater != null) ? 2048 : 0);
 				}
 			}
 		}
@@ -5498,7 +5815,7 @@ namespace m2d
 		{
 			get
 			{
-				return (this.update_mesh_flag_ & 2048) != 0;
+				return (this.update_mesh_flag_ & 4096) != 0;
 			}
 		}
 
@@ -5692,9 +6009,7 @@ namespace m2d
 
 		private List<IActivatable> AActivatable;
 
-		private M2PxlAnimator[] APxlAnim;
-
-		private int pxlanim_count;
+		private List<M2PxlAnimator> APxlAnim;
 
 		public uint cmd_reload_flg;
 
@@ -5708,9 +6023,7 @@ namespace m2d
 
 		public const uint CMD_RELOAD_LP = 16U;
 
-		private M2Light[] ALight;
-
-		private int light_cnt;
+		private List<M2Light> ALight;
 
 		private DRect[] ARcPreDefined;
 
@@ -5737,6 +6050,8 @@ namespace m2d
 		private bool stack_to_map;
 
 		private int mover_running_i = -1;
+
+		private int runner_running_i = -1;
 
 		public static M2Puts[] ABufPuts;
 
@@ -5790,25 +6105,33 @@ namespace m2d
 
 		public const float Z_CAM_RENDERED_FINALIZE = 440f;
 
-		public const float Z_GROUND = 400f;
+		public const float Z_MV_CM = 315f;
 
-		public const float Z_WATER = 370f;
+		public const float Z_MV_T = 350f;
 
-		public const float Z_WATER_MESH = 370f;
+		public const float Z_GROUND = 385f;
 
-		public const float Z_TOP = 340f;
+		public const float Z_MV = 400f;
 
-		public const float Z_TOPLIGHT = 320f;
+		public const float Z_WATER = 425f;
 
-		public const float Z_EF_BOTTOM = 315f;
+		public const float Z_WATER_MESH = 425f;
+
+		public const float Z_TOP = 410f;
+
+		public const float Z_CHIPLIGHT_B = 405f;
+
+		public const float Z_EF_BOTTOM = 420f;
 
 		public const float Z_TT = 310f;
 
-		public const float Z_MV = 300f;
+		public const float Z_LT = 305f;
 
 		public const float Z_EF_TOP = 120f;
 
 		public const float Z_TT_FRONT = 130f;
+
+		public const float Z_CHIPLIGHT_T_FRONT = 125f;
 
 		public const float Z_LIGHT = 805f;
 
@@ -5838,9 +6161,11 @@ namespace m2d
 
 		public const int MESHBIT_T = 4;
 
-		public const int MESHBIT_LT = 512;
+		public const int MESHBIT_LB = 512;
 
-		public const int MESHBIT_WATER = 1024;
+		public const int MESHBIT_LT = 1024;
+
+		public const int MESHBIT_WATER = 2048;
 
 		public const int MESHBIT_UGRD = 16;
 
@@ -5850,17 +6175,17 @@ namespace m2d
 
 		public const int MESHBIT_TGRD = 128;
 
-		public const int MESHBIT__ALL = 9983;
+		public const int MESHBIT__ALL = 20223;
 
 		public const int MESHBIT_REDRAWING = 256;
 
-		public const int MESHBIT_INIT_ACTION = 2048;
+		public const int MESHBIT_INIT_ACTION = 4096;
 
-		public const int MESHBIT_BLURED_IMAGE = 4096;
+		public const int MESHBIT_BLURED_IMAGE = 8192;
 
-		public const int MESHBIT_TT = 8192;
+		public const int MESHBIT_TT = 16384;
 
-		public const int MESHBIT_SPLICE_MESH = 16384;
+		public const int MESHBIT_SPLICE_MESH = 32768;
 
 		private M2BlurMeshDrawer BlurDraw;
 
@@ -5878,6 +6203,8 @@ namespace m2d
 
 		public MdMap MyDrawerTT;
 
+		public MdMap MyDrawerLT;
+
 		public MdMap MyDrawerL;
 
 		public MdMap MyDrawerUGrd;
@@ -5893,6 +6220,8 @@ namespace m2d
 		public M2UnstabilizeMapItem Unstb;
 
 		public const int mesh_count = 12;
+
+		private M2MovRenderContainer MovRenderer_;
 
 		private const string string_MapMain_Ev = "MapMain-Ev";
 
@@ -5947,13 +6276,15 @@ namespace m2d
 			EDITOR_ADDITIONAL,
 			MESH_RECT,
 			LAYER_REVERSE,
+			IMGDIR,
 			LAYER_HEADER = 80,
 			PAT_CHANGE,
 			CP,
 			PIC,
 			LP,
 			GRD,
-			SM
+			SM,
+			LAY_CHIPS_CONTENT
 		}
 
 		public enum CONNECTIMG : byte

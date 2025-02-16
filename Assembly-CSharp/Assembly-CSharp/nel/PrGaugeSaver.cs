@@ -26,14 +26,28 @@ namespace nel
 			}
 		}
 
-		public int applyHpDamage(int val, NelAttackInfoBase Atk, out M2DmgCounterItem.DC dmgcounter_v, out int reduced)
+		public override void initS()
+		{
+			base.initS();
+			this.removeHeadDelay();
+		}
+
+		public int applyHpDamage(int val, NelAttackInfoBase Atk, out M2DmgCounterItem.DC dmgcounter_v, out int reduced, out bool add_nodam)
 		{
 			dmgcounter_v = M2DmgCounterItem.DC.NORMAL;
 			reduced = 0;
+			add_nodam = false;
 			if (val <= 0)
 			{
 				return val;
 			}
+			NDMG ndmg = ((Atk == null) ? NDMG.NORMAL : Atk.ndmg);
+			if (this.Pr.isNoDamageActive(ndmg) && this.Pr.DMG.isPenetrateShutterAttr(ndmg))
+			{
+				dmgcounter_v |= M2DmgCounterItem.DC.REDUCED;
+				return 0;
+			}
+			add_nodam = true;
 			PrGaugeSaver.GsItem gsHp = this.GsHp;
 			int num = val;
 			float num2 = 0f;
@@ -44,7 +58,7 @@ namespace nel
 			if (this.Pr.is_alive && DIFF.reduceApplyingHp(this.Pr, Atk, ref this.t_hp_damage_reduce, ref val, out num3, out num4, out num5))
 			{
 				gsHp.LockTimeAdd(num3, num4);
-				num2 = global::XX.X.Mx(0f, (float)(num - val) * num5);
+				num2 = X.Mx(0f, (float)(num - val) * num5);
 				flag = num2 > 0f;
 				dmgcounter_v |= M2DmgCounterItem.DC.REDUCED;
 			}
@@ -53,9 +67,9 @@ namespace nel
 			{
 				flag = true;
 				float hp1_secure_damage_ratio = DIFF.hp1_secure_damage_ratio;
-				num6 = global::XX.X.Mx(0f, num6 * hp1_secure_damage_ratio);
-				num6 = global::XX.X.Mn(gsHp.saved_gauge_value - num2, num6);
-				val = global::XX.X.Mx(0, val - global::XX.X.IntR(num6 / hp1_secure_damage_ratio));
+				num6 = X.Mx(0f, num6 * hp1_secure_damage_ratio);
+				num6 = X.Mn(gsHp.saved_gauge_value - num2, num6);
+				val = X.Mx(0, val - X.IntR(num6 / hp1_secure_damage_ratio));
 				if (val <= 0 && this.Pr.is_alive)
 				{
 					dmgcounter_v |= M2DmgCounterItem.DC.REDUCED;
@@ -68,8 +82,8 @@ namespace nel
 			}
 			if (num6 > 0f)
 			{
-				reduced = global::XX.X.IntC(num6);
-				gsHp.Reduce(num6, flag).LockTime(DIFF.lock_hp_gsaver_time(this.Pr, Atk, global::XX.X.Mx(0, (int)this.Pr.get_hp() - val)), true);
+				reduced = X.IntC(num6);
+				gsHp.Reduce(num6, flag).LockTime(DIFF.lock_hp_gsaver_time(this.Pr, Atk, X.Mx(0, (int)this.Pr.get_hp() - val)), true);
 			}
 			return val;
 		}
@@ -117,6 +131,19 @@ namespace nel
 			}
 		}
 
+		public void reduceHp(int val, bool lock_time = false, bool touch_ui = false)
+		{
+			if (this.Pr.isPuzzleManagingMp() || val <= 0)
+			{
+				return;
+			}
+			this.GsHp.Reduce((float)val, touch_ui);
+			if (lock_time)
+			{
+				this.GsHp.LockTime();
+			}
+		}
+
 		public void applyMpDamage(float mpval, AttackInfo Atk, ref float gauge_break, float pre_mphold = -1f, bool use_quake = false)
 		{
 			if (mpval <= 0f || this.Pr.isPuzzleManagingMp())
@@ -125,11 +152,11 @@ namespace nel
 			}
 			if (pre_mphold > 0f)
 			{
-				mpval -= global::XX.X.Mx(1f, DIFF.recover_holded_mp_gsave(this.Pr, Atk) * pre_mphold);
+				mpval -= X.Mx(1f, DIFF.recover_holded_mp_gsave(this.Pr, Atk) * pre_mphold);
 			}
 			else
 			{
-				mpval -= global::XX.X.Mx(1f, DIFF.recover_mp_gsave(this.Pr, Atk) * mpval);
+				mpval -= X.Mx(1f, DIFF.recover_mp_gsave(this.Pr, Atk) * mpval);
 			}
 			this.GsMp.Reduce(mpval, use_quake).LockTime(DIFF.lock_mp_gsaver_time(this.Pr, Atk), true);
 		}
@@ -152,7 +179,7 @@ namespace nel
 		{
 			if (this.t_hp_damage_reduce > 0f)
 			{
-				this.t_hp_damage_reduce = global::XX.X.Mx(0f, this.t_hp_damage_reduce - (this.Pr.isGSHpDamageSlowDown() ? 0.25f : fcnt));
+				this.t_hp_damage_reduce = X.Mx(0f, this.t_hp_damage_reduce - (this.Pr.isGSHpDamageSlowDown() ? 0.25f : fcnt));
 			}
 			if (!base.is_alive || this.Pr.isTrappedState() || fcnt <= 0f)
 			{
@@ -185,7 +212,7 @@ namespace nel
 			this.t_hp_damage_reduce = 0f;
 		}
 
-		public void readBinaryFrom(ByteArray Ba)
+		public void readBinaryFrom(ByteReader Ba)
 		{
 			int num = Ba.readByte();
 			for (int i = 0; i < 2; i++)
@@ -270,15 +297,15 @@ namespace nel
 			{
 				if (fine_bottom)
 				{
-					this.sval = global::XX.X.Mx(this.sval, this.is_hp ? this.Pr.get_hp() : this.Pr.get_mp());
+					this.sval = X.Mx(this.sval, this.is_hp ? this.Pr.get_hp() : this.Pr.get_mp());
 				}
-				this.sval = global::XX.X.Mx(0f, global::XX.X.Mn(this.sval, this.is_hp ? this.Pr.get_maxhp() : (this.Pr.get_maxmp() - (float)this.Pr.EggCon.total)));
+				this.sval = X.Mx(0f, X.Mn(this.sval, this.is_hp ? this.Pr.get_maxhp() : (this.Pr.get_maxmp() - (float)this.Pr.EggCon.total)));
 				return this.fineMinusDelay();
 			}
 
 			public PrGaugeSaver.GsItem Reduce(float val, bool touch_ui = true)
 			{
-				this.sval = global::XX.X.Mx(this.sval - global::XX.X.Mx(0f, val), 0f);
+				this.sval = X.Mx(this.sval - X.Mx(0f, val), 0f);
 				if (touch_ui && UIStatus.isPr(this.Pr))
 				{
 					if (this.is_hp)
@@ -295,13 +322,13 @@ namespace nel
 
 			public PrGaugeSaver.GsItem Add(float val)
 			{
-				this.sval += global::XX.X.Mx(0f, val);
+				this.sval += X.Mx(0f, val);
 				return this.Fine(false);
 			}
 
 			public PrGaugeSaver.GsItem LockTime(float t, bool _frame_first = true)
 			{
-				this.t_lock = global::XX.X.Mx(t, this.t_lock);
+				this.t_lock = X.Mx(t, this.t_lock);
 				if (_frame_first)
 				{
 					this.frame_first = _frame_first;
@@ -322,8 +349,8 @@ namespace nel
 				}
 				else
 				{
-					_max = global::XX.X.Mx(_max, this.t_lock);
-					this.t_lock = global::XX.X.Mn(_max, this.t_lock + t_add);
+					_max = X.Mx(_max, this.t_lock);
+					this.t_lock = X.Mn(_max, this.t_lock + t_add);
 				}
 				return this;
 			}
@@ -332,7 +359,7 @@ namespace nel
 			{
 				if (this.t_lock < 0f)
 				{
-					this.t_lock = global::XX.X.Mn(this.t_lock + fcnt, 0f);
+					this.t_lock = X.Mn(this.t_lock + fcnt, 0f);
 					return;
 				}
 				if (this.frame_first)
@@ -358,7 +385,7 @@ namespace nel
 							this.Pr.cureMp(1, false, false, false);
 							return;
 						}
-						this.t_lock = global::XX.X.Mx(20f, this.t_lock);
+						this.t_lock = X.Mx(20f, this.t_lock);
 						if (UIStatus.isPr(this.Pr))
 						{
 							UIStatus.Instance.redraw_mp = true;
@@ -408,7 +435,7 @@ namespace nel
 				}
 			}
 
-			public void readBinaryFrom(ByteArray Ba, int vers)
+			public void readBinaryFrom(ByteReader Ba, int vers)
 			{
 				this.sval = (float)Ba.readUShort();
 				this.t_lock = 0f;

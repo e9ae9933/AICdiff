@@ -339,6 +339,8 @@ namespace XX
 
 		public static readonly Regex RegSuffixNumber = new Regex("_(\\d+)$");
 
+		public static readonly Regex RegSuffixAlphabet = new Regex("_([A-Za-z]+)$");
+
 		public static readonly Regex RegSuffixNumberOnly = new Regex("(\\d+)$");
 
 		public static readonly Regex RegSuffixPeriodInt = new Regex("\\.([\\d\\-]+)$");

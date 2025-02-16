@@ -32,7 +32,7 @@ namespace XX
 				this.rep_z__ = ((value != "") ? value : null);
 				if (this.rep_z__ != null && !this.inputValueProp(this.rep_z__, 0f))
 				{
-					X.de("不明な z 指定子: " + this.rep_z__, null);
+					X.de(string.Concat(new string[] { "不明な z 指定子: ", this.rep_z__, "(key: ", this.key, ")" }), null);
 					this.rep_z__ = null;
 				}
 			}
@@ -49,7 +49,7 @@ namespace XX
 				this.rep_time__ = ((value != "") ? value : null);
 				if (this.rep_time__ != null && !this.inputValuePropInt(this.rep_time__, 0))
 				{
-					X.de("不明な time 指定子: " + this.rep_time__, null);
+					X.de(string.Concat(new string[] { "不明な time 指定子: ", this.rep_time__, "(key: ", this.key, ")" }), null);
 					this.rep_time__ = null;
 				}
 			}
@@ -446,7 +446,7 @@ namespace XX
 				this.zspd0_dif = this.zspd0_max - this.zspd0_min;
 				this.SetV(efParticleVarContainer, "z_bound", 0);
 			}
-			this.FD_EfRun = (EffectItem Ef) => this.drawMain(Ef, 0f, (this.time_lock_factor > 0) ? ((float)this.time_lock_factor / 100f) : 0f, false);
+			this.FD_EfRun = (EffectItem Ef) => this.drawMain(Ef, 0f, (this.time_lock_factor > 0) ? ((float)this.time_lock_factor * 0.01f) : 0f, false);
 			return this;
 		}
 
@@ -662,7 +662,7 @@ namespace XX
 		{
 			if (v != 0f)
 			{
-				return v * Fc.Get(EfParticle.CurDrawing, (EfParticle.recalc_fn_value > 0) ? EfParticle.tz : (-2f));
+				return v * Fc.Get((float)EfParticle.CurDrawing.maxt, (EfParticle.recalc_fn_value > 0) ? EfParticle.tz : (-2f), true);
 			}
 			return 0f;
 		}
@@ -671,7 +671,7 @@ namespace XX
 		{
 			if (v != 0f)
 			{
-				return v * Fc.Get(null, tz);
+				return v * Fc.Get(-1f, tz, false);
 			}
 			return 0f;
 		}
@@ -793,7 +793,7 @@ namespace XX
 				{
 					goto IL_0419;
 				}
-				IL_232E:
+				IL_234A:
 				EfParticle.i++;
 				continue;
 				IL_0419:
@@ -803,18 +803,18 @@ namespace XX
 				}
 				if (float.IsInfinity(EfParticle.tz))
 				{
-					goto IL_232E;
+					goto IL_234A;
 				}
 				if (EfParticle.tz >= 1f)
 				{
 					if (particle_loop <= 0f)
 					{
-						goto IL_232E;
+						goto IL_234A;
 					}
 					EfParticle.tz -= (float)X.Int(EfParticle.tz / particle_loop) * particle_loop;
 					if (EfParticle.tz >= 1f)
 					{
-						goto IL_232E;
+						goto IL_234A;
 					}
 				}
 				EfParticle.exz = 0f;
@@ -838,7 +838,7 @@ namespace XX
 				this.calcXY(E, false, false);
 				if (EfParticle.no_draw)
 				{
-					goto IL_232E;
+					goto IL_234A;
 				}
 				EfParticle._zm = EfParticle.FnMUL(this.zm_min + EfParticle.RANMUL(this.zm_dif, 303), this.Fn_zm_type);
 				if (this.zmadd_min != 0f || this.zmadd_dif != 0f)
@@ -853,7 +853,7 @@ namespace XX
 						EfParticle._thick = X.Mx(0f, EfParticle._zm + EfParticle._thick * ((this.type == -13) ? EfParticle._zm : 1f));
 						if (EfParticle._thick <= 0f)
 						{
-							goto IL_232E;
+							goto IL_234A;
 						}
 					}
 				}
@@ -1053,11 +1053,11 @@ namespace XX
 					{
 						if (this.ex_reverse == -1)
 						{
-							this.ex_reverse = ((this.Fn_ex_type.Get(null, 0f) < this.Fn_ex_type.Get(null, 1f)) ? 1 : 0);
+							this.ex_reverse = ((this.Fn_ex_type.Get((float)this.maxt, 0f, false) < this.Fn_ex_type.Get((float)this.maxt, 1f, false)) ? 1 : 0);
 						}
 						if (this.mv_reverse == -1)
 						{
-							this.mv_reverse = ((this.Fn_mv_type.Get(null, 0f) < this.Fn_mv_type.Get(null, 1f)) ? 1 : 0);
+							this.mv_reverse = ((this.Fn_mv_type.Get((float)this.maxt, 0f, false) < this.Fn_mv_type.Get((float)this.maxt, 1f, false)) ? 1 : 0);
 						}
 						float num39;
 						bool flag2;
@@ -1393,9 +1393,9 @@ namespace XX
 				if (EfParticle.recalc_fn_value == 1)
 				{
 					EfParticle.recalc_fn_value = ((num11 != 0f) ? 2 : 0);
-					goto IL_232E;
+					goto IL_234A;
 				}
-				goto IL_232E;
+				goto IL_234A;
 			}
 			if (EfParticle.Md != null)
 			{

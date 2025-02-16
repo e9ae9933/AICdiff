@@ -110,6 +110,13 @@ namespace XX
 
 		public bool read(STB Stb, int lcs, ref int lce, bool writeable = true, bool no_replace_quote = false)
 		{
+			bool flag;
+			return this.read(Stb, lcs, ref lce, out flag, writeable, no_replace_quote);
+		}
+
+		public bool read(STB Stb, int lcs, ref int lce, out bool quote_or_doller_exists, bool writeable = true, bool no_replace_quote = false)
+		{
+			quote_or_doller_exists = false;
 			if (this.AquoteReplace != null)
 			{
 				this.AquoteReplace.Clear();
@@ -188,28 +195,36 @@ namespace XX
 					{
 						i++;
 					}
-					else if (c == '\0')
+					else
 					{
-						if (c2 == '\'' || c2 == '"')
+						if (c2 == '$')
 						{
-							c = c2;
-							num3 = i - 1;
+							quote_or_doller_exists = true;
 						}
-					}
-					else if (c2 == c)
-					{
-						if (this.AquoteReplace == null)
+						if (c == '\0')
 						{
-							this.AquoteReplace = new List<string>(1);
+							if (c2 == '\'' || c2 == '"')
+							{
+								c = c2;
+								quote_or_doller_exists = true;
+								num3 = i - 1;
+							}
 						}
-						int num4 = i - num3;
-						this.AquoteReplace.Add(Stb.ToString(num3 + 1, num4 - 2));
-						Stb.Splice(num3, num4);
-						string text2 = CsvVariableContainer.quote_replacer_key(this.AquoteReplace.Count - 1);
-						Stb.Insert(num3, text2);
-						i = num3 + text2.Length;
-						lce += -num4 + text2.Length;
-						c = '\0';
+						else if (c2 == c)
+						{
+							if (this.AquoteReplace == null)
+							{
+								this.AquoteReplace = new List<string>(1);
+							}
+							int num4 = i - num3;
+							this.AquoteReplace.Add(Stb.ToString(num3 + 1, num4 - 2));
+							Stb.Splice(num3, num4);
+							string text2 = CsvVariableContainer.quote_replacer_key(this.AquoteReplace.Count - 1);
+							Stb.Insert(num3, text2);
+							i = num3 + text2.Length;
+							lce += -num4 + text2.Length;
+							c = '\0';
+						}
 					}
 				}
 			}

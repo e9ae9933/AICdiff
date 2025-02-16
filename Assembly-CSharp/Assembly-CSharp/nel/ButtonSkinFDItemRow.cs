@@ -26,10 +26,10 @@ namespace nel
 
 		public void setItem(ButtonSkinFDItemRow Src)
 		{
-			this.setItem(Src.FDCon, Src.M2D, Src.Fdr);
+			this.setItem(Src.FDCon, Src.M2D, Src.Fdr, null);
 		}
 
-		public void setItem(UiFieldGuide _FDCon, NelM2DBase _M2D, UiFieldGuide.FDR _Fdr)
+		public void setItem(UiFieldGuide _FDCon, NelM2DBase _M2D, UiFieldGuide.FDR _Fdr, STB StbSrc = null)
 		{
 			this.FDCon = _FDCon;
 			this.M2D = _M2D;
@@ -47,9 +47,13 @@ namespace nel
 			}
 			using (STB stb = TX.PopBld(null, 0))
 			{
-				if (!this.Fdr.valid)
+				if (StbSrc != null)
 				{
-					stb.Clear().Add(NelItem.Unknown.getLocalizedName(this.grade, null));
+					stb.Add(StbSrc);
+				}
+				else if (!this.Fdr.valid)
+				{
+					NelItem.Unknown.getLocalizedName(stb.Clear(), this.grade);
 					this.text_alpha = 0.6f;
 				}
 				else if (this.Itm != null)
@@ -63,7 +67,7 @@ namespace nel
 					{
 						this.text_alpha = 0.6f;
 					}
-					stb.Clear().Add(this.Itm.getLocalizedName(this.grade, null));
+					this.Itm.getLocalizedName(stb.Clear(), this.grade);
 				}
 				else if (this.Fdr.FSmn != null)
 				{
@@ -74,7 +78,15 @@ namespace nel
 					}
 					this.Fdr.FSmn.B = this.B as aBtnFDRow;
 				}
-				base.setTitleTextS(stb);
+				else if (this.Fdr.enemyid_available)
+				{
+					stb.Clear().Add(NDAT.getEnemyName(this.Fdr.enemyid, true));
+					if (this.Fdr.grade <= 0)
+					{
+						this.text_alpha = 0.6f;
+					}
+				}
+				this.setTitleTextS(stb);
 			}
 			this.TxR.Alpha(this.alpha_ * this.text_alpha);
 			this.TxR.StencilRef(base.container_stencil_ref);
@@ -104,13 +116,14 @@ namespace nel
 
 		public void clearCenterPowerT()
 		{
+			this.alpha = 1f;
 			if (this.TxC != null)
 			{
 				this.TxC.text_content = "";
 			}
 		}
 
-		public void setCenterPowerTRpi(RecipeManager.RPI_EFFECT rpi, int grade)
+		public void setCenterPowerTRpi(RCP.RPI_EFFECT rpi, int grade)
 		{
 			if (!this.Fdr.valid)
 			{
@@ -123,7 +136,7 @@ namespace nel
 				{
 					using (STB stb2 = TX.PopBld(null, 0))
 					{
-						RecipeManager.getRPIEffectDescriptionTo(stb, rpi, this.Itm.getGradeVariation(grade, null).getDetailTo(stb2.Clear(), this.Itm.RecipeInfo.Oeffect100[rpi] / this.Itm.max_grade_enpower, "\n", false), 1);
+						RCP.getRPIEffectDescriptionTo(stb, rpi, this.Itm.getGradeVariation(grade, null).getDetailTo(stb2.Clear(), this.Itm.RecipeInfo.Oeffect100[rpi] / this.Itm.max_grade_enpower, "\n", false), 1);
 						this.TxC.Txt(stb);
 					}
 				}
@@ -165,7 +178,7 @@ namespace nel
 					this.Md.Col = this.Md.ColGrd.Set(4282004532U).mulA(this.alpha_).C;
 					this.Md.KadomaruRect(num, 0f, 30f, 30f, 8f, 0f, false, 0f, 0f, false);
 					this.Md.chooseSubMesh(1, false, false);
-					this.Md.Col = this.Md.ColGrd.Set(4294908737U).mulA(this.alpha_).C;
+					this.Md.Col = this.Md.ColGrd.Set(4294908737U).mulA(this.alpha_ * this.text_alpha).C;
 					this.Md.RotaPF(num, 0f, 1f, 1f, 0f, MTR.AItemIcon[29], false, false, false, uint.MaxValue, false, 0);
 					flag = this.Fdr.FSmn.fd_favorite;
 					int num2 = this.Fdr.FSmn.Summoner.grade;
@@ -177,7 +190,17 @@ namespace nel
 						num3 -= 11f;
 					}
 				}
-				if (flag)
+				else if (this.Fdr.enemyid_available)
+				{
+					this.Md.chooseSubMesh(0, false, false);
+					this.Md.Col = this.Md.ColGrd.Set(4283780170U).mulA(this.alpha_).C;
+					this.Md.KadomaruRect(num, 0f, 30f, 30f, 8f, 1f, false, 0f, 0f, false);
+					this.Md.chooseSubMesh(1, false, false);
+					this.Md.Col = this.Md.ColGrd.Set(4294908737U).mulA(this.alpha_ * this.text_alpha).C;
+					this.Md.RotaPF(num, 0f, 1f, 1f, 0f, MTR.AItemIcon[74], false, false, false, uint.MaxValue, false, 0);
+					flag = this.Fdr.fd_favorite;
+				}
+				if (flag && this.draw_favorite)
 				{
 					this.Md.chooseSubMesh(1, false, false);
 					this.Md.Col = C32.MulA(MTRX.ColWhite, this.alpha_);
@@ -217,6 +240,8 @@ namespace nel
 		public int grade;
 
 		public UiFieldGuide.FDR Fdr;
+
+		public bool draw_favorite = true;
 
 		private const float off_tx_alpha = 0.6f;
 	}

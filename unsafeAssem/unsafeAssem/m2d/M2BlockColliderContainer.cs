@@ -403,7 +403,7 @@ namespace m2d
 										num16 = array.Length;
 										goto IL_0456;
 									}
-									IL_0607:
+									IL_063B:
 									num15++;
 									continue;
 									IL_0456:
@@ -413,7 +413,7 @@ namespace m2d
 										M2BlockColliderContainer.BCCLine bccline3 = ((num15 < 0) ? this.ALift[num17] : array[num17]);
 										if (bccline3 != bccline2 && bccline3.foot_aim == foot_aim && X.isCovering(bccline3.x, bccline3.right, bccline2.x, bccline2.right, 1f) && X.isCovering(bccline3.y, bccline3.bottom, bccline2.y, bccline2.bottom, 1f))
 										{
-											if (bccline2.SideL == null)
+											if (bccline2.SideL == null && X.BTWM(bccline3.x, x, bccline3.right))
 											{
 												if (bccline3.slopeBottomY(x, 0f, 0f, false) == num13)
 												{
@@ -432,7 +432,7 @@ namespace m2d
 													flag = true;
 												}
 											}
-											if (bccline2.SideR == null)
+											if (bccline2.SideR == null && X.BTW(bccline3.x, right, bccline3.right))
 											{
 												if (bccline3.slopeBottomY(right, 0f, 0f, false) == num14)
 												{
@@ -454,7 +454,7 @@ namespace m2d
 										}
 										num17++;
 									}
-									goto IL_0607;
+									goto IL_063B;
 								}
 							}
 						}
@@ -787,7 +787,7 @@ namespace m2d
 			for (int i = ALine.Length - 1; i >= 0; i--)
 			{
 				M2BlockColliderContainer.BCCLine bccline = ALine[i];
-				if (bccline.isUseableVelocity(vx, vy) && bccline.isCarryableShifted(FootD, shiftx, shifty, 0f, false, pre_fall_y) != null)
+				if (bccline.isUseableVelocity(FootD.Phy) && bccline.isCarryableShifted(FootD, shiftx, shifty, 0f, false, pre_fall_y) != null)
 				{
 					return bccline;
 				}
@@ -810,7 +810,7 @@ namespace m2d
 			for (int i = ALine.Count - 1; i >= 0; i--)
 			{
 				M2BlockColliderContainer.BCCLine bccline = ALine[i];
-				if (bccline.isUseableVelocity(vx, vy) && bccline.isCarryableShifted(FootD, shiftx, shifty, 0f, false, pre_fall_y) != null)
+				if (bccline.isUseableVelocity(FootD.Phy, vx, vy) && bccline.isCarryableShifted(FootD, shiftx, shifty, 0f, false, pre_fall_y) != null)
 				{
 					return bccline;
 				}
@@ -988,18 +988,53 @@ namespace m2d
 			return vector;
 		}
 
-		public float isFallable(float cx, float cy, float marginx, float marginy, out M2BlockColliderContainer.BCCLine Out, bool check_main = true, bool check_lift = true, float near_y = -1f)
+		public float isFallable(float cx, float cy, float marginx, float marginy, out M2BlockColliderContainer.BCCLine Out, bool check_main = true, bool check_lift = true, float near_y = -1f, M2BlockColliderContainer.BCCLine BccCalcStartFrom = null)
 		{
 			if (!this.active || this.AALine == null)
 			{
 				Out = null;
 				return -1f;
 			}
-			float num;
-			float num2;
-			this.getBaseShift(out num, out num2);
-			cx += num;
-			cy += num2;
+			if (BccCalcStartFrom != null)
+			{
+				if (BccCalcStartFrom.foot_aim == AIM.B && !BccCalcStartFrom.is_lift && X.BTW(BccCalcStartFrom.shifted_x - marginx, cx, BccCalcStartFrom.shifted_right + marginx))
+				{
+					float num = BccCalcStartFrom.slopeBottomY(X.MMX(BccCalcStartFrom.shifted_x, cx, BccCalcStartFrom.shifted_right));
+					cy = X.Mn(cy, num - 0.125f);
+				}
+				using (BList<M2BlockColliderContainer.BCCLine> blist = ListBuffer<M2BlockColliderContainer.BCCLine>.Pop(0))
+				{
+					for (int i = 0; i < 2; i++)
+					{
+						blist.Clear();
+						M2BlockColliderContainer.BCCLine bccline = BccCalcStartFrom;
+						blist.Add(BccCalcStartFrom);
+						for (;;)
+						{
+							M2BlockColliderContainer.BCCLine bccline2 = bccline;
+							bccline = ((i == 0) ? bccline.LinkS : bccline.LinkD);
+							if (bccline == null || blist.IndexOf(bccline) >= 0)
+							{
+								break;
+							}
+							if (bccline.foot_aim == AIM.B && !bccline.is_lift && X.BTW(bccline.shifted_x - marginx, cx, bccline.shifted_right + marginx))
+							{
+								float num2 = bccline.slopeBottomY(X.MMX(bccline.shifted_x, cx, bccline.shifted_right));
+								cy = X.Mn(cy, num2 - 0.125f);
+							}
+							if (bccline2.is_lift != bccline.is_lift || bccline2.block_index != bccline.block_index)
+							{
+								blist.Add(bccline);
+							}
+						}
+					}
+				}
+			}
+			float num3;
+			float num4;
+			this.getBaseShift(out num3, out num4);
+			cx += num3;
+			cy += num4;
 			if (check_main)
 			{
 				check_main = this.Bounds.isin(cx, cy, marginx, marginy);
@@ -1008,35 +1043,35 @@ namespace m2d
 			{
 				check_lift = this.BoundsLift.isin(cx, cy, marginx, marginy);
 			}
-			float num3 = -1f;
+			float num5 = -1f;
 			Out = null;
 			if (check_main || check_lift)
 			{
-				float num4 = cy;
-				float num5 = -1f;
-				for (int i = this.AFootable.Count - 1; i >= 0; i--)
+				float num6 = cy;
+				float num7 = -1f;
+				for (int j = this.AFootable.Count - 1; j >= 0; j--)
 				{
-					M2BlockColliderContainer.BCCLine bccline = this.AFootable[i];
-					if (bccline.is_lift ? check_lift : check_main)
+					M2BlockColliderContainer.BCCLine bccline3 = this.AFootable[j];
+					if (bccline3.is_lift ? check_lift : check_main)
 					{
-						float num6 = bccline.isFallableShifted(0f, 0f, cx, cy, marginx, marginy);
-						if (num6 != -1000f)
+						float num8 = bccline3.isFallableShifted(0f, 0f, cx, cy, marginx, marginy);
+						if (num8 != -1000f)
 						{
-							num6 += -num2 + marginy;
-							if (num6 >= num4 && ((near_y >= 0f) ? (num3 < 0f || X.Abs(near_y - num6) < num5) : (num3 < 0f || num6 < num3)))
+							num8 += -num4 + marginy;
+							if (num8 >= num6 && ((near_y >= 0f) ? (num5 < 0f || X.Abs(near_y - num8) < num7) : (num5 < 0f || num8 < num5)))
 							{
-								num3 = num6;
-								Out = bccline;
+								num5 = num8;
+								Out = bccline3;
 								if (near_y >= 0f)
 								{
-									num5 = X.Abs(near_y - num6);
+									num7 = X.Abs(near_y - num8);
 								}
 							}
 						}
 					}
 				}
 			}
-			return num3;
+			return num5;
 		}
 
 		public M2BlockColliderContainer.BCCLine getNear(float cx, float cy, float marginx, float marginy, int aim, List<M2BlockColliderContainer.BCCLine> ARet, bool find_lift = false, bool strict_aim = false, float inside_len = 0f)
@@ -1244,41 +1279,97 @@ namespace m2d
 			return null;
 		}
 
-		public int getConnectedBcc(M2BlockColliderContainer.BCCLine From, List<M2BlockColliderContainer.BCCHitInfo> AHit, bool calc_lift = true)
+		public int getConnectedBcc(M2BlockColliderContainer.BCCLine From, List<M2BlockColliderContainer.BCCHitInfo> AHit, bool calc_normal = true, bool calc_lift = true, bool add_original_side = true, bool check_left = true, bool check_right = true)
+		{
+			return this.getConnectedBcc(From, 0f, -1000f, AHit, calc_normal, calc_lift, add_original_side, check_left, check_right);
+		}
+
+		public int getConnectedBcc(M2BlockColliderContainer.BCCLine From, float center_x, float margin_x, List<M2BlockColliderContainer.BCCHitInfo> AHit, bool calc_normal = true, bool calc_lift = true, bool add_original_side = true, bool check_left = true, bool check_right = true)
 		{
 			int count = AHit.Count;
-			if (From.SideL != null)
+			M2BlockColliderContainer.BCCLine sideL = From.SideL;
+			M2BlockColliderContainer.BCCLine sideR = From.SideR;
+			float num;
+			float num2;
+			this.Mp.BCC.getBaseShift(out num, out num2);
+			bool flag = margin_x != -1000f;
+			center_x += num;
+			AIM foot_aim = From.foot_aim;
+			if (add_original_side)
 			{
-				AHit.Add(new M2BlockColliderContainer.BCCHitInfo(From.SideL, From.shifted_x, From.shifted_left_y));
-			}
-			if (From.SideR != null)
-			{
-				AHit.Add(new M2BlockColliderContainer.BCCHitInfo(From.SideR, From.shifted_right, From.shifted_right_y));
+				if (From.SideL != null)
+				{
+					AHit.Add(new M2BlockColliderContainer.BCCHitInfo(sideL, From.shifted_x, From.shifted_left_y));
+				}
+				if (From.SideR != null)
+				{
+					AHit.Add(new M2BlockColliderContainer.BCCHitInfo(sideR, From.shifted_right, From.shifted_right_y));
+				}
 			}
 			if (calc_lift && this.ALift != null)
 			{
 				int count2 = this.ALift.Count;
-				int i = 0;
-				while (i < count2)
+				for (int i = 0; i < count2; i++)
 				{
 					M2BlockColliderContainer.BCCLine bccline = this.ALift[i];
-					M2BlockColliderContainer.BCCHitInfo bcchitInfo;
-					if (bccline.SideR == From)
+					if (bccline.foot_aim == foot_aim)
 					{
-						bcchitInfo = new M2BlockColliderContainer.BCCHitInfo(bccline, bccline.shifted_right, bccline.shifted_right_y);
-						goto IL_00BE;
+						M2BlockColliderContainer.BCCHitInfo bcchitInfo;
+						if (bccline.SideR == From && check_right)
+						{
+							if (flag && X.Abs(center_x - bccline.right) > margin_x)
+							{
+								goto IL_0150;
+							}
+							bcchitInfo = new M2BlockColliderContainer.BCCHitInfo(bccline, bccline.shifted_right, bccline.shifted_right_y);
+						}
+						else
+						{
+							if (bccline.SideL != From || !check_left || (flag && X.Abs(center_x - bccline.x) > margin_x))
+							{
+								goto IL_0150;
+							}
+							bcchitInfo = new M2BlockColliderContainer.BCCHitInfo(bccline, bccline.shifted_x, bccline.shifted_left_y);
+						}
+						X.pushIdentical<M2BlockColliderContainer.BCCHitInfo>(AHit, bcchitInfo);
 					}
-					if (bccline.SideL == From)
+					IL_0150:;
+				}
+			}
+			if (calc_normal)
+			{
+				for (int j = this.AALine.Length - 1; j >= 0; j--)
+				{
+					M2BlockColliderContainer.BCCLine[] array = this.AALine[j];
+					if (array != null)
 					{
-						bcchitInfo = new M2BlockColliderContainer.BCCHitInfo(bccline, bccline.shifted_x, bccline.shifted_left_y);
-						goto IL_00BE;
+						for (int k = array.Length - 1; k >= 0; k--)
+						{
+							M2BlockColliderContainer.BCCLine bccline2 = array[k];
+							if (!bccline2.is_lift && bccline2.foot_aim == foot_aim)
+							{
+								M2BlockColliderContainer.BCCHitInfo bcchitInfo;
+								if (bccline2.SideR == From && check_right)
+								{
+									if (flag && X.Abs(center_x - bccline2.right) > margin_x)
+									{
+										goto IL_0239;
+									}
+									bcchitInfo = new M2BlockColliderContainer.BCCHitInfo(bccline2, bccline2.shifted_right, bccline2.shifted_right_y);
+								}
+								else
+								{
+									if (bccline2.SideL != From || !check_left || (flag && X.Abs(center_x - bccline2.x) > margin_x))
+									{
+										goto IL_0239;
+									}
+									bcchitInfo = new M2BlockColliderContainer.BCCHitInfo(bccline2, bccline2.shifted_x, bccline2.shifted_left_y);
+								}
+								X.pushIdentical<M2BlockColliderContainer.BCCHitInfo>(AHit, bcchitInfo);
+							}
+							IL_0239:;
+						}
 					}
-					IL_00C6:
-					i++;
-					continue;
-					IL_00BE:
-					X.pushIdentical<M2BlockColliderContainer.BCCHitInfo>(AHit, bcchitInfo);
-					goto IL_00C6;
 				}
 			}
 			return AHit.Count - count;
@@ -2120,7 +2211,11 @@ namespace m2d
 					{
 						return this.aim;
 					}
-					return CAim.get_aim_tetra(0, 0, 0, this._yd);
+					if (this.aim != AIM.BL && this.aim != AIM.RB)
+					{
+						return AIM.T;
+					}
+					return AIM.B;
 				}
 			}
 
@@ -2306,7 +2401,14 @@ namespace m2d
 				}
 			}
 
-			public bool isUseableVelocity(float vx, float vy)
+			public bool isUseableVelocity(M2Phys Phy)
+			{
+				float pre_force_velocity_x = Phy.pre_force_velocity_x;
+				float force_velocity_y_with_gravity = Phy.force_velocity_y_with_gravity;
+				return this.isUseableVelocity(Phy, pre_force_velocity_x, force_velocity_y_with_gravity);
+			}
+
+			public bool isUseableVelocity(M2Phys Phy, float vx, float vy)
 			{
 				switch (this.aim)
 				{
@@ -2527,39 +2629,123 @@ namespace m2d
 						return this.SideR;
 					}
 				}
-				else if (this.SideL != null && moved_x < 0f && this.SideL.isUseableDir(FootD) && x - (float)pivot * FootD.sizex * (float)X.MPF(this.L_is_90 || force_over || CAim._YD(this.SideL.aim, 1) == CAim._YD(this.aim, 1)) - (progress + num) <= this.x)
+				else if (moved_x != 0f)
 				{
-					if (this.SideL.isCarryable(FootD, 0.1f, false) == null)
+					bool flag = moved_x < 0f;
+					if (flag ? (x - FootD.sizex <= this.x) : (base.right <= x + FootD.sizex))
 					{
-						return null;
+						M2BlockColliderContainer.BCCLine bccline = this.checkSideRidingShifted(FootD, x, flag, (float)pivot * FootD.sizex, force_over, progress + num);
+						if (bccline != null)
+						{
+							FootD.rideInitTo(bccline, false);
+							if (progress > 0f && FootD.get_FootBCC() == bccline)
+							{
+								float num6;
+								float num7;
+								bccline.fixToFootPos(FootD, x, y, out num6, out num7, false);
+								FootD.Phy.addTranslateStack(num6, num7);
+							}
+							return bccline;
+						}
 					}
-					FootD.rideInitTo(this.SideL, false);
-					if (progress > 0f && FootD.get_FootBCC() == this.SideL)
-					{
-						float num6;
-						float num7;
-						this.SideL.fixToFootPos(FootD, x, y, out num6, out num7, false);
-						FootD.Phy.addTranslateStack(num6, num7);
-					}
-					return this.SideL;
-				}
-				else if (this.SideR != null && moved_x > 0f && this.SideR.isUseableDir(FootD) && x + (float)pivot * FootD.sizex * (float)X.MPF(this.R_is_90 || force_over || CAim._YD(this.SideR.aim, 1) == CAim._YD(this.aim, 1)) + (progress + num) >= base.right)
-				{
-					if (this.SideR.isCarryable(FootD, 0.1f, false) == null)
-					{
-						return null;
-					}
-					FootD.rideInitTo(this.SideR, false);
-					if (progress > 0f && FootD.get_FootBCC() == this.SideR)
-					{
-						float num8;
-						float num9;
-						this.SideR.fixToFootPos(FootD, x, y, out num8, out num9, false);
-						FootD.Phy.addTranslateStack(num8, num9);
-					}
-					return this.SideR;
 				}
 				return null;
+			}
+
+			private M2BlockColliderContainer.BCCLine checkSideRidingShifted(M2FootManager FootD, float shifted_x, bool to_left, float pivot_size, bool force_over, float progress_shiftx)
+			{
+				M2BlockColliderContainer.BCCLine bccline = (to_left ? this.SideL : this.SideR);
+				bool flag = (to_left ? (this.line_a < 0f) : (this.line_a > 0f));
+				if (bccline != null && !bccline.isUseableDir(FootD))
+				{
+					bccline = null;
+				}
+				bool flag2 = true;
+				if (bccline != null && !bccline.is_lift)
+				{
+					bool flag3 = (to_left ? (bccline.line_a > 0f) : (bccline.line_a < 0f));
+					if (!flag && flag3)
+					{
+						flag2 = false;
+					}
+				}
+				int num = 1;
+				M2BlockColliderContainer.BCCLine bccline2 = null;
+				float num2 = 0f;
+				float num3 = (float)X.MPF(to_left);
+				int i = -1;
+				while (i < num)
+				{
+					M2BlockColliderContainer.BCCLine bccline3;
+					bool flag4;
+					if (i < 0)
+					{
+						bccline3 = bccline;
+						if (bccline3 != null)
+						{
+							flag4 = (to_left ? this.L_is_90 : this.R_is_90);
+							goto IL_01C6;
+						}
+					}
+					else
+					{
+						if (i == 0)
+						{
+							if (!flag2 || this.BCC.ALift == null)
+							{
+								break;
+							}
+							num = this.BCC.ALift.Count;
+							if (num == 0)
+							{
+								break;
+							}
+						}
+						bccline3 = this.BCC.ALift[i];
+						if (bccline3 != bccline && bccline3 != this && bccline3.isUseableDir(FootD))
+						{
+							bool flag5;
+							if (bccline3.line_a == 0f)
+							{
+								flag5 = X.BTWW(bccline3.x, to_left ? this.x : base.right, bccline3.right);
+							}
+							else
+							{
+								flag5 = (to_left ? (this.x == bccline3.right) : (base.right == bccline3.x));
+							}
+							if (flag5 && (to_left ? (this.left_y == bccline3.right_y) : (this.right_y == bccline3.left_y)))
+							{
+								flag4 = ((this.LinkIsStraight == to_left) ? this.S_is_90(bccline3) : this.D_is_90(bccline3));
+								goto IL_01C6;
+							}
+						}
+					}
+					IL_0260:
+					i++;
+					continue;
+					IL_01C6:
+					float num4 = shifted_x - num3 * (pivot_size * (float)X.MPF(flag4 || force_over || bccline3.foot_aim == this.foot_aim) + progress_shiftx);
+					if ((to_left ? (num4 <= this.x) : (num4 >= base.right)) && bccline3.isCarryable(FootD, 0.1f, false) != null)
+					{
+						if (bccline2 == null || (to_left ? (bccline3.line_a > num2) : (bccline3.line_a < num2)))
+						{
+							bccline2 = bccline3;
+							num2 = bccline3.line_a;
+							goto IL_0260;
+						}
+						goto IL_0260;
+					}
+					else
+					{
+						if (i == -1)
+						{
+							flag2 = true;
+							goto IL_0260;
+						}
+						goto IL_0260;
+					}
+				}
+				return bccline2;
 			}
 
 			public float fixToFootPos(M2FootManager FootD, float x, float y, out float dx, out float dy)
@@ -3113,7 +3299,7 @@ namespace m2d
 				return X.MMX(this.shifted_y, _y, this.shifted_bottom);
 			}
 
-			public float shifted_left_y
+			public float left_y
 			{
 				get
 				{
@@ -3127,11 +3313,19 @@ namespace m2d
 					{
 						num = ((this._yd < 0) ? this.sy : this.dy);
 					}
-					return num - this.BCC.base_shift_y;
+					return num;
 				}
 			}
 
-			public float shifted_right_y
+			public float shifted_left_y
+			{
+				get
+				{
+					return this.left_y - this.BCC.base_shift_y;
+				}
+			}
+
+			public float right_y
 			{
 				get
 				{
@@ -3145,7 +3339,15 @@ namespace m2d
 					{
 						num = ((this._yd < 0) ? this.dy : this.sy);
 					}
-					return num - this.BCC.base_shift_y;
+					return num;
+				}
+			}
+
+			public float shifted_right_y
+			{
+				get
+				{
+					return this.right_y - this.BCC.base_shift_y;
 				}
 			}
 
@@ -3564,14 +3766,27 @@ namespace m2d
 					if (aim != AIM.R)
 					{
 						float num3 = (CAim.is_naname(this.aim) ? this.slopeBottomY(FootD.Mv.x + (float)CAim._XD(this.aim, 1) * FootD.sizex, shiftx, shifty, true) : (base.y - shifty));
-						num4 = 0f;
-						if (X.isCovering(this.x, base.right, FootD.rgdleft + shiftx, FootD.rgdright + shiftx, margins) && ((num2 < 0) ? (FootD.rgdtop < num3 + marginf && X.BTWS(-FootD.sizey * 2f - marginf, num4 = num3 - (FootD.rgdbottom + marginf + shifty), 0f)) : (FootD.rgdbottom > num3 - marginf && X.BTWS(0f, num4 = num3 - (FootD.rgdtop - marginf + shifty), FootD.sizey * 2f + marginf))))
+						if (X.isCovering(this.x, base.right, FootD.rgdleft + shiftx, FootD.rgdright + shiftx, margins))
 						{
-							if (refix_position)
+							bool flag;
+							if (num2 < 0)
 							{
-								FootD.Phy.addFoc(FOCTYPE.RESIZE, 0f, X.absMn(num4, 0.2f), -1f, -1, 1, 0, -1, 0);
+								num4 = num3 - (FootD.rgdbottom + marginf);
+								flag = FootD.rgdtop < num3 + marginf && X.BTWS(-FootD.sizey * 2f - marginf, num4, 0f);
 							}
-							return num4;
+							else
+							{
+								num4 = num3 - (FootD.rgdtop - marginf);
+								flag = FootD.rgdbottom > num3 - marginf && X.BTWS(0f, num4, FootD.sizey * 2f + marginf);
+							}
+							if (flag)
+							{
+								if (refix_position)
+								{
+									FootD.Phy.addFoc(FOCTYPE.RESIZE, 0f, X.absMn(num4, 0.2f), -1f, -1, 1, 0, -1, 0);
+								}
+								return num4;
+							}
 						}
 					}
 					else if (X.isCovering(base.y, base.bottom, FootD.rgdtop + shifty, FootD.rgdbottom + shifty, margins) && FootD.rgdleft + shiftx < this.x + marginf && X.BTWS(-FootD.sizex * 2f - marginf, num4 = this.x - (FootD.rgdright + marginf + shiftx), 0f))
@@ -3738,7 +3953,7 @@ namespace m2d
 			public int isLinearWalkableTo(M2BlockColliderContainer.BCCLine TBcc, int fallable_len)
 			{
 				int num = 0;
-				if (this.is_ladder || TBcc.is_ladder)
+				if (TBcc == null || this.is_ladder || TBcc.is_ladder || TBcc.BCC != this.BCC)
 				{
 					return 0;
 				}
@@ -3796,7 +4011,7 @@ namespace m2d
 							}
 							else
 							{
-								TBcc.BCC.isFallable(num4, num5, 0f, (float)fallable_len, out bccline2, true, true, -1f);
+								TBcc.BCC.isFallable(num4, num5, 0f, (float)fallable_len, out bccline2, true, true, -1f, null);
 								if (bccline2 != null)
 								{
 									bccline = bccline2;
@@ -3818,7 +4033,7 @@ namespace m2d
 							}
 							else
 							{
-								bccline.BCC.isFallable(num4, num5, 0f, (float)fallable_len, out bccline2, true, true, -1f);
+								bccline.BCC.isFallable(num4, num5, 0f, (float)fallable_len, out bccline2, true, true, -1f, null);
 								if (bccline2 == null)
 								{
 									break;
@@ -3874,12 +4089,12 @@ namespace m2d
 								}
 								float num4 = bccline.slopeBottomY((i == 0) ? area_left : area_right);
 								float num5 = ((i == 0) ? (area_left - 0.5f) : (area_right + 0.5f));
-								bccline.BCC.isFallable(num5, num4, 0f, fallable_len, out bccline2, true, true, -1f);
+								bccline.BCC.isFallable(num5, num4, 0f, fallable_len, out bccline2, true, true, -1f, null);
 								if (bccline2 == null)
 								{
 									if (!bccline.is_map_bcc)
 									{
-										bccline.BCC.Mp.BCC.isFallable(num5, num4, 0f, fallable_len, out bccline2, true, true, -1f);
+										bccline.BCC.Mp.BCC.isFallable(num5, num4, 0f, fallable_len, out bccline2, true, true, -1f, null);
 									}
 									if (bccline2 == null)
 									{

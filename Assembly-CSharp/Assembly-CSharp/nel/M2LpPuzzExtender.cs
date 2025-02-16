@@ -897,7 +897,7 @@ namespace nel
 				}
 				for (int i = 0; i < count; i++)
 				{
-					lay.removeChip(this.AExtended[i], true, true);
+					lay.removeChip(this.AExtended[i], true, true, false);
 					this.AExtended[i] = null;
 				}
 				if (!no_sort)

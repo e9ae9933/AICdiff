@@ -9,7 +9,7 @@ namespace nel
 	public class M2Ser : RBase<M2SerItem>
 	{
 		public M2Ser(M2Attackable _Mv, NelM2Attacker _Mva, bool _apply_post_effect = false)
-			: base(35, true, false, false)
+			: base(38, true, false, false)
 		{
 			this.Mv = _Mv;
 			this.Mva = _Mva;
@@ -67,7 +67,18 @@ namespace nel
 
 		public bool isHalfBgm()
 		{
-			return this.M2D.isCenterPlayer(this.Mv) && (this.ser_bits & 17213423617UL) > 0UL;
+			if (this.M2D.isCenterPlayer(this.Mv))
+			{
+				if ((this.ser_bits & 137472507905UL) != 0UL)
+				{
+					return true;
+				}
+				if ((this.frozen_state_ & NoelAnimator.FRZ_STATE.STONE) != NoelAnimator.FRZ_STATE.NORMAL)
+				{
+					return true;
+				}
+			}
+			return false;
 		}
 
 		public bool has(SER ser)
@@ -114,7 +125,7 @@ namespace nel
 				M2SerItem m2SerItem = this.AItems[i];
 				if (m2SerItem.id == ser && m2SerItem.isActive())
 				{
-					m2SerItem.fineSer(time);
+					m2SerItem.fineSer(time, true, false);
 					return m2SerItem;
 				}
 			}
@@ -158,7 +169,7 @@ namespace nel
 
 		public M2Ser CureB(ulong cure_ser_bits)
 		{
-			for (int i = 34; i >= 0; i--)
+			for (int i = 37; i >= 0; i--)
 			{
 				if ((cure_ser_bits & (1UL << i)) != 0UL)
 				{
@@ -178,7 +189,22 @@ namespace nel
 			return this;
 		}
 
-		public M2SerItem Add(SER ser, int time = -1, int max_level = 99, bool add_to_pre_bits = false)
+		public M2Ser CureFrozen3(bool fine_log_row = true)
+		{
+			M2SerItem m2SerItem = this.Find(SER.FROZEN);
+			if (m2SerItem != null && m2SerItem.level >= 2 && m2SerItem.isActive())
+			{
+				m2SerItem.LevelCheckForceSet(2, fine_log_row);
+			}
+			m2SerItem = this.Find(SER.STONE);
+			if (m2SerItem != null && m2SerItem.level >= 2 && m2SerItem.isActive())
+			{
+				m2SerItem.LevelCheckForceSet(4, fine_log_row);
+			}
+			return this;
+		}
+
+		public M2SerItem Add(SER ser, int __maxt = -1, int max_level = 99, bool add_to_pre_bits = false)
 		{
 			if (this.AItems == null)
 			{
@@ -196,7 +222,7 @@ namespace nel
 					m2SerItem.LevelCheck(1, max_level);
 				}
 				this.ser_bits |= 1UL << (int)ser;
-				return m2SerItem.fineSer(time);
+				return m2SerItem.fineSer(__maxt, (262144L & (1L << (int)ser)) != 0L, true);
 			}
 			this.ser_bits |= 1UL << (int)ser;
 			if (add_to_pre_bits)
@@ -204,14 +230,14 @@ namespace nel
 				this.pre_ser_bits |= 1UL << (int)ser;
 			}
 			this.resetFlags();
-			m2SerItem = base.Pop(64).registerSer(ser, time, max_level);
+			m2SerItem = base.Pop(64).registerSer(ser, __maxt, max_level);
 			m2SerItem.fineLogRow();
 			return m2SerItem;
 		}
 
 		public M2Ser AddB(ulong apply_ser_bits, int _level = 1)
 		{
-			for (int i = 34; i >= 0; i--)
+			for (int i = 37; i >= 0; i--)
 			{
 				ulong num = 1UL << i;
 				if ((apply_ser_bits & num) != 0UL)
@@ -233,7 +259,7 @@ namespace nel
 
 		public static bool applyAllBits(ulong apply_ser_bits, Func<SER, bool> Fn)
 		{
-			int num = 35;
+			int num = 38;
 			bool flag = true;
 			for (int i = 0; i < num; i++)
 			{
@@ -247,7 +273,7 @@ namespace nel
 
 		public static STB listupAllTitle(ulong apply_ser_bits, STB Stb)
 		{
-			int num = 35;
+			int num = 38;
 			for (int i = 0; i < num; i++)
 			{
 				if ((apply_ser_bits & (1UL << i)) != 0UL)
@@ -261,7 +287,7 @@ namespace nel
 		public static bool applyAllBitsDescend(ulong apply_ser_bits, Func<SER, bool> Fn)
 		{
 			bool flag = true;
-			for (int i = 34; i >= 0; i--)
+			for (int i = 37; i >= 0; i--)
 			{
 				if ((apply_ser_bits & (1UL << i)) != 0UL)
 				{
@@ -291,7 +317,7 @@ namespace nel
 			}
 			this.need_check_ser = false;
 			ulong num = 0UL;
-			int num2 = 35;
+			int num2 = 38;
 			for (int i = 0; i < num2; i++)
 			{
 				int num3 = M2SerItem.canApplySer(this, (SER)((long)i), this.Mv, this.Mva);
@@ -417,7 +443,7 @@ namespace nel
 			}
 		}
 
-		public bool applySerDamage(FlagCounter<SER> Apl, float apply_ratio = 1f, int ser_maxt = -1)
+		public bool applySerDamage(FlagCounter<SER> Apl, float apply_ratio0 = 1f, int ser_maxt = -1)
 		{
 			if (Apl == null)
 			{
@@ -427,22 +453,51 @@ namespace nel
 			foreach (KeyValuePair<SER, float> keyValuePair in Apl.getRawObject())
 			{
 				SER key = keyValuePair.Key;
-				if (key != SER.SLEEP || (!this.has(SER.BURNED) && !this.has(SER.SLEEP)))
+				float num = apply_ratio0;
+				bool flag2 = true;
+				float num2 = keyValuePair.Value;
+				if (key != SER.SLEEP)
 				{
-					float num = keyValuePair.Value;
-					if (this.Regist != null)
+					if (key == SER.STONE)
 					{
-						float time = this.Regist.getTime(key, 0f);
-						if (time >= 255f)
+						if (num2 > 0f && (this.frozen_state_ & NoelAnimator.FRZ_STATE.STONE) != NoelAnimator.FRZ_STATE.NORMAL)
 						{
-							continue;
+							flag2 = false;
+							num = 100f;
 						}
-						num = global::XX.X.Mx(0f, num - time / 2f) * global::XX.X.ZLINE(100f - time, 100f);
 					}
-					if (global::XX.X.XORSP() * 100f < num * apply_ratio)
+				}
+				else
+				{
+					if (this.has(SER.BURNED))
 					{
-						this.Add(key, ser_maxt, 99, false);
-						flag = true;
+						continue;
+					}
+					if (this.has(SER.SLEEP))
+					{
+						continue;
+					}
+				}
+				if (this.Regist != null && flag2)
+				{
+					float time = this.Regist.getTime(key, 0f);
+					if (time >= 255f)
+					{
+						continue;
+					}
+					num2 = X.Mx(0f, num2 - time / 2f) * X.ZLINE(100f - time, 100f);
+				}
+				if (X.XORSP() * 100f < num2 * num)
+				{
+					this.Add(key, ser_maxt, 99, false);
+					flag = true;
+				}
+				else if (this.has(key))
+				{
+					M2SerItem m2SerItem = this.Get(key);
+					if (m2SerItem != null && (!this.Mv.is_alive || m2SerItem.overwrite_attach) && m2SerItem.isActive())
+					{
+						m2SerItem.fineSer(2000, false, false);
 					}
 				}
 			}
@@ -595,10 +650,12 @@ namespace nel
 			{
 				this.bgm_half_mem = -1 - this.bgm_half_mem;
 			}
+			this.frozen_state_ = NoelAnimator.FRZ_STATE._MAX;
 			this.base_timescale = (this.base_timescale_rev = (this.stomach_apply_ratio = -1f));
 			this.ep_addition_ratio = -1000f;
-			this.xspeed_rate = (this.mpgage_crack_rate = (this.mana_drain_rate = (this.jump_rate = (this.enemysink_rate = (this.chantmp_split_rate = (this.hpdamage_rate = (this.atk_rate = (this.chant_atk_rate = (this.chant_speed_rate = (this.gacha_release_rate = -1f))))))))));
+			this.xspeed_rate = (this.mpgage_crack_rate = (this.mana_drain_rate = (this.jump_rate = (this.enemysink_rate = (this.chantmp_split_rate = (this.hpdamage_rate = (this.atk_rate = (this.chant_atk_rate = (this.chant_speed_rate = (this.gacha_release_rate = (this.burst_consume_ratio = -1f)))))))))));
 			this.punch_allow = 2;
+			this.orgasm_lock = 2;
 			this.evade_decline_ser = (this.run_decline_ser = 0UL);
 		}
 
@@ -690,7 +747,7 @@ namespace nel
 				for (int i = 0; i < this.LEN; i++)
 				{
 					M2SerItem m2SerItem = this.AItems[i];
-					this.xspeed_rate = global::XX.X.Mn(m2SerItem.isActive() ? m2SerItem.xspeed_rate : 1f, this.xspeed_rate);
+					this.xspeed_rate = X.Mn(m2SerItem.isActive() ? m2SerItem.xspeed_rate : 1f, this.xspeed_rate);
 				}
 			}
 			return this.xspeed_rate;
@@ -818,7 +875,7 @@ namespace nel
 					M2SerItem m2SerItem = this.AItems[i];
 					if (m2SerItem.isActive())
 					{
-						this.gacha_release_rate = global::XX.X.Mn(m2SerItem.gacha_release_rate, this.gacha_release_rate);
+						this.gacha_release_rate = X.Mn(m2SerItem.gacha_release_rate, this.gacha_release_rate);
 					}
 				}
 			}
@@ -836,7 +893,7 @@ namespace nel
 					this.ep_addition_ratio += (m2SerItem.isActive() ? m2SerItem.ep_addition_ratio : 0f);
 				}
 			}
-			return global::XX.X.Mx(0f, 1f + this.ep_addition_ratio);
+			return X.Mx(0f, 1f + this.ep_addition_ratio);
 		}
 
 		public float getMpDrainRate()
@@ -868,6 +925,54 @@ namespace nel
 				}
 			}
 			return this.punch_allow == 1;
+		}
+
+		public bool isOrgasmLocked()
+		{
+			if (this.orgasm_lock == 2)
+			{
+				this.orgasm_lock = 0;
+				for (int i = 0; i < this.LEN; i++)
+				{
+					if (this.AItems[i].orgasm_locked)
+					{
+						this.orgasm_lock = 1;
+						break;
+					}
+				}
+			}
+			return this.orgasm_lock == 1;
+		}
+
+		public NoelAnimator.FRZ_STATE frozen_state
+		{
+			get
+			{
+				if (this.frozen_state_ == NoelAnimator.FRZ_STATE._MAX)
+				{
+					this.frozen_state_ = NoelAnimator.FRZ_STATE.NORMAL;
+					for (int i = 0; i < this.LEN; i++)
+					{
+						M2SerItem m2SerItem = this.AItems[i];
+						this.frozen_state_ |= m2SerItem.frozen_state;
+					}
+				}
+				return this.frozen_state_;
+			}
+		}
+
+		public float burstConsumeRatio()
+		{
+			if (this.burst_consume_ratio == -1f)
+			{
+				this.burst_consume_ratio = 1f;
+				for (int i = 0; i < this.LEN; i++)
+				{
+					M2SerItem m2SerItem = this.AItems[i];
+					this.burst_consume_ratio *= (m2SerItem.isActive() ? m2SerItem.burst_consume_ratio : 1f);
+				}
+			}
+			return this.burst_consume_ratio;
 		}
 
 		private void fineTimeScale()
@@ -910,7 +1015,7 @@ namespace nel
 			return this.base_timescale_rev;
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool read_level = true)
+		public void readBinaryFrom(ByteReader Ba, bool read_level = true)
 		{
 			this.clear();
 			int num = (int)Ba.readUByte();
@@ -945,16 +1050,29 @@ namespace nel
 			{
 				return;
 			}
-			if (Atk.isPhysical() && this.has(SER.FROZEN) && val > 0)
+			if (Atk.isPhysical() && Atk.attr != MGATTR.ICE && Atk.attr != MGATTR.ACME && Atk.attr != MGATTR.SPERMA)
 			{
-				M2SerItem m2SerItem = this.Find(SER.FROZEN);
-				if (m2SerItem != null)
+				if (this.has(SER.STONE) && val > 0)
 				{
-					val = (int)((float)val * global::XX.X.NIL(1.5f, 2.5f, (float)m2SerItem.level, 2f));
-					this.Mv.PtcST("frozen_apply_physic_damage", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-					if (this.Mv.is_alive)
+					M2SerItem m2SerItem = this.Find(SER.STONE);
+					if (m2SerItem != null)
 					{
-						m2SerItem.CureTime(240);
+						val = (int)((float)val * X.NIL(0.75f, 0.125f, (float)m2SerItem.level, 2f));
+						this.Mv.PtcST("stone_apply_physic_damage", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+						return;
+					}
+				}
+				else if (this.has(SER.FROZEN) && val > 0)
+				{
+					M2SerItem m2SerItem2 = this.Find(SER.FROZEN);
+					if (m2SerItem2 != null)
+					{
+						val = (int)((float)val * X.NIL(1.5f, 2.5f, (float)m2SerItem2.level, 2f));
+						this.Mv.PtcST("frozen_apply_physic_damage", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+						if (this.Mv.is_alive)
+						{
+							m2SerItem2.CureTime(240);
+						}
 					}
 				}
 			}
@@ -974,7 +1092,7 @@ namespace nel
 
 		public bool apply_pe;
 
-		public FlagCounter<SER> Regist;
+		public M2SerResist Regist;
 
 		public UILogRow[] ALogDecline;
 
@@ -986,11 +1104,13 @@ namespace nel
 
 		public bool need_check_ser = true;
 
-		public const ulong can_split_mp_bits = 21928560704UL;
+		private NoelAnimator.FRZ_STATE frozen_state_;
+
+		public const ulong can_split_mp_bits = 176547383360UL;
 
 		public const ulong shamed_bits = 9185795840UL;
 
-		public const ulong half_bgm_bits = 17213423617UL;
+		public const ulong half_bgm_bits = 137472507905UL;
 
 		public const ulong stun_bits = 720896UL;
 
@@ -1000,9 +1120,13 @@ namespace nel
 
 		public const ulong sleepdown_bursted_bits = 589824UL;
 
-		public const ulong emstate_ser_bits = 7725605116UL;
+		public const ulong auto_adding_maxt_fine_bits = 262144UL;
+
+		public const ulong emstate_ser_bits = 110804820220UL;
 
 		public const ulong orgasm_bits = 50331648UL;
+
+		public const ulong use_sp_beto_bits = 51808043008UL;
 
 		private int cannot_evade = -1;
 
@@ -1030,6 +1154,8 @@ namespace nel
 
 		private float atk_rate = 1f;
 
+		private float burst_consume_ratio = -1f;
+
 		private float chant_speed_rate = 1f;
 
 		private float chant_atk_rate = 1f;
@@ -1043,6 +1169,8 @@ namespace nel
 		private float base_timescale_rev = 1f;
 
 		private float stomach_apply_ratio = -1f;
+
+		private byte orgasm_lock = 2;
 
 		private int bgm_half_mem;
 

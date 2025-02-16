@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{E48556DD-4E02-416E-9BD5-91D480A82180}</ProjectGuid>
+    <ProjectGuid>{76417DEA-FD57-42B2-988A-2B92FF7329B9}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>unsafeAssem</RootNamespace>
     <AssemblyName>unsafeAssem</AssemblyName>
@@ -34,43 +34,43 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="better">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\better.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\better.dll</HintPath>
     </Reference>
     <Reference Include="criware">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\criware.dll</HintPath>
-    </Reference>
-    <Reference Include="netstandard">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\netstandard.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\criware.dll</HintPath>
     </Reference>
     <Reference Include="pixelliner">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\pixelliner.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\pixelliner.dll</HintPath>
     </Reference>
     <Reference Include="spine-unity">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\spine-unity.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\spine-unity.dll</HintPath>
+    </Reference>
+    <Reference Include="System">
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\System.dll</HintPath>
     </Reference>
     <Reference Include="Unity.InputSystem">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\Unity.InputSystem.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\Unity.InputSystem.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.AssetBundleModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.AssetBundleModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.Physics2DModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.Physics2DModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.Physics2DModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UIModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.UIModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.UIModule.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -97,6 +97,7 @@
     <Compile Include="evt\EvTextLog.cs" />
     <Compile Include="evt\EvTLCommand.cs" />
     <Compile Include="evt\EvTransFader.cs" />
+    <Compile Include="evt\EvWaitPxlChars.cs" />
     <Compile Include="evt\IEventListener.cs" />
     <Compile Include="evt\IEventWaitListener.cs" />
     <Compile Include="evt\IHkdsFollowable.cs" />
@@ -140,6 +141,7 @@
     <Compile Include="m2d\DungeonHouseInBright.cs" />
     <Compile Include="m2d\DungeonSacred.cs" />
     <Compile Include="m2d\DungeonSea.cs" />
+    <Compile Include="m2d\FillAssist.cs" />
     <Compile Include="m2d\FnCameraPostRender.cs" />
     <Compile Include="m2d\FnCameraWalk.cs" />
     <Compile Include="m2d\FnMapFinalized.cs" />
@@ -172,6 +174,7 @@
     <Compile Include="m2d\IPresserBehaviour.cs" />
     <Compile Include="m2d\ISfListener.cs" />
     <Compile Include="m2d\ITortureListener.cs" />
+    <Compile Include="m2d\LockCounter.cs" />
     <Compile Include="m2d\M2AirRegion.cs" />
     <Compile Include="m2d\M2AirRegionAdditional.cs" />
     <Compile Include="m2d\M2AirRegionContainer.cs" />
@@ -199,6 +202,7 @@
     <Compile Include="m2d\M2ChipImagePrefixed.cs" />
     <Compile Include="m2d\M2ChipLight.cs" />
     <Compile Include="m2d\M2ChipPattern.cs" />
+    <Compile Include="m2d\M2CImgAnimate.cs" />
     <Compile Include="m2d\M2CImgDrawer.cs" />
     <Compile Include="m2d\M2CImgDrawerActivateEffect.cs" />
     <Compile Include="m2d\M2CImgDrawerHalf.cs" />
@@ -217,6 +221,8 @@
     <Compile Include="m2d\M2DarkRenderer.cs" />
     <Compile Include="m2d\M2DBase.cs" />
     <Compile Include="m2d\M2Debugger.cs" />
+    <Compile Include="m2d\M2DEventListener.cs" />
+    <Compile Include="m2d\M2DInitializeLoader.cs" />
     <Compile Include="m2d\M2DmgCounterContainer.cs" />
     <Compile Include="m2d\M2DmgCounterItem.cs" />
     <Compile Include="m2d\M2DrawBinder.cs" />
@@ -245,6 +251,7 @@
     <Compile Include="m2d\M2LabelPointRunner.cs" />
     <Compile Include="m2d\M2Light.cs" />
     <Compile Include="m2d\M2LightFn.cs" />
+    <Compile Include="m2d\M2LockCounter.cs" />
     <Compile Include="m2d\M2LpCamDecline.cs" />
     <Compile Include="m2d\M2LpCamFocus.cs" />
     <Compile Include="m2d\M2LpChipSwitcher.cs" />
@@ -263,6 +270,7 @@
     <Compile Include="m2d\M2MobGAnimator.cs" />
     <Compile Include="m2d\M2MobGenerator.cs" />
     <Compile Include="m2d\M2MovePat.cs" />
+    <Compile Include="m2d\M2MovePatCrawlAround.cs" />
     <Compile Include="m2d\M2MovePatSeeAround.cs" />
     <Compile Include="m2d\M2MovePatWalkAround.cs" />
     <Compile Include="m2d\M2MovePatWalker.cs" />
@@ -319,14 +327,13 @@
     <Compile Include="m2d\RAYHIT.cs" />
     <Compile Include="m2d\SER.cs" />
     <Compile Include="m2d\SMORDER.cs" />
-    <Compile Include="Microsoft\CodeAnalysis\EmbeddedAttribute.cs" />
     <Compile Include="nel\M2MoverMagicKiller.cs" />
     <Compile Include="NKT.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="System\Runtime\CompilerServices\IsReadOnlyAttribute.cs" />
     <Compile Include="XX\aBtn.cs" />
     <Compile Include="XX\aBtnColorCell.cs" />
     <Compile Include="XX\aBtnCurs.cs" />
+    <Compile Include="XX\aBtnDragger.cs" />
     <Compile Include="XX\aBtnMeter.cs" />
     <Compile Include="XX\aBtnNumCounter.cs" />
     <Compile Include="XX\ActiveDebugger.cs" />
@@ -371,6 +378,7 @@
     <Compile Include="XX\ButtonSkinCommand.cs" />
     <Compile Include="XX\ButtonSkinCrop.cs" />
     <Compile Include="XX\ButtonSkinDesc.cs" />
+    <Compile Include="XX\ButtonSkinDraggerColorChooser.cs" />
     <Compile Include="XX\ButtonSkinForLabel.cs" />
     <Compile Include="XX\ButtonSkinForLabelQsSelector.cs" />
     <Compile Include="XX\ButtonSkinKadomaruIcon.cs" />
@@ -402,6 +410,7 @@
     <Compile Include="XX\ClsPool.cs" />
     <Compile Include="XX\ClsPoolD.cs" />
     <Compile Include="XX\ColliderBox.cs" />
+    <Compile Include="XX\ColorChooser.cs" />
     <Compile Include="XX\ColumnRow.cs" />
     <Compile Include="XX\COMPRESS_STYPE.cs" />
     <Compile Include="XX\ConfirmAnnouncer.cs" />
@@ -550,6 +559,7 @@
     <Compile Include="XX\LabelPointContainer.cs" />
     <Compile Include="XX\LabelPointListener.cs" />
     <Compile Include="XX\ListBuffer.cs" />
+    <Compile Include="XX\LoadTicketManager.cs" />
     <Compile Include="XX\Logger.cs" />
     <Compile Include="XX\MAX.cs" />
     <Compile Include="XX\MBoxDrawer.cs" />
@@ -570,10 +580,14 @@
     <Compile Include="XX\mobpxl\MobSkltAnimator.cs" />
     <Compile Include="XX\mobpxl\MobSkltPosition.cs" />
     <Compile Include="XX\mobpxl\PARTS_TYPE.cs" />
+    <Compile Include="XX\mobpxl\SkltColVari.cs" />
     <Compile Include="XX\mobpxl\SkltImage.cs" />
     <Compile Include="XX\mobpxl\SkltImageSrc.cs" />
     <Compile Include="XX\mobpxl\SkltJoint.cs" />
+    <Compile Include="XX\mobpxl\SkltPalette.cs" />
     <Compile Include="XX\mobpxl\SkltParts.cs" />
+    <Compile Include="XX\mobpxl\SkltRenderKey.cs" />
+    <Compile Include="XX\mobpxl\SkltRenderTicket.cs" />
     <Compile Include="XX\mobpxl\SkltSequence.cs" />
     <Compile Include="XX\MODIF.cs" />
     <Compile Include="XX\MokubaDrawer.cs" />
@@ -635,6 +649,7 @@
     <Compile Include="XX\ScrollAppendBtnContainer.cs" />
     <Compile Include="XX\ScrollBox.cs" />
     <Compile Include="XX\ShakeChecker.cs" />
+    <Compile Include="XX\Shape.cs" />
     <Compile Include="XX\ShockRippleDrawer.cs" />
     <Compile Include="XX\SlideAnim.cs" />
     <Compile Include="XX\SlotDrawer.cs" />
@@ -652,6 +667,7 @@
     <Compile Include="XX\StbReader.cs" />
     <Compile Include="XX\StringHolder.cs" />
     <Compile Include="XX\StrokeLeader.cs" />
+    <Compile Include="XX\TabLRSlider.cs" />
     <Compile Include="XX\TEKIND.cs" />
     <Compile Include="XX\TextRenderer.cs" />
     <Compile Include="XX\TextRendererHtmlTag.cs" />
@@ -671,6 +687,7 @@
     <Compile Include="XX\TutorialBox.cs" />
     <Compile Include="XX\TX.cs" />
     <Compile Include="XX\TxEvalListenerContainer.cs" />
+    <Compile Include="XX\TxKeyDesc.cs" />
     <Compile Include="XX\UniBrightDrawer.cs" />
     <Compile Include="XX\UniKiraDrawer.cs" />
     <Compile Include="XX\UV_SETTYPE.cs" />

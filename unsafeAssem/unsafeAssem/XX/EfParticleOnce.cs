@@ -10,7 +10,7 @@ namespace XX
 			this.index = X.xors();
 		}
 
-		public EfParticleOnce(string _key, EFCON_TYPE _ef_type = EFCON_TYPE.UI)
+		public EfParticleOnce(string _key, EFCON_TYPE _ef_type = EFCON_TYPE.FIXED)
 			: base(null, "", 0f, 0f, 0f, 0, 0)
 		{
 			this.key_ = _key;
@@ -51,11 +51,15 @@ namespace XX
 			{
 				return default_cnt;
 			}
-			return X.IntR(X.Mx(2f, (float)default_cnt * ((this.ef_type == EFCON_TYPE.NORMAL) ? X.EF_LEVEL_NORMAL : X.EF_LEVEL_UI)));
+			return X.IntR(X.Mx(2f, (float)default_cnt * ((this.ef_type == EFCON_TYPE.FIXED) ? 1f : ((this.ef_type == EFCON_TYPE.NORMAL) ? X.EF_LEVEL_NORMAL : X.EF_LEVEL_UI))));
 		}
 
 		public override float getParticleSpeed(EffectItem Ef, int default_cnt, float default_maxt)
 		{
+			if (this.ef_type == EFCON_TYPE.FIXED)
+			{
+				return 1f;
+			}
 			float num = 1f;
 			if (default_cnt <= 2)
 			{
@@ -185,7 +189,7 @@ namespace XX
 
 		public static MeshDrawer CurMd;
 
-		public EFCON_TYPE ef_type;
+		public EFCON_TYPE ef_type = EFCON_TYPE.FIXED;
 
 		private int cur_reload_count = -1;
 

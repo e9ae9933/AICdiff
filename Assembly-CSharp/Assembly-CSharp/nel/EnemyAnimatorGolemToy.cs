@@ -10,7 +10,7 @@ namespace nel
 	public class EnemyAnimatorGolemToy : EnemyAnimator
 	{
 		public EnemyAnimatorGolemToy(NelNGolemToy _Mv, EnemyAnimator.FnCreate _fnConvertPxlFrame, EnemyAnimator.FnFineFrame _fnFineFrame = null)
-			: base(_Mv, _fnConvertPxlFrame, _fnFineFrame)
+			: base(_Mv, _fnConvertPxlFrame, _fnFineFrame, true)
 		{
 			this.Toy = _Mv;
 			if (this.ABone == null)

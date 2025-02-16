@@ -65,7 +65,7 @@ namespace nel
 				this.CartBtn.hide();
 				IN.setZ(this.CartBtn.transform, -0.125f);
 			}
-			this.EfpInsert = new EfParticleOnce("alchemy_insert", EFCON_TYPE.UI);
+			this.EfpInsert = new EfParticleOnce("alchemy_insert", EFCON_TYPE.FIXED);
 			this.MdEf = MeshDrawer.prepareMeshRenderer(base.gameObject, MTRX.MtrMeshNormal, this.first_base_z - 0.9f, -1, null, true, true);
 			this.M2D.FlagValotStabilize.Add(this.stabilize_key);
 			this.deactivate(true);
@@ -92,7 +92,7 @@ namespace nel
 			this.ReleaseStorage();
 			if (_AInventory == null)
 			{
-				_AInventory = global::XX.X.concat<ItemStorage>(this.M2D.IMNG.getInventoryIngredientArray(true), null, -1, -1);
+				_AInventory = X.concat<ItemStorage>(this.M2D.IMNG.getInventoryIngredientArray(true), null, -1, -1);
 			}
 			if (_StRecipeTopic == null)
 			{
@@ -159,6 +159,10 @@ namespace nel
 			{
 				this.MdEf.destruct();
 			}
+			if (this.RecipeBook != null)
+			{
+				IN.DestroyOne(this.RecipeBook.gameObject);
+			}
 		}
 
 		public override bool runIRD(float fcnt)
@@ -176,7 +180,7 @@ namespace nel
 					{
 						try
 						{
-							this.PreSelected.Select(false);
+							this.PreSelected.Select(true);
 						}
 						catch
 						{
@@ -197,12 +201,12 @@ namespace nel
 			if (this.deactivatable && !flag)
 			{
 				this.M2D.FlagValotStabilize.Rem(this.stabilize_key);
-				Object.Destroy(base.gameObject);
+				global::UnityEngine.Object.Destroy(base.gameObject);
 				this.destructed = true;
 			}
 			else
 			{
-				if (this.auto_clear_mdef && global::XX.X.D)
+				if (this.auto_clear_mdef && X.D)
 				{
 					this.MdEf.clear(false, false);
 				}
@@ -239,7 +243,7 @@ namespace nel
 							this.RecipeBook = null;
 							if (this.Rbk_PreSelected != null)
 							{
-								this.Rbk_PreSelected.Select(false);
+								this.Rbk_PreSelected.Select(true);
 							}
 						}
 					}
@@ -295,10 +299,6 @@ namespace nel
 							{
 								if (handle)
 								{
-									if (!IN.isUiAddPD() && this.RTabBar != null)
-									{
-										this.RTabBar.runLRInput(-2);
-									}
 									this.ItemMng.runEditItem();
 									if (IN.isCancel() && this.cancelable)
 									{
@@ -314,7 +314,7 @@ namespace nel
 						}
 					}
 				}
-				if (global::XX.X.D && this.compete_eff_t >= 0)
+				if (X.D && this.compete_eff_t >= 0)
 				{
 					if (!this.drawCompleteEffect(this.MdEf, this.compete_eff_t, ref this.use_effect))
 					{
@@ -322,7 +322,7 @@ namespace nel
 					}
 					else
 					{
-						this.compete_eff_t += global::XX.X.AF;
+						this.compete_eff_t += X.AF;
 						this.use_effect = true;
 					}
 				}
@@ -336,7 +336,7 @@ namespace nel
 			{
 				this.fineTutorialArrow();
 			}
-			else if (global::XX.X.D)
+			else if (X.D)
 			{
 				this.fineTutorialArrowPos();
 			}
@@ -380,7 +380,7 @@ namespace nel
 						this.FocusPre = this.FocusIng ?? aBtn.PreSelected;
 						if (this.FocusIng != null)
 						{
-							this.IngConSetValue(global::XX.X.NmI(this.FocusIng.title, 0, false, false), false);
+							this.IngConSetValue(X.NmI(this.FocusIng.title, 0, false, false), false);
 						}
 					}
 					this.BxIng.hide();
@@ -396,6 +396,10 @@ namespace nel
 				if (this.stt != UiCraftBase.STATE._NOUSE)
 				{
 					this.use_effect = true;
+				}
+				if (this.RTabBar != null)
+				{
+					this.RTabBar.LrInput(false);
 				}
 			}
 			bool flag = false;
@@ -476,6 +480,10 @@ namespace nel
 						this.CartBtn.posSetA(this.cartbtn_x + 300f, this.cartbtn_y, this.cartbtn_x, this.cartbtn_y, true);
 						this.CartBtn.hide();
 					}
+					if (this.RTabBar != null)
+					{
+						this.RTabBar.LrInput(true);
+					}
 				}
 				break;
 			case UiCraftBase.STATE.RECIPE_CHOOSE_ROW:
@@ -520,11 +528,11 @@ namespace nel
 					this.rie_anim_delay = 0;
 					if (this.FocusIng != null)
 					{
-						this.FocusIng.Select(false);
+						this.FocusIng.Select(true);
 					}
 					else if (this.FocusPre != null)
 					{
-						this.FocusPre.Select(false);
+						this.FocusPre.Select(true);
 					}
 				}
 				this.BxIng.Focusable(false, false, null);
@@ -549,7 +557,7 @@ namespace nel
 				}
 				if (this.ItemMng.Inventory != null && this.ItemMng.Inventory.SelectedRow != null)
 				{
-					this.ItemMng.Inventory.SelectedRow.Select(false);
+					this.ItemMng.Inventory.SelectedRow.Select(true);
 				}
 				break;
 			case UiCraftBase.STATE.AUTOFILLING:
@@ -593,7 +601,7 @@ namespace nel
 			Bench.Pend("craft state change");
 		}
 
-		private void initTemporaryCreateRecipe(RecipeManager.Recipe Rcp, NelItem RcpItm)
+		private void initTemporaryCreateRecipe(RCP.Recipe Rcp, NelItem RcpItm)
 		{
 			if (this.ACreateMem == null)
 			{
@@ -612,7 +620,7 @@ namespace nel
 			this.BxR.margin_in_tb = 30f;
 			if (this.need_recipe_recheck)
 			{
-				RecipeManager.flush();
+				RCP.flush();
 				this.prepareRecipeCreatable();
 			}
 			string[] rcpTopicTabKeys = this.getRcpTopicTabKeys();
@@ -635,7 +643,7 @@ namespace nel
 			if (num >= 2)
 			{
 				this.tptab_index %= num;
-				this.RTabBar = ColumnRow.CreateT<aBtnNel>(this.BxR, "ctg_tab", "row_tab", this.tptab_index, rcpTopicTabKeys, new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnRecipeTopicTabChanged), use_w, 0f, false, false).LrInput(false);
+				this.RTabBar = ColumnRow.CreateT<aBtnNel>(this.BxR, "ctg_tab", "row_tab", this.tptab_index, rcpTopicTabKeys, new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnRecipeTopicTabChanged), use_w, 0f, false, false);
 			}
 			else
 			{
@@ -665,13 +673,13 @@ namespace nel
 		protected void prepareRecipeCreatableS(out uint rcp_use_bits)
 		{
 			rcp_use_bits = 0U;
-			using (BList<RecipeManager.Recipe> blist = ListBuffer<RecipeManager.Recipe>.Pop(0))
+			using (BList<RCP.Recipe> blist = ListBuffer<RCP.Recipe>.Pop(0))
 			{
 				foreach (KeyValuePair<NelItem, ItemStorage.ObtainInfo> keyValuePair in this.StRecipeTopic.getWholeInfoDictionary())
 				{
 					if (TX.isStart(keyValuePair.Key.key, "Recipe_", 0))
 					{
-						RecipeManager.Recipe recipe = this.getRecipe(keyValuePair.Key);
+						RCP.Recipe recipe = this.getRecipe(keyValuePair.Key);
 						if (recipe != null)
 						{
 							blist.Add(recipe);
@@ -680,7 +688,7 @@ namespace nel
 						}
 					}
 				}
-				using (BList<RecipeManager.RecipeIngredient> blist2 = ListBuffer<RecipeManager.RecipeIngredient>.Pop(0))
+				using (BList<RCP.RecipeIngredient> blist2 = ListBuffer<RCP.RecipeIngredient>.Pop(0))
 				{
 					for (int i = blist.Count - 1; i >= 0; i--)
 					{
@@ -692,7 +700,7 @@ namespace nel
 
 		protected virtual void fineTabIndexFirst(int maxtab)
 		{
-			this.tptab_index = global::XX.X.MMX(0, this.init_tptab_index, maxtab - 1);
+			this.tptab_index = X.MMX(0, this.init_tptab_index, maxtab - 1);
 		}
 
 		protected virtual void saveTabIndexFirst()
@@ -724,13 +732,13 @@ namespace nel
 			this.initItemManagerTab(true);
 		}
 
-		public virtual void changeTopicTab(RecipeManager.RP_CATEG categ)
+		public virtual void changeTopicTab(RCP.RP_CATEG categ)
 		{
 		}
 
-		public static void changeTopicTabS(UiCraftBase Ui, RecipeManager.RP_CATEG categ, uint rcp_use_bits)
+		public static void changeTopicTabS(UiCraftBase Ui, RCP.RP_CATEG categ, uint rcp_use_bits)
 		{
-			int num = global::XX.X.bit_index(rcp_use_bits, 1U << (int)categ);
+			int num = X.bit_index(rcp_use_bits, 1U << (int)categ);
 			if (num >= 0 && Ui.RTabBar != null && num < Ui.RTabBar.Length)
 			{
 				Ui.RTabBar.Get(num).ExecuteOnClick();
@@ -803,7 +811,7 @@ namespace nel
 
 		public static string[] getRcpTopicTabKeysS(uint rcp_use_bits)
 		{
-			int num = global::XX.X.bit_count(rcp_use_bits);
+			int num = X.bit_count(rcp_use_bits);
 			string[] array = new string[num];
 			int num2 = 0;
 			for (int i = 0; i < 5; i++)
@@ -813,7 +821,7 @@ namespace nel
 					string[] array2 = array;
 					int num3 = num2;
 					string text = "&&recipe_categ_";
-					RecipeManager.RP_CATEG rp_CATEG = (RecipeManager.RP_CATEG)i;
+					RCP.RP_CATEG rp_CATEG = (RCP.RP_CATEG)i;
 					array2[num3] = text + rp_CATEG.ToString().ToLower();
 					if (++num2 >= num)
 					{
@@ -826,13 +834,13 @@ namespace nel
 
 		protected abstract void fnRecipeTopicRowsPrepare(UiItemManageBox IMng, List<ItemStorage.IRow> ASource, List<ItemStorage.IRow> ADest);
 
-		protected void fnRecipeTopicRowsPrepareS(List<ItemStorage.IRow> ASource, List<ItemStorage.IRow> ADest, RecipeManager.RP_CATEG categ)
+		protected void fnRecipeTopicRowsPrepareS(List<ItemStorage.IRow> ASource, List<ItemStorage.IRow> ADest, RCP.RP_CATEG categ)
 		{
 			int count = ASource.Count;
 			for (int i = 0; i < count; i++)
 			{
 				ItemStorage.IRow row = ASource[i];
-				if (categ == RecipeManager.RP_CATEG.ALOMA)
+				if (categ == RCP.RP_CATEG.ALOMA)
 				{
 					if (TX.isStart(row.Data.key, "TrmItem_", 0))
 					{
@@ -841,7 +849,7 @@ namespace nel
 				}
 				else if (TX.isStart(row.Data.key, "Recipe_", 0))
 				{
-					RecipeManager.Recipe recipe = this.getRecipe(row.Data);
+					RCP.Recipe recipe = this.getRecipe(row.Data);
 					if (recipe != null && recipe.categ == categ)
 					{
 						ADest.Add(row);
@@ -873,7 +881,7 @@ namespace nel
 		{
 			if (row == UiItemManageBox.DESC_ROW.DETAIL)
 			{
-				RecipeManager.Recipe recipeBasic = UiCraftBase.getRecipeBasic(Itm);
+				RCP.Recipe recipeBasic = UiCraftBase.getRecipeBasic(Itm);
 				if (recipeBasic != null)
 				{
 					return recipeBasic.listupIngredients("\n", true, true);
@@ -881,23 +889,23 @@ namespace nel
 			}
 			else if (row == UiItemManageBox.DESC_ROW.NAME)
 			{
-				RecipeManager.Recipe recipeBasic2 = UiCraftBase.getRecipeBasic(Itm);
+				RCP.Recipe recipeBasic2 = UiCraftBase.getRecipeBasic(Itm);
 				recipe_have_count = UiCraftBase.fineRTHaveCount(recipeBasic2, AStorage, StRecipeTopic);
 				return def_string + "  <font size=\"12\">" + recipe_have_count + "</font>";
 			}
 			return def_string;
 		}
 
-		protected static string fineRTHaveCount(RecipeManager.Recipe Rcp, ItemStorage[] AStorage, ItemStorage StPrecious)
+		protected static string fineRTHaveCount(RCP.Recipe Rcp, ItemStorage[] AStorage, ItemStorage StPrecious)
 		{
 			int num = AStorage.Length;
 			int[] array = new int[num];
-			for (int i = ((Rcp.categ == RecipeManager.RP_CATEG.COOK) ? 0 : (-1)); i < num; i++)
+			for (int i = ((Rcp.categ == RCP.RP_CATEG.COOK) ? 0 : (-1)); i < num; i++)
 			{
 				ItemStorage itemStorage = ((i == -1) ? StPrecious : AStorage[i]);
 				if (itemStorage != null)
 				{
-					array[global::XX.X.Mx(i, 0)] += itemStorage.getCount(Rcp);
+					array[X.Mx(i, 0)] += itemStorage.getCount(Rcp);
 				}
 			}
 			string text = "<img mesh=\"IconNoel0\" width=\"22\" height=\"24\" />x" + array[0].ToString();
@@ -917,7 +925,7 @@ namespace nel
 			{
 				return false;
 			}
-			RecipeManager.Recipe recipe = this.getRecipe(itemData);
+			RCP.Recipe recipe = this.getRecipe(itemData);
 			if (recipe != null)
 			{
 				if (this.TutorialTarget != null && recipe != this.TutorialTarget)
@@ -931,7 +939,7 @@ namespace nel
 			return false;
 		}
 
-		protected virtual void prepareRecipe(RecipeManager.Recipe Rcp, NelItem Itm, List<List<UiCraftBase.IngEntryRow>> AAPre = null)
+		protected virtual void prepareRecipe(RCP.Recipe Rcp, NelItem Itm, List<List<UiCraftBase.IngEntryRow>> AAPre = null)
 		{
 			this.TargetRcp = Rcp;
 			this.TargetRcpItm = Itm;
@@ -974,7 +982,7 @@ namespace nel
 			this.rie_anim_delay = 20;
 			this.need_use_finerow = false;
 			this.need_ingred_fine = (this.need_kd_fine = (this.recipe_creatable = false));
-			if (this.TargetRcp.categ == RecipeManager.RP_CATEG.COOK)
+			if (this.TargetRcp.categ == RCP.RP_CATEG.COOK)
 			{
 				this.Astomach_cost = new List<Stomach.CostData>(this.M2D.IMNG.StmNoel.getEatenCostArray());
 				this.stomach_cost_total = this.M2D.IMNG.StmNoel.cost;
@@ -982,10 +990,10 @@ namespace nel
 			}
 			aBtn aBtn = this.initRecipeCreateUi();
 			this.changeState(UiCraftBase.STATE.RECIPE_CHOOSE_ROW);
-			aBtn.Select(false);
+			aBtn.Select(true);
 			if (AAPre != null)
 			{
-				num = global::XX.X.Mn(AAPre.Count, this.TargetRcp.AIng.Count);
+				num = X.Mn(AAPre.Count, this.TargetRcp.AIng.Count);
 				for (int k = 0; k < num; k++)
 				{
 					List<UiCraftBase.IngEntryRow> list = AAPre[k];
@@ -1118,7 +1126,7 @@ namespace nel
 					int num2 = i;
 					int num3 = ((++num >= this.TargetRcp.Aor_splitter.Length) ? count : this.TargetRcp.Aor_splitter[num]);
 					int num4 = -1;
-					if (use_index >= 0 && global::XX.X.BTW((float)num2, (float)use_index, (float)num3) && this.TargetRcp.AIng[use_index].isCreatable(this.AAIngCreate[use_index]))
+					if (use_index >= 0 && X.BTW((float)num2, (float)use_index, (float)num3) && this.TargetRcp.AIng[use_index].isCreatable(this.AAIngCreate[use_index]))
 					{
 						num4 = use_index;
 						i = num3;
@@ -1213,7 +1221,7 @@ namespace nel
 					}
 				}
 				this.AIngView.RemoveAt(num);
-				this.rie_r_fine_link = ((this.rie_r_fine_link < 0) ? num : global::XX.X.Mn(this.rie_r_fine_link, num));
+				this.rie_r_fine_link = ((this.rie_r_fine_link < 0) ? num : X.Mn(this.rie_r_fine_link, num));
 				if (this.rie_r_anim_i > num)
 				{
 					this.rie_r_anim_i--;
@@ -1221,7 +1229,7 @@ namespace nel
 			}
 		}
 
-		private UiCraftBase.IngEntryRow createAutoForRecipe(UiCraftBase.IngEntryRow Parent, UiCraftBase.AutoCreationInfo CInfo, RecipeManager.Recipe Rcp, int min_grade, bool no_execute_fineor = false, bool use_already_stock = true)
+		private UiCraftBase.IngEntryRow createAutoForRecipe(UiCraftBase.IngEntryRow Parent, UiCraftBase.AutoCreationInfo CInfo, RCP.Recipe Rcp, int min_grade, bool no_execute_fineor = false, bool use_already_stock = true)
 		{
 			if (Parent == null)
 			{
@@ -1233,11 +1241,11 @@ namespace nel
 			int i;
 			if (use_already_stock && !CInfo.cannot_use_already_food)
 			{
-				List<RecipeManager.RecipeDish> dishItemList = RecipeManager.getDishItemList(Rcp);
+				List<RCP.RecipeDish> dishItemList = RCP.getDishItemList(Rcp);
 				num = dishItemList.Count;
 				for (i = 0; i < num; i++)
 				{
-					RecipeManager.RecipeDish recipeDish = dishItemList[i];
+					RCP.RecipeDish recipeDish = dishItemList[i];
 					ItemStorage.ObtainInfo info = this.StForUse.getInfo(recipeDish.ItemData);
 					if (info != null && info.getCountMoreGrade(min_grade) != 0)
 					{
@@ -1316,14 +1324,14 @@ namespace nel
 			return Parent;
 		}
 
-		protected virtual bool can_create_auto_without_no_experience(RecipeManager.RecipeIngredient TargetIng)
+		protected virtual bool can_create_auto_without_no_experience(RCP.RecipeIngredient TargetIng)
 		{
 			return TargetIng.is_tool;
 		}
 
-		private bool createAutoForRecipeColumn(UiCraftBase.IngEntryRow Parent, UiCraftBase.AutoCreationInfo CInfo, RecipeManager.Recipe TargetRcp, int ing_i, List<UiCraftBase.IngEntryRow> L, bool check_event_decline = false)
+		private bool createAutoForRecipeColumn(UiCraftBase.IngEntryRow Parent, UiCraftBase.AutoCreationInfo CInfo, RCP.Recipe TargetRcp, int ing_i, List<UiCraftBase.IngEntryRow> L, bool check_event_decline = false)
 		{
-			RecipeManager.RecipeIngredient recipeIngredient = TargetRcp.AIng[ing_i];
+			RCP.RecipeIngredient recipeIngredient = TargetRcp.AIng[ing_i];
 			bool flag = true;
 			if (((CInfo.previous && TargetRcp.created == 0U) || (check_event_decline && this.evwait != UiCraftBase.EVWAIT.NOUSE && this.evwait < UiCraftBase.EVWAIT.ING_AUTO_FINISHED && this.evwait != UiCraftBase.EVWAIT.RECIPE_CHOOSE_ROW_FILLED_ALLOW_AUTO)) && !this.can_create_auto_without_no_experience(recipeIngredient))
 			{
@@ -1357,9 +1365,9 @@ namespace nel
 			return flag;
 		}
 
-		private UiCraftBase.IngEntryRow createAuto(UiCraftBase.IngEntryRow Parent, UiCraftBase.AutoCreationInfo CInfo, RecipeManager.RecipeIngredient TargetIng, int ing_index)
+		private UiCraftBase.IngEntryRow createAuto(UiCraftBase.IngEntryRow Parent, UiCraftBase.AutoCreationInfo CInfo, RCP.RecipeIngredient TargetIng, int ing_index)
 		{
-			RecipeManager.Recipe recipe = ((Parent == null) ? this.TargetRcp : Parent.Source.TargetRecipe);
+			RCP.Recipe recipe = ((Parent == null) ? this.TargetRcp : Parent.Source.TargetRecipe);
 			if (CInfo.previous && recipe != null && recipe.created > 0U && recipe.getPrevList() != null)
 			{
 				List<List<UiCraftBase.IngEntryRow>> prevList = recipe.getPrevList();
@@ -1385,7 +1393,7 @@ namespace nel
 				{
 					return this.createEntry(Parent, CInfo, TargetIng, TargetIng.Target, null, -1);
 				}
-				if (TargetIng.target_category == (RecipeManager.RPI_CATEG)0 && TargetIng.target_ni_category == NelItem.CATEG.OTHER)
+				if (TargetIng.target_category == (RCP.RPI_CATEG)0 && TargetIng.target_ni_category == NelItem.CATEG.OTHER)
 				{
 					return this.createAutoForRecipe(new UiCraftBase.IngEntryRow(Parent, TargetIng), CInfo, TargetIng.TargetRecipe, TargetIng.grade, false, true);
 				}
@@ -1397,7 +1405,7 @@ namespace nel
 				this.ATempRow.Clear();
 				foreach (KeyValuePair<NelItem, ItemStorage.ObtainInfo> keyValuePair in wholeInfoDictionary)
 				{
-					if ((TargetIng.target_category == (RecipeManager.RPI_CATEG)0 || keyValuePair.Key.RecipeInfo != null) && ((TargetIng.target_category != (RecipeManager.RPI_CATEG)0) ? ((keyValuePair.Key.RecipeInfo.categ & TargetIng.target_category) > (RecipeManager.RPI_CATEG)0) : ((keyValuePair.Key.category & TargetIng.target_ni_category) == TargetIng.target_ni_category)) && (TargetIng.grade <= 0 || keyValuePair.Value.getCountMoreGrade(TargetIng.grade) != 0))
+					if ((TargetIng.target_category == (RCP.RPI_CATEG)0 || keyValuePair.Key.RecipeInfo != null) && ((TargetIng.target_category != (RCP.RPI_CATEG)0) ? ((keyValuePair.Key.RecipeInfo.categ & TargetIng.target_category) > (RCP.RPI_CATEG)0) : ((keyValuePair.Key.category & TargetIng.target_ni_category) == TargetIng.target_ni_category)) && (TargetIng.grade <= 0 || keyValuePair.Value.getCountMoreGrade(TargetIng.grade) != 0))
 					{
 						this.ATempRow.Add(new ItemStorage.IRow(keyValuePair.Key, keyValuePair.Value, false));
 					}
@@ -1409,7 +1417,7 @@ namespace nel
 				UiCraftBase.AutoCreationInfo.CurrentSort = CInfo;
 				UiCraftBase.AutoCreationInfo.CurrentIng = TargetIng;
 				int count = this.ATempRow.Count;
-				global::XX.X.shuffle<ItemStorage.IRow>(this.ATempRow, count, null);
+				X.shuffle<ItemStorage.IRow>(this.ATempRow, count, null);
 				this.ATempRow.Sort(this.FD_fnSortAutoCreationItemRow);
 				for (int i = 0; i < count; i++)
 				{
@@ -1427,15 +1435,15 @@ namespace nel
 		protected virtual int fnSortAutoCreationItemRow(ItemStorage.IRow Ra, ItemStorage.IRow Rb)
 		{
 			UiCraftBase.AutoCreationInfo currentSort = UiCraftBase.AutoCreationInfo.CurrentSort;
-			RecipeManager.RecipeItemInfo recipeInfo = Ra.Data.RecipeInfo;
-			RecipeManager.RecipeItemInfo recipeInfo2 = Rb.Data.RecipeInfo;
+			RCP.RecipeItemInfo recipeInfo = Ra.Data.RecipeInfo;
+			RCP.RecipeItemInfo recipeInfo2 = Rb.Data.RecipeInfo;
 			if (this.autofilling_use_cost_field && currentSort.cost != UiCraftBase.AF_COST.NONE && recipeInfo.cost != recipeInfo2.cost)
 			{
-				return (recipeInfo.cost - recipeInfo2.cost) * global::XX.X.MPF(currentSort.cost == UiCraftBase.AF_COST.LOW_COST);
+				return (recipeInfo.cost - recipeInfo2.cost) * X.MPF(currentSort.cost == UiCraftBase.AF_COST.LOW_COST);
 			}
 			if (currentSort.kind != UiCraftBase.AF_KIND.NONE && Ra.total != Rb.total)
 			{
-				return (Ra.total - Rb.total) * global::XX.X.MPF(currentSort.kind == UiCraftBase.AF_KIND.FEW);
+				return (Ra.total - Rb.total) * X.MPF(currentSort.kind == UiCraftBase.AF_KIND.FEW);
 			}
 			if (currentSort.grade < 5)
 			{
@@ -1444,7 +1452,7 @@ namespace nel
 			return 0;
 		}
 
-		private UiCraftBase.IngEntryRow createEntryForPrevious(UiCraftBase.IngEntryRow Parent, UiCraftBase.AutoCreationInfo CInfo, UiCraftBase.IngEntryRow Src, RecipeManager.RecipeIngredient TargetIng)
+		private UiCraftBase.IngEntryRow createEntryForPrevious(UiCraftBase.IngEntryRow Parent, UiCraftBase.AutoCreationInfo CInfo, UiCraftBase.IngEntryRow Src, RCP.RecipeIngredient TargetIng)
 		{
 			if (!TargetIng.forNeeds(Src.Itm, true) || TargetIng.grade > Src.grade)
 			{
@@ -1461,7 +1469,7 @@ namespace nel
 			return null;
 		}
 
-		private UiCraftBase.IngEntryRow createEntry(UiCraftBase.IngEntryRow Parent, UiCraftBase.AutoCreationInfo CInfo, RecipeManager.RecipeIngredient TargetIng, NelItem ItemData, ItemStorage.ObtainInfo Obt, int grade)
+		private UiCraftBase.IngEntryRow createEntry(UiCraftBase.IngEntryRow Parent, UiCraftBase.AutoCreationInfo CInfo, RCP.RecipeIngredient TargetIng, NelItem ItemData, ItemStorage.ObtainInfo Obt, int grade)
 		{
 			if (ItemData == null)
 			{
@@ -1498,8 +1506,8 @@ namespace nel
 			int num2 = -1;
 			for (int i = 0; i < num; i++)
 			{
-				int num3 = grade + ((i == 0) ? 0 : ((i + 1) / 2 * global::XX.X.MPF(i % 2 == 1)));
-				if (global::XX.X.BTW(0f, (float)num3, 5f) && num3 >= TargetIng.grade && Obt.getCount(num3) != 0)
+				int num3 = grade + ((i == 0) ? 0 : ((i + 1) / 2 * X.MPF(i % 2 == 1)));
+				if (X.BTW(0f, (float)num3, 5f) && num3 >= TargetIng.grade && Obt.getCount(num3) != 0)
 				{
 					num2 = num3;
 					break;
@@ -1530,8 +1538,8 @@ namespace nel
 				int num = Rie.insertViewRow(this.AIngView, -2, 0);
 				int num2 = this.AIngView.Count - count;
 				int num3 = num2 + num;
-				this.rie_r_fine_link = ((this.rie_r_fine_link == -1) ? num : global::XX.X.Mn(this.rie_r_fine_link, num));
-				this.rie_r_anim_i = global::XX.X.Mn(this.rie_r_fine_link, num);
+				this.rie_r_fine_link = ((this.rie_r_fine_link == -1) ? num : X.Mn(this.rie_r_fine_link, num));
+				this.rie_r_anim_i = X.Mn(this.rie_r_fine_link, num);
 				for (int i = this.RieCon.Length - 1; i >= num; i--)
 				{
 					this.RieCon.Get(i).carr_index += num2;
@@ -1550,7 +1558,7 @@ namespace nel
 		private void reindexRieButtons(int start_i = 0)
 		{
 			int length = this.RieCon.Length;
-			for (int i = global::XX.X.Mx(0, start_i); i < length; i++)
+			for (int i = X.Mx(0, start_i); i < length; i++)
 			{
 				this.RieCon.Get(i).carr_index = i;
 			}
@@ -1812,7 +1820,7 @@ namespace nel
 
 		protected void fineSubmitTitle(aBtn B)
 		{
-			if (this.TargetRcp.categ == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+			if (this.TargetRcp.categ == RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 			{
 				B.setSkinTitle(TX.Get("Submit_alchemy", ""));
 				return;
@@ -1868,8 +1876,8 @@ namespace nel
 			this.BxKD.Clear();
 			if (this.stt == UiCraftBase.STATE.AUTOFILLING || this.stt == UiCraftBase.STATE.AUTOFILLING_IC)
 			{
-				RecipeManager.RecipeIngredient targetIng = this.TargetIng;
-				RecipeManager.Recipe recipe = ((this.stt == UiCraftBase.STATE.AUTOFILLING_IC) ? targetIng.TargetRecipe : this.TargetRcp);
+				RCP.RecipeIngredient targetIng = this.TargetIng;
+				RCP.Recipe recipe = ((this.stt == UiCraftBase.STATE.AUTOFILLING_IC) ? targetIng.TargetRecipe : this.TargetRcp);
 				this.CurCInfo = recipe.CInfo;
 				this.BxKD.getBox().frametype = UiBox.FRAMETYPE.MAIN;
 				this.BxKD.margin_in_lr = 30f;
@@ -2004,11 +2012,11 @@ namespace nel
 				});
 				if (!this.read_only)
 				{
-					btnContainer.Get(0).Select(false);
+					btnContainer.Get(0).Select(true);
 				}
 				else
 				{
-					(btnContainer.Get("&&alchemy_manual_create") ?? btnContainer.Get("&&Cancel")).Select(false);
+					(btnContainer.Get("&&alchemy_manual_create") ?? btnContainer.Get("&&Cancel")).Select(true);
 				}
 				btnContainer.Get(btnContainer.Length - 1).setNaviB(aBtnMeterNel, true, true);
 				if (recipe.created == 0U && (targetIng == null || targetIng.TargetRecipe == null || targetIng.TargetRecipe.created == 0U))
@@ -2062,7 +2070,7 @@ namespace nel
 		{
 			get
 			{
-				return this.TargetRcp != null && this.TargetRcp.categ == RecipeManager.RP_CATEG.COOK;
+				return this.TargetRcp != null && this.TargetRcp.categ == RCP.RP_CATEG.COOK;
 			}
 		}
 
@@ -2104,7 +2112,7 @@ namespace nel
 			FillImageBlock fillImageBlock = this.createCmdFIB(num);
 			float num3 = use_w - fillImageBlock.get_swidth_px() - 35f;
 			float num4 = num;
-			if (this.TargetRcp.categ == RecipeManager.RP_CATEG.COOK)
+			if (this.TargetRcp.categ == RCP.RP_CATEG.COOK)
 			{
 				Designer designer = this.BxCmd.addTab("cmd_r_tab", num3, num, num3, num, false);
 				designer.Smallest();
@@ -2130,20 +2138,24 @@ namespace nel
 				this.need_redraw_stomach = true;
 				designer.addHr(new DsnDataHr().H(UiLunchTimeBase.costbx_h * 0.5f + 8f));
 			}
-			this.BxCmd.addP(new DsnDataP("", false)
+			using (STB stb = TX.PopBld(null, 0))
 			{
-				name = "cmd_r",
-				text = this.fineCompletionDetail(false),
-				TxCol = C32.d2c(4283780170U),
-				alignx = ALIGN.LEFT,
-				aligny = ALIGNY.TOP,
-				size = 14f,
-				html = true,
-				swidth = num3,
-				sheight = (flag ? 0f : num4),
-				text_auto_wrap = true
-			}, false);
-			if (this.TargetRcp.categ == RecipeManager.RP_CATEG.COOK)
+				this.fineCompletionDetail(stb, false);
+				this.BxCmd.addP(new DsnDataP("", false)
+				{
+					name = "cmd_r",
+					Stb = stb,
+					TxCol = C32.d2c(4283780170U),
+					alignx = ALIGN.LEFT,
+					aligny = ALIGNY.TOP,
+					size = 14f,
+					html = true,
+					swidth = num3,
+					sheight = (flag ? 0f : num4),
+					text_auto_wrap = true
+				}, false);
+			}
+			if (this.TargetRcp.categ == RCP.RP_CATEG.COOK)
 			{
 				this.BxCmd.Br().addHr(new DsnDataHr().H(12f));
 				this.BxCmd.endTab(true);
@@ -2177,11 +2189,11 @@ namespace nel
 						name = "create_count",
 						minval = 1,
 						def = 1,
-						maxval = 1 + global::XX.X.Mx(0, additional_creatable),
+						maxval = 1 + X.Mx(0, additional_creatable),
 						digit = 3,
 						fnClick = delegate(aBtn _B)
 						{
-							BtnSubmit.Select(false);
+							BtnSubmit.Select(true);
 							IN.clearPushDown(false);
 							return true;
 						},
@@ -2224,7 +2236,7 @@ namespace nel
 					aBtn = BtnSubmit;
 					BtnSubmit.setNaviL(aBtnNel, true, true);
 				}
-				aBtn.Select(false);
+				aBtn.Select(true);
 				this.BxCmd.endTab(true);
 			}
 		}
@@ -2262,7 +2274,7 @@ namespace nel
 				}
 				else if (this.stt == UiCraftBase.STATE.ING_CONTENT)
 				{
-					RecipeManager.RecipeIngredient targetIng = this.TargetIng;
+					RCP.RecipeIngredient targetIng = this.TargetIng;
 					string text = "";
 					if (!this.read_only)
 					{
@@ -2344,7 +2356,7 @@ namespace nel
 			{
 				this.runIngredientAnimation(false);
 			}
-			if (this.need_redraw_stomach && global::XX.X.D && this.MdLunchCost != null && this.stt < UiCraftBase.STATE.COMPLETE)
+			if (this.need_redraw_stomach && X.D && this.MdLunchCost != null && this.stt < UiCraftBase.STATE.COMPLETE)
 			{
 				this.need_redraw_stomach = this.drawLunchCostMeter(null);
 			}
@@ -2364,7 +2376,7 @@ namespace nel
 					{
 						if (this.FocusIng != null && !this.read_only)
 						{
-							this.BxConfirm.getBtn("Submit").Select(false);
+							this.BxConfirm.getBtn("Submit").Select(true);
 							SND.Ui.play("cursor", false);
 						}
 						else
@@ -2376,7 +2388,7 @@ namespace nel
 							}
 							else
 							{
-								btn.Select(false);
+								btn.Select(true);
 								SND.Ui.play("cancel", false);
 							}
 						}
@@ -2415,7 +2427,7 @@ namespace nel
 					}
 					if (IN.isUiRemPD())
 					{
-						RecipeManager.RecipeIngredient targetIng = this.TargetIng;
+						RCP.RecipeIngredient targetIng = this.TargetIng;
 						if (this.AAIngCreate[this.TargetIng.index].Count == 0)
 						{
 							if (this.canIngredientContentCancel())
@@ -2481,7 +2493,7 @@ namespace nel
 						{
 							this.compete_eff_t = 160;
 						}
-						aBtn.Select(false);
+						aBtn.Select(true);
 					}
 				}
 			}
@@ -2491,7 +2503,7 @@ namespace nel
 				return;
 			}
 			this.use_effect = false;
-			if (global::XX.X.D && this.AInsertEffect.Count > 0)
+			if (X.D && this.AInsertEffect.Count > 0)
 			{
 				this.use_effect = true;
 				if (this.MdEf.hasMultipleTriangle())
@@ -2553,7 +2565,7 @@ namespace nel
 						}
 						if (ingEntryRow.generation == 0)
 						{
-							RecipeManager.RecipeIngredient offspringSource = ingEntryRow.getOffspringSource();
+							RCP.RecipeIngredient offspringSource = ingEntryRow.getOffspringSource();
 							aBtnItemRow ingredientRow = this.getIngredientRow(offspringSource.index);
 							if (ingredientRow != null)
 							{
@@ -2589,7 +2601,10 @@ namespace nel
 					}
 				}
 				this.CompletionImage = ((this.AIngView.Count == 0) ? null : this.TargetRcp.createDish(this.AAIngCreate, false, null));
-				this.fineCompletionDetail(true);
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					this.fineCompletionDetail(stb, true);
+				}
 				this.RieCon.OuterScrollBox.reposition(true);
 			}
 		}
@@ -2636,7 +2651,7 @@ namespace nel
 				this.fineORIngredientEnable(-1);
 				return true;
 			}
-			int num2 = global::XX.X.NmI(this.FocusIng.title, 0, false, false);
+			int num2 = X.NmI(this.FocusIng.title, 0, false, false);
 			if (this.AAIngCreate[num2].Count != 0)
 			{
 				int j = this.AIngView.Count - 1;
@@ -2696,13 +2711,13 @@ namespace nel
 				num2 = (num2 + 1) % count2;
 				if (this.AAIngCreate[num2].Count != 0)
 				{
-					this.getIngredientRow(num2).Select(false);
+					this.getIngredientRow(num2).Select(true);
 					break;
 				}
 			}
 			if (k == count2)
 			{
-				this.BxConfirm.getBtn("&&Cancel").Select(false);
+				this.BxConfirm.getBtn("&&Cancel").Select(true);
 			}
 			SND.Ui.play("cancel", false);
 			return false;
@@ -2745,7 +2760,7 @@ namespace nel
 		private void fineEntrySkinState(aBtn _B, UiCraftBase.IngEntryRow Rie)
 		{
 			ButtonSkinAlchemyEntryRow buttonSkinAlchemyEntryRow = _B.get_Skin() as ButtonSkinAlchemyEntryRow;
-			buttonSkinAlchemyEntryRow.hilighted = this.FocusIng != null && global::XX.X.NmI(this.FocusIng.title, 0, false, false) == Rie.getOffspringSource().index;
+			buttonSkinAlchemyEntryRow.hilighted = this.FocusIng != null && X.NmI(this.FocusIng.title, 0, false, false) == Rie.getOffspringSource().index;
 			_B.SetLocked(this.FocusIng != null && !buttonSkinAlchemyEntryRow.hilighted, true, false);
 		}
 
@@ -2764,7 +2779,7 @@ namespace nel
 
 		private bool fnChangedIngredientRow(aBtn B)
 		{
-			int num = global::XX.X.NmI(B.title, 0, false, false);
+			int num = X.NmI(B.title, 0, false, false);
 			if (num < 0)
 			{
 				return true;
@@ -2783,7 +2798,7 @@ namespace nel
 			}
 			if (B.isLocked())
 			{
-				CURS.limitVib(B, global::XX.AIM.L);
+				CURS.limitVib(B, AIM.L);
 				SND.Ui.play("locked", false);
 				return false;
 			}
@@ -2801,7 +2816,7 @@ namespace nel
 			if (B.isLocked())
 			{
 				SND.Ui.play("locked", false);
-				CURS.limitVib(B, global::XX.AIM.L);
+				CURS.limitVib(B, AIM.L);
 				return false;
 			}
 			string title = B.title;
@@ -2855,16 +2870,16 @@ namespace nel
 			return fillImageBlock;
 		}
 
-		protected virtual string fineCompletionDetail(bool set_field = false)
+		protected virtual void fineCompletionDetail(STB Stb, bool set_field = false)
 		{
-			string completionDetail = this.getCompletionDetail();
+			this.getCompletionDetail(Stb);
 			if (set_field)
 			{
 				FillBlock fillBlock = this.BxCmd.Get("cmd_r", false) as FillBlock;
-				if (fillBlock != null && !fillBlock.textIs(completionDetail))
+				if (fillBlock != null && !fillBlock.textIs(Stb))
 				{
-					fillBlock.setValue(completionDetail);
-					fillBlock.lineSpacing = ((TX.countLine(completionDetail) >= 6) ? 1.1f : 1.3f);
+					fillBlock.Txt(Stb);
+					fillBlock.lineSpacing = ((Stb.countLines() >= 6) ? 1.1f : 1.3f);
 					if (this.ScBoxCmdR != null)
 					{
 						Designer tab = this.BxCmd.getTab("cmd_r_tab");
@@ -2878,50 +2893,43 @@ namespace nel
 				}
 			}
 			this.need_redraw_stomach = true;
-			return completionDetail;
 		}
 
-		protected virtual string getCompletionDetail()
+		protected virtual void getCompletionDetail(STB Stb)
 		{
-			string text;
-			if (this.CompletionImage == null)
+			if (this.CompletionImage != null)
 			{
-				if (this.TargetRcp == null || this.TargetRcp.AIng.Count == 0)
+				if (this.TargetRcp.Completion != null)
 				{
-					text = TX.Get("workbench_limit_reached", "");
-				}
-				else
-				{
-					text = TX.GetA("alchemy_completion_image", this.TargetRcp.title);
-				}
-			}
-			else if (this.TargetRcp.Completion != null)
-			{
-				int num = 0;
-				if ((this.TargetRcp.Completion.category & NelItem.CATEG.INDIVIDUAL_GRADE) == NelItem.CATEG.OTHER)
-				{
-					num = this.CompletionImage.calced_grade;
-					text = string.Concat(new string[]
+					int num = 0;
+					if ((this.TargetRcp.Completion.category & NelItem.CATEG.INDIVIDUAL_GRADE) == NelItem.CATEG.OTHER)
 					{
-						"<img mesh=\"nel_item_grade.",
-						num.ToString(),
-						"\" width=\"34\" color=\"0x",
-						C32.codeToCodeText(4283780170U),
-						"\"/>"
-					});
+						num = this.CompletionImage.calced_grade;
+						Stb.Add("<img mesh=\"nel_item_grade.", num, "\" width=\"34\" color=\"");
+						Stb.AddColor(4283780170U).Add("\"/>");
+					}
+					using (STB stb = TX.PopBld(null, 0))
+					{
+						this.TargetRcp.Completion.getDetail(stb, this.M2D.IMNG.getInventory(), num, null, true, true, true);
+						Stb.Append(stb, "\n\n", 0, -1);
+						return;
+					}
 				}
-				else
+				using (STB stb2 = TX.PopBld(null, 0))
 				{
-					text = "";
+					Stb.AddTxA("Item_for_food_cost", false).TxRpl(RCP.getCostStringTo(stb2, this.CompletionImage.cost));
+					stb2.Clear();
+					RCP.getEffectListupTo(stb2, this.CompletionImage, 1f, "\n", "Item_for_food_no_effect");
+					Stb.Add("\n\n").Add(stb2);
 				}
-				text = TX.add(text, this.TargetRcp.Completion.getDetail(this.M2D.IMNG.getInventory(), num, null, true, true, true), "\n\n");
+				return;
 			}
-			else
+			if (this.TargetRcp == null || this.TargetRcp.AIng.Count == 0)
 			{
-				text = TX.GetA("Item_for_food_cost", RecipeManager.getCostString(this.CompletionImage.cost));
-				text = text + "\n\n" + RecipeManager.getEffectListup(this.CompletionImage, "\n", "Item_for_food_no_effect");
+				Stb.AddTxA("workbench_limit_reached", false);
+				return;
 			}
-			return text;
+			Stb.AddTxA("alchemy_completion_image", false).TxRpl(this.TargetRcp.title);
 		}
 
 		public void addInsertEffect(ButtonSkinAlchemyIngredientRow Sk, UiCraftBase.IngEntryRow Rie)
@@ -2950,16 +2958,16 @@ namespace nel
 				if (B.isLocked())
 				{
 					SND.Ui.play("locked", false);
-					CURS.limitVib(B, global::XX.AIM.L);
+					CURS.limitVib(B, AIM.L);
 					return true;
 				}
 				if (this.stt != UiCraftBase.STATE.AUTOFILLING_IC)
 				{
-					RecipeManager.Recipe targetRcp = this.TargetRcp;
+					RCP.Recipe targetRcp = this.TargetRcp;
 				}
 				else
 				{
-					RecipeManager.Recipe targetRecipe = this.TargetIng.TargetRecipe;
+					RCP.Recipe targetRecipe = this.TargetIng.TargetRecipe;
 				}
 				if (B.title == "&&alchemy_manual_create")
 				{
@@ -2970,18 +2978,18 @@ namespace nel
 					return false;
 				}
 				this.CurCInfo.previous = B.title == "&&alchemy_auto_previous";
-				this.CurCInfo.grade = (byte)global::XX.X.NmI(this.BxKD.getValue("auto_q"), 0, false, false);
-				int num = global::XX.X.NmI(this.BxKD.getValue("auto_cost"), -1, false, false);
+				this.CurCInfo.grade = (byte)X.NmI(this.BxKD.getValue("auto_q"), 0, false, false);
+				int num = X.NmI(this.BxKD.getValue("auto_cost"), -1, false, false);
 				if (num >= 0)
 				{
 					this.CurCInfo.cost = (UiCraftBase.AF_COST)num;
 				}
-				this.CurCInfo.kind = (UiCraftBase.AF_KIND)global::XX.X.NmI(this.BxKD.getValue("auto_kind"), 0, false, false);
+				this.CurCInfo.kind = (UiCraftBase.AF_KIND)X.NmI(this.BxKD.getValue("auto_kind"), 0, false, false);
 				this.CurCInfo.cannot_use_already_food = this.stt == UiCraftBase.STATE.AUTOFILLING_IC;
 				string value = this.BxKD.getValue("auto_quantity");
 				if (TX.valid(value))
 				{
-					this.CurCInfo.quantity = (UiCraftBase.AF_QUANTITY)global::XX.X.NmI(value, 0, false, false);
+					this.CurCInfo.quantity = (UiCraftBase.AF_QUANTITY)X.NmI(value, 0, false, false);
 				}
 				int ingredient_total = this.ingredient_total;
 				int num2 = -1;
@@ -2991,7 +2999,7 @@ namespace nel
 				}
 				else
 				{
-					num2 = global::XX.X.NmI(this.FocusIng.title, 0, false, false);
+					num2 = X.NmI(this.FocusIng.title, 0, false, false);
 					this.createAutoForRecipeColumn(null, this.CurCInfo, this.TargetRcp, num2, this.AAIngCreate[num2], false);
 				}
 				this.fineORIngredientEnable(num2);
@@ -3021,7 +3029,7 @@ namespace nel
 						B.setSkinTitle(NEL.error_tag + TX.Get("alchemy_never_created", "") + NEL.error_tag_close);
 					}
 					SND.Ui.play("locked", false);
-					CURS.limitVib(B, global::XX.AIM.L);
+					CURS.limitVib(B, AIM.L);
 					return false;
 				}
 				if (this.stt == UiCraftBase.STATE.AUTOFILLING_IC)
@@ -3037,60 +3045,62 @@ namespace nel
 			return true;
 		}
 
-		public string fnAutoFillDescQuality(string def)
+		public void fnAutoFillDescQuality(STB Stb)
 		{
-			int num = global::XX.X.NmI(def, 0, false, false);
+			int num = Stb.NmI(0, -1, 0);
+			Stb.Clear();
 			if (num == 5)
 			{
-				return TX.Get("alchemy_auto_enough", "");
+				Stb.AddTxA("alchemy_auto_enough", false);
+				return;
 			}
 			if (num != 6)
 			{
-				return string.Concat(new string[]
-				{
-					"<img mesh=\"nel_item_grade.",
-					def,
-					"\" color=\"0x",
-					C32.codeToCodeText(4283780170U),
-					"\" /> "
-				});
+				Stb.Add("<img mesh=\"nel_item_grade.", num, "\" color=\"0x").AddCol(4283780170U, "0x").Add("\" /> ");
+				return;
 			}
-			return TX.Get("alchemy_auto_few", "");
+			Stb.AddTxA("alchemy_auto_few", false);
 		}
 
-		public string fnAutoFillDescCost(string def)
+		public void fnAutoFillDescCost(STB Stb)
 		{
-			UiCraftBase.AF_COST af_COST = (UiCraftBase.AF_COST)global::XX.X.NmI(def, 0, false, false);
+			UiCraftBase.AF_COST af_COST = (UiCraftBase.AF_COST)Stb.NmI(0, -1, 0);
+			Stb.Clear();
 			if (af_COST == UiCraftBase.AF_COST.NONE)
 			{
-				RecipeManager.RP_CATEG rp_CATEG = this.TargetRcp.categ;
-				if (rp_CATEG == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+				RCP.RP_CATEG rp_CATEG = this.TargetRcp.categ;
+				if (rp_CATEG == RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 				{
-					rp_CATEG = RecipeManager.RP_CATEG.ALCHEMY;
+					rp_CATEG = RCP.RP_CATEG.ALCHEMY;
 				}
-				return TX.Get("alchemy_auto_random_" + rp_CATEG.ToString().ToLower(), "");
+				Stb.AddTxA("alchemy_auto_random_" + rp_CATEG.ToString().ToLower(), false);
+				return;
 			}
-			return TX.Get("alchemy_auto_" + af_COST.ToString().ToLower(), "");
+			Stb.AddTxA("alchemy_auto_" + af_COST.ToString().ToLower(), false);
 		}
 
-		public string fnAutoFillDescKind(string def)
+		public void fnAutoFillDescKind(STB Stb)
 		{
-			UiCraftBase.AF_KIND af_KIND = (UiCraftBase.AF_KIND)global::XX.X.NmI(def, 0, false, false);
+			UiCraftBase.AF_KIND af_KIND = (UiCraftBase.AF_KIND)Stb.NmI(0, -1, 0);
+			Stb.Clear();
 			if (af_KIND == UiCraftBase.AF_KIND.NONE)
 			{
-				RecipeManager.RP_CATEG rp_CATEG = this.TargetRcp.categ;
-				if (rp_CATEG == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+				RCP.RP_CATEG rp_CATEG = this.TargetRcp.categ;
+				if (rp_CATEG == RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 				{
-					rp_CATEG = RecipeManager.RP_CATEG.ALCHEMY;
+					rp_CATEG = RCP.RP_CATEG.ALCHEMY;
 				}
-				return TX.Get("alchemy_auto_random_" + rp_CATEG.ToString().ToLower(), "");
+				Stb.AddTxA("alchemy_auto_random_" + rp_CATEG.ToString().ToLower(), false);
+				return;
 			}
-			return TX.Get("alchemy_auto_" + af_KIND.ToString().ToLower(), "");
+			Stb.AddTxA("alchemy_auto_" + af_KIND.ToString().ToLower(), false);
 		}
 
-		public string fnAutoFillDescQuantity(string def)
+		public void fnAutoFillDescQuantity(STB Stb)
 		{
-			return TX.Get("alchemy_auto_quantity_" + ((UiCraftBase.AF_QUANTITY)global::XX.X.NmI(def, 0, false, false)).ToString().ToLower(), "");
+			UiCraftBase.AF_QUANTITY af_QUANTITY = (UiCraftBase.AF_QUANTITY)Stb.NmI(0, -1, 0);
+			Stb.Clear();
+			Stb.AddTxA("alchemy_auto_quantity_" + af_QUANTITY.ToString().ToLower(), false);
 		}
 
 		public void initIngredientContent()
@@ -3136,7 +3146,7 @@ namespace nel
 			this.need_kd_fine = true;
 		}
 
-		private RecipeManager.RecipeIngredient TargetIng
+		private RCP.RecipeIngredient TargetIng
 		{
 			get
 			{
@@ -3144,7 +3154,7 @@ namespace nel
 				{
 					return null;
 				}
-				return this.TargetRcp.AIng[global::XX.X.NmI(this.FocusIng.title, 0, false, false)];
+				return this.TargetRcp.AIng[X.NmI(this.FocusIng.title, 0, false, false)];
 			}
 		}
 
@@ -3156,7 +3166,7 @@ namespace nel
 				{
 					return -1;
 				}
-				return global::XX.X.NmI(this.FocusIng.title, 0, false, false);
+				return X.NmI(this.FocusIng.title, 0, false, false);
 			}
 		}
 
@@ -3168,7 +3178,7 @@ namespace nel
 		private void fnIngredientUseRowsPrepare(UiItemManageBox IMng, List<ItemStorage.IRow> ASource, List<ItemStorage.IRow> ADest)
 		{
 			int count = ASource.Count;
-			RecipeManager.RecipeIngredient targetIng = this.TargetIng;
+			RCP.RecipeIngredient targetIng = this.TargetIng;
 			for (int i = 0; i < count; i++)
 			{
 				ItemStorage.IRow row = ASource[i];
@@ -3188,11 +3198,11 @@ namespace nel
 			{
 				return false;
 			}
-			RecipeManager.RecipeIngredient targetIng = this.TargetIng;
+			RCP.RecipeIngredient targetIng = this.TargetIng;
 			if (this.AAIngCreate[targetIng.index].Count >= targetIng.max)
 			{
 				SND.Ui.play("locked", false);
-				CURS.limitVib(this.ItemMng.getSelectingRowBtn(), global::XX.AIM.L);
+				CURS.limitVib(this.ItemMng.getSelectingRowBtn(), AIM.L);
 				return false;
 			}
 			this.ingredient_insert = true;
@@ -3206,7 +3216,7 @@ namespace nel
 			{
 				return;
 			}
-			RecipeManager.RecipeIngredient targetIng = this.TargetIng;
+			RCP.RecipeIngredient targetIng = this.TargetIng;
 			UiCraftBase.IngEntryRow ingEntryRow = this.createEntry(null, null, targetIng, this.StForUse.SelectedRow.getItemData(), this.StForUse.SelectedRow.getItemInfo(), (int)this.StForUse.SelectedRow.getItemRow().splitted_grade);
 			if (ingEntryRow != null)
 			{
@@ -3243,7 +3253,7 @@ namespace nel
 				}
 				num = UiCraftBase.IngEntryRow.countCreatable(this, this.StForUse, bdic);
 			}
-			this.initCmd(false, global::XX.X.Mx(0, num));
+			this.initCmd(false, X.Mx(0, num));
 		}
 
 		private void pushStorageMem()
@@ -3272,7 +3282,7 @@ namespace nel
 
 		private bool fnConfirmRecipeCreate(aBtn B)
 		{
-			int num = (this.alloc_multiple_creation ? global::XX.X.NmI(this.BxCmd.getValue("create_count"), 0, true, false) : 1);
+			int num = (this.alloc_multiple_creation ? X.NmI(this.BxCmd.getValue("create_count"), 0, true, false) : 1);
 			if (num == 0 || this.CompletionImage == null || this.read_only)
 			{
 				return false;
@@ -3303,7 +3313,7 @@ namespace nel
 								}
 								else
 								{
-									int num3 = global::XX.X.Mn(obtainInfo.getCount(j), info.getCount(j));
+									int num3 = X.Mn(obtainInfo.getCount(j), info.getCount(j));
 									itemStorage.Reduce(keyValuePair.Key, num3, j, false);
 									obtainInfo.ReduceCount(num3, j);
 								}
@@ -3312,7 +3322,7 @@ namespace nel
 					}
 					if (obtainInfo.total > 0 && !flag2)
 					{
-						global::XX.X.de(keyValuePair.Key.key + "で個数エラーが発生", null);
+						X.de(keyValuePair.Key.key + "で個数エラーが発生", null);
 						flag = true;
 						break;
 					}
@@ -3356,7 +3366,7 @@ namespace nel
 				{
 					if (this.CompletionImage.ItemData == null)
 					{
-						nelItem = RecipeManager.assignDish(new RecipeManager.RecipeDish(this.CompletionImage, 1));
+						nelItem = RCP.assignDish(new RCP.RecipeDish(this.CompletionImage, 1));
 						this.CompletionImage.ItemData = nelItem;
 					}
 					else
@@ -3375,7 +3385,7 @@ namespace nel
 				for (int i = 0; i < num3; i++)
 				{
 					ItemStorage itemStorage = this.AStorage[i];
-					if (itemStorage.isAddable(nelItem))
+					if (itemStorage.isAddable(nelItem, false))
 					{
 						int num4 = itemStorage.Add(nelItem, 1, num2, true, true);
 						if (num4 > 0)
@@ -3455,7 +3465,7 @@ namespace nel
 			meshDrawer.chooseSubMesh(1, false, false);
 			meshDrawer.setMaterial(MTRX.MIicon.getMtr(BLEND.NORMAL, -1), false);
 			meshDrawer.connectRendererToTriMulti(fillImageBlock.getMeshRenderer());
-			string localizedName = (this.CompletionImage.Rcp.Completion ?? this.CompletionImage.ItemData).getLocalizedName(this.CompletionImage.calced_grade, null);
+			string localizedName = (this.CompletionImage.Rcp.Completion ?? this.CompletionImage.ItemData).getLocalizedName(this.CompletionImage.calced_grade);
 			float num2 = 1.18f;
 			string completeDialogPrompt = this.getCompleteDialogPrompt(localizedName, created, add_rest, ref num2);
 			this.BxConfirm.addP(new DsnDataP("", false)
@@ -3488,7 +3498,7 @@ namespace nel
 					margin_h = 0f,
 					w = use_w / (float)num3 - 2f,
 					h = 30f,
-					clms = global::XX.X.Mn(creationCompleteBtnKeys.Count, num3),
+					clms = X.Mn(creationCompleteBtnKeys.Count, num3),
 					fnClick = new FnBtnBindings(this.fnClickComplete),
 					default_focus = 1
 				});
@@ -3507,7 +3517,7 @@ namespace nel
 				{
 					aBtn = btnContainer.Get(creationCompleteBtnKeys.IndexOf(text));
 				}
-				(aBtn ?? btnContainer.Get(0)).Select(false);
+				(aBtn ?? btnContainer.Get(0)).Select(true);
 			}
 			return btnContainer;
 		}
@@ -3515,7 +3525,7 @@ namespace nel
 		protected virtual BList<string> getCreationCompleteBtnKeys(BList<string> Akey, bool no_rest, out string confirm_key, out string cancel_key, out int btn_clms)
 		{
 			btn_clms = 2;
-			if (this.TargetRcp.categ == RecipeManager.RP_CATEG.COOK && this.CompletionImage.ItemData.is_food && (this.evwait == UiCraftBase.EVWAIT.NOUSE || this.evwait == UiCraftBase.EVWAIT.WHOLE_ALLOW_AUTO))
+			if (this.TargetRcp.categ == RCP.RP_CATEG.COOK && this.CompletionImage.ItemData.is_food && (this.evwait == UiCraftBase.EVWAIT.NOUSE || this.evwait == UiCraftBase.EVWAIT.WHOLE_ALLOW_AUTO))
 			{
 				Akey.Add(this.CompletionImage.ItemData.is_water ? "&&alchemy_btn_drink_in" : "&&alchemy_btn_eat_in");
 				if (this.CompletionAddedStorage != null && this.CompletionAddedStorage.getUnlinkCount(this.CompletionImage.ItemData, -1) > 0 && this.M2D.IMNG.getInventory().getUnlinkCount(NelItem.LunchBox, -1) > 0)
@@ -3638,7 +3648,7 @@ namespace nel
 						{
 							return true;
 						}
-						goto IL_0358;
+						goto IL_0382;
 					}
 				}
 				else
@@ -3662,7 +3672,7 @@ namespace nel
 							{
 								return true;
 							}
-							goto IL_0240;
+							goto IL_0245;
 						}
 					}
 					else if (num != 3998003280U)
@@ -3682,12 +3692,12 @@ namespace nel
 						{
 							return true;
 						}
-						goto IL_0358;
+						goto IL_0382;
 					}
 					if (B.isLocked() || this.ABaStorage == null)
 					{
 						SND.Ui.play("locked", false);
-						CURS.limitVib(B, global::XX.AIM.L);
+						CURS.limitVib(B, AIM.L);
 						return false;
 					}
 					if (this.ALostFood != null)
@@ -3705,7 +3715,7 @@ namespace nel
 									num2++;
 								}
 							}
-							else if (nelItemEntry.Data.RecipeInfo != null && nelItemEntry.Data.RecipeInfo.DishInfo == this.CompletionImage)
+							else if (nelItemEntry.Data.RecipeInfo != null && nelItemEntry.Data.RecipeInfo.DishInfo.isSameSimple(this.CompletionImage))
 							{
 								this.ALostFood.RemoveAt(num3);
 								num2++;
@@ -3718,7 +3728,7 @@ namespace nel
 					this.prepareRecipeIngredient(null);
 					return true;
 				}
-				IL_0240:
+				IL_0245:
 				NelItem nelItem = this.CompletionImage.Rcp.Completion ?? this.CompletionImage.ItemData;
 				if (B.title == "&&Item_cmd_pack_in_box" && this.CompletionAddedStorage != null && this.CompletionAddedStorage.getCount(nelItem, -1) > 0)
 				{
@@ -3732,6 +3742,10 @@ namespace nel
 				EV.getVariableContainer().define("_created", nelItem.key, true);
 				this.TargetRcp.setPrevList(this.AAEntryFinished);
 				this.TargetRcp.created += (uint)this.CompletionImage.referred;
+				if (this.add_achivement && COOK.CurAchive != null)
+				{
+					COOK.CurAchive.Add(ACHIVE.MENT.alchemy_crafted, this.CompletionImage.referred);
+				}
 				this.AAEntryFinished = null;
 				this.ABaStorage = null;
 				if (this.create_just_one)
@@ -3746,7 +3760,7 @@ namespace nel
 					this.initCompleteEffect();
 				}
 				return true;
-				IL_0358:
+				IL_0382:
 				bool flag2 = this.initLunch();
 				if (flag2 && aBtn.PreSelected == B)
 				{
@@ -3770,7 +3784,7 @@ namespace nel
 			IN.setZ(this.LunchTime.transform, this.first_base_z - 0.65f);
 			this.LunchTime.addExternal(this.AStorage);
 			UiLunchTime lunchTime = this.LunchTime;
-			lunchTime.FD_EatExecute = (UiLunchTimeBase.FnEatExecute)Delegate.Combine(lunchTime.FD_EatExecute, new UiLunchTimeBase.FnEatExecute(delegate(RecipeManager.RecipeDish AppliedDish)
+			lunchTime.FD_EatExecute = (UiLunchTimeBase.FnEatExecute)Delegate.Combine(lunchTime.FD_EatExecute, new UiLunchTimeBase.FnEatExecute(delegate(RCP.RecipeDish AppliedDish)
 			{
 				if (AppliedDish.ItemData == this.CompletionImage.ItemData)
 				{
@@ -3829,7 +3843,7 @@ namespace nel
 				int num = this.LunchTime.consumeEaten();
 				if (!do_not_destruct_element)
 				{
-					Object.Destroy(this.LunchTime.gameObject);
+					global::UnityEngine.Object.Destroy(this.LunchTime.gameObject);
 				}
 				else
 				{
@@ -3869,7 +3883,7 @@ namespace nel
 							aBtn aBtn = btnContainerRunner.Get((j == 0) ? "&&alchemy_btn_eat_in" : "&&alchemy_btn_drink_in");
 							if (aBtn != null)
 							{
-								aBtn.Select(false);
+								aBtn.Select(true);
 								aBtn.SetChecked(false, true);
 								break;
 							}
@@ -3914,7 +3928,7 @@ namespace nel
 			if (this.CompletionImage != null && nelItem != null)
 			{
 				Md.Col = MTRX.ColWhite;
-				nelItem.drawIconTo(Md, this.StForUse, 0, 1, 0f, 20f, 3f, 0.75f + 0.25f * (float)global::XX.X.ANMT(2, 10f), null);
+				nelItem.drawIconTo(Md, this.StForUse, 0, 1, 0f, 20f, 3f, 0.75f + 0.25f * (float)X.ANMT(2, 10f), null);
 				update_meshdrawer = true;
 			}
 			return false;
@@ -3923,13 +3937,13 @@ namespace nel
 		protected virtual bool fnDrawCmdImage(MeshDrawer Md, FillImageBlock FI, float alpha, ref bool update_meshdrawer)
 		{
 			Md.chooseSubMesh(0, false, false);
-			Md.Col = C32.MulA(4288383339U, alpha * (0.6f + 0.4f * global::XX.X.COSIT(100f)));
+			Md.Col = C32.MulA(4288383339U, alpha * (0.6f + 0.4f * X.COSIT(100f)));
 			float num = ((this.stt == UiCraftBase.STATE.RECIPE_CONFIRM) ? 0f : (this.BxCmd.sheight * 0.36f));
 			Md.RotaPF(0f, num, 2f, 2f, 0f, this.PFCompletion, false, false, false, uint.MaxValue, false, 0);
 			if (this.recipe_creatable)
 			{
 				Md.chooseSubMesh(1, false, false);
-				Md.Col = C32.MulA(4283780170U, alpha * (0.8f + 0.2f * global::XX.X.COSIT(50f)));
+				Md.Col = C32.MulA(4283780170U, alpha * (0.8f + 0.2f * X.COSIT(50f)));
 				Md.CheckMark(0f, num - 10f, 55f, 4f, false);
 				Md.chooseSubMesh(0, false, false);
 			}
@@ -3956,7 +3970,7 @@ namespace nel
 				float num3 = (float)this.CompletionImage.cost;
 				float num4 = (float)this.stomach_cost_max - this.stomach_cost_total;
 				num = ((num3 > 0f) ? (num4 / num3) : (-1f));
-				num2 = global::XX.X.Mn(num3, num4);
+				num2 = X.Mn(num3, num4);
 			}
 			this.MdLunchCostMask.base_px_x = (this.MdLunchCost.base_px_x = (Tab.w - Tab.margin_in_lr * 2f) * 0.5f * 0.5f + (float)((this.stt == UiCraftBase.STATE.RECIPE_CONFIRM) ? 0 : 60));
 			this.MdLunchCostMask.base_px_y = (this.MdLunchCost.base_px_y = 2f - UiLunchTimeBase.costbx_h * 0.5f * 0.5f);
@@ -3983,7 +3997,7 @@ namespace nel
 					IN.setZ(this.TxSuccess.transform, -0.55f);
 					this.TxSuccess.use_valotile = true;
 					this.TxSuccess.Txt(this.getCompleteTelop());
-					this.EfpStar = new EfParticleOnce("alchemy_success", EFCON_TYPE.UI);
+					this.EfpStar = new EfParticleOnce("alchemy_success", EFCON_TYPE.FIXED);
 				}
 				else
 				{
@@ -4003,28 +4017,28 @@ namespace nel
 				}
 			}
 			Md.chooseSubMesh(0, false, false);
-			float num = global::XX.X.ZLINE((float)af, 160f) * 2f;
+			float num = X.ZLINE((float)af, 160f) * 2f;
 			if (num >= 2f)
 			{
 				this.TxSuccess.gameObject.SetActive(false);
 				return false;
 			}
-			float num2 = -global::XX.X.ZCOS(num - 1.13f, 0.87f);
+			float num2 = -X.ZCOS(num - 1.13f, 0.87f);
 			if (num < 2f)
 			{
-				float num3 = (float)global::XX.X.IntR((global::XX.X.ZSIN(num, 0.3f) + num2) * IN.h * 0.5f);
+				float num3 = (float)X.IntR((X.ZSIN(num, 0.3f) + num2) * IN.h * 0.5f);
 				Md.Col = Md.ColGrd.White().mulA(1f + num2).C;
 				C32 c = MTRX.cola.White().setA(0f);
 				Md.BlurLineW(-IN.wh, 0f, IN.wh, 0f, num3 * 0.75f, num3 * 1.25f, 0, 0f, 0f, 0f, Md.ColGrd, c, c);
 			}
 			float num4 = ((this.PFCompleteCutin == null) ? 0f : (IN.w * 0.2f));
-			this.TxSuccess.alpha = global::XX.X.ZLINE(num, 0.3f) + num2;
-			IN.PosP2(this.TxSuccess.transform, (-1.675f + 0.675f * global::XX.X.ZSIN(num, 0.45f)) * num4 + 350f * global::XX.X.ZPOW(num - 1.25f, 0.75f), 0f);
+			this.TxSuccess.alpha = X.ZLINE(num, 0.3f) + num2;
+			IN.PosP2(this.TxSuccess.transform, (-1.675f + 0.675f * X.ZSIN(num, 0.45f)) * num4 + 350f * X.ZPOW(num - 1.25f, 0.75f), 0f);
 			if (this.PFCompleteCutin != null)
 			{
 				Md.chooseSubMesh(1, false, false);
 				Md.Col = Md.ColGrd.White().mulA(this.TxSuccess.alpha).C;
-				Md.RotaPF(num4 * 0.5f, (-1f + global::XX.X.ZLINE(num, 0.25f)) * 80f + 30f, 1f, 1f, 0f, this.PFCompleteCutin, false, false, false, uint.MaxValue, false, 0);
+				Md.RotaPF(num4 * 0.5f, (-1f + X.ZLINE(num, 0.25f)) * 80f + 30f, 1f, 1f, 0f, this.PFCompleteCutin, false, false, false, uint.MaxValue, false, 0);
 			}
 			Md.chooseSubMesh(2, false, false);
 			this.EfpStar.drawTo(Md, 0f, 0f, 0f, 0, (float)af, 0f);
@@ -4042,7 +4056,7 @@ namespace nel
 
 		public virtual string getCompleteTelop()
 		{
-			if (this.TargetRcp.categ == RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH)
+			if (this.TargetRcp.categ == RCP.RP_CATEG.ALCHEMY_WORKBENCH)
 			{
 				return TX.Get("alchemy_success", "");
 			}
@@ -4177,7 +4191,7 @@ namespace nel
 					{
 						return;
 					}
-					RecipeManager.Recipe recipe = this.getRecipe(rER._2);
+					RCP.Recipe recipe = this.getRecipe(rER._2);
 					if (recipe == null)
 					{
 						rER.tError("不明なレシピ: " + rER._2);
@@ -4214,7 +4228,7 @@ namespace nel
 				int num = -1;
 				if (this.FocusIng != null)
 				{
-					num = global::XX.X.NmI(this.FocusIng.title, -1, false, false);
+					num = X.NmI(this.FocusIng.title, -1, false, false);
 				}
 				return this.tutorial_target_row == num;
 			}
@@ -4232,7 +4246,7 @@ namespace nel
 			{
 				return true;
 			}
-			RecipeManager.RecipeIngredient targetIng = this.TargetIng;
+			RCP.RecipeIngredient targetIng = this.TargetIng;
 			return this.evwait == UiCraftBase.EVWAIT.NOUSE || this.tutorial_target_row < 0 || this.AAIngCreate[targetIng.index].Count >= targetIng.need;
 		}
 
@@ -4243,7 +4257,7 @@ namespace nel
 			{
 				return;
 			}
-			global::XX.AIM aim = global::XX.AIM.R;
+			AIM aim = AIM.R;
 			IDesignerBlock tutorialArrowTarget = this.getTutorialArrowTarget(ref aim);
 			this.ArrowFocus = tutorialArrowTarget;
 			if (tutorialArrowTarget != null)
@@ -4256,9 +4270,9 @@ namespace nel
 					this.MdTutoArrow.RotaPF(0f, 0f, 1f, 1f, 0f, this.PFArrow, false, false, false, uint.MaxValue, false, 0);
 					this.MdTutoArrow.updateForMeshRenderer(false);
 				}
-				this.GobTutorialArrow.transform.localRotation = Quaternion.Euler(0f, 0f, global::XX.CAim.get_agR(global::XX.CAim.get_opposite(aim), 0f) * 180f / 3.1415927f);
+				this.GobTutorialArrow.transform.localRotation = Quaternion.Euler(0f, 0f, CAim.get_agR(CAim.get_opposite(aim), 0f) * 180f / 3.1415927f);
 				this.GobTutorialArrow.SetActive(true);
-				this.ArrowPos = new Vector3((float)global::XX.CAim._XD(aim, 1) * (tutorialArrowTarget.get_swidth_px() * 0.5f + 8f + 12f) * 0.015625f, (float)global::XX.CAim._YD(aim, 1) * (tutorialArrowTarget.get_sheight_px() * 0.5f - 10f + 12f) * 0.015625f, (float)aim);
+				this.ArrowPos = new Vector3((float)CAim._XD(aim, 1) * (tutorialArrowTarget.get_swidth_px() * 0.5f + 8f + 12f) * 0.015625f, (float)CAim._YD(aim, 1) * (tutorialArrowTarget.get_sheight_px() * 0.5f - 10f + 12f) * 0.015625f, (float)aim);
 				this.fineTutorialArrowPos();
 				return;
 			}
@@ -4268,7 +4282,7 @@ namespace nel
 			}
 		}
 
-		protected virtual IDesignerBlock getTutorialArrowTarget(ref global::XX.AIM setaim)
+		protected virtual IDesignerBlock getTutorialArrowTarget(ref AIM setaim)
 		{
 			if (this.stt == UiCraftBase.STATE.RECIPE_CHOOSE_ROW && this.tutorial_target_row >= 0)
 			{
@@ -4312,8 +4326,8 @@ namespace nel
 				return;
 			}
 			Transform transform = this.GobTutorialArrow.transform;
-			global::XX.AIM aim = (global::XX.AIM)this.ArrowPos.z;
-			transform.position = this.ArrowFocus.getTransform().position + new Vector3(this.ArrowPos.x, this.ArrowPos.y, 0f) - new Vector3((float)global::XX.CAim._XD(aim, 1), (float)global::XX.CAim._YD(aim, 1)) * (global::XX.X.COSIT(120f) * 12f * 0.015625f);
+			AIM aim = (AIM)this.ArrowPos.z;
+			transform.position = this.ArrowFocus.getTransform().position + new Vector3(this.ArrowPos.x, this.ArrowPos.y, 0f) - new Vector3((float)CAim._XD(aim, 1), (float)CAim._YD(aim, 1)) * (X.COSIT(120f) * 12f * 0.015625f);
 		}
 
 		private int ingredient_total
@@ -4339,29 +4353,29 @@ namespace nel
 			return stt == UiCraftBase.STATE.COMPLETE_ENOUGH || stt == UiCraftBase.STATE.COMPLETE;
 		}
 
-		public virtual RecipeManager.Recipe getRecipe(string key)
+		public virtual RCP.Recipe getRecipe(string key)
 		{
 			return UiCraftBase.getRecipeBasic(key);
 		}
 
-		public virtual RecipeManager.Recipe getRecipe(NelItem Itm)
+		public virtual RCP.Recipe getRecipe(NelItem Itm)
 		{
 			return UiCraftBase.getRecipeBasic(Itm);
 		}
 
-		public static RecipeManager.Recipe getRecipeBasic(string key)
+		public static RCP.Recipe getRecipeBasic(string key)
 		{
-			return RecipeManager.Get(key);
+			return RCP.Get(key);
 		}
 
-		public static RecipeManager.Recipe getRecipeBasic(NelItem Itm)
+		public static RCP.Recipe getRecipeBasic(NelItem Itm)
 		{
-			return RecipeManager.Get(Itm);
+			return RCP.Get(Itm);
 		}
 
-		public static RecipeManager.Recipe getRecipeAllType(NelItem Itm)
+		public static RCP.Recipe getRecipeAllType(NelItem Itm)
 		{
-			RecipeManager.Recipe recipe;
+			RCP.Recipe recipe;
 			if ((recipe = UiCraftBase.getRecipeBasic(Itm)) == null)
 			{
 				recipe = UiAlchemyWorkBench.getRecipeS(Itm) ?? UiAlchemyTRM.getRecipeS(Itm);
@@ -4380,6 +4394,8 @@ namespace nel
 		protected bool read_only;
 
 		public bool alloc_open_recipe_book = true;
+
+		public bool add_achivement = true;
 
 		public bool alloc_multiple_creation;
 
@@ -4491,7 +4507,7 @@ namespace nel
 
 		private int tutorial_target_row = -1;
 
-		protected RecipeManager.Recipe TutorialTarget;
+		protected RCP.Recipe TutorialTarget;
 
 		protected UiCraftBase.EVWAIT evwait;
 
@@ -4523,7 +4539,7 @@ namespace nel
 
 		protected float first_base_z = 0.4f;
 
-		protected RecipeManager.Recipe TargetRcp;
+		protected RCP.Recipe TargetRcp;
 
 		protected NelItem TargetRcpItm;
 
@@ -4549,7 +4565,7 @@ namespace nel
 
 		protected bool recipe_creatable;
 
-		protected RecipeManager.RecipeDish CompletionImage;
+		protected RCP.RecipeDish CompletionImage;
 
 		private List<Stomach.CostData> Astomach_cost;
 
@@ -4616,7 +4632,7 @@ namespace nel
 				this.generation = ((this.Parent != null) ? (this.Parent.generation + 1) : 0);
 			}
 
-			public IngEntryRow(UiCraftBase.IngEntryRow _Parent, RecipeManager.RecipeIngredient _Source, NelItem _Itm, int _grade)
+			public IngEntryRow(UiCraftBase.IngEntryRow _Parent, RCP.RecipeIngredient _Source, NelItem _Itm, int _grade)
 				: this(_Parent)
 			{
 				this.Itm = _Itm;
@@ -4624,15 +4640,15 @@ namespace nel
 				this.Source = _Source;
 			}
 
-			public IngEntryRow(UiCraftBase.IngEntryRow _Parent, RecipeManager.RecipeIngredient _Source)
+			public IngEntryRow(UiCraftBase.IngEntryRow _Parent, RCP.RecipeIngredient _Source)
 				: this(_Parent)
 			{
-				RecipeManager.Recipe targetRecipe = _Source.TargetRecipe;
+				RCP.Recipe targetRecipe = _Source.TargetRecipe;
 				this.Source = _Source;
 				this.AACook = UiCraftBase.IngEntryRow.allocAA(null, targetRecipe);
 			}
 
-			public static List<List<UiCraftBase.IngEntryRow>> allocAA(List<List<UiCraftBase.IngEntryRow>> AA, RecipeManager.Recipe Rcp)
+			public static List<List<UiCraftBase.IngEntryRow>> allocAA(List<List<UiCraftBase.IngEntryRow>> AA, RCP.Recipe Rcp)
 			{
 				int count = Rcp.AIng.Count;
 				if (AA == null)
@@ -4741,7 +4757,7 @@ namespace nel
 				return true;
 			}
 
-			public void addIngredientCountToDish(RecipeManager.RecipeDish Dh, NelItem Itm, int count, int grade, bool add_to_use_ingredient = true)
+			public void addIngredientCountToDish(RCP.RecipeDish Dh, NelItem Itm, int count, int grade, bool add_to_use_ingredient = true)
 			{
 				if (count <= 0)
 				{
@@ -4762,7 +4778,7 @@ namespace nel
 				for (int j = (flag ? 0 : 1); j < (add_to_use_ingredient ? 2 : 1); j++)
 				{
 					BDic<NelItem, ItemStorage.ObtainInfo> bdic = ((j == 0) ? Dh.OUseIngredientSource : Dh.OUseIngredient);
-					ItemStorage.ObtainInfo obtainInfo = global::XX.X.Get<NelItem, ItemStorage.ObtainInfo>(bdic, Itm);
+					ItemStorage.ObtainInfo obtainInfo = X.Get<NelItem, ItemStorage.ObtainInfo>(bdic, Itm);
 					if (obtainInfo == null)
 					{
 						obtainInfo = (bdic[Itm] = new ItemStorage.ObtainInfo());
@@ -4771,7 +4787,7 @@ namespace nel
 				}
 			}
 
-			public void addEffectToDish(RecipeManager.RecipeDish Dh, float lvl, ref int total_item_for_quality, ref int total_grade, bool abort_if_missing = true)
+			public void addEffectToDish(RCP.RecipeDish Dh, float lvl, ref int total_item_for_quality, ref int total_grade, bool abort_if_missing = true)
 			{
 				if (this.AACook == null)
 				{
@@ -4795,7 +4811,7 @@ namespace nel
 								Dh.addEffect100(this.Itm.RecipeInfo.Oeffect100, lvl);
 							}
 						}
-						else if (!this.Itm.is_tool && Dh.Rcp.categ != RecipeManager.RP_CATEG.COOK)
+						else if (!this.Itm.is_tool && Dh.Rcp.categ != RCP.RP_CATEG.COOK)
 						{
 							total_grade += this.grade;
 							total_item_for_quality++;
@@ -4805,13 +4821,13 @@ namespace nel
 					return;
 				}
 				int count = this.AACook.Count;
-				RecipeManager.RecipeDish recipeDish = this.Source.TargetRecipe.createDish(this.AACook, abort_if_missing, null);
+				RCP.RecipeDish recipeDish = this.Source.TargetRecipe.createDish(this.AACook, abort_if_missing, null);
 				for (int i = 0; i < count; i++)
 				{
 					List<UiCraftBase.IngEntryRow> list = this.AACook[i];
 					if (list != null)
 					{
-						recipeDish.Rcp.AIng[i].createDish(Dh, list, 0f, ref total_item_for_quality, ref total_grade, abort_if_missing, default(RecipeManager.MakeDishIngDescription));
+						recipeDish.Rcp.AIng[i].createDish(Dh, list, 0f, ref total_item_for_quality, ref total_grade, abort_if_missing, default(RCP.MakeDishIngDescription));
 					}
 				}
 				Dh.addCostInCreating(recipeDish.cost);
@@ -4884,7 +4900,7 @@ namespace nel
 				return num;
 			}
 
-			public bool bindToButton(ButtonSkinAlchemyEntryRow _Skin, RecipeManager.Recipe _Rcp, ItemStorage _Storage)
+			public bool bindToButton(ButtonSkinAlchemyEntryRow _Skin, RCP.Recipe _Rcp, ItemStorage _Storage)
 			{
 				if (this.Skin == _Skin)
 				{
@@ -4936,7 +4952,7 @@ namespace nel
 					}
 					return;
 				}
-				ItemStorage.ObtainInfo obtainInfo = global::XX.X.Get<NelItem, ItemStorage.ObtainInfo>(OUse, this.Itm);
+				ItemStorage.ObtainInfo obtainInfo = X.Get<NelItem, ItemStorage.ObtainInfo>(OUse, this.Itm);
 				if (obtainInfo == null)
 				{
 					obtainInfo = (OUse[this.Itm] = new ItemStorage.ObtainInfo());
@@ -4960,7 +4976,7 @@ namespace nel
 								if (count > 0)
 								{
 									int num2 = Storage.getCount(keyValuePair.Key, i) / count;
-									num = ((num < 0) ? num2 : global::XX.X.Mn(num, num2));
+									num = ((num < 0) ? num2 : X.Mn(num, num2));
 									if (num == 0)
 									{
 										break;
@@ -4981,7 +4997,7 @@ namespace nel
 				return 1;
 			}
 
-			public RecipeManager.RecipeIngredient getOffspringSource()
+			public RCP.RecipeIngredient getOffspringSource()
 			{
 				if (this.Parent == null)
 				{
@@ -5005,7 +5021,7 @@ namespace nel
 
 			public int index;
 
-			public RecipeManager.RecipeIngredient Source;
+			public RCP.RecipeIngredient Source;
 
 			public readonly NelItem Itm;
 
@@ -5053,7 +5069,7 @@ namespace nel
 
 			public static UiCraftBase.AutoCreationInfo CurrentSort;
 
-			public static RecipeManager.RecipeIngredient CurrentIng;
+			public static RCP.RecipeIngredient CurrentIng;
 
 			public bool cannot_use_already_food;
 
@@ -5102,7 +5118,7 @@ namespace nel
 
 		private class CookMem
 		{
-			public CookMem(List<List<UiCraftBase.IngEntryRow>> _AAIng, RecipeManager.Recipe _Rcp, NelItem _RcpItm)
+			public CookMem(List<List<UiCraftBase.IngEntryRow>> _AAIng, RCP.Recipe _Rcp, NelItem _RcpItm)
 			{
 				this.AAIng = _AAIng;
 				this.Rcp = _Rcp;
@@ -5111,7 +5127,7 @@ namespace nel
 
 			public List<List<UiCraftBase.IngEntryRow>> AAIng;
 
-			public RecipeManager.Recipe Rcp;
+			public RCP.Recipe Rcp;
 
 			public NelItem RcpItm;
 		}
@@ -5150,14 +5166,14 @@ namespace nel
 					}
 					if (this.Ua.tutorial_target_row >= 0)
 					{
-						RecipeManager.RecipeIngredient recipeIngredient = this.Ua.TargetRcp.AIng[this.Ua.tutorial_target_row];
+						RCP.RecipeIngredient recipeIngredient = this.Ua.TargetRcp.AIng[this.Ua.tutorial_target_row];
 						return this.Ua.AAIngCreate[this.Ua.tutorial_target_row].Count < recipeIngredient.need;
 					}
 					return !this.Ua.recipe_creatable;
 				case UiCraftBase.EVWAIT.ING_CONTENT_OR_AUTO:
 					if (this.Ua.tutorial_target_row >= 0)
 					{
-						RecipeManager.RecipeIngredient recipeIngredient2 = this.Ua.TargetRcp.AIng[this.Ua.tutorial_target_row];
+						RCP.RecipeIngredient recipeIngredient2 = this.Ua.TargetRcp.AIng[this.Ua.tutorial_target_row];
 						return this.Ua.AAIngCreate[this.Ua.tutorial_target_row].Count < recipeIngredient2.need;
 					}
 					return !this.Ua.recipe_creatable;

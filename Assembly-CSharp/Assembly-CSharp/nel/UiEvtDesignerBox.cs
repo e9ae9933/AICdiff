@@ -122,7 +122,7 @@ namespace nel
 						{
 							IN.clearPushDown(true);
 						}
-						this.CancelBtn.Select(false);
+						this.CancelBtn.Select(true);
 					}
 				}
 			}

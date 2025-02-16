@@ -16,6 +16,10 @@ namespace nel
 		{
 			CoinStorage.OData = new BDic<string, CoinStorage.CoinDataSheet>();
 			CoinStorage.OCoinInCurMap = new BDic<PxlSequence, List<M2CImgDrawerCoin>>(32);
+			for (int i = 2; i >= 0; i--)
+			{
+				CoinStorage.Acount[i] = new CoinStorage.CoinEntry();
+			}
 		}
 
 		public static void initS()
@@ -46,12 +50,15 @@ namespace nel
 				CoinStorage.init();
 			}
 			CoinStorage.OData.Clear();
-			global::XX.X.ALL0(CoinStorage.Acount);
+			for (int i = 2; i >= 0; i--)
+			{
+				CoinStorage.Acount[i].newGame();
+			}
 		}
 
 		public static void Clear(CoinStorage.CTYPE type)
 		{
-			CoinStorage.Acount[(int)type] = 0U;
+			CoinStorage.Acount[(int)type].Reduce((int)CoinStorage.Acount[(int)type].Get());
 		}
 
 		private static uint coin_key(M2CImgDrawerCoin Pt)
@@ -72,7 +79,7 @@ namespace nel
 
 		private static CoinStorage.CoinDataSheet GetSheet(string mapkey, bool no_make = true)
 		{
-			CoinStorage.CoinDataSheet coinDataSheet = global::XX.X.Get<string, CoinStorage.CoinDataSheet>(CoinStorage.OData, mapkey);
+			CoinStorage.CoinDataSheet coinDataSheet = X.Get<string, CoinStorage.CoinDataSheet>(CoinStorage.OData, mapkey);
 			if (coinDataSheet != null)
 			{
 				return coinDataSheet;
@@ -95,7 +102,7 @@ namespace nel
 				{
 					CoinStorage.pitch_count = 0;
 				}
-				if (!global::XX.X.DEBUGSPEFFECT)
+				if (!X.DEBUGSPEFFECT)
 				{
 					M2DBase.playSnd("getcoin_1_" + CoinStorage.pitch_count.ToString());
 				}
@@ -119,8 +126,7 @@ namespace nel
 			{
 				return;
 			}
-			v = global::XX.X.Mn((int)(999999U - CoinStorage.Acount[(int)ctype]), v);
-			CoinStorage.Acount[(int)ctype] += (uint)v;
+			v = CoinStorage.Acount[(int)ctype].Add(v);
 			if (show_log && CoinStorage.FD_MoneyChanged != null)
 			{
 				CoinStorage.FD_MoneyChanged(ctype, v);
@@ -133,8 +139,7 @@ namespace nel
 			{
 				return;
 			}
-			v = global::XX.X.Mn((int)CoinStorage.Acount[(int)ctype], v);
-			CoinStorage.Acount[(int)ctype] -= (uint)v;
+			v = CoinStorage.Acount[(int)ctype].Reduce(v);
 			if (CoinStorage.FD_MoneyChanged != null)
 			{
 				CoinStorage.FD_MoneyChanged(ctype, -v);
@@ -182,7 +187,7 @@ namespace nel
 
 		public static ByteArray writeBinaryTo(ByteArray Ba)
 		{
-			using (BList<string> blist = global::XX.X.objKeysB<string, CoinStorage.CoinDataSheet>(CoinStorage.OData))
+			using (BList<string> blist = X.objKeysB<string, CoinStorage.CoinDataSheet>(CoinStorage.OData))
 			{
 				int count = blist.Count;
 				Ba.writeInt(count);
@@ -191,29 +196,33 @@ namespace nel
 					Ba.writeString(blist[i], "utf-8");
 					CoinStorage.OData[blist[i]].writeBinaryTo(Ba);
 				}
-				Ba.writeUInt(CoinStorage.Acount[0]);
-				Ba.writeUInt(CoinStorage.Acount[1]);
-				Ba.writeUInt(CoinStorage.Acount[2]);
+				for (int j = 0; j < 3; j++)
+				{
+					CoinStorage.Acount[j].writeBinaryTo(Ba);
+				}
 			}
 			return Ba;
 		}
 
-		public static ByteArray readBinaryFrom(ByteArray Ba, bool read_craft_money, bool read_juice_money)
+		public static ByteReader readBinaryFrom(ByteReader Ba, int version)
 		{
 			CoinStorage.Clear();
+			bool flag = version >= 20;
+			bool flag2 = version >= 29;
 			int num = Ba.readInt();
 			for (int i = 0; i < num; i++)
 			{
 				CoinStorage.GetSheet(Ba.readString("utf-8", false), false).readBinaryFrom(Ba);
 			}
-			CoinStorage.Acount[0] = Ba.readUInt();
-			if (read_craft_money)
+			bool flag3 = version >= 35;
+			CoinStorage.Acount[0].readBinaryFrom(Ba, flag3);
+			if (flag)
 			{
-				CoinStorage.Acount[1] = Ba.readUInt();
+				CoinStorage.Acount[1].readBinaryFrom(Ba, flag3);
 			}
-			if (read_juice_money)
+			if (flag2)
 			{
-				CoinStorage.Acount[2] = Ba.readUInt();
+				CoinStorage.Acount[2].readBinaryFrom(Ba, flag3);
 			}
 			return Ba;
 		}
@@ -222,7 +231,7 @@ namespace nel
 		{
 			if (c >= CoinStorage.CTYPE.GOLD && c < CoinStorage.CTYPE._MAX)
 			{
-				return CoinStorage.Acount[(int)c];
+				return CoinStorage.Acount[(int)c].Get();
 			}
 			return 0U;
 		}
@@ -241,7 +250,7 @@ namespace nel
 			{
 				return;
 			}
-			List<M2CImgDrawerCoin> list = global::XX.X.Get<PxlSequence, List<M2CImgDrawerCoin>>(CoinStorage.OCoinInCurMap, Sq);
+			List<M2CImgDrawerCoin> list = X.Get<PxlSequence, List<M2CImgDrawerCoin>>(CoinStorage.OCoinInCurMap, Sq);
 			if (list == null)
 			{
 				list = (CoinStorage.OCoinInCurMap[Sq] = new List<M2CImgDrawerCoin>(32));
@@ -259,7 +268,7 @@ namespace nel
 			{
 				return;
 			}
-			List<M2CImgDrawerCoin> list = global::XX.X.Get<PxlSequence, List<M2CImgDrawerCoin>>(CoinStorage.OCoinInCurMap, Sq);
+			List<M2CImgDrawerCoin> list = X.Get<PxlSequence, List<M2CImgDrawerCoin>>(CoinStorage.OCoinInCurMap, Sq);
 			if (list == null)
 			{
 				return;
@@ -287,7 +296,7 @@ namespace nel
 			return flag;
 		}
 
-		private static uint[] Acount = new uint[3];
+		private static readonly CoinStorage.CoinEntry[] Acount = new CoinStorage.CoinEntry[3];
 
 		public const uint MAX_COUNT = 999999U;
 
@@ -328,7 +337,7 @@ namespace nel
 				return Ba;
 			}
 
-			public ByteArray readBinaryFrom(ByteArray Ba)
+			public ByteReader readBinaryFrom(ByteReader Ba)
 			{
 				this.Clear();
 				int num = Ba.readInt();
@@ -340,6 +349,73 @@ namespace nel
 			}
 
 			public List<uint> Aget;
+		}
+
+		public class CoinEntry
+		{
+			public uint Get()
+			{
+				return this.current;
+			}
+
+			public void newGame()
+			{
+				this.current = (this.total_obtain = (this.total_consume = 0U));
+			}
+
+			public int Add(int v)
+			{
+				if (v > 0)
+				{
+					int num = X.Mx(0, X.Mn((int)(999999U - this.current), v));
+					this.current += (uint)num;
+					if (this.total_obtain < 999999U)
+					{
+						this.total_obtain += (uint)X.Mn((int)(999999U - this.total_obtain), v);
+					}
+					v = num;
+				}
+				return v;
+			}
+
+			public int Reduce(int v)
+			{
+				if (v > 0)
+				{
+					v = X.Mn(v, (int)this.current);
+					this.current -= (uint)v;
+					if (this.total_consume < 999999U)
+					{
+						this.total_consume += (uint)X.Mn((int)(999999U - this.total_consume), v);
+					}
+				}
+				return v;
+			}
+
+			public void writeBinaryTo(ByteArray Ba)
+			{
+				Ba.writeUInt(this.current);
+				Ba.writeUInt(this.total_obtain);
+				Ba.writeUInt(this.total_consume);
+			}
+
+			public void readBinaryFrom(ByteReader Ba, bool read_obtaintotal)
+			{
+				this.current = Ba.readUInt();
+				if (read_obtaintotal)
+				{
+					this.total_obtain = Ba.readUInt();
+					this.total_consume = Ba.readUInt();
+					return;
+				}
+				this.total_obtain = this.current;
+			}
+
+			private uint current;
+
+			public uint total_obtain;
+
+			public uint total_consume;
 		}
 
 		public enum CTYPE

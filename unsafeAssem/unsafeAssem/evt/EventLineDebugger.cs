@@ -361,9 +361,8 @@ namespace evt
 							}
 							else
 							{
-								bool flag3 = false;
 								int num4 = csvReader.get_cur_line();
-								EV.listenerCacheRead(ERSrc, cmd, csvReader, ref flag3);
+								EV.listenerCacheRead(ERSrc, cmd, csvReader);
 								if (num4 < csvReader.get_cur_line())
 								{
 									int cur_line = csvReader.get_cur_line();
@@ -405,11 +404,11 @@ namespace evt
 						if (list != null && list.Count > 0)
 						{
 							int k = 0;
-							bool flag4 = false;
+							bool flag3 = false;
 							if (list[0] == null)
 							{
 								k = 1;
-								flag4 = true;
+								flag3 = true;
 							}
 							int count = list.Count;
 							while (k < count)
@@ -417,7 +416,7 @@ namespace evt
 								designer.Br().XSh(20f);
 								designer.addP(new DsnDataP("", false)
 								{
-									html = flag4,
+									html = flag3,
 									text = list[k],
 									size = 13f,
 									swidth = designer.use_w - 18f,

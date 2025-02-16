@@ -1,6 +1,6 @@
 ﻿using System;
 using PixelLiner;
-using PixelLiner.PixelLinerLib;
+using PixelLiner.PixelLinerCore;
 using UnityEngine;
 using XX;
 
@@ -87,7 +87,7 @@ namespace m2d
 			localPosition.y = this.Mv.Mp.pixel2uy_rounded(this.Mv.drawy - this.Mv.getSpShiftY());
 			localPosition.z = this.z;
 			this.Trs.localPosition = localPosition;
-			base.setAim((global::PixelLiner.PixelLinerLib.AIM)this.Mv.aim, -1);
+			base.setAim((global::PixelLiner.PixelLinerCore.AIM)this.Mv.aim, -1);
 			if (auto_start)
 			{
 				this.Start();
@@ -330,7 +330,7 @@ namespace m2d
 
 		public PxlLayer getRodPos(ref float depx, ref float depy, string lay_name_prefix, string source_pose_prefix, float dx, float dy, ALIGN alignx = ALIGN.CENTER, ALIGNY aligny = ALIGNY.MIDDLE, int multiply_bits = 0)
 		{
-			return M2PxlAnimator.getRodPosS(this.Mp.rCLENB, this.getCurrentDrawnFrame(), ref depx, ref depy, lay_name_prefix, source_pose_prefix, dx, dy, alignx, aligny, multiply_bits);
+			return M2PxlAnimator.getRodPosS(this.Mp.rCLENB, base.getCurrentDrawnFrame(), ref depx, ref depy, lay_name_prefix, source_pose_prefix, dx, dy, alignx, aligny, multiply_bits);
 		}
 
 		public static PxlLayer getRodPosS(float rCLENB, PxlFrame F, ref float depx, ref float depy, string lay_name_prefix, string source_pose_prefix, float dx, float dy, ALIGN alignx = ALIGN.CENTER, ALIGNY aligny = ALIGNY.MIDDLE, int multiply_bits = 0)
@@ -501,7 +501,7 @@ namespace m2d
 
 		private Transform MvTrs;
 
-		public float z = 300f;
+		public float z = 400f;
 
 		private bool cur_changed;
 

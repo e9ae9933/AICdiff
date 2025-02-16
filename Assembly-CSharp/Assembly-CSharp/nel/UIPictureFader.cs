@@ -260,7 +260,7 @@ namespace nel
 			this.Cur = null;
 		}
 
-		public UIPictureFader.UIP_RES Explode(UIPictureBase PCon, string key, bool immediate = false, bool force_change = false)
+		public UIPictureFader.UIP_RES Explode(UIPictureBase PCon, string key, bool immediate = false, bool force_change = false, bool do_not_restart = false)
 		{
 			if (key == null)
 			{
@@ -280,53 +280,72 @@ namespace nel
 				{
 					return (UIPictureFader.UIP_RES)0;
 				}
-				if (!force_change && (uipfader2.time_min < 0 || this.t < (float)uipfader2.time_min) && uipfader2 != uipfader && X.XORSP() >= (uipfader2.alloc_insert_ratio + X.ZLINE((float)(uipfader.priority - uipfader2.priority), 100f)) * (1f - X.ZLINE((float)(uipfader2.priority - uipfader.priority), 100f)))
+				if (!force_change && !this.timeout_skip && (uipfader2.time_min < 0 || this.t < (float)uipfader2.time_min) && uipfader2 != uipfader && X.XORSP() >= (uipfader2.alloc_insert_ratio + X.ZLINE((float)(uipfader.priority - uipfader2.priority), 100f)) * (1f - X.ZLINE((float)(uipfader2.priority - uipfader.priority), 100f)))
 				{
 					uip_RES = (UIPictureFader.UIP_RES)0;
-					int num = X.IntR(X.NIXP((float)this.Cur.progress_anim_min, (float)this.Cur.progress_anim_max));
-					if (num > 0)
+					if (do_not_restart)
 					{
-						this.t += (float)num;
-						UIPictureBodySpine uipictureBodySpine = PCon.getBodyData() as UIPictureBodySpine;
-						if (uipictureBodySpine != null)
+						return uip_RES;
+					}
+					if (this.Cur.progress_anim_max < 0)
+					{
+						this.t = X.Mx(0f, this.t + (float)this.Cur.progress_anim_min);
+					}
+					else
+					{
+						int num = X.IntR(X.NIXP((float)this.Cur.progress_anim_min, (float)this.Cur.progress_anim_max));
+						if (num > 0)
 						{
-							uipictureBodySpine.getViewer().progressTimePositionAll(this.t / 60f);
+							this.t += (float)num;
+							UIPictureBodySpine uipictureBodySpine = PCon.getBodyData() as UIPictureBodySpine;
+							if (uipictureBodySpine != null)
+							{
+								uipictureBodySpine.getViewer().progressTimePositionAll(this.t / 60f);
+							}
 						}
 					}
 					return uip_RES;
 				}
-				if (uipfader2 == uipfader)
-				{
-					uip_RES |= UIPictureFader.UIP_RES.RESTART | UIPictureFader.UIP_RES.REDRAW;
-				}
 				else
 				{
-					if (this.Cur != null)
+					this.timeout_skip = false;
+					if (uipfader2 == uipfader)
 					{
-						if (!this.Cur.drop && uipfader.drop)
+						if (do_not_restart)
 						{
-							if (!uipfader.immediate && !immediate)
-							{
-								this.Next = uipfader;
-								this.t_ground = 1f;
-								this.maxt_ground = 22;
-								PCon.readFader(this.Next, UIPictureFader.UIP_RES.JUST_PREPARE, UIPictureBase.EMSTATE.NORMAL);
-								return UIPictureFader.UIP_RES.TO_DROP;
-							}
-							this.t_ground = -1f;
-							uip_RES |= UIPictureFader.UIP_RES.DROPPED;
+							return (UIPictureFader.UIP_RES)0;
 						}
-						else if (this.Cur.drop && !uipfader.drop)
-						{
-							this.t_ground = -1f;
-							this.maxt_ground = 60;
-							uip_RES |= UIPictureFader.UIP_RES.STANDUP;
-						}
+						uip_RES |= UIPictureFader.UIP_RES.RESTART | UIPictureFader.UIP_RES.REDRAW;
 					}
-					uip_RES |= UIPictureFader.UIP_RES.RESTART | ((uipfader.immediate || immediate) ? UIPictureFader.UIP_RES.IMMEDIATE : ((UIPictureFader.UIP_RES)0));
-					if (uipfader.immediate_load)
+					else
 					{
-						BetobetoManager.immediate_load_material = 6;
+						if (this.Cur != null)
+						{
+							if (!this.Cur.drop && uipfader.drop)
+							{
+								if (!uipfader.immediate && !immediate)
+								{
+									this.Next = uipfader;
+									this.t_ground = 1f;
+									this.maxt_ground = 22;
+									PCon.readFader(this.Next, UIPictureFader.UIP_RES.JUST_PREPARE, UIPictureBase.EMSTATE.NORMAL, false);
+									return UIPictureFader.UIP_RES.TO_DROP;
+								}
+								this.t_ground = -1f;
+								uip_RES |= UIPictureFader.UIP_RES.DROPPED;
+							}
+							else if (this.Cur.drop && !uipfader.drop)
+							{
+								this.t_ground = -1f;
+								this.maxt_ground = 60;
+								uip_RES |= UIPictureFader.UIP_RES.STANDUP;
+							}
+						}
+						uip_RES |= UIPictureFader.UIP_RES.RESTART | ((uipfader.immediate || immediate) ? UIPictureFader.UIP_RES.IMMEDIATE : ((UIPictureFader.UIP_RES)0));
+						if (uipfader.immediate_load)
+						{
+							BetobetoManager.immediate_load_material = 6;
+						}
 					}
 				}
 			}
@@ -348,12 +367,12 @@ namespace nel
 			return uip_RES;
 		}
 
-		public UIPictureFader.UIP_RES run(UIPictureBase PCon, float fcnt)
+		public UIPictureFader.UIP_RES run(UIPictureBase PCon, float fcnt, float fcnt_maintime)
 		{
 			UIPictureFader.UIP_RES uip_RES = this.runGroundLevel(PCon, fcnt, true);
 			if (this.Cur != null)
 			{
-				this.t += fcnt;
+				this.t += fcnt * fcnt_maintime;
 				if (this.Cur.time_max > 0)
 				{
 					if (UIPictureBase.FlgStopAutoFade.isActive())
@@ -364,6 +383,7 @@ namespace nel
 					if (this.t >= (float)this.Cur.time_max && (!this.Cur.return_if_state_normal || PCon.isPlayerStateNormal()))
 					{
 						PCon.recheck_emot = true;
+						this.timeout_skip = true;
 					}
 				}
 			}
@@ -381,7 +401,7 @@ namespace nel
 					if (this.t_ground >= (float)this.maxt_ground)
 					{
 						uip_RES |= UIPictureFader.UIP_RES.DROPPED;
-						if (PCon.readFader(this.Next, UIPictureFader.UIP_RES.DROPPED | (this.Next.immediate ? UIPictureFader.UIP_RES.IMMEDIATE : ((UIPictureFader.UIP_RES)0)), UIPictureBase.EMSTATE.NORMAL) != UIPictureFader.UIP_RES.NOW_LOADING)
+						if (PCon.readFader(this.Next, UIPictureFader.UIP_RES.DROPPED | (this.Next.immediate ? UIPictureFader.UIP_RES.IMMEDIATE : ((UIPictureFader.UIP_RES)0)), UIPictureBase.EMSTATE.NORMAL, false) != UIPictureFader.UIP_RES.NOW_LOADING)
 						{
 							this.t = 0f;
 							this.t_ground = -1f;
@@ -475,6 +495,8 @@ namespace nel
 		private const int MAXT_STANDUP = 60;
 
 		public int maxt_ground = 30;
+
+		private bool timeout_skip;
 
 		public class UIPFader
 		{

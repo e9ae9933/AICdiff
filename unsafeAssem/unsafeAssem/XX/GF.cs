@@ -205,6 +205,11 @@ namespace XX
 			GF.setC(i, (uint)X.MMX(0f, (float)v, 15f));
 		}
 
+		public static void setC2(string key, int v)
+		{
+			GF.setC(GF.getReplaceKeyForC(key), (uint)X.MMX(0f, (float)v, 15f));
+		}
+
 		public static void setC(int i, uint v)
 		{
 			if (!X.BTW(0f, (float)i, GF.maxc))
@@ -237,6 +242,11 @@ namespace XX
 		public static uint getC(string key)
 		{
 			return GF.getC(GF.getReplaceKeyForC(key));
+		}
+
+		public static void setB(string key, bool f)
+		{
+			GF.setB(GF.getReplaceKeyForB(key), f);
 		}
 
 		public static void setB(int i, bool f)
@@ -668,7 +678,7 @@ namespace XX
 			else
 			{
 				int num2 = TX.commandEvalSet(val, (int)GF.getC(num));
-				GF.setC2(num, num2 & 15);
+				GF.setC2(num, num2);
 			}
 			return null;
 		}

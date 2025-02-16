@@ -126,7 +126,7 @@ namespace nel
 								pendulumDrawer2.recalc(true);
 							}
 						}
-						this.Pr.Skill.killHoldMagic(false);
+						this.Pr.Skill.killHoldMagic(false, false);
 						if (TX.valid(this.target_pose_key))
 						{
 							this.Pr.SpSetPose(this.target_pose_key, -1, this.target_pose_key, false);

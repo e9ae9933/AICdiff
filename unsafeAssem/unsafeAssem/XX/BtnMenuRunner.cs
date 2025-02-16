@@ -31,7 +31,7 @@ namespace XX
 					this.bt = 1;
 				}
 			}
-			else if (this.bt == 1 && this.t >= 6f && IN.isMousePushDown())
+			else if (this.bt == 1 && this.t >= 6f && IN.isMousePushDown(1))
 			{
 				int length = this.BCon.Length;
 				for (int i = 0; i < length; i++)

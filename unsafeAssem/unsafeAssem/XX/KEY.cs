@@ -2385,8 +2385,7 @@ namespace XX
 			int num = 30;
 			Ba.writeUInt(308066463U);
 			Ba.writeByte(118 | (this.pad_mode ? 1 : 0) | (this.is_xinput ? 8 : 0));
-			Ba.writeByte(1);
-			Ba.writeString(this.PlayerCon.actions.SaveBindingOverridesAsJson(), "utf-8");
+			Ba.writeByte(2);
 			Ba.writeByte(num);
 			for (int i = 0; i < num; i++)
 			{
@@ -2397,6 +2396,7 @@ namespace XX
 				Ba.writeByte(inputHolder.key_icon);
 				Ba.writeString(inputHolder.pad_label, "utf-8");
 				Ba.writeByte(inputHolder.pad_icon);
+				inputHolder.writeToBytesInputData(Ba);
 			}
 			for (int j = 0; j < 2; j++)
 			{
@@ -2420,7 +2420,7 @@ namespace XX
 			return Ba;
 		}
 
-		public bool readSaveString(ByteArray Ba, bool apply_pad_mode)
+		public bool readSaveString(ByteReader Ba, bool apply_pad_mode)
 		{
 			MTRX.OFontStorage[MTRX.getCabinFont()].Fine();
 			try
@@ -2444,7 +2444,10 @@ namespace XX
 				{
 					this.clearKEY(true, true);
 					this.is_xinput = flag;
-					this.PlayerCon.actions.LoadBindingOverridesFromJson(Ba.readString("utf-8", false), true);
+					if (num2 <= 1)
+					{
+						this.PlayerCon.actions.LoadBindingOverridesFromJson(Ba.readString("utf-8", false), true);
+					}
 				}
 				else
 				{
@@ -2465,10 +2468,20 @@ namespace XX
 						num6 = Ba.readUShort();
 						Ba.readString("utf-8", false);
 					}
+					string text4 = null;
+					string text5 = null;
+					if (num2 >= 2)
+					{
+						KEY.InputHolder.readFromBytesInputData(Ba, out text4, out text5);
+					}
 					KEY.IPT ipt;
 					if (FEnum<KEY.IPT>.TryParse(text, out ipt, true))
 					{
 						KEY.InputHolder inputHolder = this.AInputs[(int)ipt];
+						if (num2 >= 2)
+						{
+							inputHolder.readFromBytesInputDataInner(text4, text5);
+						}
 						if ((num & 4) == 0 && text2 != null)
 						{
 							uint num7 = <PrivateImplementationDetails>.ComputeStringHash(text2);
@@ -2480,37 +2493,37 @@ namespace XX
 									{
 										if (num7 != 2848837449U)
 										{
-											goto IL_0266;
+											goto IL_0290;
 										}
 										if (!(text2 == "LeftArrow"))
 										{
-											goto IL_0266;
+											goto IL_0290;
 										}
-										goto IL_0244;
+										goto IL_026E;
 									}
 									else if (!(text2 == "Up Arrow"))
 									{
-										goto IL_0266;
+										goto IL_0290;
 									}
 								}
 								else if (num7 != 3583141561U)
 								{
 									if (num7 != 4104663468U)
 									{
-										goto IL_0266;
+										goto IL_0290;
 									}
 									if (!(text2 == "Down Arrow"))
 									{
-										goto IL_0266;
+										goto IL_0290;
 									}
-									goto IL_025F;
+									goto IL_0289;
 								}
 								else if (!(text2 == "UpArrow"))
 								{
-									goto IL_0266;
+									goto IL_0290;
 								}
 								text2 = "↑";
-								goto IL_0266;
+								goto IL_0290;
 							}
 							if (num7 <= 951029660U)
 							{
@@ -2518,43 +2531,43 @@ namespace XX
 								{
 									if (num7 != 951029660U)
 									{
-										goto IL_0266;
+										goto IL_0290;
 									}
 									if (!(text2 == "Right Arrow"))
 									{
-										goto IL_0266;
+										goto IL_0290;
 									}
 								}
 								else if (!(text2 == "RightArrow"))
 								{
-									goto IL_0266;
+									goto IL_0290;
 								}
 								text2 = "→";
-								goto IL_0266;
+								goto IL_0290;
 							}
 							if (num7 != 1383447753U)
 							{
 								if (num7 != 1565561622U)
 								{
-									goto IL_0266;
+									goto IL_0290;
 								}
 								if (!(text2 == "DownArrow"))
 								{
-									goto IL_0266;
+									goto IL_0290;
 								}
-								goto IL_025F;
+								goto IL_0289;
 							}
 							else if (!(text2 == "Left Arrow"))
 							{
-								goto IL_0266;
+								goto IL_0290;
 							}
-							IL_0244:
+							IL_026E:
 							text2 = "←";
-							goto IL_0266;
-							IL_025F:
+							goto IL_0290;
+							IL_0289:
 							text2 = "↓";
 						}
-						IL_0266:
+						IL_0290:
 						if (num2 == 0 && text2 != null && text2 == "Space")
 						{
 							text2 = "\uff3f";
@@ -2564,16 +2577,16 @@ namespace XX
 						if (flag2)
 						{
 							KeyCode keyCode = (KeyCode)num6;
-							string text4 = keyCode.ToString();
-							if (text4 != num6.ToString())
+							string text6 = keyCode.ToString();
+							if (text6 != num6.ToString())
 							{
-								if (TX.isStart(text4, "Alpha", 0))
+								if (TX.isStart(text6, "Alpha", 0))
 								{
-									text4 = TX.slice(text4, 5);
+									text6 = TX.slice(text6, 5);
 								}
-								else if (TX.isStart(text4, "Keypad", 0))
+								else if (TX.isStart(text6, "Keypad", 0))
 								{
-									text4 = "numpad" + TX.HeadLower(TX.slice(text4, 6));
+									text6 = "numpad" + TX.HeadLower(TX.slice(text6, 6));
 								}
 								else
 								{
@@ -2582,19 +2595,19 @@ namespace XX
 									{
 										if (keyCode == KeyCode.LeftControl)
 										{
-											text4 = "leftCtrl";
+											text6 = "leftCtrl";
 										}
 										else
 										{
-											text4 = TX.HeadLower(text4);
+											text6 = TX.HeadLower(text6);
 										}
 									}
 									else
 									{
-										text4 = "rightCtrl";
+										text6 = "rightCtrl";
 									}
 								}
-								inputHolder.writeKey(text4);
+								inputHolder.writeKey(text6);
 							}
 						}
 						else
@@ -2631,30 +2644,30 @@ namespace XX
 					while (j < num3)
 					{
 						KEY.KeyIcon keyIcon = new KEY.KeyIcon();
-						string text5 = Ba.readString("utf-8", false);
+						string text7 = Ba.readString("utf-8", false);
 						keyIcon.key_label = Ba.readString("utf-8", false);
 						keyIcon.key_icon = Ba.readByte();
 						keyIcon.pad_label = Ba.readString("utf-8", false);
 						keyIcon.pad_icon = Ba.readByte();
 						if (!flag2)
 						{
-							goto IL_046B;
+							goto IL_0495;
 						}
-						if (TX.isStart(text5, "K_", 0))
+						if (TX.isStart(text7, "K_", 0))
 						{
-							text5 = TX.slice(text5, 2);
-							goto IL_046B;
+							text7 = TX.slice(text7, 2);
+							goto IL_0495;
 						}
-						IL_04A7:
+						IL_04D1:
 						j++;
 						continue;
-						IL_046B:
-						if (num8 == 0 && text5 == "Space" && keyIcon.key_label == "Space")
+						IL_0495:
+						if (num8 == 0 && text7 == "Space" && keyIcon.key_label == "Space")
 						{
 							keyIcon.key_label = "";
 						}
-						bdic[text5] = keyIcon;
-						goto IL_04A7;
+						bdic[text7] = keyIcon;
+						goto IL_04D1;
 					}
 					if (flag2)
 					{
@@ -3327,6 +3340,67 @@ namespace XX
 						return;
 					}
 					this.stick_check_threshold = -1f;
+				}
+			}
+
+			public void writeToBytesInputData(ByteArray Ba)
+			{
+				int num = 0;
+				int num2;
+				if (this.getBI_KB(out num2))
+				{
+					num |= (TX.valid(this.Act.bindings[num2].overridePath) ? 1 : 0);
+				}
+				int num3;
+				if (this.getBI_Pad(out num3))
+				{
+					num |= (TX.valid(this.Act.bindings[num3].overridePath) ? 2 : 0);
+				}
+				Ba.writeByte(num);
+				if ((num & 1) != 0)
+				{
+					Ba.writePascalString(this.Act.bindings[num2].overridePath, "utf-8");
+				}
+				if ((num & 2) != 0)
+				{
+					Ba.writePascalString(this.Act.bindings[num3].overridePath, "utf-8");
+				}
+			}
+
+			public static void readFromBytesInputData(ByteReader Ba, out string ovr_k, out string ovr_p)
+			{
+				byte b = Ba.readUByte();
+				if ((b & 1) != 0)
+				{
+					ovr_k = Ba.readPascalString("utf-8", false);
+				}
+				else
+				{
+					ovr_k = null;
+				}
+				if ((b & 2) != 0)
+				{
+					ovr_p = Ba.readPascalString("utf-8", false);
+					return;
+				}
+				ovr_p = null;
+			}
+
+			public void readFromBytesInputDataInner(string ovr_k, string ovr_p)
+			{
+				int num;
+				if (this.getBI_KB(out num))
+				{
+					InputBinding inputBinding = this.Act.bindings[num];
+					inputBinding.overridePath = ovr_k;
+					this.Act.ApplyBindingOverride(num, inputBinding);
+				}
+				int num2;
+				if (this.getBI_Pad(out num2))
+				{
+					InputBinding inputBinding2 = this.Act.bindings[num2];
+					inputBinding2.overridePath = ovr_p;
+					this.Act.ApplyBindingOverride(num2, inputBinding2);
 				}
 			}
 

@@ -54,7 +54,8 @@ namespace nel
 			this.emstate_attach_ = UIPictureBase.EMSTATE.NORMAL;
 			this.normal_UP_fade_injectable_ = 0.66f;
 			this.Con.normal_UP_fade_injectable = -1f;
-			this.pose_priority_ = 1;
+			this.pose_priority_ = 0;
+			this.no_wall_hit_ignore_on_torture_ = false;
 			this.no_clamp_speed_ = (this.cannot_move_ = false);
 			this.breath_key_ = null;
 			this.target_pose_ = "";
@@ -208,6 +209,7 @@ namespace nel
 			this.Con.finePosePriority(this.pose_priority_);
 			if (this.use_torture > 0)
 			{
+				this.Con.need_fine_torture_after = true;
 				this.TargetM.quitTortureAbsorb();
 			}
 			if (this.cannot_apply_mist_damage_)
@@ -217,7 +219,7 @@ namespace nel
 			}
 			if (this.emstate_attach_ != UIPictureBase.EMSTATE.NORMAL)
 			{
-				this.Con.emstate_attach = (UIPictureBase.EMSTATE)(-1);
+				this.Con.emstate_attach = UIPictureBase.EMSTATE._ALL;
 			}
 			this.emstate_attach_ = UIPictureBase.EMSTATE.NORMAL;
 			if (this.no_clamp_speed_)
@@ -241,6 +243,11 @@ namespace nel
 			{
 				this.mouth_is_covered_ = false;
 				this.Con.mouth_is_covered = false;
+			}
+			if (this.no_wall_hit_ignore_on_torture_)
+			{
+				this.no_wall_hit_ignore_on_torture_ = false;
+				this.Con.no_wall_hit_ignore_on_torture = false;
 			}
 			if (this.no_shuffleframe_on_applydamage_)
 			{
@@ -301,8 +308,8 @@ namespace nel
 			this.target_pose = p;
 			this.pose_priority_ = 99;
 			this.TargetM.initJump();
-			this.PublishM.initTortureAbsorbPoseSet(p, set_frame, reset_animf);
-			this.TargetM.initTortureAbsorbPoseSet(p, set_frame, reset_animf);
+			this.PublishM.initTortureAbsorbPoseSet(this.TargetM, p, set_frame, reset_animf);
+			this.TargetM.initTortureAbsorbPoseSet(this.PublishM, p, set_frame, reset_animf);
 			this.syncTorturePosition(p);
 			this.Con.resetKissAf();
 		}
@@ -317,23 +324,12 @@ namespace nel
 
 		public bool syncTorturePosition(string pose_title)
 		{
-			if (this.use_torture == 0 || this.TargetM == null || this.PublishM == null)
-			{
-				return false;
-			}
-			if (this.PublishM.SpPoseIs(pose_title))
-			{
-				float num = 0f;
-				float num2 = 0f;
-				if (AbsorbManager.syncTorturePositionS(this.PublishM, this.TargetM, this.TargetM.getPhysic(), pose_title, ref num, ref num2, this.use_torture == 2))
-				{
-					return true;
-				}
-			}
-			return false;
+			float num;
+			float num2;
+			return this.use_torture != 0 && !(this.TargetM == null) && !(this.PublishM == null) && (this.PublishM.SpPoseIs(pose_title) && AbsorbManager.syncTorturePositionS(this.PublishM, this.TargetM, this.TargetM.getPhysic(), pose_title, out num, out num2, this.use_torture == 2));
 		}
 
-		public static bool syncTorturePositionS(M2Attackable PublishM, M2Attackable TargetM, M2Phys PhyT, string post_title, ref float dx, ref float dy, bool opposite_aim = false)
+		public static bool syncTorturePositionS(M2Attackable PublishM, M2Attackable TargetM, M2Phys PhyT, string post_title, out float dx, out float dy, bool opposite_aim = false)
 		{
 			ITortureListener tortureListener = TargetM as ITortureListener;
 			M2PxlAnimator m2PxlAnimator = null;
@@ -342,6 +338,8 @@ namespace nel
 			ITeScaler teScaler2 = null;
 			float num = 0f;
 			float num2 = 0f;
+			dx = TargetM.x;
+			dy = TargetM.y;
 			if (tortureListener == null)
 			{
 				X.de("TargetM は TortureListenerではない", null);
@@ -625,7 +623,7 @@ namespace nel
 					return;
 				}
 				this.emstate_attach_ = value;
-				this.Con.emstate_attach = (UIPictureBase.EMSTATE)(-1);
+				this.Con.emstate_attach = UIPictureBase.EMSTATE._ALL;
 				PR pr = this.Con.Mv as PR;
 				if (pr != null)
 				{
@@ -687,6 +685,19 @@ namespace nel
 			{
 				this.mouth_is_covered_ = value;
 				this.Con.mouth_is_covered = value;
+			}
+		}
+
+		public bool no_wall_hit_ignore_on_torture
+		{
+			get
+			{
+				return this.no_wall_hit_ignore_on_torture_;
+			}
+			set
+			{
+				this.no_wall_hit_ignore_on_torture_ = value;
+				this.Con.no_wall_hit_ignore_on_torture = value;
 			}
 		}
 
@@ -788,6 +799,11 @@ namespace nel
 			}
 			set
 			{
+				if (value >= 99)
+				{
+					X.de("pose_priority を手動で POSEPRI_TORTURE に設定できない", null);
+					return;
+				}
 				this.Con.finePosePriority(this.pose_priority_);
 				this.pose_priority_ = value;
 			}
@@ -803,6 +819,10 @@ namespace nel
 			{
 				this.target_pose_ = value;
 				this.Con.finePosePriority(this.pose_priority_);
+				if (this.pose_priority_ <= 0)
+				{
+					this.pose_priority_ = 1;
+				}
 			}
 		}
 
@@ -926,6 +946,8 @@ namespace nel
 
 		private bool no_shuffleframe_on_applydamage_;
 
+		private bool no_wall_hit_ignore_on_torture_;
+
 		private bool mouth_is_covered_;
 
 		public bool kirimomi_release;
@@ -956,7 +978,9 @@ namespace nel
 
 		public const int POSEPRI_BIG = 20;
 
-		public const int POSEPRI_NORMAL = 1;
+		public const int POSEPRI_MANUAL = 1;
+
+		public const int POSEPRI_DEFAULT_POSE = 0;
 
 		public enum ABM_POSE
 		{

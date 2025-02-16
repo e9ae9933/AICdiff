@@ -108,11 +108,11 @@ namespace nel
 			this.base_z += -this.slip_z;
 			if (mask == UiBoxDesignerFamily.MASKTYPE.BOX)
 			{
-				t.box_stencil_ref_mask = 200 + this.ADs.Count;
+				t.box_stencil_ref_mask = 70 + this.ADs.Count;
 			}
 			else if (mask == UiBoxDesignerFamily.MASKTYPE.SCROLL)
 			{
-				t.stencil_ref = 200 + this.ADs.Count;
+				t.stencil_ref = 70 + this.ADs.Count;
 			}
 			else
 			{

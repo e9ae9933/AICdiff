@@ -9,8 +9,9 @@ namespace nel
 {
 	public class NelPlayerCursor
 	{
-		public NelPlayerCursor()
+		public NelPlayerCursor(NelM2DBase _M2D)
 		{
+			this.M2D = _M2D;
 			this.MtrBorder = MTRX.newMtr(MTR.MIiconL.getMtr(BLEND.NORMALBORDER8, -1));
 			this.MtrBorder.SetFloat("_BorderBit", 15f);
 			this.FD_edDraw = new M2DrawBinder.FnEffectBind(this.edDraw);
@@ -33,7 +34,6 @@ namespace nel
 			this.Mp = _Mp;
 			this.Pr = _Pr;
 			this.Skill = this.Pr.Skill;
-			this.M2D = this.Mp.M2D as NelM2DBase;
 			this.M2D.MGC.quitRayCohitable(this.Ray);
 			this.Ed = this.Mp.setED("NelCursor", this.FD_edDraw, 0f);
 			this.StCalc = new ShotCalcurater(this.Pr);
@@ -71,9 +71,9 @@ namespace nel
 			this.Ed.t = 0f;
 			this.hit_rt_max = 0;
 			this.M2D.MGC.quitRayCohitable(this.Ray);
-			this.Ray.Set(this.Mp, this.Pr, 0.1f, (HITTYPE)6);
+			this.Ray.Set(this.Mp, this.Pr, 0.1f, HITTYPE.EN | HITTYPE.WALL);
 			this.Ray.ACohitableCheck = this.M2D.MGC.getCohitableRayList();
-			this.RaySC.Set(this.Mp, this.Pr, 0.1f, (HITTYPE)6);
+			this.RaySC.Set(this.Mp, this.Pr, 0.1f, HITTYPE.EN | HITTYPE.WALL);
 			this.RaySC.ACohitableCheck = this.M2D.MGC.getCohitableRayList();
 			this.TargetHit = null;
 			this.thit_mapx = this.Pr.x;
@@ -406,6 +406,8 @@ namespace nel
 				return;
 			}
 			this.cur_shift_len = 4f;
+			bool flag = false;
+			float num = 0.04f;
 			if (curMagic.Mn != null)
 			{
 				int count = curMagic.Mn.Count;
@@ -415,13 +417,19 @@ namespace nel
 					if (hit.len > 0f)
 					{
 						this.cur_shift_len = X.Mn(hit.len, this.cur_shift_len);
+						if (hit.wall_hit)
+						{
+							flag = true;
+						}
+						num = hit.thick;
 						break;
 					}
 				}
 			}
 			Vector2 aimInitPos = curMagic.getAimInitPos();
-			float num = CAim.get_agR(this.aim, 0f);
-			M2Ray.M2RayHittedItem m2RayHittedItem = M2Ray.findAutoTarget(this.Pr, aimInitPos.x, aimInitPos.y, X.Mx(this.cur_shift_len, 8f), (curMagic.Mn._0.wall_hit ? HITTYPE.WALL : HITTYPE.NONE) | HITTYPE.EN | HITTYPE.OTHER | HITTYPE.AUTO_TARGET, curMagic.projectile_power, X.Mx(1.6f, this.cur_shift_len), num, this.Pr, curMagic.Caster as M2Mover);
+			float num2 = CAim.get_agR(this.aim, 0f);
+			float weather_lock_radius = this.weather_lock_radius;
+			M2Ray.M2RayHittedItem m2RayHittedItem = M2Ray.findAutoTarget(this.Pr, aimInitPos.x, aimInitPos.y, weather_lock_radius * X.Mx(this.cur_shift_len, 8f), num, (flag ? HITTYPE.WALL : HITTYPE.NONE) | HITTYPE.EN | HITTYPE.OTHER | HITTYPE.AUTO_TARGET, curMagic.projectile_power, weather_lock_radius * X.Mx(1.6f, this.cur_shift_len), num2, this.Pr, curMagic.Caster as M2Mover);
 			if (m2RayHittedItem == null)
 			{
 				this.TargetHit = null;
@@ -521,6 +529,14 @@ namespace nel
 			return true;
 		}
 
+		public float weather_lock_radius
+		{
+			get
+			{
+				return X.NI(this.M2D.NightCon.PlayerLockonRadius(), 1f, (float)(EnemySummoner.isActiveBorder() ? 1 : 0));
+			}
+		}
+
 		public MagicItem getCurMagic()
 		{
 			return this.Skill.getCurMagicForCursor();
@@ -530,9 +546,9 @@ namespace nel
 
 		private PR Pr;
 
-		private M2PrSkill Skill;
+		public readonly NelM2DBase M2D;
 
-		private NelM2DBase M2D;
+		private M2PrSkill Skill;
 
 		private Vector2 Aim;
 

@@ -41,14 +41,21 @@ namespace nel
 			return false;
 		}
 
-		public EffectHandlerPE deactivateSpecific(POSTM pe_type)
+		public EffectHandlerPE deactivateSpecific(POSTM pe_type, bool immediate = false)
 		{
 			for (int i = this.AEf.Count - 1; i >= 0; i--)
 			{
 				EffectHandler<PostEffectItem>.HandledItem handledItem = this.AEf[i];
 				if (handledItem.Ef != null && handledItem.Ef.FnDef != null && handledItem.Ef.index == handledItem.s_index && handledItem.Ef.time == (int)pe_type)
 				{
-					handledItem.Ef.deactivate(false);
+					if (immediate)
+					{
+						handledItem.Ef.destruct();
+					}
+					else
+					{
+						handledItem.Ef.deactivate(false);
+					}
 					this.AEf.RemoveAt(i);
 				}
 			}
@@ -96,6 +103,20 @@ namespace nel
 				}
 			}
 			return this;
+		}
+
+		public PostEffectItem getByType(POSTM pe_type)
+		{
+			int count = this.AEf.Count;
+			for (int i = 0; i < count; i++)
+			{
+				EffectHandler<PostEffectItem>.HandledItem handledItem = this.AEf[i];
+				if (handledItem.Ef != null && handledItem.Ef.FnDef != null && handledItem.Ef.index == handledItem.s_index && handledItem.Ef.time == (int)pe_type)
+				{
+					return handledItem.Ef;
+				}
+			}
+			return null;
 		}
 	}
 }

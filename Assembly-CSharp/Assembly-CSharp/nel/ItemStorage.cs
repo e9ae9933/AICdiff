@@ -104,12 +104,12 @@ namespace nel
 			foreach (KeyValuePair<NelItem, ItemStorage.ObtainInfo> keyValuePair in Src.OItm)
 			{
 				ItemStorage.ObtainInfo obtainInfo = (this.OItm[keyValuePair.Key] = new ItemStorage.ObtainInfo(keyValuePair.Value));
-				this.last_newer = global::XX.X.Mx(this.last_newer, obtainInfo.newer);
+				this.last_newer = X.Mx(this.last_newer, obtainInfo.newer);
 			}
 			this.fineRows(false);
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool read_grade = true, bool override_sort = true, bool recipe_reffer_add = false, int vers = 9, bool fix_ver024 = false)
+		public void readBinaryFrom(ByteReader Ba, bool read_grade = true, bool override_sort = true, bool recipe_reffer_add = false, int vers = 9, bool fix_ver024 = false)
 		{
 			this.clearAllItems(this.row_max);
 			int num = Ba.readInt();
@@ -131,7 +131,7 @@ namespace nel
 					NelItem byId = NelItem.GetById(text, true);
 					if (byId != null)
 					{
-						ItemStorage.ObtainInfo obtainInfo = global::XX.X.Get<NelItem, ItemStorage.ObtainInfo>(this.OItm, byId);
+						ItemStorage.ObtainInfo obtainInfo = X.Get<NelItem, ItemStorage.ObtainInfo>(this.OItm, byId);
 						if (obtainInfo == null)
 						{
 							obtainInfo = (this.OItm[byId] = new ItemStorage.ObtainInfo());
@@ -170,7 +170,7 @@ namespace nel
 					if (byId2 != null && obtainInfo2.total > 0)
 					{
 						this.OItm[byId2] = obtainInfo2;
-						this.last_newer = global::XX.X.Mx(this.last_newer, obtainInfo2.newer);
+						this.last_newer = X.Mx(this.last_newer, obtainInfo2.newer);
 						if (byId2.RecipeInfo != null && byId2.RecipeInfo.DishInfo != null)
 						{
 							if (recipe_reffer_add)
@@ -211,6 +211,14 @@ namespace nel
 				}
 			}
 			this.fineRows(list, false);
+		}
+
+		public int bytearray_about_bits
+		{
+			get
+			{
+				return 12 + this.select_row_key.Length + 1 + 1 + this.OItm.Count * 22 + ((this.ABlink != null) ? this.ABlink.Count : 0) * 8 + 4;
+			}
 		}
 
 		public ByteArray writeBinaryTo(ByteArray Ba)
@@ -290,7 +298,7 @@ namespace nel
 			this.getVisibleRowCount();
 			while (add_count0 > 0)
 			{
-				int num2 = global::XX.X.Mn(add_count0, itemStockable);
+				int num2 = X.Mn(add_count0, itemStockable);
 				add_count0 -= num2;
 				ItemStorage.IRow row2 = null;
 				if (this.OItm.TryGetValue(Itm, out obtainInfo))
@@ -308,7 +316,7 @@ namespace nel
 					}
 					if (row2 != null)
 					{
-						int num4 = global::XX.X.Mn(global::XX.X.Mx(1, global::XX.X.IntC((float)num3 / (float)itemStockable)) * itemStockable - num3, num2);
+						int num4 = X.Mn(X.Mx(1, X.IntC((float)num3 / (float)itemStockable)) * itemStockable - num3, num2);
 						if (num4 > 0)
 						{
 							num2 -= num4;
@@ -397,7 +405,7 @@ namespace nel
 						{
 							row3.splitted_grade = (byte)grade;
 						}
-						int num8 = ((row2 != null && row2.index >= 0) ? global::XX.X.Mn(this.ARow.Count, row2.index + 1) : this.ARow.Count);
+						int num8 = ((row2 != null && row2.index >= 0) ? X.Mn(this.ARow.Count, row2.index + 1) : this.ARow.Count);
 						if (num8 < this.ARow.Count)
 						{
 							flag = true;
@@ -525,7 +533,7 @@ namespace nel
 					num = obtainInfo.getCount(grade);
 					row = this.getIRowForGrade(Itm, obtainInfo, grade, null);
 				}
-				int num2 = global::XX.X.IntC((float)num / (float)itemStockable);
+				int num2 = X.IntC((float)num / (float)itemStockable);
 				if (row != null)
 				{
 					row.ReduceCount(count, grade);
@@ -533,11 +541,11 @@ namespace nel
 				int num3;
 				if (!this.grade_split)
 				{
-					num3 = global::XX.X.IntC((float)obtainInfo.total / (float)itemStockable);
+					num3 = X.IntC((float)obtainInfo.total / (float)itemStockable);
 				}
 				else
 				{
-					num3 = global::XX.X.IntC((float)obtainInfo.getCount(grade) / (float)itemStockable);
+					num3 = X.IntC((float)obtainInfo.getCount(grade) / (float)itemStockable);
 				}
 				if (num3 == 0 && !this.auto_splice_zero_row)
 				{
@@ -562,11 +570,11 @@ namespace nel
 				int num4 = 0;
 				if (!this.grade_split)
 				{
-					num4 = global::XX.X.IntC((float)obtainInfo.total / (float)itemStockable);
+					num4 = X.IntC((float)obtainInfo.total / (float)itemStockable);
 				}
 				for (int i = 4; i >= 0; i--)
 				{
-					int num5 = global::XX.X.Mn(count, obtainInfo.getCount(i));
+					int num5 = X.Mn(count, obtainInfo.getCount(i));
 					if (num5 != 0)
 					{
 						int num6 = 0;
@@ -579,12 +587,12 @@ namespace nel
 						else
 						{
 							row2 = this.getIRowForGrade(Itm, obtainInfo, i, null);
-							num6 = global::XX.X.IntC((float)obtainInfo.getCount(i) / (float)itemStockable);
+							num6 = X.IntC((float)obtainInfo.getCount(i) / (float)itemStockable);
 						}
 						row2.ReduceCount(num5, i);
 						if (this.grade_split)
 						{
-							num4 += global::XX.X.IntC((float)obtainInfo.getCount(i) / (float)itemStockable) - num6;
+							num4 += X.IntC((float)obtainInfo.getCount(i) / (float)itemStockable) - num6;
 						}
 						if (count <= 0)
 						{
@@ -594,7 +602,7 @@ namespace nel
 				}
 				if (!this.grade_split)
 				{
-					flag3 = global::XX.X.IntC((float)obtainInfo.total / (float)itemStockable) < num4;
+					flag3 = X.IntC((float)obtainInfo.total / (float)itemStockable) < num4;
 				}
 				else
 				{
@@ -662,9 +670,9 @@ namespace nel
 			{
 				int num4 = center_grade + num3;
 				int num5 = 0;
-				while (num5 < 5 && global::XX.X.BTW(0f, (float)num4, 5f))
+				while (num5 < 5 && X.BTW(0f, (float)num4, 5f))
 				{
-					int num6 = global::XX.X.Mn(num, obtainInfo.getCount(num4));
+					int num6 = X.Mn(num, obtainInfo.getCount(num4));
 					this.Reduce(Itm, num6, num4, false);
 					if (AOut != null)
 					{
@@ -676,7 +684,7 @@ namespace nel
 					{
 						break;
 					}
-					num4 += global::XX.X.MPF(num3 == 1);
+					num4 += X.MPF(num3 == 1);
 					num5++;
 				}
 				num3++;
@@ -743,7 +751,7 @@ namespace nel
 			{
 				using (BList<NelItem> blist = ListBuffer<NelItem>.Pop(0))
 				{
-					global::XX.X.objKeys<NelItem, ItemStorage.ObtainInfo>(this.OItm, blist);
+					X.objKeys<NelItem, ItemStorage.ObtainInfo>(this.OItm, blist);
 					int num = blist.Count;
 					for (int j = 0; j < num; j++)
 					{
@@ -789,7 +797,7 @@ namespace nel
 					while (num6 > 0 || (num6 == 0 && !splice_zero_row && (k == -1 || (value.grade_touched & (1U << k)) != 0U)))
 					{
 						value.grade_touched |= 1U << k;
-						int num7 = global::XX.X.Mn(num6, itemStockable);
+						int num7 = X.Mn(num6, itemStockable);
 						num6 -= num7;
 						ItemStorage.IRow row2 = this.addRowInner(ref num3, keyValuePair.Key, value, num7, list, k);
 						if (flag && (k < 0 || num2 == k))
@@ -936,7 +944,7 @@ namespace nel
 				this.ItemRowContainer.RemakeT<aBtnItemRow>(null, "");
 				this.fineNaviLoop();
 				this.ItemRowContainer.wholeRun();
-				ItemStorage.ObtainInfo obtainInfo = (TX.valid(this.select_row_key) ? global::XX.X.Get<NelItem, ItemStorage.ObtainInfo>(this.OItm, NelItem.GetById(this.select_row_key, false)) : null);
+				ItemStorage.ObtainInfo obtainInfo = (TX.valid(this.select_row_key) ? X.Get<NelItem, ItemStorage.ObtainInfo>(this.OItm, NelItem.GetById(this.select_row_key, false)) : null);
 				int length = this.ItemRowContainer.Length;
 				this.SelectedRow = null;
 				this.select_row_key = "";
@@ -964,7 +972,7 @@ namespace nel
 				{
 					if (num >= 0)
 					{
-						this.SelectedRow = this.ItemRowContainer.Get(global::XX.X.MMX(0, num, length - 1)) as aBtnItemRow;
+						this.SelectedRow = this.ItemRowContainer.Get(X.MMX(0, num, length - 1)) as aBtnItemRow;
 					}
 					else
 					{
@@ -984,7 +992,7 @@ namespace nel
 					}
 					if (flag2)
 					{
-						this.SelectedRow.Select(false);
+						this.SelectedRow.Select(true);
 					}
 					this.select_row_key = this.SelectedRow.getItemData().key;
 				}
@@ -1083,7 +1091,7 @@ namespace nel
 				ItemStorage.ObtainInfo info = this.getInfo(keyValuePair.Key);
 				if (info != null)
 				{
-					info.newer = (this.do_not_input_newer ? global::XX.X.Mx(keyValuePair.Value.newer, info.newer) : keyValuePair.Value.newer);
+					info.newer = (this.do_not_input_newer ? X.Mx(keyValuePair.Value.newer, info.newer) : keyValuePair.Value.newer);
 				}
 			}
 			if (fine_newer)
@@ -1392,6 +1400,7 @@ namespace nel
 			Ds.use_button_connection = false;
 			BtnContainer<aBtn> btnContainer = null;
 			this.PSortDesc = null;
+			bool flag = false;
 			if (this.sort_button_bits != 0)
 			{
 				using (BList<string> blist = ListBuffer<string>.Pop(num))
@@ -1439,6 +1448,7 @@ namespace nel
 					text_auto_wrap = false,
 					text_auto_condense = true
 				}, false);
+				flag = true;
 			}
 			if (ItemMng != null && ItemMng.use_topright_counter)
 			{
@@ -1447,13 +1457,14 @@ namespace nel
 					TxCol = C32.d2c(4283780170U),
 					text = ItemMng.getDescStr(UiItemManageBox.DESC_ROW.TOPRIGHT_COUNTER),
 					text_auto_condense = true,
-					swidth = ((this.PSortDesc == null) ? Ds.use_w : global::XX.X.Mx(0f, ItemMng.topright_desc_width - Ds.item_margin_x_px - 4f)),
+					swidth = ((this.PSortDesc == null) ? Ds.use_w : X.MMX(0f, ItemMng.topright_desc_width - Ds.item_margin_x_px - 4f, Ds.use_w)),
 					sheight = 26f,
 					lineSpacing = 0.9f,
 					html = true,
 					alignx = ALIGN.RIGHT,
 					aligny = ALIGNY.BOTTOM
 				}, false);
+				flag = true;
 			}
 			else
 			{
@@ -1463,7 +1474,10 @@ namespace nel
 			{
 				this.fineSortButton(btnContainer, false);
 			}
-			Ds.Br();
+			if (flag)
+			{
+				Ds.Br();
+			}
 			Ds.addHr(new DsnDataHr
 			{
 				margin_t = 0f,
@@ -1486,6 +1500,7 @@ namespace nel
 				clms = 1,
 				margin_w = 0,
 				margin_h = 0,
+				navi_loop = 0,
 				all_function_same = true,
 				fnMaking = new BtnContainer<aBtn>.FnBtnMakingBindings(this.fnMakingItemRow),
 				fnHover = new FnBtnBindings(this.fnHoverItemRow),
@@ -1530,7 +1545,7 @@ namespace nel
 			}
 			this.SelectedRow = aBtnItemRow;
 			this.select_row_key = ((this.SelectedRow != null) ? this.SelectedRow.getItemData().key : "");
-			if (this.ItemRowContainer.Length >= 2)
+			if (this.ItemRowContainer.Length >= 2 && ItemMng.selectable_loop)
 			{
 				this.ItemRowContainer.Get(0).setNaviT(this.ItemRowContainer.Get(this.ItemRowContainer.Length - 1), true, true);
 			}
@@ -1542,25 +1557,78 @@ namespace nel
 			if (this.ItemRowContainer != null && this.ItemMng != null)
 			{
 				int num = this.ItemRowContainer.Length;
-				if (num == 0)
+				if (num > 0)
 				{
-					return;
-				}
-				num--;
-				aBtn aBtn = this.ItemRowContainer.Get(0);
-				aBtn aBtn2 = this.ItemRowContainer.Get(num);
-				if (this.ItemMng.selectable_loop)
-				{
-					aBtn2.setNaviB(aBtn, true, true);
-				}
-				if (this.ItemMng.lr_slide_row > 0)
-				{
-					int num2 = num - 10;
-					for (int i = 0; i <= num; i++)
+					num--;
+					aBtn aBtn = this.ItemRowContainer.Get(0);
+					aBtn aBtn2 = this.ItemRowContainer.Get(num);
+					if (this.ItemMng.selectable_loop)
 					{
-						aBtn aBtn3 = this.ItemRowContainer.Get(i);
-						aBtn3.setNaviL((i <= 10) ? aBtn : this.ItemRowContainer.Get(global::XX.X.Mx(0, i - 10)), false, true);
-						aBtn3.setNaviR((i >= num2) ? aBtn2 : this.ItemRowContainer.Get(global::XX.X.Mn(num, i + 10)), false, true);
+						aBtn2.setNaviB(aBtn, true, true);
+					}
+					if (this.ItemMng.lr_slide_row > 0)
+					{
+						int num2 = num - 10;
+						for (int i = 0; i <= num; i++)
+						{
+							aBtn aBtn3 = this.ItemRowContainer.Get(i);
+							aBtn3.setNaviL((i <= 10) ? aBtn : this.ItemRowContainer.Get(X.Mx(0, i - 10)), false, true);
+							aBtn3.setNaviR((i >= num2) ? aBtn2 : this.ItemRowContainer.Get(X.Mn(num, i + 10)), false, true);
+						}
+					}
+				}
+				if (this.ItemMng.fnItemRowRemakedAfter != null)
+				{
+					this.ItemMng.fnItemRowRemakedAfter(this);
+				}
+			}
+		}
+
+		public void setTBNavi(BtnContainer<aBtn> BCon, bool set_top = true, bool set_bottom = true, bool use_scroll_box_focus = false)
+		{
+			if (this.ItemRowContainer != null)
+			{
+				aBtn aBtn;
+				aBtn aBtn2;
+				if (this.ItemRowContainer.Length > 0)
+				{
+					aBtn = this.ItemRowContainer.Get(this.ItemRowContainer.Length - 1);
+					aBtn2 = this.ItemRowContainer.Get(0);
+				}
+				else
+				{
+					if (!use_scroll_box_focus)
+					{
+						for (int i = 0; i < BCon.Length; i++)
+						{
+							aBtn aBtn3 = BCon.Get(i);
+							if (set_bottom)
+							{
+								aBtn3.clearNavi(8U, false);
+							}
+							if (set_top)
+							{
+								aBtn3.clearNavi(2U, false);
+							}
+						}
+						return;
+					}
+					aBtn2 = (aBtn = this.ItemRowContainer.OuterScrollBox.getScrollBox().BView);
+				}
+				for (int j = 0; j < BCon.Length; j++)
+				{
+					aBtn aBtn4 = BCon.Get(j);
+					if (set_bottom)
+					{
+						aBtn4.setNaviT(aBtn, false, false);
+						aBtn.clearNavi(8U, false);
+						aBtn.setNaviB(aBtn4, false, false);
+					}
+					if (set_top)
+					{
+						aBtn4.setNaviB(aBtn2, false, false);
+						aBtn2.clearNavi(2U, false);
+						aBtn2.setNaviT(aBtn4, false, false);
 					}
 				}
 			}
@@ -1624,7 +1692,7 @@ namespace nel
 			else
 			{
 				ItemStorage.SORT_TYPE sort_TYPE = ((this.sort_button_bits == 0) ? ItemStorage.SORT_TYPE.KIND : this.sort_type);
-				int num = global::XX.X.MPF((sort_TYPE & ItemStorage.SORT_TYPE._DESCEND) == ItemStorage.SORT_TYPE.NEWER);
+				int num = X.MPF((sort_TYPE & ItemStorage.SORT_TYPE._DESCEND) == ItemStorage.SORT_TYPE.NEWER);
 				ItemStorage.SORT_TYPE sort_TYPE2 = sort_TYPE & (ItemStorage.SORT_TYPE)(-129);
 				int num2;
 				if (this.ItemMng != null && this.ItemMng.fnSortInjectMng != null && this.ItemMng.fnSortInjectMng(Ra, Rb, sort_TYPE2, out num2))
@@ -1643,8 +1711,8 @@ namespace nel
 				{
 					int num3 = Ra.Info.top_grade;
 					int num4 = Rb.Info.top_grade;
-					string localizedName = Ra.Data.getLocalizedName(Ra.top_grade, this);
-					string localizedName2 = Rb.Data.getLocalizedName(Rb.top_grade, this);
+					string localizedName = Ra.Data.getLocalizedName(Ra.top_grade);
+					string localizedName2 = Rb.Data.getLocalizedName(Rb.top_grade);
 					if (localizedName != localizedName2)
 					{
 						return localizedName.CompareTo(localizedName2) * num;
@@ -1700,7 +1768,7 @@ namespace nel
 				int num8 = (Rb.Data.useable ? 2 : (Rb.Data.is_food ? 1 : 0));
 				if (num7 == num8)
 				{
-					return global::XX.X.FnSortIntager((int)Ra.Data.id, (int)Rb.Data.id) * ((sort_TYPE2 == ItemStorage.SORT_TYPE.KIND) ? num : 1);
+					return X.FnSortIntager((int)Ra.Data.id, (int)Rb.Data.id) * ((sort_TYPE2 == ItemStorage.SORT_TYPE.KIND) ? num : 1);
 				}
 				return (num8 - num7) * num;
 			}
@@ -1708,7 +1776,7 @@ namespace nel
 
 		private bool fnMakingItemRow(BtnContainer<aBtn> BCon, aBtn B)
 		{
-			int num = global::XX.X.NmI(B.title, 0, false, false);
+			int num = X.NmI(B.title, 0, false, false);
 			B.transform.SetParent(BCon.getGob().transform, false);
 			this.ItemMng.itemRowInit(B as aBtnItemRow, this.ARow[num]);
 			return true;
@@ -2099,7 +2167,7 @@ namespace nel
 			{
 				return null;
 			}
-			return global::XX.X.Get<NelItem, ItemStorage.ObtainInfo>(this.OItm, Itm);
+			return X.Get<NelItem, ItemStorage.ObtainInfo>(this.OItm, Itm);
 		}
 
 		public int getVisibleRowCount()
@@ -2164,7 +2232,7 @@ namespace nel
 			{
 				return 0;
 			}
-			ItemStorage.ObtainInfo obtainInfo = global::XX.X.Get<NelItem, ItemStorage.ObtainInfo>(this.OItm, Data);
+			ItemStorage.ObtainInfo obtainInfo = X.Get<NelItem, ItemStorage.ObtainInfo>(this.OItm, Data);
 			if (obtainInfo == null)
 			{
 				return 0;
@@ -2176,7 +2244,7 @@ namespace nel
 			return obtainInfo.total;
 		}
 
-		public int getCount(RecipeManager.Recipe TargetRecipe)
+		public int getCount(RCP.Recipe TargetRecipe)
 		{
 			int num = 0;
 			if (TargetRecipe.Completion != null)
@@ -2185,7 +2253,7 @@ namespace nel
 			}
 			foreach (KeyValuePair<NelItem, ItemStorage.ObtainInfo> keyValuePair in this.OItm)
 			{
-				RecipeManager.RecipeDish dish = RecipeManager.getDish(keyValuePair.Key);
+				RCP.RecipeDish dish = RCP.getDish(keyValuePair.Key);
 				if (dish != null && dish.Rcp == TargetRecipe)
 				{
 					num += keyValuePair.Value.total;
@@ -2209,7 +2277,7 @@ namespace nel
 						num -= waterLink.getCount(Data);
 					}
 				}
-				return global::XX.X.Mx(num, 0);
+				return X.Mx(num, 0);
 			}
 			return num;
 		}
@@ -2220,12 +2288,25 @@ namespace nel
 			{
 				return 0;
 			}
-			ItemStorage.ObtainInfo obtainInfo = global::XX.X.Get<NelItem, ItemStorage.ObtainInfo>(this.OItm, Data);
+			ItemStorage.ObtainInfo obtainInfo = X.Get<NelItem, ItemStorage.ObtainInfo>(this.OItm, Data);
 			if (obtainInfo == null)
 			{
 				return 0;
 			}
 			return obtainInfo.getCountMoreGrade(grade);
+		}
+
+		public int getCountMoreGrade(string _category, int grade)
+		{
+			int num = 0;
+			foreach (KeyValuePair<NelItem, ItemStorage.ObtainInfo> keyValuePair in this.OItm)
+			{
+				if (keyValuePair.Key.Is(_category))
+				{
+					num += keyValuePair.Value.getCountMoreGrade(grade);
+				}
+			}
+			return num;
 		}
 
 		public int getItemCountFn(ItemStorage.FnCheckItemDataAndInfo Fn, List<ItemStorage.IRow> ARow = null)
@@ -2266,7 +2347,7 @@ namespace nel
 					int num3 = center_grade;
 					while (j > 0)
 					{
-						int num4 = global::XX.X.Mn(j, info.getCount(num3));
+						int num4 = X.Mn(j, info.getCount(num3));
 						if (num4 == 0)
 						{
 							if (--num2 <= 0)
@@ -2313,7 +2394,7 @@ namespace nel
 			}
 			if (grade >= 0)
 			{
-				return global::XX.X.Mn(num, this.getCount(Data, grade));
+				return X.Mn(num, this.getCount(Data, grade));
 			}
 			return num;
 		}
@@ -2339,17 +2420,17 @@ namespace nel
 			_descend = (this.sort_type & ItemStorage.SORT_TYPE._DESCEND) > ItemStorage.SORT_TYPE.NEWER;
 		}
 
-		public bool isAddable(NelItem Data)
+		public bool isAddable(NelItem Data, bool ignore_area = false)
 		{
-			return this.fnAddable == null || this.fnAddable(Data);
+			return this.fnAddable == null || this.fnAddable(Data, ignore_area);
 		}
 
 		public int getItemCapacity(NelItem Data, bool do_not_calc_to_container = false, bool do_not_add_row = false)
 		{
 			int itemStockable = this.getItemStockable(Data);
 			int count = this.getCount(Data, -1);
-			int num = global::XX.X.IntC((float)count / (float)itemStockable);
-			int num2 = global::XX.X.Mx(0, num * itemStockable - count);
+			int num = X.IntC((float)count / (float)itemStockable);
+			int num2 = X.Mx(0, num * itemStockable - count);
 			int num3 = (do_not_add_row ? 0 : (this.infinit_stockable ? itemStockable : ((this.row_max - this.getVisibleRowCount()) * itemStockable)));
 			if (!this.water_stockable)
 			{
@@ -2496,10 +2577,15 @@ namespace nel
 				Src.copyTo(this);
 			}
 
+			public ObtainInfo(NelItemEntry IE)
+				: this(IE.count, (int)IE.grade)
+			{
+			}
+
 			public void clear()
 			{
 				this.total_ = 0;
-				global::XX.X.ALL0(this.Agrade);
+				X.ALL0(this.Agrade);
 			}
 
 			public bool isSame(ItemStorage.ObtainInfo T)
@@ -2569,7 +2655,7 @@ namespace nel
 
 			public void ReduceCount(int count, int grade)
 			{
-				count = global::XX.X.Mn(this.Agrade[grade], count);
+				count = X.Mn(this.Agrade[grade], count);
 				this.Agrade[grade] -= count;
 				this.total_ -= count;
 			}
@@ -2580,7 +2666,7 @@ namespace nel
 				{
 					return 0;
 				}
-				int num = global::XX.X.xors(this.total);
+				int num = X.xors(this.total);
 				for (int i = 4; i >= 1; i--)
 				{
 					int num2 = this.Agrade[i];
@@ -2688,7 +2774,7 @@ namespace nel
 
 			public void changeGradeForPrecious(int grade, int _count = 1)
 			{
-				grade = global::XX.X.MMX(0, grade, 4);
+				grade = X.MMX(0, grade, 4);
 				this.total_ = _count;
 				for (int i = 4; i >= 0; i--)
 				{
@@ -2705,7 +2791,7 @@ namespace nel
 			{
 				Array.Copy(this.Agrade, Obt.Agrade, 5);
 				Obt.newer = this.newer;
-				Obt.total_ = (this.total_ = global::XX.X.sum(this.Agrade));
+				Obt.total_ = (this.total_ = X.sum(this.Agrade));
 			}
 
 			public void addFrom(ItemStorage.ObtainInfo Obt)
@@ -2714,10 +2800,10 @@ namespace nel
 				{
 					this.Agrade[i] += Obt.Agrade[i];
 				}
-				this.total_ = global::XX.X.sum(this.Agrade);
+				this.total_ = X.sum(this.Agrade);
 			}
 
-			public ItemStorage.ObtainInfo readBinaryFrom(ByteArray Ba)
+			public ItemStorage.ObtainInfo readBinaryFrom(ByteReader Ba)
 			{
 				int num = 5;
 				for (int i = 0; i < num; i++)
@@ -2725,7 +2811,7 @@ namespace nel
 					this.Agrade[i] = (int)Ba.readUShort();
 				}
 				this.newer = Ba.readUInt();
-				this.total_ = global::XX.X.sum(this.Agrade);
+				this.total_ = X.sum(this.Agrade);
 				return this;
 			}
 
@@ -2779,6 +2865,8 @@ namespace nel
 			public uint grade_touched;
 
 			public ItemStorage.IRow LastRow;
+
+			public const int obt_info_bits = 14;
 		}
 
 		public sealed class IRow
@@ -3091,7 +3179,7 @@ namespace nel
 				this.Inner = Inner;
 			}
 
-			public WaterLinkMem(ByteArray Ba, bool fix_ver024)
+			public WaterLinkMem(ByteReader Ba, bool fix_ver024)
 			{
 				NelItem.readBinaryGetKey(Ba, out this.Outer, false, fix_ver024);
 				NelItem.readBinaryGetKey(Ba, out this.Inner, false, fix_ver024);

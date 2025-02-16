@@ -21,11 +21,11 @@ namespace nel
 			return base.getCountString(Stb);
 		}
 
-		public override void setItem(UiCraftBase Con, List<List<UiCraftBase.IngEntryRow>> _AARie, RecipeManager.Recipe _Rcp, RecipeManager.RecipeIngredient _Ing, ItemStorage _Storage)
+		public override void setItem(UiCraftBase Con, List<List<UiCraftBase.IngEntryRow>> _AARie, RCP.Recipe _Rcp, RCP.RecipeIngredient _Ing, ItemStorage _Storage)
 		{
 			base.setItem(Con, _AARie, _Rcp, _Ing, _Storage);
 			this.TargetTrm = (Con as ITrmListener).CurrentTargetTrmItem;
-			if (this.TargetTrm.RcmHerb.RecipeInfo != null && (this.TargetTrm.RcmHerb.RecipeInfo.categ & _Ing.target_category) != (RecipeManager.RPI_CATEG)0)
+			if (this.TargetTrm.RcmHerb.RecipeInfo != null && (this.TargetTrm.RcmHerb.RecipeInfo.categ & _Ing.target_category) != (RCP.RPI_CATEG)0)
 			{
 				this.main_ing = true;
 				this.fine_continue_flags |= 16U;

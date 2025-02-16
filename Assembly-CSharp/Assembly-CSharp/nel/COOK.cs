@@ -56,17 +56,18 @@ namespace nel
 			}
 			GF.clear();
 			COOK.map_walk_count = 0;
-			CFG.newGameSp();
+			CFGSP.newGameSp();
 			NEL.createTextLog().Clear();
 			COOK.FlgTimerStop.Clear();
 			NelItem.clearCacheItem();
-			RecipeManager.newGame();
+			RCP.newGame();
 			SkillManager.newGame();
 			CoinStorage.Clear();
 			StoreManager.newGame();
 			UiEnemyDex.newGame();
 			COOK.Mgm.Clear();
 			EV.newGame();
+			COOK.CurAchive.newGame();
 			COOK.calced_floort = (COOK.calced_floort = 0f);
 			UIPicture.tecon_TS = 1f;
 			SCN.newGame();
@@ -93,7 +94,7 @@ namespace nel
 		public static void dlLang()
 		{
 			TX.TXFamily currentFamily = TX.getCurrentFamily();
-			global::XX.X.dl("Current TX Family: " + ((currentFamily == null) ? "(NULL)" : currentFamily.key), null, false, false);
+			X.dl("Current TX Family: " + ((currentFamily == null) ? "(NULL)" : currentFamily.key), null, false, false);
 		}
 
 		public static void newGameItems(ItemStorage StInventory, ItemStorage StHouse, ItemStorage StPrecious)
@@ -108,7 +109,7 @@ namespace nel
 
 		public static void setSF(string key, int b)
 		{
-			COOK.Osf[key] = (byte)global::XX.X.MMX(0, b, 255);
+			COOK.Osf[key] = (byte)X.MMX(0, b, 255);
 		}
 
 		public static void setSFcommandEval(string key, string cmd)
@@ -119,12 +120,28 @@ namespace nel
 
 		public static int getSF(string key)
 		{
-			return (int)global::XX.X.GetS<string, byte>(COOK.Osf, key, 0);
+			return (int)X.GetS<string, byte>(COOK.Osf, key, 0);
+		}
+
+		public static void setAchiveCommandEval(string key, string cmd)
+		{
+			int num = (int)COOK.CurAchive.Get(key);
+			COOK.CurAchive.Set(key, TX.commandEvalSet(cmd, num));
+		}
+
+		public static int getAchive(string key)
+		{
+			return (int)COOK.CurAchive.Get(key);
+		}
+
+		public static int getAchive(ACHIVE.MENT key)
+		{
+			return (int)COOK.CurAchive.Get(key);
 		}
 
 		public static void clearSFbyHeader(string header)
 		{
-			using (BList<string> blist = global::XX.X.objKeysB<string, byte>(COOK.Osf))
+			using (BList<string> blist = X.objKeysB<string, byte>(COOK.Osf))
 			{
 				int count = blist.Count;
 				for (int i = 0; i < count; i++)
@@ -148,7 +165,7 @@ namespace nel
 			{
 				return;
 			}
-			COOK.calced_timer += global::XX.X.Mx(0f, M2D.curMap.floort - COOK.calced_floort);
+			COOK.calced_timer += X.Mx(0f, M2D.curMap.floort - COOK.calced_floort);
 			COOK.calced_floort = M2D.curMap.floort;
 		}
 
@@ -171,7 +188,7 @@ namespace nel
 		public static bool initGameScene(NelM2DBase M2D)
 		{
 			bool flag = false;
-			COOK.save_failure_announce = "";
+			COOK.save_failure_announce = (COOK.load_failure_announce = "");
 			COOK.error_loaded_index = -1;
 			if (COOK.CurFile != null)
 			{
@@ -190,7 +207,7 @@ namespace nel
 				COOK.loaded_index = 0;
 				COOK.CurFile = new SVD.sFile(0, true);
 				COOK.CurFile.version = 0;
-				COOK.CurFile.first_version = 33;
+				COOK.CurFile.first_version = 36;
 				COOK.newGame(M2D, true);
 				COOK.NewGameFirstAssign(M2D);
 			}
@@ -234,7 +251,7 @@ namespace nel
 			SVD.sFile curFile = COOK.CurFile;
 			COOK.CurFile = SVD.createFile(0, true).CopyFrom(curFile, 0);
 			COOK.do_not_load_sf_cfg = true;
-			global::XX.X.dli(">>AutoSave", null);
+			X.dli(">>AutoSave", null);
 			string text = SVD.saveBinary(COOK.CurFile, COOK.createBinary(null, COOK.CurFile, M2D, true, true));
 			if (text != null)
 			{
@@ -266,7 +283,7 @@ namespace nel
 			COOK.CurFile = Sf;
 			COOK.loaded_index = COOK.CurFile.index;
 			COOK.do_not_load_sf_cfg = true;
-			global::XX.X.dli(">>Saved SVD To: " + Sf.index.ToString(), null);
+			X.dli(">>Saved SVD To: " + Sf.index.ToString(), null);
 			string text = SVD.saveBinary(COOK.CurFile, COOK.createBinary(null, COOK.CurFile, M2D, true, save_cfg));
 			if (text != null)
 			{
@@ -279,37 +296,33 @@ namespace nel
 			COOK.CurFile = Sf;
 		}
 
-		public static bool readFileHeader(SVD.sFile Sf, string path)
+		public static bool readFileHeader(SVD.sFile Sf, string path, ref byte[] Abuffer)
 		{
-			byte[] array = NKT.readSpecificFileBinary(path, 0, "kawaisou ha kawaii. kono game ga ironna hito ni todokimasu youni. by hinayua".Length + 128, false);
-			if (array == null)
-			{
-				return false;
-			}
-			if (COOK.readBinaryHeader(new ByteArray(array, false, false), Sf, true))
-			{
-				return true;
-			}
-			if (COOK.memo_length <= 0)
-			{
-				return false;
-			}
-			array = NKT.readSpecificFileBinary(path, 0, "kawaisou ha kawaii. kono game ga ironna hito ni todokimasu youni. by hinayua".Length + 128 + COOK.memo_length, false);
-			if (array == null)
-			{
-				return false;
-			}
-			COOK.readBinaryHeader(new ByteArray(array, false, false), Sf, false);
-			return true;
-		}
-
-		private static bool readBinaryHeader(ByteArray Ba, SVD.sFile Sf, bool no_error = false)
-		{
-			Sf.thumb_position = -1;
-			COOK.memo_length = -1;
 			try
 			{
-				if (Ba.readMultiByte("kawaisou ha kawaii. kono game ga ironna hito ni todokimasu youni. by hinayua".Length, "utf-8") != "kawaisou ha kawaii. kono game ga ironna hito ni todokimasu youni. by hinayua")
+				using (ByteReaderFS byteReaderFS = NKT.PopSpecificFileStream(path, 0, 0, false, 24, Abuffer))
+				{
+					bool flag = COOK.readBinaryHeader(byteReaderFS, Sf, true);
+					Abuffer = byteReaderFS.getBufferRawArray();
+					return flag;
+				}
+			}
+			catch (Exception ex)
+			{
+				COOK.load_failure_announce = ex.Message;
+				Sf.loadstate = SVD.sFile.STATE.ERROR;
+				X.de("Loading header error: " + ex.ToString(), null);
+			}
+			return false;
+		}
+
+		private static bool readBinaryHeader(ByteReader Ba, SVD.sFile Sf, bool no_error = false)
+		{
+			Sf.thumb_position = -1;
+			int num = -1;
+			try
+			{
+				if (!Ba.readHeaderCheck("kawaisou ha kawaii. kono game ga ironna hito ni todokimasu youni. by hinayua"))
 				{
 					throw new Exception("HeaderError");
 				}
@@ -332,20 +345,24 @@ namespace nel
 				Sf.modified = Ba.readDate();
 				if (b >= 12)
 				{
-					COOK.memo_length = (int)Ba.readUShort();
-					if (COOK.memo_length == 0)
+					num = (int)Ba.readUShort();
+					if (num == 0)
 					{
 						Sf.memo = "";
 					}
 					else
 					{
-						Sf.memo = Ba.readMultiByte(COOK.memo_length, "utf-8");
+						Sf.memo = Ba.readMultiByte(num, "utf-8");
 					}
-					COOK.memo_length = -1;
+					num = -1;
 					if (b >= 13)
 					{
 						Sf.explore_timer = Ba.readUInt();
 					}
+				}
+				if (b >= 35)
+				{
+					Sf.Achive.readFromBytes(Ba);
 				}
 				Sf.thumb_position = (short)Ba.position;
 				if (Sf.loadstate == SVD.sFile.STATE.NO_LOAD)
@@ -355,11 +372,11 @@ namespace nel
 			}
 			catch (Exception ex)
 			{
-				COOK.save_failure_announce = ex.Message;
-				if (!no_error || COOK.memo_length < 0)
+				if (!no_error || num < 0)
 				{
+					COOK.load_failure_announce = ex.Message;
 					Sf.loadstate = SVD.sFile.STATE.ERROR;
-					global::XX.X.de("Loading header error: " + ex.ToString(), null);
+					X.de("Loading header error: " + ex.ToString(), null);
 				}
 				return false;
 			}
@@ -369,7 +386,7 @@ namespace nel
 		public static void writeHeader(ByteArray Ba, SVD.sFile Sf)
 		{
 			Ba.writeMultiByte("kawaisou ha kawaii. kono game ga ironna hito ni todokimasu youni. by hinayua", "utf-8");
-			Ba.writeByte(33);
+			Ba.writeByte(36);
 			Ba.writeByte((int)Sf.version);
 			Ba.writeUInt(Sf.playtime);
 			Ba.writeUShort(Sf.hp_noel);
@@ -381,6 +398,7 @@ namespace nel
 			Ba.writeDate(Sf.modified);
 			Ba.writeString(Sf.memo, "utf-8");
 			Ba.writeUInt(Sf.explore_timer);
+			Sf.Achive.writeToBytes(Ba);
 			Sf.thumb_position = (short)Ba.position;
 		}
 
@@ -398,11 +416,13 @@ namespace nel
 			{
 				Ba.position = (ulong)Sf.thumb_position;
 			}
-			global::XX.X.dli("<<Read SVD SVD From: " + Sf.index.ToString(), null);
+			X.dli("<<Read SVD SVD From: " + Sf.index.ToString(), null);
 			bool flag = true;
 			string text = "";
 			try
 			{
+				COOK.CurAchive.CopyFrom(Sf.Achive);
+				SCN.newGame();
 				uint num = Ba.readUInt();
 				Ba.position += (ulong)num;
 				if (Sf.version >= 9)
@@ -424,24 +444,27 @@ namespace nel
 				text = "CFG";
 				if (!COOK.do_not_load_sf_cfg)
 				{
-					ByteArray byteArray = Ba.readExtractBytes(4);
-					if (byteArray.Length != 0UL)
+					using (ByteReader byteReader = Ba.readExtractBytes(4))
 					{
-						CFG.readBinary(byteArray, false);
+						if (byteReader.Length != 0UL)
+						{
+							CFG.readBinary(byteReader, false);
+						}
 					}
-					byteArray = Ba.readExtractBytes(4);
-					if (byteArray.Length != 0UL)
+					using (ByteReader byteReader2 = Ba.readExtractBytes(4))
 					{
-						IN.getCurrentKeyAssignObject().readSaveString(byteArray, false);
+						if (byteReader2.Length != 0UL)
+						{
+							IN.getCurrentKeyAssignObject().readSaveString(byteReader2, false);
+						}
+						goto IL_015D;
 					}
 				}
-				else
-				{
-					uint num2 = Ba.readUInt();
-					Ba.position += (ulong)num2;
-					num2 = Ba.readUInt();
-					Ba.position += (ulong)num2;
-				}
+				uint num2 = Ba.readUInt();
+				Ba.position += (ulong)num2;
+				num2 = Ba.readUInt();
+				Ba.position += (ulong)num2;
+				IL_015D:
 				COOK.first_map_key = Ba.readString("utf-8", false);
 				if (Sf.version < 9)
 				{
@@ -461,13 +484,13 @@ namespace nel
 			}
 			catch (Exception ex)
 			{
-				global::XX.X.de("Loading content1 error: (at: " + text + ")" + ex.ToString(), null);
+				X.de("Loading content1 error: (at: " + text + ")" + ex.ToString(), null);
 				flag = false;
 			}
 			Map2d map2d = M2D.Get(COOK.first_map_key, false);
 			if (map2d == null)
 			{
-				global::XX.X.de("Loading error: No specific map " + COOK.first_map_key, null);
+				X.de("Loading error: No specific map " + COOK.first_map_key, null);
 				WholeMapItem wholeDescriptionByName = M2D.WM.GetWholeDescriptionByName(Sf.whole_map_key, false);
 				if (wholeDescriptionByName != null)
 				{
@@ -494,7 +517,11 @@ namespace nel
 				if (Sf.version >= 9)
 				{
 					text = "RCP";
-					RecipeManager.readBinaryFrom(Ba, true);
+					RCP.readBinaryFrom(Ba, true);
+				}
+				if (Sf.version >= 34)
+				{
+					M2D.GUILD.readBinaryFrom(Ba, false);
 				}
 				text = "IMNG";
 				M2D.IMNG.readBinaryFrom(Ba, true, false, flag2);
@@ -503,7 +530,7 @@ namespace nel
 				M2D.WM.readBinaryFrom(Ba, (int)Sf.version);
 				if (Sf.version >= 6)
 				{
-					CoinStorage.readBinaryFrom(Ba, Sf.version >= 20, Sf.version >= 29);
+					CoinStorage.readBinaryFrom(Ba, (int)Sf.version);
 					if (Sf.version >= 7)
 					{
 						M2D.NightCon.readBinaryFrom(Ba);
@@ -516,7 +543,7 @@ namespace nel
 							StoreManager.StoreWholeReadBinaryFrom(Ba);
 							if (Sf.version >= 9)
 							{
-								RecipeManager.readingFinalize();
+								RCP.readingFinalize();
 							}
 							M2D.WDR.readBinaryFrom(Ba, Sf.version <= 18);
 							if (Sf.version >= 14)
@@ -541,7 +568,7 @@ namespace nel
 											UiEnemyDex.readBinaryFrom(Ba);
 											if (Sf.version >= 25)
 											{
-												COOK.Mgm.readFromBytes(Ba);
+												COOK.Mgm.readFromBytes(Ba, M2D);
 											}
 											else if (Sf.version >= 23)
 											{
@@ -572,15 +599,15 @@ namespace nel
 						}
 						else
 						{
-							ByteArray byteArray2 = (COOK.ODropItemMem[text2] = new ByteArray(num5));
-							Ba.readBytes(byteArray2, 0U, num5);
+							ByteArray byteArray = (COOK.ODropItemMem[text2] = new ByteArray(num5));
+							Ba.readBytes(byteArray, 0U, num5);
 						}
 					}
 				}
 				if (Sf.version >= 30)
 				{
-					CFG.readBinarySp(Ba);
-					if (Sf.version < 33)
+					CFGSP.readBinarySp(Ba);
+					if (Sf.version < 36)
 					{
 						M2D.IMNG.refineSpConfigItemOnMainInventory();
 					}
@@ -588,8 +615,12 @@ namespace nel
 			}
 			catch (Exception ex2)
 			{
-				global::XX.X.de("Loading content2 error: (at: " + text + ")" + ex2.ToString(), null);
+				X.de("Loading content2 error: (at: " + text + ")" + ex2.ToString(), null);
 				flag = false;
+			}
+			if (Sf.version < 35)
+			{
+				COOK.CurAchive.fineOldData(M2D);
 			}
 			if (Sf.version <= 20)
 			{
@@ -625,6 +656,7 @@ namespace nel
 			{
 				Sf = SVD.GetFile(0, false);
 			}
+			StoreManager.fineStorageBeforeSaveS();
 			ulong position = Ba.position;
 			Sf.saveInit();
 			COOK.writeHeader(Ba, Sf);
@@ -667,7 +699,8 @@ namespace nel
 			Ba.writeExtractBytesShifted(byteArray3, 97, 4, -1);
 			GF.writeSvString(Ba);
 			M2D.getPrNoel().writeBinaryTo(Ba);
-			RecipeManager.writeBinaryTo(Ba);
+			RCP.writeBinaryTo(Ba);
+			M2D.GUILD.writeBinaryTo(Ba);
 			M2D.IMNG.writeBinaryTo(Ba);
 			M2D.WM.writeBinaryTo(Ba);
 			CoinStorage.writeBinaryTo(Ba);
@@ -696,7 +729,7 @@ namespace nel
 					Ba.writeBytes(keyValuePair.Value, 0, -1);
 				}
 			}
-			CFG.writeBinarySp(Ba);
+			CFGSP.writeBinarySp(Ba);
 			return Ba;
 		}
 
@@ -737,7 +770,7 @@ namespace nel
 				num3 = 0;
 				while (i > 0)
 				{
-					int num4 = fileStream.Read(array, num3, global::XX.X.Mn(8, i));
+					int num4 = fileStream.Read(array, num3, X.Mn(8, i));
 					num3 += num4;
 					i -= num4;
 				}
@@ -749,13 +782,13 @@ namespace nel
 				num5 -= 4U;
 				num = ((int)array[4] << 8) | (int)array[5];
 				num2 = ((int)array[6] << 8) | (int)array[7];
-				int num6 = (int)global::XX.X.Mn(fileStream.Length - (long)num3, (long)((ulong)num5));
+				int num6 = (int)X.Mn(fileStream.Length - (long)num3, (long)((ulong)num5));
 				array2 = new byte[num6];
 				i = num6;
 				num3 = 0;
 				while (i > 0)
 				{
-					int num4 = fileStream.Read(array2, num3, global::XX.X.Mn(512, i));
+					int num4 = fileStream.Read(array2, num3, X.Mn(512, i));
 					num3 += num4;
 					i -= num4;
 				}
@@ -778,7 +811,7 @@ namespace nel
 				Sf.setThumb(texture2D);
 				return texture2D;
 			}
-			SVD.descRedraw();
+			UiSVD.descRedraw();
 			return null;
 		}
 
@@ -792,8 +825,6 @@ namespace nel
 
 		private const string header_key = "kawaisou ha kawaii. kono game ga ironna hito ni todokimasu youni. by hinayua";
 
-		private const int header_len_about = 128;
-
 		public static int loaded_index = -1;
 
 		public static short error_loaded_index = -1;
@@ -801,6 +832,8 @@ namespace nel
 		public static bool reloading = false;
 
 		private static SVD.sFile CurFile;
+
+		public static ACHIVE CurAchive = new ACHIVE();
 
 		public static float calced_timer;
 
@@ -812,13 +845,13 @@ namespace nel
 
 		public static string save_failure_announce = "";
 
+		public static string load_failure_announce = "";
+
 		public static int map_walk_count = 0;
 
 		public static readonly BDic<string, ByteArray> ODropItemMem = new BDic<string, ByteArray>();
 
-		private static int memo_length;
-
-		public const int SVD_VERSION = 33;
+		public const int SVD_VERSION = 36;
 
 		public const int SVD_FIRST_VERSION_RECORDED = 11;
 	}

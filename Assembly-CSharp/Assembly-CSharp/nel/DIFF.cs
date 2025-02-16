@@ -51,7 +51,7 @@ namespace nel
 			{
 				num = 0f;
 			}
-			return X.saturate(num + Pr.getRE(RecipeManager.RPI_EFFECT.LOST_MP_WHEN_CHANTING) * DIFF.V(0.5f, 0.3f, 0.05f));
+			return X.saturate(num + Pr.getRE(RCP.RPI_EFFECT.LOST_MP_WHEN_CHANTING) * DIFF.V(0.5f, 0.3f, 0.05f));
 		}
 
 		public static float recover_mp_gsave(PR Pr, AttackInfo Atk)
@@ -417,7 +417,7 @@ namespace nel
 		{
 			if (saved_i == 0)
 			{
-				return 0.5f;
+				return 0.6f;
 			}
 			if (saved_i != 1)
 			{
@@ -459,6 +459,47 @@ namespace nel
 				return 0.2f;
 			}
 			return 0.5f;
+		}
+
+		public static bool enemy_mana_auto_disappear(int mana_index)
+		{
+			return DIFF.I == 2 || (DIFF.I != 0 && (mana_index & 1) == 0);
+		}
+
+		public static float cure_o2_ratio_in_shield
+		{
+			get
+			{
+				if (DIFF.I == 2)
+				{
+					return 0f;
+				}
+				if (DIFF.I != 1)
+				{
+					return 0.4f;
+				}
+				return 0.2f;
+			}
+		}
+
+		public static float calcSummonerPlayLevel(float raw_dlevel, float raw_dlevel_add)
+		{
+			float num = raw_dlevel + raw_dlevel_add;
+			if (num >= 16f)
+			{
+				num -= 16f;
+				num *= DIFF.V(0.35f, 0.68f, 1f);
+				num += 16f;
+			}
+			return num;
+		}
+
+		public static float summoner_delay_onesecond_ratio
+		{
+			get
+			{
+				return DIFF.V(1.5f, 1f, 0.75f);
+			}
 		}
 
 		public static float enemy_twicemana_hp_cure_ratio
@@ -526,6 +567,38 @@ namespace nel
 			get
 			{
 				return (int)DIFF.V(10f, 20f, 99f);
+			}
+		}
+
+		public static float sneaking_TS_npc_checking_prepare
+		{
+			get
+			{
+				if (DIFF.I == 2)
+				{
+					return 2f;
+				}
+				if (DIFF.I != 1)
+				{
+					return 0.5f;
+				}
+				return 1f;
+			}
+		}
+
+		public static float sneaking_TS_npc_checking
+		{
+			get
+			{
+				if (DIFF.I == 2)
+				{
+					return 1.5f;
+				}
+				if (DIFF.I != 1)
+				{
+					return 0.66f;
+				}
+				return 1f;
 			}
 		}
 

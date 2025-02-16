@@ -34,12 +34,36 @@ namespace nel
 			return this.Mv.disappearing || base.noNeedDraw();
 		}
 
-		public override bool is_evil
+		public override Color32 CurMulColor
 		{
 			get
 			{
-				return this.Mv.is_evil;
+				return base.CurMulColor;
 			}
+		}
+
+		public Color32 CurEyeColor
+		{
+			get
+			{
+				Color32 curMulColor = base.CurMulColor;
+				if (this.nattr_invisible)
+				{
+					curMulColor.a = (byte)X.MMX(0f, (float)curMulColor.a * X.Mx((float)this.CAdd.a, 0.07f + 0.3f * this.Mv.invisible_cosi), 255f);
+				}
+				return curMulColor;
+			}
+		}
+
+		public override void getEyeMaterial(out Material MtrEye, out Material MtrEyeV)
+		{
+			if (this.white_parlin)
+			{
+				MtrEye = MTRX.getMtr(BLEND.SUBZT, -1);
+				MtrEyeV = this.MI.getMtr(BLEND.SUBZT, -1);
+				return;
+			}
+			base.getEyeMaterial(out MtrEye, out MtrEyeV);
 		}
 
 		protected override void initMdAddUv2(int margin = 4, int seed = 0)
@@ -69,13 +93,14 @@ namespace nel
 			Matrix4x4 matrix4x;
 			this.getTextureDataForDraw(out num2, out num3, out texture2D, out num4, out num5, out matrix4x);
 			base.BasicColorInit(this.Md);
+			Color32 curMulColor = this.CurMulColor;
 			if (this.is_evil)
 			{
-				this.Md.Uv2(num2, num3, false).Uv3((float)this.CMul.r / 255f, (float)this.CMul.g / 255f, false);
+				this.MdUv23(this.Md, num2, num3);
 			}
 			else
 			{
-				this.Md.Col = this.CMul.C;
+				this.Md.Col = curMulColor;
 			}
 			for (int i = 0; i < num; i++)
 			{
@@ -95,12 +120,24 @@ namespace nel
 			}
 		}
 
+		public void MdUv23(MeshDrawer Md, float scale_rx, float scale_ry)
+		{
+			Md.Uv2(scale_rx, scale_ry, false);
+			if (this.nattr_invisible || this.Mv.nattr_mp_stable)
+			{
+				float num = 0.42f + 0.14f * X.COSI(this.Mp.floort + (float)(this.Mv.index % 43 * 15), (float)(131 + this.Mv.index % 11 * 7));
+				Md.Uv3(num, 1f, false);
+				return;
+			}
+			Md.Uv3((float)this.CMul.r * 0.003921569f, (float)this.CMul.g * 0.003921569f, false);
+		}
+
 		protected virtual bool getTargetMeshDrawer(EnemyFrameDataBasic CurFrmData, int i, PxlLayer L, out bool extend, out MeshDrawer Md)
 		{
 			bool flag = (this.layer_mask & (1U << i)) != 0U;
 			extend = true;
 			Md = this.Md;
-			return flag && !CurFrmData.isEye(i) && L.alpha > 0f && this.CMul.a > 0;
+			return flag && !CurFrmData.isEye(i) && L.alpha > 0f && this.CurMulColor.a > 0;
 		}
 
 		protected void drawLayerTo(MeshDrawer Md, PxlLayer L, Texture2D Tex, float texture_width_r, float texture_height_r, Matrix4x4 MxAfterMultiple, bool extend = true)

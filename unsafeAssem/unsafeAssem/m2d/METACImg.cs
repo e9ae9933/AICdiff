@@ -68,7 +68,7 @@ namespace m2d
 							{
 								if (k == "draw_lit_layer")
 								{
-									this.draw_lit_layer = global::XX.X.NmI(Av[0], 0, true, false) != 0;
+									this.draw_lit_layer = X.NmI(Av[0], 0, true, false) != 0;
 									return this;
 								}
 							}
@@ -84,14 +84,14 @@ namespace m2d
 						{
 							if (k == "ignore_grid")
 							{
-								this.ignore_grid = global::XX.X.sumBits(Av) != 0;
+								this.ignore_grid = X.sumBits(Av) != 0;
 								return this;
 							}
 						}
 					}
 					else if (k == "__alloc_rot_flip")
 					{
-						this.alloc_rot_flip_ = global::XX.X.NmUI(Av[0], 0U, true, false);
+						this.alloc_rot_flip_ = X.NmUI(Av[0], 0U, true, false);
 						return this;
 					}
 				}
@@ -103,14 +103,14 @@ namespace m2d
 						{
 							if (k == "no_blur_draw")
 							{
-								this.no_blur_draw = global::XX.X.NmI(Av[0], 0, true, false) != 0;
+								this.no_blur_draw = X.NmI(Av[0], 0, true, false) != 0;
 								return this;
 							}
 						}
 					}
 					else if (k == "multiple_input")
 					{
-						this.alloc_multiple_input = global::XX.X.sumBits(Av) != 0;
+						this.alloc_multiple_input = X.sumBits(Av) != 0;
 						return this;
 					}
 				}
@@ -122,7 +122,7 @@ namespace m2d
 						{
 							if (k == "window")
 							{
-								if (global::XX.X.NmI(Av[0], 0, true, false) != 0)
+								if (X.NmI(Av[0], 0, true, false) != 0)
 								{
 									this.alloc_rot_flip_ |= 262144U;
 								}
@@ -135,20 +135,20 @@ namespace m2d
 					}
 					else if (k == "no_make_checkpoint")
 					{
-						this.no_make_checkpoint = global::XX.X.sumBits(Av) != 0;
+						this.no_make_checkpoint = X.sumBits(Av) != 0;
 						return this;
 					}
 				}
 				else if (k == "invisible")
 				{
-					this.invisible = global::XX.X.NmI(Av[0], 0, true, false) != 0;
+					this.invisible = X.NmI(Av[0], 0, true, false) != 0;
 					return this;
 				}
 			}
 			return base.Add(k, Av);
 		}
 
-		public void readFromBytes(ByteArray Ba, byte load_ver)
+		public void readFromBytes(ByteReader Ba, byte load_ver)
 		{
 			this.alloc_rot_flip_ = Ba.readUInt();
 			if (load_ver >= 2)
@@ -271,7 +271,7 @@ namespace m2d
 							{
 								return false;
 							}
-							global::XX.X.de("individual_chip ではなく multiple_input を使うこと", null);
+							X.de("individual_chip ではなく multiple_input を使うこと", null);
 							return false;
 						}
 						else if (!(k == "draw_overtop_layer"))
@@ -532,19 +532,19 @@ namespace m2d
 			}
 		}
 
-		public static Vector2[] pointsRotate(M2Chip Cp, string meta_key, global::XX.AIM target, float cx = 14f, float cy = 14f)
+		public static Vector2[] pointsRotate(M2Chip Cp, string meta_key, AIM target, float cx = 14f, float cy = 14f)
 		{
 			METACImg meta = Cp.getMeta();
-			if (Cp.flip && (target == global::XX.AIM.R || target == global::XX.AIM.L))
+			if (Cp.flip && (target == AIM.R || target == AIM.L))
 			{
-				target = global::XX.CAim.get_opposite(target);
+				target = CAim.get_opposite(target);
 			}
 			if (Cp.rotation != 0)
 			{
 				int num = Cp.rotation;
 				while (--num >= 0)
 				{
-					target = global::XX.CAim.get_clockwise2(target, true);
+					target = CAim.get_clockwise2(target, true);
 				}
 			}
 			string[] array = meta.Get(meta_key + target.ToString().ToUpper());
@@ -556,14 +556,14 @@ namespace m2d
 			Vector2[] array2 = new Vector2[num2];
 			for (int i = 0; i < num2; i++)
 			{
-				Vector2 vector = new Vector2(global::XX.X.Nm(array[i * 2], 0f, false) - cx, global::XX.X.Nm(array[i * 2 + 1], 0f, false) - cy);
+				Vector2 vector = new Vector2(X.Nm(array[i * 2], 0f, false) - cx, X.Nm(array[i * 2 + 1], 0f, false) - cy);
 				if (Cp.flip)
 				{
 					vector.x *= -1f;
 				}
 				if (Cp.rotation != 0)
 				{
-					vector = global::XX.X.ROTV2e(vector, (float)(-(float)Cp.rotation) * 1.5707964f);
+					vector = X.ROTV2e(vector, (float)(-(float)Cp.rotation) * 1.5707964f);
 				}
 				vector.x += cx;
 				vector.y += cy;

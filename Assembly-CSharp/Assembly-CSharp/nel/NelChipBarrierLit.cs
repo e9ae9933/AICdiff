@@ -14,9 +14,9 @@ namespace nel
 			base.arrangeable = true;
 		}
 
-		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdL, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
+		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdLB, MeshDrawer MdLT, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
 		{
-			int num = base.entryChipMesh(MdB, MdG, MdT, MdL, MdTT, sx, sy, _zm, _rotR);
+			int num = base.entryChipMesh(MdB, MdG, MdT, MdLB, MdLT, MdTT, sx, sy, _zm, _rotR);
 			this.DaG = (this.DaL = (this.DaT = null));
 			return num;
 		}

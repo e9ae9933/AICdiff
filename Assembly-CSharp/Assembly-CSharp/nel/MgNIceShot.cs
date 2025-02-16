@@ -8,6 +8,20 @@ namespace nel
 {
 	public class MgNIceShot : MgFDHolder
 	{
+		public static MagicItem addIceShot(NelM2DBase nM2D, M2MagicCaster Caster, MGHIT mg_hit, float x, float y, float agR, float gravity_lock = 0f, float floor_maxt = 0f)
+		{
+			MagicItem magicItem = MgNCandleShot.addCandleShot(MGKIND.ICE_SHOT, nM2D, Caster, mg_hit, x, y, X.Cos(agR) * 0.21f, -X.Sin(agR) * 0.21f, gravity_lock, 0f);
+			magicItem.da = 0.21f;
+			return magicItem;
+		}
+
+		public static MagicItem addIceShot2(NelM2DBase nM2D, M2MagicCaster Caster, MGHIT mg_hit, float x, float y, float spd, float agR, float gravity_lock = 0f, float floor_maxt = 0f)
+		{
+			MagicItem magicItem = MgNCandleShot.addCandleShot(MGKIND.ICE_SHOT, nM2D, Caster, mg_hit, x, y, X.Cos(agR) * spd, -X.Sin(agR) * spd, gravity_lock, 0f);
+			magicItem.da = spd;
+			return magicItem;
+		}
+
 		public override bool run(MagicItem Mg, float fcnt)
 		{
 			if (Mg.phase == 0)
@@ -18,13 +32,15 @@ namespace nel
 				Mg.raypos_s = (Mg.efpos_s = (Mg.aimagr_calc_s = (Mg.aimagr_calc_vector_d = true)));
 				Mg.wind_apply_s_level = 1.75f;
 				Mg.Ray.hittype |= HITTYPE.WATER_CUT;
-				Mg.Ray.LenM(0.21f);
+				if (Mg.da == 0f)
+				{
+					Mg.da = X.LENGTHXY(0f, 0f, Mg.dx, Mg.dy);
+				}
+				Mg.Ray.LenM(Mg.da);
 				Mg.projectile_power = 100;
 				Mg.Ray.hittype_to_week_projectile = HITTYPE.REFLECTED;
 				Mg.calcAimPos(false);
 				Mg.Ray.AngleR(Mg.aim_agR);
-				Mg.dx = 0.21f * X.Cos(Mg.aim_agR);
-				Mg.dy = -0.21f * X.Sin(Mg.aim_agR);
 				Mg.PtcST("frozenbullet", PTCThread.StFollow.FOLLOW_S, false);
 				Mg.input_null_to_other_when_quit = true;
 			}
@@ -49,10 +65,10 @@ namespace nel
 				{
 					return Mg.kill(Mg.Ray.lenmp);
 				}
-				if ((hittype & (HITTYPE)36868) != HITTYPE.NONE)
+				if ((hittype & (HITTYPE.WALL | HITTYPE.HITTED_WATER | HITTYPE.BREAK)) != HITTYPE.NONE)
 				{
 					Mg.PtcST("frozenbullet_hit", PTCThread.StFollow.FOLLOW_S, false);
-					if ((hittype & (HITTYPE)4100) == HITTYPE.NONE)
+					if ((hittype & (HITTYPE.WALL | HITTYPE.HITTED_WATER)) == HITTYPE.NONE)
 					{
 						return false;
 					}
@@ -160,5 +176,9 @@ namespace nel
 			MdA.RotaPF(x, y, scaleX, scaleY, 0f, frame, flag, false, false, 1U, false, 0);
 			MdMul.RotaPF(x, y, scaleX, scaleY, 0f, frame, flag, false, false, 2U, false, 0);
 		}
+
+		public const float spd_default = 0.21f;
+
+		public const float spd_slow = 0.12f;
 	}
 }

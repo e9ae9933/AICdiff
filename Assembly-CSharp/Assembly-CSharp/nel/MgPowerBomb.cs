@@ -64,7 +64,7 @@ namespace nel
 				Mg.phase = 3;
 				Mg.killEffect();
 				Mg.Ray.cohitable_allow_berserk = M2Ray.COHIT.NONE;
-				Mg.Mn.SetRay(Mg.Ray, 1, 0f, 0f);
+				Mg.Mn.SetRay(Mg.Ray, 1, 0f, 0f, 0f);
 				Mg.PtcVar("accel_maxt", (double)Mg.Mn._1.accel_maxt).PtcVar("maxt", (double)Mg.Mn._1.maxt).PtcST("powerbomb_explode", PTCThread.StFollow.FOLLOW_S, false);
 				Mg.Ray.HitLock(20f, null);
 			}

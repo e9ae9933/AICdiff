@@ -105,7 +105,7 @@ namespace nel
 					this.BaFirst.position = 0UL;
 					IN.submitKeyAssign(this.BaFirst, false);
 					SND.Ui.play("close_ui", false);
-					this.SubmitBtn.Select(false);
+					this.SubmitBtn.Select(true);
 				}
 				NEL.stopPressingSound("KEYCON");
 				if (this.UbConfirm != null)
@@ -127,7 +127,7 @@ namespace nel
 			if (_st == KeyConDesigner<aBtnNel>.STATE.NORMAL && this.CurLabelTarget != null)
 			{
 				this.CurLabelTarget.SetChecked(false, true);
-				this.CurLabelTarget.Select(false);
+				this.CurLabelTarget.Select(true);
 				this.CurLabelTarget = null;
 			}
 			base.changeState(_st);
@@ -506,7 +506,7 @@ namespace nel
 						}
 						else
 						{
-							aBtn.Select(false);
+							aBtn.Select(true);
 						}
 					}
 				}
@@ -572,7 +572,7 @@ namespace nel
 							SND.Ui.play("saved", false);
 							this.BaFirst = null;
 							base.submitWhole(true);
-							CFG.saveKeyConfigFileOnly();
+							UiCFG.saveKeyConfigFileOnly();
 							this.result = KeyConDesignerNel.RESULT.SUCCESS;
 						}
 					}

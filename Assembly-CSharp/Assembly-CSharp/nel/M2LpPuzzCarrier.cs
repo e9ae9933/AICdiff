@@ -109,7 +109,7 @@ namespace nel
 					{
 						physic.carrying_no_collider_lock = b;
 					}
-					if (CFG.sp_use_uipic_press_gimmick)
+					if (CFGSP.use_uipic_press_gimmick)
 					{
 						base.nM2D.prepareSvTexture("damage_press", true);
 						return;

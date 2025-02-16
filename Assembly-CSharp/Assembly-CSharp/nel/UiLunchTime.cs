@@ -17,9 +17,16 @@ namespace nel
 			this.DrSeet.ImgBack = MTR.SqNelCuteLine.getImage(4, 0);
 			this.MdSeet = MeshDrawer.prepareMeshRenderer(base.gameObject, MTRX.MIicon.getMtr(BLEND.NORMAL, -1), 0f, -1, null, false, false);
 			this.Img = EV.Pics.getPic("lunch_cutin/noel_lunch", true, true);
-			this.ImgLoader = EV.Pics.cacheReadFor(this.Img);
-			this.t_noel = -120f;
-			return base.AwakeLunch();
+			EV.Pics.cacheReadFor(this.Img);
+			ItemStorage itemStorage = base.AwakeLunch();
+			base.AwakeEvImgTicket(this.Img, 20);
+			return itemStorage;
+		}
+
+		protected override Material runNoelEvImgFinalize(EvImg Img)
+		{
+			this.SMtrNoel = base.runNoelEvImgFinalize(Img);
+			return this.SMtrNoel;
 		}
 
 		public override void OnDestroy()
@@ -108,34 +115,8 @@ namespace nel
 			this.MdSeet.updateForMeshRenderer(true);
 		}
 
-		public static bool runNoelImgS(MeshDrawer MdNoel, ref float t_noel, float thresh_t, EvImg Img, ref EvPerson.EvPxlsLoader ImgLoader, ref Material SMtrNoel)
-		{
-			if (ImgLoader != null && ImgLoader.preparePxlImage(false))
-			{
-				t_noel = thresh_t - 4f;
-				return false;
-			}
-			ImgLoader = null;
-			MdNoel.chooseSubMesh(1, false, false);
-			SMtrNoel = MTRX.newMtr(MTRX.getMI(Img.PF).getMtr(BLEND.NORMAL, -1));
-			SMtrNoel.SetFloat("_UseAddColor", 1f);
-			SMtrNoel.EnableKeyword("_USEADDCOLOR_ON");
-			MdNoel.setMaterial(SMtrNoel, true);
-			MdNoel.chooseSubMesh(0, false, false);
-			t_noel = 0f;
-			return true;
-		}
-
 		protected override void runNoelImg(MeshDrawer MdNoel, ref bool need_redraw_noel)
 		{
-			if (this.t_noel >= -100f && this.t_noel < 0f)
-			{
-				if (!UiLunchTime.runNoelImgS(MdNoel, ref this.t_noel, -100f, this.Img, ref this.ImgLoader, ref this.SMtrNoel))
-				{
-					return;
-				}
-				need_redraw_noel = true;
-			}
 			if (this.t_noel >= 0f && !need_redraw_noel)
 			{
 				byte b = (byte)X.ANM((int)this.t_noel, 2, 30f);
@@ -215,15 +196,13 @@ namespace nel
 		{
 			if (this.PtcUseFood == null)
 			{
-				this.PtcUseFood = new EfParticleOnce("ui_use_food", EFCON_TYPE.UI);
+				this.PtcUseFood = new EfParticleOnce("ui_use_food", EFCON_TYPE.FIXED);
 				return;
 			}
 			this.PtcUseFood.shuffle();
 		}
 
 		private EvImg Img;
-
-		private EvPerson.EvPxlsLoader ImgLoader;
 
 		private Material SMtrNoel;
 

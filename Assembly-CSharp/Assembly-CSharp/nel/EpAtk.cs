@@ -81,6 +81,14 @@ namespace nel
 			return this;
 		}
 
+		public bool only_anal
+		{
+			get
+			{
+				return this.target_bits == EPCATEG_BITS.ANAL;
+			}
+		}
+
 		public byte cli
 		{
 			get

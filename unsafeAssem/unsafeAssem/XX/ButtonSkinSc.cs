@@ -79,7 +79,7 @@ namespace XX
 				this.Md.Col = ButtonSkinSc.Col.mulA(this.alpha_).C;
 				if (this.meshicon_name_ != "")
 				{
-					this.Md.MIcon(px_sprite_center_x + (-num4 + 16f) / 2f * num5, this.Vdefault_title_shift.y * num5, 8f * num5, this.meshicon_name_, 0f);
+					Shape.DrawMeshIcon(this.Md, px_sprite_center_x + (-num4 + 16f) / 2f * num5, this.Vdefault_title_shift.y * num5, 8f * num5, this.meshicon_name_, 0f);
 				}
 			}
 			else
@@ -117,7 +117,7 @@ namespace XX
 					{
 						this.Md.Col = ButtonSkinSc.Col.Set(4293295228U).C;
 					}
-					this.Md.MIcon(px_sprite_center_x + (-num4 + 16f) / 2f * num5, this.Vdefault_title_shift.y * num5, 8f * num5, this.meshicon_name_, 0f);
+					Shape.DrawMeshIcon(this.Md, px_sprite_center_x + (-num4 + 16f) / 2f * num5, this.Vdefault_title_shift.y * num5, 8f * num5, this.meshicon_name_, 0f);
 				}
 				if (this.MdSpr != null)
 				{

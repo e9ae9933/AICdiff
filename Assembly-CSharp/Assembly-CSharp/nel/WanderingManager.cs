@@ -115,7 +115,7 @@ namespace nel
 			}
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool old_ver)
+		public void readBinaryFrom(ByteReader Ba, bool old_ver)
 		{
 			this.newGame();
 			int num;
@@ -190,10 +190,10 @@ namespace nel
 			wanderingNPC.appear_ratio = 1f;
 			if (Acmd.Length > 2)
 			{
-				float num = global::XX.X.Nm(Acmd[1], 0f, false);
-				float num2 = global::XX.X.Nm(Acmd[2], 0f, false);
+				float num = X.Nm(Acmd[1], 0f, false);
+				float num2 = X.Nm(Acmd[2], 0f, false);
 				wanderingNPC.setTo(num, num2);
-				global::XX.X.dl(string.Concat(new string[]
+				X.dl(string.Concat(new string[]
 				{
 					wanderingNPC.type.ToString(),
 					" 位置を",
@@ -207,10 +207,10 @@ namespace nel
 			if (Acmd.Length == 2)
 			{
 				wanderingNPC.setToHere();
-				global::XX.X.dl(wanderingNPC.type.ToString() + " 位置を現在位置に設定", null, false, false);
+				X.dl(wanderingNPC.type.ToString() + " 位置を現在位置に設定", null, false, false);
 				return;
 			}
-			global::XX.X.dl(wanderingNPC.type.ToString() + " キャッシュクリア", null, false, false);
+			X.dl(wanderingNPC.type.ToString() + " キャッシュクリア", null, false, false);
 		}
 
 		public readonly NelM2DBase M2D;

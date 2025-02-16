@@ -31,13 +31,13 @@ namespace nel
 						MGKIND mgkind;
 						if (!FEnum<MGKIND>.TryParse(text, out mgkind, true))
 						{
-							global::XX.X.de("不明な MGKIND : " + text, null);
+							X.de("不明な MGKIND : " + text, null);
 							kindData = null;
 							continue;
 						}
 						if (MagicSelector.OKindData.ContainsKey(mgkind))
 						{
-							global::XX.X.de("MGKIND 重複: " + mgkind.ToString(), null);
+							X.de("MGKIND 重複: " + mgkind.ToString(), null);
 						}
 						else
 						{
@@ -160,7 +160,7 @@ namespace nel
 				MagicSelector.Enchant enchant = this.OMaga[(MagicSelector.MAGA)i];
 				enchant.clear();
 				MGKIND kind = this.OMagaDef[(MagicSelector.MAGA)i].kind;
-				if (kind != MGKIND.NONE && (kind == MGKIND.WHITEARROW || MagicSelector.OKindData[kind].obtain_flag || global::XX.X.DEBUGALLSKILL))
+				if (kind != MGKIND.NONE && (kind == MGKIND.WHITEARROW || MagicSelector.OKindData[kind].obtain_flag || X.DEBUGALLSKILL))
 				{
 					enchant.CopyFrom(this.OMagaDef[(MagicSelector.MAGA)i]);
 					this.exist_count += ((enchant.kind != MGKIND.NONE) ? 1 : 0);
@@ -279,7 +279,7 @@ namespace nel
 			Md.Daia3(x, y, num, num, num2, num2, false);
 			if (flag)
 			{
-				float num3 = num + 10f + global::XX.X.COSIT(24f) * 5.5f;
+				float num3 = num + 10f + X.COSIT(24f) * 5.5f;
 				Md.Daia3(x, y, num3, num3, 3f, 3f, false);
 			}
 			if (MdMul != null)
@@ -296,16 +296,16 @@ namespace nel
 			float num4 = 1f;
 			if (submit_z > 0f)
 			{
-				num4 = 0.5f + 0.5f * global::XX.X.ANMPT(12, 1f);
+				num4 = 0.5f + 0.5f * X.ANMPT(12, 1f);
 				if (submit_z < 1f)
 				{
-					Md.StripedDaia(x, y, scale * 256f, global::XX.X.ANMPT(24, 1f), 1f - global::XX.X.ZSIN(submit_z), global::XX.X.Mx(4f, 16f * scale), false);
+					Md.StripedDaia(x, y, scale * 256f, X.ANMPT(24, 1f), 1f - X.ZSIN(submit_z), X.Mx(4f, 16f * scale), false);
 				}
 			}
 			if (flag)
 			{
-				Md.Col = C32.MulA(Md.ColGrd.C, 0.195f + 0.0625f * global::XX.X.COSIT(24f));
-				Md.StripedDaia(x, y, scale * 256f, global::XX.X.ANMPT(12, 1f), 0.33f, global::XX.X.Mx(4f, 16f * scale), false);
+				Md.Col = C32.MulA(Md.ColGrd.C, 0.195f + 0.0625f * X.COSIT(24f));
+				Md.StripedDaia(x, y, scale * 256f, X.ANMPT(12, 1f), 0.33f, X.Mx(4f, 16f * scale), false);
 			}
 			MTRX.cola.Set(Md.ColGrd.C);
 			if (check_disable && enchant.current_disable)
@@ -323,7 +323,7 @@ namespace nel
 			}
 			else if (this.Pr.get_mp() < (float)kindData.reduce_mp)
 			{
-				MTRX.cola.blend(2294415360U, 0.5f + (1f - global::XX.X.ZLINE(this.Pr.get_mp(), (float)kindData.reduce_mp)) * 0.5f);
+				MTRX.cola.blend(2294415360U, 0.5f + (1f - X.ZLINE(this.Pr.get_mp(), (float)kindData.reduce_mp)) * 0.5f);
 			}
 			MdIco.Col = MTRX.cola.mulA(num4).C;
 			num = scale * (flag ? 1.125f : 1f);
@@ -332,7 +332,7 @@ namespace nel
 
 		public void drawWholeButtonsTo(MeshDrawer Md, MeshDrawer MdIco, MeshDrawer MdMul, float x, float y, float scale, bool aim_right, float anmz = 1f, bool draw_burst = true, float submit_z = 0f, MagicSelector.MAGA curs = MagicSelector.MAGA.NORMAL, bool is_overcharge_exist = false, bool check_disable = false)
 		{
-			float num = 256f * ((anmz >= 1f) ? 1f : (0.4f + global::XX.X.ZSIN2(anmz) * 0.6f)) * scale;
+			float num = 256f * ((anmz >= 1f) ? 1f : (0.4f + X.ZSIN2(anmz) * 0.6f)) * scale;
 			Md.ColGrd.Set(Md.Col);
 			if (submit_z <= 0f || curs == MagicSelector.MAGA.NORMAL)
 			{
@@ -348,11 +348,11 @@ namespace nel
 			}
 			if (submit_z <= 0f || curs == MagicSelector.MAGA.LR)
 			{
-				this.drawButton(Md, MdIco, MdMul, x + num * (float)global::XX.X.MPF(aim_right), y, scale, aim_right, MagicSelector.MAGA.LR, submit_z, curs, is_overcharge_exist, check_disable);
+				this.drawButton(Md, MdIco, MdMul, x + num * (float)X.MPF(aim_right), y, scale, aim_right, MagicSelector.MAGA.LR, submit_z, curs, is_overcharge_exist, check_disable);
 			}
 			if (draw_burst && (submit_z <= 0f || curs == MagicSelector.MAGA.BURST))
 			{
-				this.drawButton(Md, MdIco, MdMul, x - (num / 2f + 16f) * (float)global::XX.X.MPF(aim_right), y + num * 0.5f, scale, aim_right, MagicSelector.MAGA.BURST, submit_z, curs, is_overcharge_exist, check_disable);
+				this.drawButton(Md, MdIco, MdMul, x - (num / 2f + 16f) * (float)X.MPF(aim_right), y + num * 0.5f, scale, aim_right, MagicSelector.MAGA.BURST, submit_z, curs, is_overcharge_exist, check_disable);
 			}
 		}
 
@@ -360,7 +360,7 @@ namespace nel
 		{
 			this.disablelog_floort = 0f;
 			float num = (float)((this.exist_count <= 1) ? 0 : CFG.magsel_slow);
-			this.stop_time = ((num <= 0f) ? 0 : global::XX.X.IntR((float)this.Skill.MAGIC_CHANT_DELAY * num));
+			this.stop_time = ((num <= 0f) ? 0 : X.IntR((float)this.Skill.MAGIC_CHANT_DELAY * num));
 			this.deactivateEffect(true);
 			this.cur_curs = MagicSelector.MAGA._ALL;
 			for (int i = 0; i < 4; i++)
@@ -384,7 +384,7 @@ namespace nel
 				this.cur_curs = MagicSelector.MAGA.NORMAL;
 			}
 			this.push_a_count = 0f;
-			this.input_aim = global::XX.AIM.T;
+			this.input_aim = AIM.T;
 			this.CurEnchant.Set(this.OMaga[this.cur_curs]);
 			this.is_right = this.Pr.mpf_is_right > 0f;
 			if (this.stop_time > 0)
@@ -452,7 +452,7 @@ namespace nel
 			{
 				if (Mg != null && Mg.kind != enchant.kind)
 				{
-					MPr.killHoldMagic(false);
+					MPr.killHoldMagic(false, false);
 				}
 				this.cur_curs = d;
 				this.CurEnchant.Set(enchant);
@@ -580,7 +580,7 @@ namespace nel
 			meshImg.base_z -= 1f;
 			if (Ed.t > 65536f && this.PeSlow == null)
 			{
-				float num2 = global::XX.X.ZLINE(Ed.t - 65536f, 40f);
+				float num2 = X.ZLINE(Ed.t - 65536f, 40f);
 				if (num2 >= 1f || (this.EdDraw != null && Ed != this.EdDraw))
 				{
 					return false;
@@ -592,7 +592,7 @@ namespace nel
 			}
 			else
 			{
-				float num3 = global::XX.X.ZLINE(Ed.t, 12f);
+				float num3 = X.ZLINE(Ed.t, 12f);
 				mesh.Col = mesh.ColGrd.White().mulA(num3).C;
 				mesh2.Col = mesh2.ColGrd.Set(4288258213U).mulA(num3).C;
 				mesh2.ColGrd.setA(0f);
@@ -604,7 +604,7 @@ namespace nel
 					switch (this.cur_curs)
 					{
 					case MagicSelector.MAGA.LR:
-						num4 += (float)global::XX.X.MPF(this.is_right) * 0.75f * 256f;
+						num4 += (float)X.MPF(this.is_right) * 0.75f * 256f;
 						break;
 					case MagicSelector.MAGA.T:
 						num5 += 192f;
@@ -624,15 +624,15 @@ namespace nel
 		{
 			if (this.Pr.isLO(0))
 			{
-				this.Pr.setAim(global::XX.AIM.L, false);
+				this.Pr.setAim(AIM.L, false);
 			}
 			else if (this.Pr.isRO(0))
 			{
-				this.Pr.setAim(global::XX.AIM.R, false);
+				this.Pr.setAim(AIM.R, false);
 			}
 			else if (this.EdDraw != null)
 			{
-				this.Pr.setAim(this.is_right ? global::XX.AIM.R : global::XX.AIM.L, false);
+				this.Pr.setAim(this.is_right ? AIM.R : AIM.L, false);
 			}
 			this.drawEffectFinalize(play_snd && mg_enable, true);
 			if (!mg_enable && play_snd)
@@ -690,8 +690,8 @@ namespace nel
 
 		public bool fineCurs()
 		{
-			this.input_aim = (this.Pr.isLO(0) ? global::XX.AIM.L : (this.Pr.isRO(0) ? global::XX.AIM.R : global::XX.AIM.T));
-			MagicSelector.MAGA maga = ((this.input_aim != global::XX.AIM.T) ? MagicSelector.MAGA.LR : (this.Pr.isBO(0) ? MagicSelector.MAGA.B : (this.Pr.isTO(0) ? MagicSelector.MAGA.T : MagicSelector.MAGA.NORMAL)));
+			this.input_aim = (this.Pr.isLO(0) ? AIM.L : (this.Pr.isRO(0) ? AIM.R : AIM.T));
+			MagicSelector.MAGA maga = ((this.input_aim != AIM.T) ? MagicSelector.MAGA.LR : (this.Pr.isBO(0) ? MagicSelector.MAGA.B : (this.Pr.isTO(0) ? MagicSelector.MAGA.T : MagicSelector.MAGA.NORMAL)));
 			if (this.cur_curs != maga && this.OMaga[maga].kind == MGKIND.NONE)
 			{
 				maga = this.cur_curs;
@@ -704,9 +704,9 @@ namespace nel
 				this.CurEnchant.Set(this.OMaga[this.cur_curs]);
 				this.push_a_count = 0f;
 			}
-			if (this.input_aim != global::XX.AIM.T && this.EdDraw != null)
+			if (this.input_aim != AIM.T && this.EdDraw != null)
 			{
-				bool flag2 = global::XX.CAim._XD(this.input_aim, 1) > 0;
+				bool flag2 = CAim._XD(this.input_aim, 1) > 0;
 				if (flag2 != this.is_right)
 				{
 					this.is_right = flag2;
@@ -733,7 +733,7 @@ namespace nel
 		public MagicSelector fineLR()
 		{
 			this.is_right = !this.Pr.isLO(0) && (this.Pr.isRO(0) || this.Pr.mpf_is_right > 0f);
-			this.Pr.setAim(this.is_right ? global::XX.AIM.R : global::XX.AIM.L, false);
+			this.Pr.setAim(this.is_right ? AIM.R : AIM.L, false);
 			return this;
 		}
 
@@ -749,7 +749,7 @@ namespace nel
 
 		public static MagicSelector.KindData getKindData(MGKIND Mk)
 		{
-			return MagicSelector.OKindData[Mk];
+			return X.Get<MGKIND, MagicSelector.KindData>(MagicSelector.OKindData, Mk);
 		}
 
 		public static bool isObtained(MGKIND Mk)
@@ -771,7 +771,7 @@ namespace nel
 			return " (E:" + this.EdDraw.t.ToString() + ")";
 		}
 
-		public void readBinaryFrom(ByteArray Ba, int vers_noel)
+		public void readBinaryFrom(ByteReader Ba, int vers_noel)
 		{
 			if (Ba.readByte() >= 1)
 			{
@@ -841,7 +841,7 @@ namespace nel
 
 		private readonly MagicSelector.Enchant CurEnchant = new MagicSelector.Enchant();
 
-		private global::XX.AIM input_aim = global::XX.AIM.T;
+		private AIM input_aim = AIM.T;
 
 		private float push_a_count;
 
@@ -861,7 +861,7 @@ namespace nel
 
 			public void initMagic(MagicItem Mg)
 			{
-				Mg.reduce_mp = this.reduce_mp;
+				Mg.reduce_mp = (float)this.reduce_mp;
 				Mg.mp_crystalize = this.mp_crystalize;
 				Mg.casttime = (float)this.casttime;
 				Mg.crystalize_neutral_ratio = this.crystalize_neutral_ratio;

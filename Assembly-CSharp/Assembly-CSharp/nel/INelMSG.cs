@@ -8,7 +8,7 @@ namespace nel
 	{
 		void progressReserved();
 
-		void executeRestMsgCmd();
+		void executeRestMsgCmd(int count);
 
 		bool all_char_shown { get; set; }
 

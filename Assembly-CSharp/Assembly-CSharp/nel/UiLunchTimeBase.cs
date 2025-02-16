@@ -72,9 +72,40 @@ namespace nel
 			this.StmTemp = new Stomach(this.Stm, null);
 			this.ItemMng = new UiItemManageBox((this.M2D != null) ? this.M2D.IMNG : null, null)
 			{
-				cmd_w = 390f
+				cmd_w = 390f,
+				fnItemRowInitAfter = new UiItemManageBox.FnItemRowInitAfter(this.fnLunchItemMngRowInitAfter)
 			};
 			return this.St;
+		}
+
+		protected void AwakeEvImgTicket(EvImg Img, int delay = 0)
+		{
+			this.t_noel = X.Mn((float)(-100 - delay), this.t_noel);
+			LoadTicketManager.AddTicket("LUNCH", "AWAKE", delegate(LoadTicketManager.LoadTicket Tk)
+			{
+				if (this.t_noel < -100f)
+				{
+					return true;
+				}
+				(Tk.Target as UiLunchTimeBase).runNoelEvImgFinalize(Img);
+				return false;
+			}, this, 200);
+		}
+
+		protected virtual Material runNoelEvImgFinalize(EvImg Img)
+		{
+			this.MdNoel.chooseSubMesh(1, false, false);
+			Material material = MTRX.newMtr(MTRX.getMI(Img.PF).getMtr(BLEND.NORMAL, -1));
+			material.SetFloat("_UseAddColor", 1f);
+			material.EnableKeyword("_USEADDCOLOR_ON");
+			this.MdNoel.setMaterial(material, true);
+			this.MdNoel.chooseSubMesh(0, false, false);
+			if (this.t_noel < 0f)
+			{
+				this.t_noel = 0f;
+			}
+			this.need_redraw_noel = true;
+			return material;
 		}
 
 		public override void OnDestroy()
@@ -93,7 +124,7 @@ namespace nel
 				this.M2D.Ui.FlgFrontLog.Rem(this.stabilize_key);
 				this.M2D.FlagValotStabilize.Rem(this.stabilize_key);
 			}
-			Object.Destroy(this.GobNoel);
+			global::UnityEngine.Object.Destroy(this.GobNoel);
 			base.OnDestroy();
 		}
 
@@ -153,7 +184,7 @@ namespace nel
 				}
 				if (nelItem != null)
 				{
-					X.de("アイテムの削除に失敗: " + nelItem.getLocalizedName(consumeResult.grade, null), null);
+					X.de("アイテムの削除に失敗: " + nelItem.getLocalizedName(consumeResult.grade), null);
 				}
 			}
 			for (int l = this.AInventorySrc.Count - 1; l >= 0; l--)
@@ -177,7 +208,7 @@ namespace nel
 		{
 			if (Itm.is_food && Itm.RecipeInfo != null && Itm.RecipeInfo.DishInfo != null)
 			{
-				RecipeManager.RecipeDish dishInfo = Itm.RecipeInfo.DishInfo;
+				RCP.RecipeDish dishInfo = Itm.RecipeInfo.DishInfo;
 				ItemStorage.IRow row;
 				this.St.Add(Itm, cnt, dishInfo.calced_grade, out row, true, true);
 				if (_R != null && _St != null && !_St.water_stockable && row != null)
@@ -185,7 +216,7 @@ namespace nel
 					UiLunchTimeBase.RowPackCnt rowPackCnt;
 					if (!this.OSrcRow.TryGetValue(row.Info, out rowPackCnt))
 					{
-						rowPackCnt = (this.OSrcRow[row.Info] = new UiLunchTimeBase.RowPackCnt(_R));
+						rowPackCnt = (this.OSrcRow[row.Info] = new UiLunchTimeBase.RowPackCnt(_R, _St));
 					}
 					rowPackCnt.count += cnt;
 					rowPackCnt.cached_is_packed += (_R.has_wlink ? 1 : 0);
@@ -400,7 +431,7 @@ namespace nel
 			{
 				if (!flag && this.af <= -30)
 				{
-					Object.Destroy(base.gameObject);
+					global::UnityEngine.Object.Destroy(base.gameObject);
 					return false;
 				}
 				this.need_redraw_noel = true;
@@ -410,6 +441,10 @@ namespace nel
 				this.drawBackground((float)this.af, false);
 				this.runNoelImg(this.MdNoel, ref this.need_redraw_noel);
 				this.t_noel += (float)X.AF;
+				if (-100f < this.t_noel && this.t_noel < -50f)
+				{
+					this.t_noel = -100f;
+				}
 				bool flag3 = false;
 				if (this.need_redraw_noel)
 				{
@@ -579,7 +614,8 @@ namespace nel
 						}
 						else
 						{
-							dsnDataP2.text = this.AppliedIR.Data.getDetail(this.St, (int)this.AppliedIR.splitted_grade, null, true, false, false);
+							this.AppliedIR.Data.getDetail(stb2, this.St, (int)this.AppliedIR.splitted_grade, null, true, false, false);
+							dsnDataP2.Stb = stb2;
 						}
 						dsnDataP2.lineSpacing = 1.3f;
 						this.FbPre = this.BxDesc.addP(dsnDataP2, true);
@@ -609,7 +645,8 @@ namespace nel
 					}
 					else
 					{
-						dsnDataP2.text = this.AppliedIR.Data.getDescLocalized(this.St, (int)this.AppliedIR.splitted_grade);
+						this.AppliedIR.Data.getDescLocalized(stb.Clear(), this.St, (int)this.AppliedIR.splitted_grade);
+						dsnDataP2.Stb = stb;
 					}
 					dsnDataP2.text_auto_wrap = true;
 					dsnDataP2.lineSpacing = 1.3f;
@@ -657,7 +694,7 @@ namespace nel
 				{
 					this.copyCmdPromptTo(stb, false, this.AppliedIR.Data.is_water, 1f, false);
 				}
-				stb.TxRpl(this.SelectedIR.Data.getLocalizedName((int)this.SelectedIR.splitted_grade, null));
+				stb.TxRpl(this.SelectedIR.Data.getLocalizedName((int)this.SelectedIR.splitted_grade));
 				this.BxCmd.alignx = ALIGN.CENTER;
 				this.BxCmd.init();
 				this.BxCmd.activate();
@@ -691,11 +728,11 @@ namespace nel
 			if (this.StmTemp.cost_applied_level == 0f)
 			{
 				aBtn.SetLocked(true, true, false);
-				btnContainer.Get(1).Select(false);
+				btnContainer.Get(1).Select(true);
 			}
 			else
 			{
-				aBtn.Select(false);
+				aBtn.Select(true);
 			}
 			this.setConfirmBtnTitle(aBtn, this.AppliedIR);
 		}
@@ -750,14 +787,35 @@ namespace nel
 			ADest.AddRange(ASource);
 		}
 
-		protected virtual string fnRowNameAddition(ItemStorage.IRow IR, ItemStorage Storage, string def_string)
+		public void fnLunchItemMngRowInitAfter(aBtnItemRow B, ItemStorage.IRow IRow)
+		{
+			NelItem itemData = B.getItemData();
+			B.SetLocked(!UiLunchTimeBase.isUseable(itemData), true, false);
+		}
+
+		public static bool isUseable(NelItem Itm)
+		{
+			RCP.RecipeItemInfo recipeInfo = Itm.RecipeInfo;
+			return recipeInfo == null || recipeInfo.DishInfo == null || UiLunchTimeBase.isUseable(recipeInfo.DishInfo.Rcp);
+		}
+
+		public static bool isUseable(RCP.Recipe Rcp)
+		{
+			return Rcp == null || !EnemySummoner.isActiveBorder() || Rcp.edible_in_battle || Rcp.is_water;
+		}
+
+		protected virtual void fnRowNameAddition(STB Stb, ItemStorage.IRow IR, ItemStorage Storage)
 		{
 			UiLunchTimeBase.RowPackCnt rowPackCnt;
-			if (this.OSrcRow.TryGetValue(IR.Info, out rowPackCnt) && rowPackCnt.cached_is_packed > 0)
+			if (this.OSrcRow.TryGetValue(IR.Info, out rowPackCnt))
 			{
-				return TX.GetA("food_in_lunchbox", def_string);
+				Stb.Clear();
+				IR.Data.getLocalizedName(Stb, (int)IR.splitted_grade);
+				if (rowPackCnt.St.FD_RowNameAddition != null)
+				{
+					rowPackCnt.St.FD_RowNameAddition(Stb, rowPackCnt.Row, rowPackCnt.St);
+				}
 			}
-			return def_string;
 		}
 
 		public int fnRowIconAddition(ItemStorage.IRow IR, ItemStorage Storage, int def_ico)
@@ -800,7 +858,7 @@ namespace nel
 		{
 			if (AppliedIR.Data.is_food)
 			{
-				RecipeManager.getDishDetailTo(Stb, AppliedIR.Data.RecipeInfo.DishInfo, "\n");
+				RCP.getDishDetailTo(Stb, AppliedIR.Data.RecipeInfo.DishInfo, "\n");
 			}
 			return Stb;
 		}
@@ -846,7 +904,7 @@ namespace nel
 				if (selectingRowBtn != null)
 				{
 					this.ItemMng.BlurSelectingRowBtn();
-					selectingRowBtn.Select(false);
+					selectingRowBtn.Select(true);
 				}
 			}
 			IN.clearPushDown(false);
@@ -873,7 +931,7 @@ namespace nel
 				this.StmTemp.initForTemporary();
 				if (this.AppliedDish != null)
 				{
-					this.StmTemp.addEffect(this.AppliedDish, false, true);
+					this.StmTemp.addEffect(this.AppliedDish, false, true, false);
 				}
 				using (STB stb = TX.PopBld(null, 0))
 				{
@@ -896,11 +954,11 @@ namespace nel
 			this.AppliedDish = null;
 			if (Itm.is_food)
 			{
-				RecipeManager.RecipeDish recipeDish = ((Itm.RecipeInfo != null) ? Itm.RecipeInfo.DishInfo : null);
+				RCP.RecipeDish recipeDish = ((Itm.RecipeInfo != null) ? Itm.RecipeInfo.DishInfo : null);
 				if (recipeDish != null)
 				{
 					this.AppliedDish = recipeDish;
-					this.StmTemp.addEffect(recipeDish, false, true);
+					this.StmTemp.addEffect(recipeDish, false, true, false);
 				}
 			}
 		}
@@ -953,7 +1011,7 @@ namespace nel
 						using (STB stb3 = TX.PopBld(null, 0))
 						{
 							this.FbPre.Txt(this.getIngredientDescPre(stb3, this.St, this.AppliedIR));
-							this.FbAft.Txt(RecipeManager.getIngredientListupTo(stb3.Clear(), this.AppliedDish, "\n"));
+							this.FbAft.Txt(RCP.getIngredientListupTo(stb3.Clear(), this.AppliedDish, "\n"));
 							goto IL_0169;
 						}
 					}
@@ -965,7 +1023,7 @@ namespace nel
 			{
 				if (this.AppliedIR == null)
 				{
-					goto IL_0338;
+					goto IL_0330;
 				}
 				this.FbPre.margin_x = (this.FbPre.margin_y = 6f);
 				this.FbAft.margin_x = (this.FbAft.margin_y = 6f);
@@ -974,11 +1032,12 @@ namespace nel
 				using (STB stb4 = TX.PopBld(null, 0))
 				{
 					this.getIngredientDescPre(stb4, this.St, this.AppliedIR);
-					stb4.Ret("\n").Add(this.AppliedIR.Data.getDetail(this.St, (int)this.AppliedIR.splitted_grade, null, true, false, false));
+					this.AppliedIR.Data.getDetail(stb4.Ret("\n"), this.St, (int)this.AppliedIR.splitted_grade, null, true, false, false);
 					this.FbPre.Txt(stb4);
-					stb4.Clear().Add(this.AppliedIR.Data.getDescLocalized(this.St, (int)this.AppliedIR.splitted_grade));
+					stb4.Clear();
+					this.AppliedIR.Data.getDescLocalized(stb4, this.St, (int)this.AppliedIR.splitted_grade);
 					this.FbAft.Txt(stb4);
-					goto IL_0338;
+					goto IL_0330;
 				}
 			}
 			if (this.stt == UiLunchTimeBase.STATE.MAIN)
@@ -997,7 +1056,7 @@ namespace nel
 					this.FbPre.Txt(stb5);
 				}
 			}
-			IL_0338:
+			IL_0330:
 			this.BxDesc.getScrollBox().setScrollLevelTo(0f, 0f, false);
 			this.BxDesc.getScrollBox().startAutoScroll(50);
 			this.BxDesc.RowRemakeHeightRecalc(this.FbAft, null);
@@ -1122,7 +1181,7 @@ namespace nel
 				this.aft_header = stb.ToString();
 				TX.ReleaseBld(stb);
 			}
-			BDic<RecipeManager.RPI_EFFECT, float> levelDictionary = Stm.getLevelDictionary01();
+			BDic<RCP.RPI_EFFECT, float> levelDictionary = Stm.getLevelDictionary01();
 			if (levelDictionary.Count == 0)
 			{
 				Stb.Add("  ");
@@ -1130,7 +1189,7 @@ namespace nel
 				return Stb;
 			}
 			STB stb2 = TX.PopBld(null, 0);
-			foreach (KeyValuePair<RecipeManager.RPI_EFFECT, float> keyValuePair in levelDictionary)
+			foreach (KeyValuePair<RCP.RPI_EFFECT, float> keyValuePair in levelDictionary)
 			{
 				string text4 = "";
 				string text5 = "";
@@ -1156,12 +1215,12 @@ namespace nel
 					}
 				}
 				Stb.Add("  ", text5).AddTxA("Item_for_food_effect_content", false);
-				stb2.Clear().AddTxA("recipe_effect_" + FEnum<RecipeManager.RPI_EFFECT>.ToStr(keyValuePair.Key).ToLower(), false);
+				stb2.Clear().AddTxA("recipe_effect_" + FEnum<RCP.RPI_EFFECT>.ToStr(keyValuePair.Key).ToLower(), false);
 				Stb.TxRpl(stb2);
 				stb2.Clear();
 				stb2.Add(text6);
 				stb2.Add(text4);
-				RecipeManager.getRPIEffectDescriptionTo(stb2, keyValuePair.Key, num, 1);
+				RCP.getRPIEffectDescriptionTo(stb2, keyValuePair.Key, num, 1);
 				if (text4 != "")
 				{
 					stb2.Add("</font>");
@@ -1186,7 +1245,8 @@ namespace nel
 			string title = B.title;
 			if (title != null && title == "Eat")
 			{
-				if (B.isLocked() || this.SelectedIR == null || !this.FD_EatExecute(this.SelectedDish) || !this.executeEat(B, this.SelectedIR, this.SelectedDish))
+				RCP.Recipe recipe = ((this.SelectedDish != null) ? this.SelectedDish.Rcp : null);
+				if (B.isLocked() || this.SelectedIR == null || !UiLunchTimeBase.isUseable(recipe) || !this.FD_EatExecute(this.SelectedDish) || !this.executeEat(B, this.SelectedIR, this.SelectedDish))
 				{
 					SND.Ui.play("locked", false);
 					CURS.limitVib(B, AIM.L);
@@ -1203,7 +1263,7 @@ namespace nel
 			return true;
 		}
 
-		protected virtual bool executeEat(aBtn B, ItemStorage.IRow IR, RecipeManager.RecipeDish SelectedDish)
+		protected virtual bool executeEat(aBtn B, ItemStorage.IRow IR, RCP.RecipeDish SelectedDish)
 		{
 			if (IR == null)
 			{
@@ -1211,11 +1271,11 @@ namespace nel
 			}
 			if (SelectedDish != null)
 			{
-				this.Stm.addEffect(SelectedDish, true, true);
+				this.Stm.addEffect(SelectedDish, true, true, true);
 				this.StmTemp.initForTemporary();
 				if (SelectedDish.Rcp.eaten < 99)
 				{
-					RecipeManager.Recipe rcp = SelectedDish.Rcp;
+					RCP.Recipe rcp = SelectedDish.Rcp;
 					rcp.eaten += 1;
 				}
 			}
@@ -1439,7 +1499,7 @@ namespace nel
 
 		private UiLunchTimeBase.STATE stt = UiLunchTimeBase.STATE.MAIN;
 
-		private NelM2DBase M2D;
+		public NelM2DBase M2D;
 
 		private GameObject GobNoel;
 
@@ -1521,9 +1581,9 @@ namespace nel
 
 		private ItemStorage.IRow AppliedIR;
 
-		private RecipeManager.RecipeDish SelectedDish;
+		private RCP.RecipeDish SelectedDish;
 
-		private RecipeManager.RecipeDish AppliedDish;
+		private RCP.RecipeDish AppliedDish;
 
 		private string aft_header = "";
 
@@ -1571,9 +1631,9 @@ namespace nel
 
 		private string stabilize_key;
 
-		public UiLunchTimeBase.FnEatExecute FD_EatExecute = (RecipeManager.RecipeDish _AD) => true;
+		public UiLunchTimeBase.FnEatExecute FD_EatExecute = (RCP.RecipeDish _AD) => true;
 
-		public delegate bool FnEatExecute(RecipeManager.RecipeDish AppliedDish);
+		public delegate bool FnEatExecute(RCP.RecipeDish AppliedDish);
 
 		public enum STATE
 		{
@@ -1592,12 +1652,15 @@ namespace nel
 
 		private sealed class RowPackCnt
 		{
-			public RowPackCnt(ItemStorage.IRow _SrcRow)
+			public RowPackCnt(ItemStorage.IRow _SrcRow, ItemStorage _St)
 			{
 				this.Row = _SrcRow;
+				this.St = _St;
 			}
 
 			public readonly ItemStorage.IRow Row;
+
+			public readonly ItemStorage St;
 
 			public int count;
 

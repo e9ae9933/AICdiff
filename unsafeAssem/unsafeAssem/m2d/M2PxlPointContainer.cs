@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Better;
 using PixelLiner;
 using XX;
@@ -76,23 +75,24 @@ namespace m2d
 				{
 					return null;
 				}
-				List<PxlLayer> list = null;
-				int num = F.countLayers();
-				for (int i = 0; i < num; i++)
+				PxlLayer[] array2;
+				using (BList<PxlLayer> blist = ListBuffer<PxlLayer>.Pop(0))
 				{
-					PxlLayer layer = F.getLayer(i);
-					if (TX.isStart(layer.name, "point_", 0))
+					int num = F.countLayers();
+					for (int i = 0; i < num; i++)
 					{
-						layer.alpha = 0f;
-						F.releaseDrawnMesh();
-						if (list == null)
+						PxlLayer layer = F.getLayer(i);
+						if (TX.isStart(layer.name, "point_", 0))
 						{
-							list = new List<PxlLayer>(1);
+							layer.alpha = 0f;
+							F.releaseDrawnMesh();
+							blist.Add(layer);
 						}
-						list.Add(layer);
 					}
+					array2 = (this.OFrmData[text] = ((blist.Count == 0) ? null : blist.ToArray()));
+					array2 = array2;
 				}
-				return this.OFrmData[text] = ((list == null) ? null : list.ToArray());
+				return array2;
 			}
 
 			private BDic<string, PxlLayer[]> OFrmData;

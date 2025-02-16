@@ -131,14 +131,15 @@ namespace m2d
 
 		private int getConfigVal(int cx, int cy)
 		{
-			int num = (int)(this.flip ? this.Img.Aconfig[this.mclms * (cy + 1) - 1 - cx] : this.Img.Aconfig[this.mclms * cy + cx]);
-			return (this.flip && CCON.isSlope(num)) ? CCON.slopeFlip(num) : num;
+			int num = (this.flip ? (this.mclms * (cy + 1) - 1 - cx) : (this.mclms * cy + cx));
+			int num2 = (int)(X.BTW(0f, (float)num, (float)this.Img.Aconfig.Length) ? this.Img.Aconfig[num] : 0);
+			return (this.flip && CCON.isSlope(num2)) ? CCON.slopeFlip(num2) : num2;
 		}
 
 		public override bool draw(MeshDrawer Md, int fcnt = 1, float sx = 0f, float sy = 0f, bool force_use_atlas = false)
 		{
-			sx = this.Mp.pixel2meshx((float)X.IntU((float)this.drawx + sx) + (float)this.iwidth / 2f);
-			sy = this.Mp.pixel2meshy((float)X.IntU((float)this.drawy + sy) + (float)this.iheight / 2f);
+			sx = this.Mp.pixel2meshx((float)X.IntU((float)this.drawx + sx) + (float)this.iwidth * 0.5f);
+			sy = this.Mp.pixel2meshy((float)X.IntU((float)this.drawy + sy) + (float)this.iheight * 0.5f);
 			float num = 1f;
 			if (!force_use_atlas && Map2d.editor_decline_lighting)
 			{
@@ -205,9 +206,9 @@ namespace m2d
 			}
 		}
 
-		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdL, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
+		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdLB, MeshDrawer MdLT, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
 		{
-			return base.entryChipMesh(MdB, MdG, MdT, MdL, MdTT, this.drawx2meshx((float)this.drawx + sx), this.drawy2meshy((float)this.drawy + sy), _zm, _rotR - (float)this.rotation * 1.5707964f);
+			return base.entryChipMesh(MdB, MdG, MdT, MdLB, MdLT, MdTT, this.drawx2meshx((float)this.drawx + sx), this.drawy2meshy((float)this.drawy + sy), _zm, _rotR - (float)this.rotation * 1.5707964f);
 		}
 
 		public override bool isWithin(float _x, float _y, int drawer_index, bool strict = false)

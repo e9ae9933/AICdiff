@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{3B51FC64-79A9-4C2A-B9DE-ED8B5A284214}</ProjectGuid>
+    <ProjectGuid>{18522A32-29EC-4F5B-9ADD-5DCD8B24A5C8}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>Assembly-CSharp</RootNamespace>
     <AssemblyName>Assembly-CSharp</AssemblyName>
@@ -34,40 +34,43 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="better">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\better.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\better.dll</HintPath>
     </Reference>
     <Reference Include="criware">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\criware.dll</HintPath>
-    </Reference>
-    <Reference Include="netstandard">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\netstandard.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\criware.dll</HintPath>
     </Reference>
     <Reference Include="pixelliner">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\pixelliner.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\pixelliner.dll</HintPath>
+    </Reference>
+    <Reference Include="SFB">
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\SFB.dll</HintPath>
     </Reference>
     <Reference Include="spine-unity">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\spine-unity.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\spine-unity.dll</HintPath>
+    </Reference>
+    <Reference Include="System">
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\System.dll</HintPath>
     </Reference>
     <Reference Include="ttr">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\ttr.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\ttr.dll</HintPath>
     </Reference>
     <Reference Include="Unity.InputSystem">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\Unity.InputSystem.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\Unity.InputSystem.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.Physics2DModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.Physics2DModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.Physics2DModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
     <Reference Include="unsafeAssem">
-      <HintPath>C:\Users\Windowsredstone\Downloads\hZOYLK72_Win_ver026c2\Win ver026\AliceInCradle_ver026\AliceInCradle_Data\Managed\unsafeAssem.dll</HintPath>
+      <HintPath>C:\Users\Windowsredstone\Downloads\CN_gWWWy4n7_Win_ver027g\Win ver027\AliceInCradle_ver027\AliceInCradle_Data\Managed\unsafeAssem.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -81,7 +84,6 @@
     <Compile Include="HPZ\PuzzleLitOption.cs" />
     <Compile Include="HPZ\PuzzleOption.cs" />
     <Compile Include="HPZ\ZLit.cs" />
-    <Compile Include="Microsoft\CodeAnalysis\EmbeddedAttribute.cs" />
     <Compile Include="nel\AbsorbManager.cs" />
     <Compile Include="nel\AbsorbManagerContainer.cs" />
     <Compile Include="nel\aBtnBoxEar.cs" />
@@ -97,10 +99,13 @@
     <Compile Include="nel\aBtnNumCounterNel.cs" />
     <Compile Include="nel\aBtnSvd.cs" />
     <Compile Include="nel\aBtnUItemSel.cs" />
+    <Compile Include="nel\ACHIVE.cs" />
     <Compile Include="nel\ActiveSelector.cs" />
     <Compile Include="nel\AlmaPVV105.cs" />
     <Compile Include="nel\AnimateCutin.cs" />
     <Compile Include="nel\AnimateSyncCutin.cs" />
+    <Compile Include="nel\AnimationShuffler.cs" />
+    <Compile Include="nel\AnimationShufflerNoel.cs" />
     <Compile Include="nel\BetobetoManager.cs" />
     <Compile Include="nel\BetoInfo.cs" />
     <Compile Include="nel\BonfireEffector.cs" />
@@ -114,6 +119,7 @@
     <Compile Include="nel\ButtonSkinEnhancerRow.cs" />
     <Compile Include="nel\ButtonSkinFDItemRow.cs" />
     <Compile Include="nel\ButtonSkinForLabelNel.cs" />
+    <Compile Include="nel\ButtonSkinGuildQuestItemRow.cs" />
     <Compile Include="nel\ButtonSkinItemGrade.cs" />
     <Compile Include="nel\ButtonSkinItemLunchTimeRow.cs" />
     <Compile Include="nel\ButtonSkinItemRow.cs" />
@@ -137,6 +143,7 @@
     <Compile Include="nel\ButtonSkinNelReelInfo.cs" />
     <Compile Include="nel\ButtonSkinNelReelPict.cs" />
     <Compile Include="nel\ButtonSkinNelRowSkill.cs" />
+    <Compile Include="nel\ButtonSkinNelSmncEnemy.cs" />
     <Compile Include="nel\ButtonSkinNelTab.cs" />
     <Compile Include="nel\ButtonSkinNelUi.cs" />
     <Compile Include="nel\ButtonSkinNormalNel.cs" />
@@ -157,6 +164,7 @@
     <Compile Include="nel\CameraRenderBinderWaterSurface.cs" />
     <Compile Include="nel\CarrierRailBlock.cs" />
     <Compile Include="nel\CFG.cs" />
+    <Compile Include="nel\CFGSP.cs" />
     <Compile Include="nel\CoinStorage.cs" />
     <Compile Include="nel\ColumnRowNel.cs" />
     <Compile Include="nel\ConfuseDrawer.cs" />
@@ -172,19 +180,24 @@
     <Compile Include="nel\EffectNel.cs" />
     <Compile Include="nel\EffectNelMapChip.cs" />
     <Compile Include="nel\EfSpellRegisteration.cs" />
+    <Compile Include="nel\EnAttackInfo.cs" />
+    <Compile Include="nel\ENATTR.cs" />
     <Compile Include="nel\EnemyAnimator.cs" />
     <Compile Include="nel\EnemyAnimatorBase.cs" />
     <Compile Include="nel\EnemyAnimatorGolemToy.cs" />
     <Compile Include="nel\EnemyAnimatorMultiMech.cs" />
     <Compile Include="nel\EnemyAnimatorSpine.cs" />
-    <Compile Include="nel\EnemyData.cs" />
+    <Compile Include="nel\EnemyAttr.cs" />
     <Compile Include="nel\EnemyFrameDataBasic.cs" />
+    <Compile Include="nel\EnemyHpMpBar.cs" />
     <Compile Include="nel\ENEMYID.cs" />
     <Compile Include="nel\ENEMYKIND.cs" />
     <Compile Include="nel\EnemyMeshDrawer.cs" />
     <Compile Include="nel\EnemyMeshDrawerMagicCane.cs" />
     <Compile Include="nel\EnemySummoner.cs" />
-    <Compile Include="nel\EnhancerManager.cs" />
+    <Compile Include="nel\EnemySummonerManager.cs" />
+    <Compile Include="nel\ENHA.cs" />
+    <Compile Include="nel\EnMtrManager.cs" />
     <Compile Include="nel\EpAtk.cs" />
     <Compile Include="nel\EPCATEG.cs" />
     <Compile Include="nel\EPCATEG_BITS.cs" />
@@ -209,12 +222,15 @@
     <Compile Include="nel\fatal\TRANSITION.cs" />
     <Compile Include="nel\fatal\TRSL.cs" />
     <Compile Include="nel\FDSummonerInfo.cs" />
+    <Compile Include="nel\FieldGuideWmController.cs" />
+    <Compile Include="nel\FillImageEnThumbBlock.cs" />
     <Compile Include="nel\FnGetItemColor.cs" />
     <Compile Include="nel\FnGetItemDetail.cs" />
     <Compile Include="nel\FnItemCheck.cs" />
     <Compile Include="nel\FnUiBoxBindings.cs" />
     <Compile Include="nel\gm\CATEG.cs" />
     <Compile Include="nel\gm\GMC_RES.cs" />
+    <Compile Include="nel\gm\IStatDangerousDescriptor.cs" />
     <Compile Include="nel\gm\UiBenchMenu.cs" />
     <Compile Include="nel\gm\UiGameMenu.cs" />
     <Compile Include="nel\gm\UiGameMenuTopTab.cs" />
@@ -230,6 +246,10 @@
     <Compile Include="nel\gm\UiGMCStat.cs" />
     <Compile Include="nel\gm\UiGMCSvd.cs" />
     <Compile Include="nel\gm\UiWmSkinController.cs" />
+    <Compile Include="nel\GQCategInfo.cs" />
+    <Compile Include="nel\GQCategInfoCollectItem.cs" />
+    <Compile Include="nel\GQCategInfoDefeat.cs" />
+    <Compile Include="nel\GuildManager.cs" />
     <Compile Include="nel\HpzSimulator.cs" />
     <Compile Include="nel\ICheckPointListener.cs" />
     <Compile Include="nel\IGachaListener.cs" />
@@ -244,8 +264,10 @@
     <Compile Include="nel\IPuzzRevertable.cs" />
     <Compile Include="nel\IPuzzSwitchListener.cs" />
     <Compile Include="nel\IrisOutManager.cs" />
+    <Compile Include="nel\ISpecialPrRunner.cs" />
     <Compile Include="nel\ItemDescBox.cs" />
     <Compile Include="nel\ItemStorage.cs" />
+    <Compile Include="nel\ItemStorageMem.cs" />
     <Compile Include="nel\ITrmListener.cs" />
     <Compile Include="nel\IWindApplyable.cs" />
     <Compile Include="nel\IxiaPVV102.cs" />
@@ -255,6 +277,7 @@
     <Compile Include="nel\M2AreaTitle.cs" />
     <Compile Include="nel\M2AttackableEventManipulatable.cs" />
     <Compile Include="nel\M2BoxMover.cs" />
+    <Compile Include="nel\M2BoxOneLine.cs" />
     <Compile Include="nel\M2BreakableWallMover.cs" />
     <Compile Include="nel\M2CastableEventBase.cs" />
     <Compile Include="nel\M2CastableEventOther.cs" />
@@ -281,6 +304,7 @@
     <Compile Include="nel\M2CImgDrawerWormArea.cs" />
     <Compile Include="nel\M2CImgDrawerWormBg.cs" />
     <Compile Include="nel\M2EventItem_ItemSupply.cs" />
+    <Compile Include="nel\M2FreezeCamera.cs" />
     <Compile Include="nel\M2LabelPointCheck.cs" />
     <Compile Include="nel\M2LabelPointSwitchContainer.cs" />
     <Compile Include="nel\M2LabelPointThunder.cs" />
@@ -326,6 +350,12 @@
     <Compile Include="nel\M2NoelHat.cs" />
     <Compile Include="nel\M2PhysPr.cs" />
     <Compile Include="nel\M2PlayerStateHistory.cs" />
+    <Compile Include="nel\M2PrABench.cs" />
+    <Compile Include="nel\M2PrADmg.cs" />
+    <Compile Include="nel\M2PrADmgEffect.cs" />
+    <Compile Include="nel\M2PrAGameOverRecovery.cs" />
+    <Compile Include="nel\M2PrAJuiceCon.cs" />
+    <Compile Include="nel\M2PrARunner.cs" />
     <Compile Include="nel\M2PrAssistant.cs" />
     <Compile Include="nel\M2PrGachaEventHandler.cs" />
     <Compile Include="nel\M2PrMasturbate.cs" />
@@ -335,8 +365,10 @@
     <Compile Include="nel\M2PuzzCarrierMover.cs" />
     <Compile Include="nel\M2PuzzleGimmick.cs" />
     <Compile Include="nel\M2PuzzleSwitch.cs" />
+    <Compile Include="nel\M2RebagachaAnnounce.cs" />
     <Compile Include="nel\M2Ser.cs" />
     <Compile Include="nel\M2SerItem.cs" />
+    <Compile Include="nel\M2SerResist.cs" />
     <Compile Include="nel\M2Shield.cs" />
     <Compile Include="nel\M2ShieldHitable.cs" />
     <Compile Include="nel\M2SlimeDecoy.cs" />
@@ -385,13 +417,33 @@
     <Compile Include="nel\mgm\MGMSCORE.cs" />
     <Compile Include="nel\mgm\MgmScoreHolder.cs" />
     <Compile Include="nel\mgm\mgm_ttr\NelTTRBase.cs" />
+    <Compile Include="nel\mgm\smncr\EnemyEntry.cs" />
+    <Compile Include="nel\mgm\smncr\M2LpUiSmnCreator.cs" />
+    <Compile Include="nel\mgm\smncr\SmncFile.cs" />
+    <Compile Include="nel\mgm\smncr\SmncFileContainer.cs" />
+    <Compile Include="nel\mgm\smncr\SmncOutFillAssist.cs" />
+    <Compile Include="nel\mgm\smncr\SmncStageEditor.cs" />
+    <Compile Include="nel\mgm\smncr\SmncStageEditorManager.cs" />
+    <Compile Include="nel\mgm\smncr\SummonerForCreator.cs" />
+    <Compile Include="nel\mgm\smncr\SummonerPlayerForCreator.cs" />
+    <Compile Include="nel\mgm\smncr\UiSmncBattleConfirm.cs" />
+    <Compile Include="nel\mgm\smncr\UiSmncEnemyEditor.cs" />
+    <Compile Include="nel\mgm\smncr\UiSmncEnemyUnlocker.cs" />
+    <Compile Include="nel\mgm\smncr\UiSmnCreator.cs" />
+    <Compile Include="nel\mgm\sneaking\M2LpSneakingMG.cs" />
+    <Compile Include="nel\mgm\sneaking\M2ManpuAwake.cs" />
+    <Compile Include="nel\mgm\sneaking\M2MovePatSneaker.cs" />
+    <Compile Include="nel\mgm\sneaking\PrRunMGSneaking.cs" />
     <Compile Include="nel\mgm\UiMgmScore.cs" />
     <Compile Include="nel\mgm\UiMgmTimer.cs" />
     <Compile Include="nel\mgm\UiMgmTimerBehaviour.cs" />
     <Compile Include="nel\MgNCandleShot.cs" />
     <Compile Include="nel\MgNCeilDrop.cs" />
+    <Compile Include="nel\MgNGeneralBeam.cs" />
     <Compile Include="nel\MgNGroundShockwave.cs" />
     <Compile Include="nel\MgNIceShot.cs" />
+    <Compile Include="nel\MgNThunderBallShot.cs" />
+    <Compile Include="nel\MgNWebShot.cs" />
     <Compile Include="nel\MgPowerBomb.cs" />
     <Compile Include="nel\MgThunderbolt.cs" />
     <Compile Include="nel\MGV.cs" />
@@ -412,8 +464,11 @@
     <Compile Include="nel\NASDangerChecker.cs" />
     <Compile Include="nel\NASGroundClimber.cs" />
     <Compile Include="nel\NASJumper.cs" />
+    <Compile Include="nel\NASSmallJumper.cs" />
+    <Compile Include="nel\NASStandardInjection.cs" />
     <Compile Include="nel\NASStasisChecker.cs" />
     <Compile Include="nel\NaTicket.cs" />
+    <Compile Include="nel\NDAT.cs" />
     <Compile Include="nel\NEL.cs" />
     <Compile Include="nel\NelActiveDebugger.cs" />
     <Compile Include="nel\NelAttackInfo.cs" />
@@ -450,6 +505,7 @@
     <Compile Include="nel\NelChipWithEffect.cs" />
     <Compile Include="nel\NelChipWormHead.cs" />
     <Compile Include="nel\NelDsn.cs" />
+    <Compile Include="nel\NelDwarfCharManager.cs" />
     <Compile Include="nel\NelEnemy.cs" />
     <Compile Include="nel\NelEnemyAssist.cs" />
     <Compile Include="nel\NelEnemyBoss.cs" />
@@ -466,6 +522,7 @@
     <Compile Include="nel\NelLpRunnerEf.cs" />
     <Compile Include="nel\NelM2Attacker.cs" />
     <Compile Include="nel\NelM2DBase.cs" />
+    <Compile Include="nel\NelM2DEventListener.cs" />
     <Compile Include="nel\NelMBoxDrawer.cs" />
     <Compile Include="nel\NelMokubaDrawer.cs" />
     <Compile Include="nel\NelMSG.cs" />
@@ -488,12 +545,19 @@
     <Compile Include="nel\NelNNpcPuppet.cs" />
     <Compile Include="nel\NelNNusiCage.cs" />
     <Compile Include="nel\NelNNusiTentacle.cs" />
+    <Compile Include="nel\NelNPentapod.cs" />
+    <Compile Include="nel\NelNPentapodHead.cs" />
+    <Compile Include="nel\NelNPig.cs" />
     <Compile Include="nel\NelNPuppy.cs" />
+    <Compile Include="nel\NelNPuppyEvent.cs" />
+    <Compile Include="nel\NelNRoaper.cs" />
     <Compile Include="nel\NelNSlime.cs" />
     <Compile Include="nel\NelNSnake.cs" />
     <Compile Include="nel\NelNSponge.cs" />
     <Compile Include="nel\NelNUni.cs" />
     <Compile Include="nel\NelPlayerCursor.cs" />
+    <Compile Include="nel\NelTextRendererSLine.cs" />
+    <Compile Include="nel\NelTipsManager.cs" />
     <Compile Include="nel\NelTreasureBoxDrawer.cs" />
     <Compile Include="nel\NightController.cs" />
     <Compile Include="nel\NOD.cs" />
@@ -512,15 +576,19 @@
     <Compile Include="nel\PrGachaItem.cs" />
     <Compile Include="nel\PrGaugeSaver.cs" />
     <Compile Include="nel\PrimulaPVV11.cs" />
+    <Compile Include="nel\PRMain.cs" />
     <Compile Include="nel\PRNoel.cs" />
+    <Compile Include="nel\PrPoseContainer.cs" />
     <Compile Include="nel\PrSkill.cs" />
+    <Compile Include="nel\PrStateInjector.cs" />
+    <Compile Include="nel\PrVoiceController.cs" />
     <Compile Include="nel\PuppetRevenge.cs" />
     <Compile Include="nel\PUZ.cs" />
     <Compile Include="nel\PuzzLiner.cs" />
     <Compile Include="nel\PuzzSnapShot.cs" />
     <Compile Include="nel\QuestTracker.cs" />
     <Compile Include="nel\RainEffector.cs" />
-    <Compile Include="nel\RecipeManager.cs" />
+    <Compile Include="nel\RCP.cs" />
     <Compile Include="nel\ReelExecuter.cs" />
     <Compile Include="nel\ReelManager.cs" />
     <Compile Include="nel\ReelMBoxDrawer.cs" />
@@ -544,11 +612,18 @@
     <Compile Include="nel\SCN.cs" />
     <Compile Include="nel\ShotCalcurater.cs" />
     <Compile Include="nel\SkillManager.cs" />
+    <Compile Include="nel\smnp\EnAppearMax.cs" />
+    <Compile Include="nel\smnp\IOtherKillListener.cs" />
+    <Compile Include="nel\smnp\SmnEnemyKind.cs" />
+    <Compile Include="nel\smnp\SmnPoint.cs" />
+    <Compile Include="nel\smnp\SummonedInfo.cs" />
+    <Compile Include="nel\smnp\SummonerPlayer.cs" />
     <Compile Include="nel\SpineViewerNel.cs" />
     <Compile Include="nel\StainItem.cs" />
     <Compile Include="nel\StainManager.cs" />
     <Compile Include="nel\Stomach.cs" />
     <Compile Include="nel\StoreManager.cs" />
+    <Compile Include="nel\SummonerList.cs" />
     <Compile Include="nel\SupplyManager.cs" />
     <Compile Include="nel\SVD.cs" />
     <Compile Include="nel\TesseractDrawer.cs" />
@@ -569,8 +644,10 @@
     <Compile Include="nel\UiBoxDesignerFamilyEvent.cs" />
     <Compile Include="nel\UiBoxDesignerHelp.cs" />
     <Compile Include="nel\UiBoxMoney.cs" />
+    <Compile Include="nel\UiCFG.cs" />
     <Compile Include="nel\UiCraftBase.cs" />
     <Compile Include="nel\UiDangerLevelInitBox.cs" />
+    <Compile Include="nel\UiDangerousViewer.cs" />
     <Compile Include="nel\UIEMOT.cs" />
     <Compile Include="nel\UiEnemyDex.cs" />
     <Compile Include="nel\UiEvtDesignerBox.cs" />
@@ -578,8 +655,18 @@
     <Compile Include="nel\UiFieldGuide.cs" />
     <Compile Include="nel\UiGmMapMarker.cs" />
     <Compile Include="nel\UiGO.cs" />
+    <Compile Include="nel\UiGOContinuer.cs" />
+    <Compile Include="nel\UiGQCard.cs" />
+    <Compile Include="nel\UiGQConfirmFamily.cs" />
+    <Compile Include="nel\UiGQItemConfirm.cs" />
+    <Compile Include="nel\UiGQManageBox.cs" />
+    <Compile Include="nel\UiGQPointBox.cs" />
+    <Compile Include="nel\UiGuildDepartBox.cs" />
+    <Compile Include="nel\UiGuildReelBox.cs" />
+    <Compile Include="nel\UiItemConfirm.cs" />
     <Compile Include="nel\UiItemManageBox.cs" />
     <Compile Include="nel\UiItemManageBoxSlider.cs" />
+    <Compile Include="nel\UiItemMove.cs" />
     <Compile Include="nel\UiItemStore.cs" />
     <Compile Include="nel\UiItemStoreBarUnder.cs" />
     <Compile Include="nel\UiItemStorePuppetCrafts.cs" />
@@ -587,9 +674,11 @@
     <Compile Include="nel\UiItemWholeSelector.cs" />
     <Compile Include="nel\UILog.cs" />
     <Compile Include="nel\UILogRow.cs" />
+    <Compile Include="nel\UILpSummon.cs" />
     <Compile Include="nel\UiLunchStore.cs" />
     <Compile Include="nel\UiLunchTime.cs" />
     <Compile Include="nel\UiLunchTimeBase.cs" />
+    <Compile Include="nel\UIPictCutin.cs" />
     <Compile Include="nel\UIPicture.cs" />
     <Compile Include="nel\UIPictureBase.cs" />
     <Compile Include="nel\UIPictureBodyData.cs" />
@@ -604,6 +693,7 @@
     <Compile Include="nel\UISpecialGage.cs" />
     <Compile Include="nel\UIStatus.cs" />
     <Compile Include="nel\UiSummonerAnnounce.cs" />
+    <Compile Include="nel\UiSVD.cs" />
     <Compile Include="nel\UiTitleDifficultyConfirm.cs" />
     <Compile Include="nel\UiWarpConfirm.cs" />
     <Compile Include="nel\UseItemSelector.cs" />
@@ -624,13 +714,13 @@
     <Compile Include="nel\WMIconHiddenDeperture.cs" />
     <Compile Include="nel\WMIconPosition.cs" />
     <Compile Include="nel\WmPosition.cs" />
+    <Compile Include="nel\WMSpecialIcon.cs" />
     <Compile Include="nel\YdrgManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SandBenchMark.cs" />
     <Compile Include="SandDsn.cs" />
     <Compile Include="SandMsg.cs" />
     <Compile Include="SandTF.cs" />
-    <Compile Include="System\Runtime\CompilerServices\IsReadOnlyAttribute.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

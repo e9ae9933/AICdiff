@@ -196,7 +196,7 @@ namespace nel
 			EvPerson.fineLocalizedName();
 		}
 
-		public static bool getContent(string label, List<string> Adest, bool merging = false, bool no_error = false)
+		public static bool getContent(string label, List<string> Adest, bool merging = false, bool no_error = false, bool alloc_empty = false)
 		{
 			if (!merging)
 			{
@@ -215,29 +215,28 @@ namespace nel
 			}
 			else
 			{
-				int i = NelMSGResource.AResource.Length - 1;
-				while (i >= 0)
+				for (int i = NelMSGResource.AResource.Length - 1; i >= 0; i--)
 				{
 					if (NelMSGResource.AResource[i].getContentInner(label, Adest))
 					{
 						if (Adest.Count == count)
 						{
-							X.de("No Content in the Label :" + label, null);
-							return false;
+							if (!alloc_empty)
+							{
+								X.de("No Content in the Label :" + label, null);
+								return false;
+							}
+							Adest.Add("\u3000");
 						}
 						return true;
 					}
-					else
-					{
-						i--;
-					}
 				}
-				if (NelMSGResource.reload_source_if_undefined)
+				if (X.DEBUGRELOADMTR && NelMSGResource.reload_source_if_undefined)
 				{
 					NelMSGResource.reload_source_if_undefined = false;
 					NelMSGResource.load_lang = "";
 					NelMSGResource.initResource(false);
-					return NelMSGResource.getContent(label, Adest, true, false);
+					return NelMSGResource.getContent(label, Adest, true, false, false);
 				}
 				if (!no_error)
 				{
@@ -268,6 +267,37 @@ namespace nel
 				NelMSGResource.AResource[i].recheck_flag = true;
 			}
 			NelMSGResource.reload_source_if_undefined = true;
+		}
+
+		public static void replaceTxInjection(List<string> Asrc, List<string> Arpl)
+		{
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				int count = Asrc.Count;
+				int count2 = Arpl.Count;
+				for (int i = 0; i < count; i++)
+				{
+					if (Asrc[i] != null)
+					{
+						stb.Set(Asrc[i]);
+						stb.prepareTxReplace(0, 1);
+						for (int j = 0; j < count2; j++)
+						{
+							stb.TxRpl(TX.ReplaceTX(Arpl[j], false));
+						}
+						Asrc[i] = stb.ToString();
+					}
+				}
+			}
+		}
+
+		public static void replaceTxInjection(List<string> Asrc, string[] Arpl_)
+		{
+			using (BList<string> blist = ListBuffer<string>.Pop(Arpl_.Length))
+			{
+				blist.AddRange(Arpl_);
+				NelMSGResource.replaceTxInjection(Asrc, blist);
+			}
 		}
 
 		public bool recheck_flag;

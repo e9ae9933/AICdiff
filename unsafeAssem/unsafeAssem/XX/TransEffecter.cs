@@ -178,6 +178,19 @@ namespace XX
 			}
 		}
 
+		public bool hasSpecific(TEKIND kind)
+		{
+			for (int i = this.LEN - 1; i >= 0; i--)
+			{
+				TransEffecterItem transEffecterItem = this.AItems[i];
+				if (transEffecterItem.FnDef != null && transEffecterItem.kind == kind)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public void removeSpecific(TEKIND kind)
 		{
 			for (int i = this.LEN - 1; i >= 0; i--)
@@ -272,6 +285,11 @@ namespace XX
 			return this.Pop(TEKIND.UI_DMG_DARKEN, (EffectItem Ef) => TransEffecterItem.fnRunDraw_ui_dmg_darken(Ef), 0f, alpha, maxt, (int)attr, 0);
 		}
 
+		public TransEffecterItem setSvtFlushDarken(int col, float y_hold_time = 0f, float z_fade_time = 1f)
+		{
+			return this.Pop(TEKIND.SVT_FLUSH_DARKEN, (EffectItem Ef) => TransEffecterItem.fnRunDraw_svt_flush_darken(Ef), 0f, y_hold_time, z_fade_time, col & 16777215, 0);
+		}
+
 		public TransEffecterItem setFadeIn(float maxt = 0f, float salpha = 0f)
 		{
 			return this.Pop(TEKIND.FADEIN, (EffectItem Ef) => TransEffecterItem.fnRunDraw_fadein(Ef), 0f, 0f, salpha, (int)maxt, 0);
@@ -342,6 +360,11 @@ namespace XX
 		public TransEffecterItem setInitCarryBouncy(float pixel_y, int time = 0, int _saf = 0)
 		{
 			return this.Pop(TEKIND.INITCARRY_BOUNCE, (EffectItem Ef) => TransEffecterItem.fnRunDraw_initcarry_bounce(Ef), 0f, pixel_y, 0f, time, _saf);
+		}
+
+		public TransEffecterItem setEventDarken(float x_alpha, int col_without_alpha, float z_timeout = 120f)
+		{
+			return this.Pop(TEKIND.EVENT_DARKEN, (EffectItem Ef) => TransEffecterItem.fnRunDraw_event_darken(Ef), x_alpha, 0f, z_timeout, col_without_alpha, 0);
 		}
 
 		public override void runDraw(float fcnt = 1f, bool runsetter = true)

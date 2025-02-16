@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using evt;
 using UnityEngine;
 using XX;
@@ -8,41 +7,38 @@ namespace nel
 {
 	public class UiQuestTrackerRow : IRunAndDestroy, INelMSG
 	{
+		public override string ToString()
+		{
+			return "UiQuestTrackerRow";
+		}
+
 		public UiQuestTrackerRow(UiQuestTracker _Con, int index)
 		{
 			this.Con = _Con;
 			this.Gob = IN.CreateGob(this.Con.Gob, "-QTRow-" + index.ToString());
-			GameObject gameObject = IN.CreateGob(this.Gob, "-MdT");
-			IN.setZ(gameObject.transform, -0.125f);
 			this.Md = MeshDrawer.prepareMeshRenderer(this.Gob, MTRX.MtrMeshNormal, 0f, -1, null, false, false);
 			this.Mrd = this.Gob.GetComponent<MeshRenderer>();
-			this.MdT = MeshDrawer.prepareMeshRenderer(gameObject, MTRX.MtrMeshNormal, 0f, -1, null, false, false);
-			this.MrdT = gameObject.GetComponent<MeshRenderer>();
 			this.Valot = this.Gob.AddComponent<ValotileRenderer>();
 			this.Valot.InitUI(this.Md, this.Mrd);
 			this.Valot.enabled = false;
-			this.ValotT = gameObject.AddComponent<ValotileRenderer>();
-			this.ValotT.InitUI(this.MdT, this.MrdT);
-			this.ValotT.enabled = false;
 			this.Ma = new MdArranger(this.Md);
 			this.Md.chooseSubMesh(1, false, false);
 			this.Md.setMaterial(MTRX.MIicon.getMtr(BLEND.NORMAL, -1), false);
 			this.Md.chooseSubMesh(0, false, false);
 			this.Md.connectRendererToTriMulti(this.Mrd);
-			this.Tx = IN.CreateGob(this.Mrd.gameObject, "-Tx").AddComponent<NelEvTextRenderer>();
+			this.Tx = IN.CreateGob(this.Mrd.gameObject, "-Tx").AddComponent<NelTextRendererSLine>();
 			this.TxB = IN.CreateGob(this.Mrd.gameObject, "-TxB").AddComponent<TextRenderer>();
 			this.Tx.html_mode = (this.TxB.html_mode = true);
 			this.Tx.max_swidth_px = UiQuestTrackerRow.rw - 60f;
 			this.Tx.aligny = ALIGNY.MIDDLE;
-			this.TxB.max_swidth_px = UiQuestTrackerRow.rw - 40f - 68f;
-			this.TxB.alignx = ALIGN.CENTER;
+			this.TxB.max_swidth_px = UiQuestTrackerRow.rw - 28f;
+			this.TxB.alignx = ALIGN.RIGHT;
 			this.Tx.auto_wrap = (this.TxB.auto_wrap = true);
 			this.Tx.auto_condense = (this.TxB.auto_condense = true);
 			IN.setZ(this.Tx.transform, -0.05f);
 			IN.setZ(this.TxB.transform, -0.05f);
 			this.Tx.MakeValot(null, null);
 			this.TxB.MakeValot(null, null);
-			this.Tx.Aline_ver_pos = new List<int>(4);
 			this.Tx.initNelMsg(this);
 			this.Tx.Size(16f).Col(MTRX.ColWhite).BorderCol(MTRX.ColBlack);
 			this.TxB.Col(MTRX.ColWhite).BorderCol(MTRX.ColBlack);
@@ -62,15 +58,18 @@ namespace nel
 			{
 				return;
 			}
-			this.TxClc = IN.CreateGob(this.Mrd.gameObject, "-TxClc").AddComponent<TextRenderer>();
+			this.TxClc = IN.CreateGob(this.Mrd.gameObject, "-TxClc").AddComponent<NelTextRendererSLine>();
+			this.TxClc.initNelMsg(this);
 			this.TxClcCnt = IN.CreateGob(this.Mrd.gameObject, "-TxClcCnt").AddComponent<TextRenderer>();
 			this.TxClc.auto_condense = true;
-			this.TxClc.line_spacing = (this.TxClcCnt.line_spacing = 0.9f);
+			this.TxClc.html_mode = true;
+			this.TxClc.line_spacing = (this.TxClcCnt.line_spacing = 1.06f);
 			this.TxClc.Size(13f).Col(MTRX.ColWhite).Align(ALIGN.LEFT)
 				.BorderCol(MTRX.ColBlack);
 			this.TxClc.max_swidth_px = UiQuestTrackerRow.rw - 76f;
 			this.TxClcCnt.Size(13f).Col(MTRX.ColWhite).Align(ALIGN.RIGHT)
 				.BorderCol(MTRX.ColBlack);
+			this.TxClcCnt.html_mode = true;
 			this.TxClc.MakeValot(null, null);
 			this.TxClcCnt.MakeValot(null, null);
 			this.TxClc.use_valotile = (this.TxClcCnt.use_valotile = this.Tx.use_valotile);
@@ -93,7 +92,6 @@ namespace nel
 		public void initialize(ref UiQuestTracker.TrackTask Trk)
 		{
 			this.Md.clear(false, false);
-			this.MdT.clear(false, false);
 			this.enabled = true;
 			Trk.TargetRow = this;
 			this.Prog = Trk.Prog;
@@ -115,12 +113,13 @@ namespace nel
 			}
 			this.TxB.alpha = 0f;
 			FontStorage fontStorage = MTRX.OFontStorage[TX.getDefaultFont()];
-			this.TxB.Size(fontStorage.defaultRendererSize * (X.ENG_MODE ? 0.8f : 1f));
+			this.TxB.Size(fontStorage.defaultRendererSize * (X.ENG_MODE ? 0.66f : 0.8f));
 			this.need_fine_text_pos = true;
 			this.sound_bits = 0U;
 			this.reserveText(this.Task.sphase, this.Task.type != QuestTracker.INVISIBLE.START, this.Task.type == QuestTracker.INVISIBLE.START);
 			float num = 0f;
 			this.fineRectHeight(ref num, true);
+			this.Tx.syasen_maxt = 0f;
 			this.need_fine_pos = true;
 		}
 
@@ -133,7 +132,7 @@ namespace nel
 			set
 			{
 				this.Gob.SetActive(value);
-				this.Valot.enabled = (this.ValotT.enabled = value && this.Con.use_valotile);
+				this.Valot.enabled = value && this.Con.use_valotile;
 				this.Tx.use_valotile = value && this.Con.use_valotile;
 				this.TxB.use_valotile = value && this.Con.use_valotile;
 				if (this.TxClc != null)
@@ -152,9 +151,7 @@ namespace nel
 			}
 			set
 			{
-				Behaviour valot = this.Valot;
-				this.ValotT.enabled = value;
-				valot.enabled = value;
+				this.Valot.enabled = value;
 				this.Tx.use_valotile = value;
 				this.TxB.use_valotile = value;
 				if (this.TxClc != null)
@@ -212,6 +209,8 @@ namespace nel
 				phase++;
 				stb.Ret("\n");
 			}
+			this.Tx.syasen_maxt = 0f;
+			this.Tx.syasen_after_delay = 4f;
 			this.Tx.forceProgressNextStack(stb);
 			TX.ReleaseBld(stb);
 			this.fineDepRectHeight();
@@ -221,16 +220,22 @@ namespace nel
 			}
 		}
 
-		public bool updateTask(UiQuestTracker.TrackTask _Task)
+		public bool updateTask(UiQuestTracker.TrackTask _Task, uint written_row_bits_for_task = 0U)
 		{
-			if (this.Task.type != _Task.type && this.state != UiQuestTrackerRow.STATE.PREPARING)
+			if (this.Task.type != _Task.type && this.state != UiQuestTrackerRow.STATE.PREPARING && (this.state != UiQuestTrackerRow.STATE.CHECK_COLLECT || (_Task.type != QuestTracker.INVISIBLE.UPDATE && _Task.type != QuestTracker.INVISIBLE.COLLECT)))
 			{
 				this.Con.deactivateRow(this, false);
 				return false;
 			}
 			int sphase = this.Task.sphase;
+			uint written_row_bits = this.Task.written_row_bits;
 			this.Task = _Task;
 			this.Task.sphase = X.Mx(sphase, this.Task.sphase);
+			this.Task.written_row_bits = this.Task.written_row_bits | (written_row_bits_for_task | written_row_bits);
+			if (this.state == UiQuestTrackerRow.STATE.CHECK_COLLECT)
+			{
+				this.t_state = 0f;
+			}
 			return true;
 		}
 
@@ -238,11 +243,18 @@ namespace nel
 		{
 			if (this.t >= 0f)
 			{
+				UiQuestTrackerRow.STATE state = this.state;
 				this.state = _state;
 				this.t_state = 0f;
+				if (this.state == UiQuestTrackerRow.STATE.CHECK_COLLECT)
+				{
+					this.createCollectItemField();
+				}
 				if (this.state == UiQuestTrackerRow.STATE.DRAW_LINE)
 				{
-					SND.Ui.play("quest_track_quit", false);
+					this.Tx.syasen_startt = 10f;
+					this.Tx.syasen_maxt = (float)X.Mx(this.Tx.countLines() * 20, 35);
+					this.Tx.syasen_after_delay = 40f;
 				}
 				if (this.state == UiQuestTrackerRow.STATE.DRAW_LINE_FINISHED)
 				{
@@ -310,11 +322,15 @@ namespace nel
 				if (flag2)
 				{
 					this.Tx.run((float)((int)fcnt), false);
+					if (this.TxClc != null)
+					{
+						this.TxClc.run((float)((int)fcnt), false);
+					}
 				}
 				flag = true;
 				if (this.state == UiQuestTrackerRow.STATE.PREPARING)
 				{
-					if (this.Task.type == QuestTracker.INVISIBLE.COLLECT)
+					if (this.Task.type == QuestTracker.INVISIBLE.COLLECT || this.Task.type == QuestTracker.INVISIBLE.UPDATE)
 					{
 						if (this.t_state < 18f)
 						{
@@ -325,10 +341,8 @@ namespace nel
 							this.tx_y_level = 0f;
 							if (flag2)
 							{
-								bool flag4;
-								if (this.Prog.Q.getCollectTarget(this.Task.sphase, out flag4) != null)
+								if (this.Prog.Q.hasCollect(this.Task.sphase))
 								{
-									this.createCollectItemField();
 									this.changeState(UiQuestTrackerRow.STATE.CHECK_COLLECT);
 								}
 								else
@@ -357,15 +371,7 @@ namespace nel
 					if (this.t_state >= 0f)
 					{
 						flag = false;
-						while (this.Task.sphase < this.Task.dphase)
-						{
-							if (this.Task.Q.getDescription(this.Task.sphase) != this.Task.Q.getDescription(this.Task.sphase + 1))
-							{
-								this.changeState((this.Prog.Q.smooth_to_next_phase(this.Task.sphase) && this.Task.dphase < this.Task.Q.end_phase) ? UiQuestTrackerRow.STATE.GO_NEXT_SMOOTH : UiQuestTrackerRow.STATE.DRAW_LINE);
-								break;
-							}
-							this.Task.sphase = this.Task.sphase + 1;
-						}
+						this.checkProgressPhase();
 						if (this.Task.sphase == this.Task.dphase)
 						{
 							flag = flag2;
@@ -385,7 +391,10 @@ namespace nel
 				}
 				else if (this.state == UiQuestTrackerRow.STATE.DRAW_LINE)
 				{
-					this.need_fine_after_mesh = true;
+					if (this.Tx.syasen_drawn)
+					{
+						this.changeState(UiQuestTrackerRow.STATE.DRAW_LINE_AFTER);
+					}
 				}
 				else if (this.state == UiQuestTrackerRow.STATE.DRAW_LINE_AFTER)
 				{
@@ -407,6 +416,11 @@ namespace nel
 						if (this.state == UiQuestTrackerRow.STATE.DRAW_LINE_AFTER)
 						{
 							this.tx_y_level = X.ZSIN(this.t_state, 40f);
+							if (this.TxClc != null)
+							{
+								this.TxClc.alpha = 1f - this.tx_y_level;
+								this.TxClcCnt.alpha = 1f - this.tx_y_level;
+							}
 							if (this.tx_y_level >= 1f)
 							{
 								this.changeState(UiQuestTrackerRow.STATE.PREPARING);
@@ -437,35 +451,86 @@ namespace nel
 					flag = flag2 || this.t_state < 170f;
 					if (this.t_state == 0f)
 					{
-						bool flag5;
-						NelItemEntry[] collectTarget = this.Prog.Q.getCollectTarget(this.Task.sphase, out flag5);
+						bool flag4;
+						NelItemEntry[] collectTarget = this.Prog.Q.getCollectTarget(this.Task.sphase, out flag4);
 						if (collectTarget != null)
 						{
 							ushort[] collectedCount = this.Prog.getCollectedCount(this.Task.sphase);
 							int num2 = collectTarget.Length;
-							using (STB stb = TX.PopBld(null, 0))
+							using (STB stb = TX.PopBld("<s0><m0>", 0))
 							{
 								using (STB stb2 = TX.PopBld(null, 0))
 								{
+									uint num3 = 0U;
+									uint num4 = 0U;
 									for (int i = 0; i < num2; i++)
 									{
 										NelItemEntry nelItemEntry = collectTarget[i];
-										int num3 = (int)((collectedCount != null && X.BTW(0f, (float)i, (float)collectedCount.Length)) ? collectedCount[i] : 0);
+										int num5 = (int)((collectedCount != null && X.BTW(0f, (float)i, (float)collectedCount.Length)) ? collectedCount[i] : 0);
 										if (i > 0)
 										{
 											stb.Add("\n");
 											stb2.Add("\n");
 										}
-										stb.Add(nelItemEntry.getLocalizedName(1, -1, false));
-										stb2.Add("", num3, "/").Add(nelItemEntry.count);
+										nelItemEntry.getLocalizedName(stb, 1, -1, false);
+										stb2.Add("", num5, "/").Add(nelItemEntry.count);
+										if (num5 >= nelItemEntry.count)
+										{
+											if ((this.Task.written_row_bits & (1U << i)) == 0U)
+											{
+												num4 |= 1U << i;
+											}
+										}
+										else
+										{
+											num3 |= 1U << i;
+										}
 									}
-									this.TxClc.Txt(stb);
-									this.TxClcCnt.Txt(stb2);
+									this.initializeClcTx(num3, num4, num2, stb, stb2);
 								}
 							}
 						}
+						QuestTracker.SummonerEntry[] summonerEntryTarget = this.Prog.Q.getSummonerEntryTarget(this.Task.sphase);
+						if (summonerEntryTarget != null)
+						{
+							ushort[] collectedCount2 = this.Prog.getCollectedCount(this.Task.sphase);
+							int num6 = summonerEntryTarget.Length;
+							using (STB stb3 = TX.PopBld("<s0><m0>", 0))
+							{
+								uint num7 = 0U;
+								uint num8 = 0U;
+								for (int j = 0; j < num6; j++)
+								{
+									if (j > 0)
+									{
+										stb3.Add("\n");
+									}
+									int num9 = (int)((collectedCount2 != null && X.BTW(0f, (float)j, (float)collectedCount2.Length)) ? collectedCount2[j] : 0);
+									stb3.AddTxA("Summoner_" + summonerEntryTarget[j].summoner_key, false);
+									if (num9 > 0)
+									{
+										if ((this.Task.written_row_bits & (1U << j)) == 0U)
+										{
+											num8 |= 1U << j;
+										}
+									}
+									else
+									{
+										num7 |= 1U << j;
+									}
+								}
+								this.initializeClcTx(num7, num8, num6, stb3, null);
+							}
+						}
 					}
-					if (this.t_state >= 145.20001f && flag2)
+					if (this.Task.sphase < this.Task.dphase)
+					{
+						if (this.TxClc.syasen_drawn && !this.checkProgressPhase())
+						{
+							this.changeState(UiQuestTrackerRow.STATE.UPDATE_CHECK);
+						}
+					}
+					else if (this.t_state >= 145.20001f && flag2)
 					{
 						this.Con.deactivateRow(this, false);
 					}
@@ -539,8 +604,8 @@ namespace nel
 					this.t_state += fcnt;
 				}
 			}
-			float num4 = 4f;
-			this.fineRectHeight(ref num4, false);
+			float num10 = 4f;
+			this.fineRectHeight(ref num10, false);
 			if (this.need_fine_base_mesh)
 			{
 				this.makeBgMesh();
@@ -558,11 +623,6 @@ namespace nel
 				this.Md.updateForMeshRenderer(true);
 				this.need_update_mesh = false;
 			}
-			if (this.need_fine_after_mesh)
-			{
-				this.makeMeshAfter();
-				this.MdT.updateForMeshRenderer(true);
-			}
 			if (this.need_fine_pos || this.Con.need_fine_item_pos)
 			{
 				this.need_fine_pos = false;
@@ -574,7 +634,7 @@ namespace nel
 				}
 				else
 				{
-					vector.y = X.VALWALK(vector.y, itemY * 0.015625f, num4 * 0.015625f);
+					vector.y = X.VALWALK(vector.y, itemY * 0.015625f, num10 * 0.015625f);
 					if (X.Abs(itemY - vector.y * 64f) >= 1.5f)
 					{
 						this.need_fine_pos = true;
@@ -591,6 +651,38 @@ namespace nel
 				this.Mrd.transform.localPosition = vector;
 			}
 			return true;
+		}
+
+		private void initializeClcTx(uint disable_line_bits, uint immediate_line_bits, int maxitm, STB StbClc, STB StbClcCnt)
+		{
+			this.TxClc.alpha = 1f;
+			this.TxClcCnt.alpha = 1f;
+			this.TxClc.syasen_maxt = (float)(14 * maxitm);
+			this.TxClc.syasen_startt = 4f;
+			this.TxClc.syasen_after_delay = 20f;
+			this.TxClc.forceProgressNextStack(StbClc);
+			this.TxClc.disable_line_bits = disable_line_bits;
+			this.TxClc.immediate_line_bits = immediate_line_bits;
+			if (StbClcCnt != null)
+			{
+				this.TxClcCnt.Txt(StbClcCnt);
+				return;
+			}
+			this.TxClcCnt.Txt("");
+		}
+
+		private bool checkProgressPhase()
+		{
+			while (this.Task.sphase < this.Task.dphase)
+			{
+				if (this.Task.Q.getDescription(this.Task.sphase) != this.Task.Q.getDescription(this.Task.sphase + 1))
+				{
+					this.changeState((this.Prog.Q.smooth_to_next_phase(this.Task.sphase) && this.Task.dphase < this.Task.Q.end_phase) ? UiQuestTrackerRow.STATE.GO_NEXT_SMOOTH : UiQuestTrackerRow.STATE.DRAW_LINE);
+					return true;
+				}
+				this.Task.sphase = this.Task.sphase + 1;
+			}
+			return false;
 		}
 
 		public void makeBgMesh()
@@ -679,55 +771,6 @@ namespace nel
 			return (num + num2) * 0.5f;
 		}
 
-		public void makeMeshAfter()
-		{
-			this.need_fine_after_mesh = false;
-			MeshDrawer meshDrawer = this.MdT.clear(false, false);
-			if (this.isDrawLineState())
-			{
-				Vector3 localPosition = this.Tx.transform.localPosition;
-				meshDrawer.base_x = localPosition.x;
-				meshDrawer.base_y = localPosition.y;
-				meshDrawer.Col = C32.MulA(MTRX.ColWhite, X.ZSIN2(this.Tx.alpha));
-				List<int> aline_ver_pos = this.Tx.Aline_ver_pos;
-				int count = aline_ver_pos.Count;
-				if (count >= 2)
-				{
-					Vector3[] vertexArray = this.Tx.getMeshDrawer().getVertexArray();
-					int num = aline_ver_pos[0];
-					float num2 = UiQuestTrackerRow.VerticeX(vertexArray, num);
-					float num3 = this.Tx.get_sheight_px() * 0.5f - this.Tx.get_line_sheight_px(false) * 0.5f;
-					int num4 = count - 1;
-					float num5 = ((this.state == UiQuestTrackerRow.STATE.DRAW_LINE) ? this.t_state : ((float)num4 * 18f * 2f));
-					for (int i = 1; i < count; i++)
-					{
-						num = aline_ver_pos[i];
-						float num6 = UiQuestTrackerRow.VerticeX(vertexArray, num - 2);
-						float num7 = num5 / 18f;
-						if (num7 <= 0f)
-						{
-							num5 = -1f;
-							break;
-						}
-						if (num2 != num6)
-						{
-							meshDrawer.Line(num2 * 64f, num3, X.NIL(num2, num6, num7, 1f) * 64f, num3, 2f, false, 0f, 0f);
-							num5 -= 18f;
-						}
-						if (i < count - 1)
-						{
-							num2 = UiQuestTrackerRow.VerticeX(vertexArray, num);
-						}
-						num3 -= this.Tx.get_line_sheight_px(false);
-					}
-					if (num5 >= 0f && this.state == UiQuestTrackerRow.STATE.DRAW_LINE)
-					{
-						this.changeState(UiQuestTrackerRow.STATE.DRAW_LINE_AFTER);
-					}
-				}
-			}
-		}
-
 		public void makeMeshBottom()
 		{
 			this.need_fine_bottom_mesh = false;
@@ -790,7 +833,6 @@ namespace nel
 			IN.PosP2(this.Tx.transform, -UiQuestTrackerRow.rw * 0.5f + 30f, num);
 			if (this.isDrawLineState())
 			{
-				this.need_fine_after_mesh = true;
 				this.need_fine_bottom_mesh = true;
 			}
 		}
@@ -815,7 +857,7 @@ namespace nel
 				}
 				if (this.t_state < 60f || (this.state != UiQuestTrackerRow.STATE.CHECK_CURRENT_PHASE && this.state != UiQuestTrackerRow.STATE.CHECK_CURRENT_POS))
 				{
-					this.need_fine_after_mesh = (this.need_fine_bottom_mesh = true);
+					this.need_fine_bottom_mesh = true;
 				}
 			}
 		}
@@ -845,7 +887,7 @@ namespace nel
 					return;
 				}
 				this.rh_ = value;
-				IN.PosP2(this.TxB.transform, 34f, -this.rh * 0.5f + 36f);
+				IN.PosP2(this.TxB.transform, UiQuestTrackerRow.rwh - 22f, -this.rh * 0.5f + 36f);
 				this.need_fine_pos = true;
 			}
 		}
@@ -922,7 +964,7 @@ namespace nel
 			return this.t >= 0f;
 		}
 
-		public void executeRestMsgCmd()
+		public void executeRestMsgCmd(int count)
 		{
 		}
 
@@ -987,7 +1029,6 @@ namespace nel
 		public void destruct()
 		{
 			this.Md.destruct();
-			this.MdT.destruct();
 		}
 
 		private UiQuestTracker Con;
@@ -1008,8 +1049,6 @@ namespace nel
 
 		private bool need_fine_text_pos;
 
-		private bool need_fine_after_mesh;
-
 		private bool need_fine_bottom_mesh;
 
 		private uint sound_bits;
@@ -1024,25 +1063,19 @@ namespace nel
 
 		private MeshDrawer Md;
 
-		private MeshDrawer MdT;
-
 		private GameObject Gob;
 
 		private ValotileRenderer Valot;
-
-		private ValotileRenderer ValotT;
 
 		private MdArranger Ma;
 
 		private MeshRenderer Mrd;
 
-		private MeshRenderer MrdT;
-
-		private NelEvTextRenderer Tx;
+		private NelTextRendererSLine Tx;
 
 		private TextRenderer TxB;
 
-		private TextRenderer TxClc;
+		private NelTextRendererSLine TxClc;
 
 		private TextRenderer TxClcCnt;
 

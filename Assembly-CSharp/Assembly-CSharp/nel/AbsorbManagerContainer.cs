@@ -141,7 +141,7 @@ namespace nel
 			{
 				if (first)
 				{
-					this.current_pose_priority_ = 0;
+					this.current_pose_priority_ = -1;
 				}
 				return absorbManager4;
 			}
@@ -209,9 +209,9 @@ namespace nel
 			this.kirimomi_release_dir = -1;
 			this.no_error_on_miss_input = false;
 			this.use_torture_ = 0;
-			this.cannot_move_ = (this.mouth_is_covered_ = 0);
+			this.cannot_move_ = (this.mouth_is_covered_ = (this.no_wall_hit_ignore_on_torture_ = 0));
 			this.no_ser_burned_effect_ = 0;
-			this.current_pose_priority_ = 0;
+			this.current_pose_priority_ = -1;
 			this.no_clamp_speed_ = (this.no_shuffleframe_on_applydamage_ = (this.no_shuffle_aim_ = (this.cannot_apply_mist_damage_ = 0)));
 			this.total_weight_ = 0f;
 			this.emstate_attach_ = UIPictureBase.EMSTATE.NORMAL;
@@ -222,7 +222,7 @@ namespace nel
 			this.gacha_inputted_t = -2f;
 			this.uipicture_fade_key_ = null;
 			this.ev_assign = false;
-			this.no_change_release_in_dead = false;
+			this.no_change_release_in_dead = (this.need_fine_torture_after = false);
 			this.FlgCamZoom.Clear();
 			this.OMoveReserve.Clear();
 			this.need_fine_gacha_effect = true;
@@ -317,6 +317,10 @@ namespace nel
 		{
 			Bench.P("runAbsorb");
 			bool flag = this.runAbsorbPrInner(_Target, t, fcnt);
+			if (!flag)
+			{
+				_Target.getAnimator().torture_by_invisible_enemy = false;
+			}
 			Bench.Pend("runAbsorb");
 			return flag;
 		}
@@ -362,7 +366,10 @@ namespace nel
 			}
 			int num = 0;
 			int num2 = this.current_pose_priority_;
+			int num3 = num2;
+			int num4 = 0;
 			string text = null;
+			bool flag = false;
 			for (int i = 0; i < this.LEN; i++)
 			{
 				AbsorbManager absorbManager2 = this.AItems[i];
@@ -375,6 +382,10 @@ namespace nel
 				}
 				else
 				{
+					if (!flag && absorbManager2.isTortureUsing())
+					{
+						flag = true;
+					}
 					this.release_type |= (absorbManager2.kirimomi_release ? AbsorbManagerContainer.RELEASE_TYPE.KIRIMOMI : AbsorbManagerContainer.RELEASE_TYPE.NORMAL);
 					string text2 = Bench.P(absorbManager2.getPublishMover().key);
 					absorbManager2.fineFirstPos(absorbManager).run(fcnt);
@@ -382,6 +393,7 @@ namespace nel
 					{
 						absorbManager = absorbManager2;
 					}
+					num4 = X.Mx(absorbManager2.pose_priority, num4);
 					if (num2 < 99)
 					{
 						if (absorbManager2.isTortureUsing())
@@ -407,13 +419,25 @@ namespace nel
 					Bench.Pend(text2);
 				}
 			}
+			if (text == null && num2 < 0)
+			{
+				num2 = X.Mn(num4, 10);
+			}
 			if (this.fine_breath_key)
 			{
 				this.fine_breath_key = false;
 				if (this.MvPr is PR)
 				{
-					(this.MvPr as PR).EpCon.breath_key = this.breath_key;
+					(this.MvPr as PR).VO.breath_key = this.breath_key;
 				}
+			}
+			if (this.need_fine_torture_after)
+			{
+				if (!flag)
+				{
+					_Target.getAnimator().torture_by_invisible_enemy = false;
+				}
+				this.need_fine_torture_after = false;
 			}
 			if (this.gacha_active_count)
 			{
@@ -431,9 +455,9 @@ namespace nel
 				}
 				else if (this.timeout > 0 && this.gacha_inputted_t >= 0f)
 				{
-					float num3 = this.gacha_inputted_t;
-					this.gacha_inputted_t = num3 + 1f;
-					if (num3 >= (float)this.timeout)
+					float num5 = this.gacha_inputted_t;
+					this.gacha_inputted_t = num5 + 1f;
+					if (num5 >= (float)this.timeout)
 					{
 						for (int k = 0; k < this.LEN; k++)
 						{
@@ -447,15 +471,18 @@ namespace nel
 			{
 				this.gacha_inputted_t = -2f;
 			}
-			if (text != null)
+			if (num3 < num2)
 			{
-				this.current_pose_priority_ = X.Mx(this.current_pose_priority_, num2);
 				if (this.MvPr != null)
 				{
-					this.MvPr.setAbsorbAnimation(text);
+					if (this.MvPr.setAbsorbAnimation(text, num2 == 0, num2 >= 20))
+					{
+						this.current_pose_priority_ = X.Mx(this.current_pose_priority_, num2);
+					}
 				}
 				else
 				{
+					this.current_pose_priority_ = X.Mx(this.current_pose_priority_, num2);
 					this.Mv.SpSetPose(text, -1, null, false);
 				}
 			}
@@ -464,22 +491,22 @@ namespace nel
 				this.need_fine_gacha_release = false;
 				if (this.CbGachaT != null)
 				{
-					bool flag = true;
-					bool flag2 = false;
+					bool flag2 = true;
+					bool flag3 = false;
 					for (int l = 0; l < this.LEN; l++)
 					{
 						AbsorbManager absorbManager3 = this.AItems[l];
 						if (absorbManager3.get_Gacha().isUseable())
 						{
-							flag2 = true;
+							flag3 = true;
 							if (!absorbManager3.gacha_releaseable)
 							{
-								flag = false;
+								flag2 = false;
 								break;
 							}
 						}
 					}
-					if (flag && flag2)
+					if (flag2 && flag3)
 					{
 						for (int m = this.LEN - 1; m >= 0; m--)
 						{
@@ -556,18 +583,30 @@ namespace nel
 			}
 			if (this.Mv.vx != 0f || this.Mv.vy != 0f)
 			{
+				bool flag = false;
 				for (int i = 0; i < this.LEN; i++)
 				{
 					AbsorbManager absorbManager = this.AItems[i];
-					if (!absorbManager.isTortureUsing())
+					if (absorbManager.isTortureUsing())
+					{
+						flag = true;
+					}
+					else
 					{
 						absorbManager.translateTarget(absorbManager.getTargetMover() as NelM2Attacker, this.Mv.vx, this.Mv.vy);
 					}
 				}
 				M2Phys physic = this.Mv.getPhysic();
-				if (physic != null && !this.no_clamp_speed)
+				if (physic != null)
 				{
-					physic.clampSpeed(FOCTYPE.HIT, X.Abs(this.Mv.vx) * 0.6f, (this.Mv.vy < 0f) ? (X.Abs(this.Mv.vy) * 0.6f) : (physic.ySpeedMax * 0.4f), 0.02f);
+					if (!this.no_clamp_speed)
+					{
+						physic.clampSpeed(FOCTYPE.HIT, X.Abs(this.Mv.vx) * 0.6f, (this.Mv.vy < 0f) ? (X.Abs(this.Mv.vy) * 0.6f) : (physic.ySpeedMax * 0.4f), 0.02f);
+					}
+					if (flag && physic.is_on_ice)
+					{
+						physic.removeOnIce();
+					}
 				}
 			}
 			if (this.EfCamZoom != null)
@@ -665,12 +704,12 @@ namespace nel
 			this.OMoveReserve.Remove(Mv);
 		}
 
-		public bool CorruptGacha(float level)
+		public bool CorruptGacha(float level, bool use_limit = true)
 		{
 			bool flag = false;
 			for (int i = 0; i < this.LEN; i++)
 			{
-				flag = this.AItems[i].get_Gacha().CorruptGacha(level) || flag;
+				flag = this.AItems[i].get_Gacha().CorruptGacha(level, use_limit) || flag;
 			}
 			return flag;
 		}
@@ -697,6 +736,7 @@ namespace nel
 			{
 				orPop.target_pose = null;
 				orPop.Listener = Lsn;
+				orPop.pose_priority = 1;
 				this.ASpEvent.Add(Lsn);
 				PrGachaItem gacha = orPop.get_Gacha();
 				if (!do_not_fix_by_difficulty)
@@ -794,7 +834,7 @@ namespace nel
 				{
 					this.ev_assign = true;
 					gacha.activate(type, num, 63U);
-					if (rER.clength > 3)
+					if (TX.valid(rER._3))
 					{
 						Vector4 vector;
 						if (!TalkDrawer.getDefinedPosition(rER._3, out vector))
@@ -1002,6 +1042,35 @@ namespace nel
 			}
 		}
 
+		public bool no_wall_hit_ignore_on_torture
+		{
+			get
+			{
+				if (this.no_wall_hit_ignore_on_torture_ == 2)
+				{
+					this.no_wall_hit_ignore_on_torture_ = 0;
+					for (int i = 0; i < this.LEN; i++)
+					{
+						if (this.AItems[i].no_wall_hit_ignore_on_torture)
+						{
+							this.no_wall_hit_ignore_on_torture_ = 1;
+							break;
+						}
+					}
+				}
+				return this.no_wall_hit_ignore_on_torture_ > 0;
+			}
+			set
+			{
+				if (!value)
+				{
+					this.no_wall_hit_ignore_on_torture_ = 2;
+					return;
+				}
+				this.no_wall_hit_ignore_on_torture_ = 1;
+			}
+		}
+
 		public bool no_clamp_speed
 		{
 			get
@@ -1192,7 +1261,7 @@ namespace nel
 		{
 			get
 			{
-				if (this.emstate_attach_ < UIPictureBase.EMSTATE.NORMAL)
+				if ((this.emstate_attach_ & UIPictureBase.EMSTATE._ALL) == UIPictureBase.EMSTATE._ALL)
 				{
 					this.emstate_attach_ = UIPictureBase.EMSTATE.NORMAL;
 					for (int i = 0; i < this.LEN; i++)
@@ -1205,9 +1274,9 @@ namespace nel
 			}
 			set
 			{
-				if (value < UIPictureBase.EMSTATE.NORMAL)
+				if (value == UIPictureBase.EMSTATE._ALL)
 				{
-					this.emstate_attach_ = value;
+					this.emstate_attach_ = UIPictureBase.EMSTATE._ALL;
 				}
 			}
 		}
@@ -1323,6 +1392,18 @@ namespace nel
 			}
 		}
 
+		public bool isActiveEnemy()
+		{
+			for (int i = 0; i < this.LEN; i++)
+			{
+				if (this.AItems[i].getPublishMover() is NelEnemy)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public int current_pose_priority
 		{
 			get
@@ -1331,7 +1412,7 @@ namespace nel
 				{
 					return 0;
 				}
-				if (this.current_pose_priority_ < 0)
+				if (this.current_pose_priority_ < -1)
 				{
 					return 99;
 				}
@@ -1353,7 +1434,7 @@ namespace nel
 
 		public void finePosePriority(int p)
 		{
-			if (this.current_pose_priority_ > 0 && p >= this.current_pose_priority_)
+			if (this.current_pose_priority_ >= 0 && p >= this.current_pose_priority_)
 			{
 				this.current_pose_priority_ = -1;
 			}
@@ -1443,6 +1524,8 @@ namespace nel
 
 		private byte no_shuffle_aim_ = 2;
 
+		private byte no_wall_hit_ignore_on_torture_ = 2;
+
 		private byte cannot_apply_mist_damage_ = 2;
 
 		public bool no_change_release_in_dead;
@@ -1469,7 +1552,9 @@ namespace nel
 
 		private int kirimomi_release_dir_last_ = -1;
 
-		private int current_pose_priority_;
+		private int current_pose_priority_ = -1;
+
+		public bool need_fine_torture_after;
 
 		public const int POSEPRI_TORTURE = 99;
 
@@ -1477,9 +1562,13 @@ namespace nel
 
 		public const int POSEPRI_VORE = 40;
 
+		public const int POSEPRI_FROZEN_REPLACABLE = 20;
+
 		public const int POSEPRI_BIG = 20;
 
-		public const int POSEPRI_NORMAL = 1;
+		public const int POSEPRI_MANUAL = 1;
+
+		public const int POSEPRI_DEFAULT_POSE = 0;
 
 		public bool ev_assign;
 

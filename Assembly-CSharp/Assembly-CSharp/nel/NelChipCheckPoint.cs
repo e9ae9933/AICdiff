@@ -59,7 +59,7 @@ namespace nel
 						return false;
 					}
 					M2BlockColliderContainer.BCCLine bccline;
-					this.Mp.BCC.isFallable(this.mapcx, this.mbottom, 0.5f, 1f, out bccline, true, true, -1f);
+					this.Mp.BCC.isFallable(this.mapcx, this.mbottom, 0.5f, 1f, out bccline, true, true, -1f, null);
 					if (bccline == null)
 					{
 						return true;

@@ -376,7 +376,7 @@ namespace XX
 								this.FirstQsBtn = t;
 								if (this.StbQs.Length > 0)
 								{
-									this.FirstQsBtn.Select(false);
+									this.FirstQsBtn.Select(true);
 								}
 							}
 						}

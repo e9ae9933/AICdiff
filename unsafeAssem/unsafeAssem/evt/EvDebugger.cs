@@ -302,7 +302,7 @@ namespace evt
 		{
 			if (this.first_activate == 2 || this.first_activate == 3)
 			{
-				if (EV.isLoading(false))
+				if (EV.isLoading())
 				{
 					return true;
 				}
@@ -499,7 +499,7 @@ namespace evt
 				num = this.Operson_pose[this.Person.key];
 			}
 			num = (this.Operson_pose[this.Person.key] = X.MMX(0, num, count - 1));
-			for (int i = count - 1; i >= 0; i--)
+			for (int i = 0; i < count; i++)
 			{
 				EvEmotVisibility evEmotVisibility = poseList[i];
 				if (!evEmotVisibility.dont_appear_on_editor)

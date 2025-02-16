@@ -23,33 +23,25 @@ namespace XX
 			}
 			if (tab_h <= 0f)
 			{
-				tab_h = ColumnRow.tab_h;
+				tab_h = 28f;
 			}
-			if (ColumnRow.DsnLr == null)
+			TabLRSlider tabLRSlider = new TabLRSlider(Ds, use_w, tab_h, use_scroll)
 			{
-				ColumnRow.DsnLr = new DsnDataP("", false)
-				{
-					html = true,
-					size = 14f,
-					swidth = 30f,
-					aligny = ALIGNY.MIDDLE
-				};
-			}
-			ColumnRow.DsnLr.sheight = tab_h - (use_scroll ? 6.6000004f : 0f);
-			DsnDataP dsnDataP = ColumnRow.DsnLr.Text("<key ltab/>");
-			int num = ((Akeys != null) ? Akeys.Length : 0);
-			FillBlock fillBlock = Ds.addP(dsnDataP, false);
-			float num2 = (float)((int)(use_w - 60f - 8f - Ds.item_margin_x_px * 2f));
+				click_snd = ""
+			};
+			tabLRSlider.setL();
+			float num = tabLRSlider.between_bounds_w - 8f;
+			int num2 = ((Akeys != null) ? Akeys.Length : 0);
 			float num3 = tab_h;
 			Designer designer = null;
 			BtnContainer<aBtn>.FnBtnMakingBindings fnBtnMakingBindings = null;
 			if (use_scroll)
 			{
-				designer = Ds.addTab(_name, num2, tab_h, num2, tab_h, true);
+				designer = Ds.addTab(_name, num, tab_h, num, tab_h, true);
 				designer.margin_in_lr = (designer.margin_in_tb = 0f);
 				designer.scrolling_margin_in_lr = 6f;
 				designer.scrolling_margin_in_tb = 2f;
-				num2 -= designer.scrolling_margin_in_lr * 2f;
+				num -= designer.scrolling_margin_in_lr * 2f;
 				num3 -= designer.scrolling_margin_in_tb * 2f + 10f + 10f;
 				fnBtnMakingBindings = delegate(BtnContainer<aBtn> BCon, aBtn B)
 				{
@@ -62,10 +54,10 @@ namespace XX
 				name = _name,
 				skin = _skin,
 				def = _def,
-				clms = X.Mx(1, num),
+				clms = X.Mx(1, num2),
 				margin_w = 0,
 				margin_h = 0,
-				w = num2 / (float)X.Mx(1, num),
+				w = num / (float)X.Mx(1, num2),
 				h = num3,
 				keys = Akeys,
 				navi_loop = 1,
@@ -82,6 +74,8 @@ namespace XX
 				dsnDataRadio.unselectable = 2;
 			}
 			ColumnRow columnRow = Ds.addRadioT<T>(dsnDataRadio) as ColumnRow;
+			columnRow.LRS = tabLRSlider;
+			tabLRSlider.FD_slided = new Func<int, bool>(columnRow.fnSlided);
 			for (int i = columnRow.Length - 1; i >= 0; i--)
 			{
 				columnRow.Get(i).click_snd = "tool_hand_init";
@@ -91,11 +85,9 @@ namespace XX
 			{
 				Ds.endTab(true);
 			}
-			FillBlock fillBlock2 = Ds.addP(dsnDataP.Text("<key rtab/>"), false);
+			tabLRSlider.setR();
 			columnRow.ParentTab = Ds;
 			columnRow.ParentScrollTab = (use_scroll ? designer : Ds);
-			columnRow.PLeft = fillBlock;
-			columnRow.PRight = fillBlock2;
 			columnRow.lr_input = true;
 			Ds.Br();
 			return columnRow;
@@ -108,7 +100,7 @@ namespace XX
 			return this;
 		}
 
-		public ColumnRow initOneBtnClmn(ColumnRow.FnOneBtnClmn Fn)
+		public ColumnRow initOneBtnClmn(ColumnRow.FnOneBtnClmn Fn, string[] Atitle_keys)
 		{
 			this.fnOneBtnClmn = Fn;
 			ObjCarrierConBlockBtnContainer<aBtn> objCarrierConBlockBtnContainer = this.getMainCarr() as ObjCarrierConBlockBtnContainer<aBtn>;
@@ -124,10 +116,14 @@ namespace XX
 				{
 					aBtn aBtn = base.Get(i);
 					aBtn.WH(num, num2);
-					aBtn.addClickFn((aBtn _B) => this.runLRInput(1) || true);
+					aBtn.addClickFn((aBtn _B) => this.LRS.runLRInput(1, true) || true);
 					aBtn.unselectable(true);
 					aBtn.gameObject.SetActive(aBtn.isChecked());
 					aBtn.SetChecked(false, true);
+					if (Atitle_keys != null)
+					{
+						aBtn.setSkinTitle(Atitle_keys[i]);
+					}
 				}
 				objCarrierConBlockBtnContainer.resetCalced();
 				objCarrierConBlockBtnContainer.CalcAllBtn(9999f, this.ABtn, length, false);
@@ -137,8 +133,7 @@ namespace XX
 
 		public void setRowMemoryVisible(bool visibility)
 		{
-			this.ParentTab.getDesignerBlockMemory(this.PLeft).active = visibility;
-			this.ParentTab.getDesignerBlockMemory(this.PRight).active = visibility;
+			this.LRS.setVisible(visibility);
 			Designer parentTab = this.ParentTab;
 			IDesignerBlock designerBlock;
 			if (!(this.ParentTab == this.ParentScrollTab))
@@ -157,12 +152,11 @@ namespace XX
 		{
 			get
 			{
-				return this.PLeft.use_valotile;
+				return this.LRS.use_valotile;
 			}
 			set
 			{
-				this.PLeft.use_valotile = value;
-				this.PRight.use_valotile = value;
+				this.LRS.use_valotile = value;
 			}
 		}
 
@@ -172,14 +166,10 @@ namespace XX
 			if (!base.carr_hiding_running)
 			{
 				flag = base.runCarrier(t, _Carr);
-				if (this.lr_input_)
+				if (this.LRS != null && this.LRS.lr_input > 0)
 				{
-					this.runLRInput(-2);
+					this.LRS.runLRInput(-2, false);
 				}
-			}
-			if (X.D)
-			{
-				this.fineAnm(1);
 			}
 			return flag;
 		}
@@ -190,11 +180,16 @@ namespace XX
 			return this;
 		}
 
+		public bool runLRInput(int move = -2, bool manual_mode = false)
+		{
+			return this.LRS.runLRInput(move, manual_mode);
+		}
+
 		public bool lr_input
 		{
 			get
 			{
-				return this.lr_input_;
+				return this.LRS.lr_input > 0;
 			}
 			set
 			{
@@ -202,132 +197,60 @@ namespace XX
 				{
 					return;
 				}
-				this.lr_input_ = value;
-				if (value)
+				this.LRS.lr_input = (value ? 3 : 0);
+			}
+		}
+
+		private bool fnSlided(int move)
+		{
+			int num = (this.Length + base.getValue() + move) % this.Length;
+			bool flag = true;
+			if (this.fnOneBtnClmn != null)
+			{
+				flag = this.fnOneBtnClmn(num);
+				if (flag)
 				{
-					if (this.t_anm > -1024 && this.t_anm != 0)
+					SND.Ui.play(base.Get(num).click_snd, false);
+					this.selected = num;
+					for (int i = 0; i < this.Length; i++)
 					{
-						this.fineAnm(15);
+						aBtn aBtn = base.Get(i);
+						if (i == this.selected)
+						{
+							aBtn.gameObject.SetActive(true);
+							aBtn.SetChecked(false, true);
+							this.selected_key = aBtn.title;
+							if (aBtn.isHovered())
+							{
+								aBtn.OnPointerExit();
+							}
+						}
+						else
+						{
+							aBtn.gameObject.SetActive(false);
+						}
 					}
-					this.t_anm = -1025;
-				}
-			}
-		}
-
-		public void fineAnm(int fcnt)
-		{
-			if (this.t_anm > -1024)
-			{
-				if (this.t_anm > 0)
-				{
-					this.t_anm = X.Mx(this.t_anm - fcnt, 0);
-					this.PRight.transform.localScale = Vector2.one * X.NIL(1f, 2f, (float)this.t_anm, 15f);
-					return;
-				}
-				if (this.t_anm < 0)
-				{
-					this.t_anm = X.Mn(this.t_anm + fcnt, 0);
-					this.PLeft.transform.localScale = Vector2.one * X.NIL(1f, 2f, (float)(-(float)this.t_anm), 15f);
-				}
-			}
-		}
-
-		public bool runLRInput(int move = -2)
-		{
-			if (this.t_anm <= -1024)
-			{
-				this.t_anm++;
-				if (this.t_anm > -1024)
-				{
-					this.t_anm = 0;
 				}
 			}
 			else
 			{
-				if (move <= -2)
-				{
-					move = 0;
-					if (IN.isRTabPD())
-					{
-						move++;
-					}
-					else if (IN.isLTabPD())
-					{
-						move--;
-					}
-				}
-				if (move != 0)
-				{
-					int num = (this.Length + base.getValue() + move) % this.Length;
-					bool flag = true;
-					if (this.fnOneBtnClmn != null)
-					{
-						flag = this.fnOneBtnClmn(num);
-						if (flag)
-						{
-							SND.Ui.play(base.Get(num).click_snd, false);
-							this.selected = num;
-							for (int i = 0; i < this.Length; i++)
-							{
-								aBtn aBtn = base.Get(i);
-								if (i == this.selected)
-								{
-									aBtn.gameObject.SetActive(true);
-									aBtn.SetChecked(false, true);
-									this.selected_key = aBtn.title;
-									if (aBtn.isHovered())
-									{
-										aBtn.OnPointerExit();
-									}
-								}
-								else
-								{
-									aBtn.gameObject.SetActive(false);
-								}
-							}
-						}
-					}
-					else
-					{
-						base.Get(num).ExecuteOnClick();
-					}
-					if (flag)
-					{
-						if (this.t_anm != 0 && this.t_anm > 0 != move > 0)
-						{
-							this.fineAnm(15);
-						}
-						this.t_anm = move * 15;
-						this.fineAnm(0);
-					}
-					IN.clearPushDown(false);
-					return true;
-				}
+				base.Get(num).ExecuteOnClick();
 			}
-			return false;
+			IN.clearPushDown(false);
+			return flag;
 		}
 
+		public const float tab_h = 28f;
+
 		public const float tab_lr_input_width = 30f;
-
-		public static float tab_h = 28f;
-
-		private bool lr_input_;
-
-		public static DsnDataP DsnLr;
-
-		public FillBlock PLeft;
-
-		public FillBlock PRight;
 
 		public Designer ParentTab;
 
 		public Designer ParentScrollTab;
 
-		public const int ANM_MAXT = 15;
-
 		public const int SCROLL_MARGIN_LR = 6;
 
-		public int t_anm;
+		private TabLRSlider LRS;
 
 		private ColumnRow.FnOneBtnClmn fnOneBtnClmn;
 

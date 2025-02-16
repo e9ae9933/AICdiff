@@ -7,16 +7,16 @@ namespace nel
 	public sealed class WMIconCreator
 	{
 		public WMIconCreator(M2LabelPoint _Lp, WMIcon.TYPE type, string sf_key = null)
-			: this(_Lp.Mp, (int)_Lp.mapfocx, (int)_Lp.mapfocy, type, sf_key, null)
+			: this(_Lp.Mp, (int)_Lp.mapfocx, (int)_Lp.mapfocy, type, sf_key, null, 0)
 		{
 		}
 
-		public WMIconCreator(M2Chip _Cp, WMIcon.TYPE type, string sf_key = null, string sppos_key = null)
-			: this(_Cp.Mp, (int)_Cp.mapcx, (int)_Cp.mapcy, type, sf_key, sppos_key)
+		public WMIconCreator(M2Chip _Cp, WMIcon.TYPE type, string sf_key = null, string sppos_key = null, int margin = 0)
+			: this(_Cp.Mp, (int)_Cp.mapcx, (int)_Cp.mapcy, type, sf_key, sppos_key, margin)
 		{
 		}
 
-		public WMIconCreator(Map2d _Mp, int x, int y, WMIcon.TYPE type, string sf_key = null, string sppos_key = null)
+		public WMIconCreator(Map2d _Mp, int x, int y, WMIcon.TYPE type, string sf_key = null, string sppos_key = null, int margin = 0)
 		{
 			this.Mp = _Mp;
 			this.Wm = (this.Mp.M2D as NelM2DBase).WM.GetWholeFor(this.Mp, false);
@@ -25,7 +25,7 @@ namespace nel
 				return;
 			}
 			WholeMapItem.WMItem wmi = this.Wm.GetWmi(this.Mp, null);
-			WholeMapItem.WMSpecialIcon wmspecialIcon = default(WholeMapItem.WMSpecialIcon);
+			WMSpecialIcon wmspecialIcon = default(WMSpecialIcon);
 			Map2d map2d = null;
 			if (wmi == null || wmi.SpecialPos.valid)
 			{
@@ -39,12 +39,12 @@ namespace nel
 					X.de("WMIconCreator::ctor - WM レイヤーを指定しない場合、 Map側Metaに wholemap_pos で WMSpecialIcon を指定しなければなりません", null);
 					return;
 				}
-				WholeMapItem.WMSpecialIcon specialPosition = this.Wm.getSpecialPosition(s);
+				WMSpecialIcon specialPosition = this.Wm.getSpecialPosition(s);
 				if (!specialPosition.valid)
 				{
 					return;
 				}
-				WholeMapItem.WMSpecialIcon specialPosition2 = this.Wm.getSpecialPosition(specialPosition.Wmi.Lay.name + ".." + sppos_key);
+				WMSpecialIcon specialPosition2 = this.Wm.getSpecialPosition(specialPosition.Wmi.Lay.name + ".." + sppos_key);
 				if (!specialPosition2.valid)
 				{
 					return;
@@ -61,7 +61,7 @@ namespace nel
 					STB stb2 = TX.PopBld(sppos_key, 0);
 					stb2.Splice(0, _Mp.key.Length + 1);
 					stb2.Insert(0, "SPI_");
-					WholeMapItem.WMSpecialIcon specialPosition3 = this.Wm.getSpecialPosition(_Mp.key, stb2, true);
+					WMSpecialIcon specialPosition3 = this.Wm.getSpecialPosition(_Mp.key, stb2, true);
 					if (specialPosition3.valid)
 					{
 						wmspecialIcon = specialPosition3;
@@ -90,7 +90,7 @@ namespace nel
 				x = X.IntR((wmspecialIcon.SrcLP.mapfocx - wmspecialIcon.Wmi.Rc.x) / wmspecialIcon.Wmi.Rc.width * (float)(map2d.clms - map2d.crop * 2) + (float)map2d.crop);
 				y = X.IntR((wmspecialIcon.SrcLP.mapfocy - wmspecialIcon.Wmi.Rc.y) / wmspecialIcon.Wmi.Rc.height * (float)(map2d.rows - map2d.crop * 2) + (float)map2d.crop);
 			}
-			this.Ico = this.Wm.GetIconFor(this.Mp, x, y, type, sf_key, 0);
+			this.Ico = this.Wm.GetIconFor(this.Mp, x, y, type, sf_key, margin);
 			if (this.Ico == null)
 			{
 				this.Ico = new WMIcon(type);

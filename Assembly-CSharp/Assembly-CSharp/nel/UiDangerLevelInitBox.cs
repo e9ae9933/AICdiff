@@ -221,6 +221,10 @@ namespace nel
 							buttonSkinNelUi.fix_text_size = 20f;
 						}
 						buttonSkinNelUi.bottom_line = true;
+						if (this.M2D.GUILD.isDepertTarget(wholeMapItem))
+						{
+							buttonSkinNelUi.notice_exc = true;
+						}
 						using (STB stb = TX.PopBld(null, 0))
 						{
 							if (wholeMapItem.safe_area)
@@ -250,20 +254,23 @@ namespace nel
 			return this;
 		}
 
-		public string fnDescConvertSlider(string str)
+		public void fnDescConvertSlider(STB Stb)
 		{
-			int num = X.NmI(str, 0, false, false);
+			int num = Stb.NmI(0, -1, 0);
 			int num2 = num / 3 + 1;
+			Stb.Clear();
 			int num3 = num % 3;
 			if (num3 == 0)
 			{
-				return TX.GetA("Depert_from_noon", num2.ToString(), this.val2nightLevel(num).ToString());
+				Stb.AddTxA("Depert_from_noon", false).TxRpl(num2).TxRpl(this.val2nightLevel(num));
+				return;
 			}
 			if (num3 != 1)
 			{
-				return TX.GetA("Depert_from_night", num2.ToString(), this.val2nightLevel(num).ToString());
+				Stb.AddTxA("Depert_from_night", false).TxRpl(num2).TxRpl(this.val2nightLevel(num));
+				return;
 			}
-			return TX.GetA("Depert_from_evening", num2.ToString(), this.val2nightLevel(num).ToString());
+			Stb.AddTxA("Depert_from_evening", false).TxRpl(num2).TxRpl(this.val2nightLevel(num));
 		}
 
 		public int val2nightLevel(int val)
@@ -381,7 +388,7 @@ namespace nel
 			{
 				if (tab == UiDangerLevelInitBox.TAB.DANGER)
 				{
-					this.Slider.Select(false);
+					this.Slider.Select(true);
 					this.CancelBtn.setNaviT(this.Slider, true, true);
 					this.CancelBtn.setNaviB(this.Slider, true, true);
 				}
@@ -389,7 +396,7 @@ namespace nel
 			else if (this.BConHome != null)
 			{
 				int num2 = X.Mx(0, this.Amoveable_home_wm.IndexOf(this.M2D.WM.CurWM.Mp.key));
-				this.BConHome.Get(((this.useable_tab_bits & 2U) == 0U) ? this.bconhome_def : num2).Select(false);
+				this.BConHome.Get(((this.useable_tab_bits & 2U) == 0U) ? this.bconhome_def : num2).Select(true);
 				this.BConHome.setValue(num2, false);
 				this.CancelBtn.setNaviT(this.BConHome.Get(this.BConHome.Length - 1), true, true);
 				this.CancelBtn.setNaviB(this.BConHome.Get(0), true, true);

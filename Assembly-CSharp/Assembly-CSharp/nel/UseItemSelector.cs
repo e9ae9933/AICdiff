@@ -85,7 +85,7 @@ namespace nel
 			bool flag = pr != null && pr.Ser.getLevel(SER.CONFUSE) >= 2;
 			if (selecting)
 			{
-				num = global::XX.X.COSIT(24f);
+				num = X.COSIT(24f);
 			}
 			bool flag2 = current_useable0 || Cl.current_useable == UseItemSelector.ItCell.USE_TYPE.NO_CURRENT_GRADE || Cl.current_useable == UseItemSelector.ItCell.USE_TYPE.USEABLE;
 			if (Cl.Itm == null)
@@ -116,7 +116,7 @@ namespace nel
 				Md.ColGrd.mulA(alpha);
 				MdIco.Col = c;
 				int num2 = (flag ? 36 : Cl.Itm.getIcon(this.IMNG.getInventory(), null));
-				if (global::XX.X.BTW(0f, (float)num2, (float)MTR.AItemIcon.Length))
+				if (X.BTW(0f, (float)num2, (float)MTR.AItemIcon.Length))
 				{
 					if (submit_select)
 					{
@@ -179,7 +179,7 @@ namespace nel
 				Md.Col = C32.MulA(Md.Col, 0.85f + 0.15f * num);
 				Md.KadoPolyRect(x, y, num4, num4, num4 * 0.12f, 1, 3f, false, 0f, 0f, false);
 				MdStripe.Col = C32.MulA(Md.Col, 0.25f);
-				MdStripe.uvRectN(global::XX.X.Cos(-0.7853982f), global::XX.X.Sin(-0.7853982f));
+				MdStripe.uvRectN(X.Cos(-0.7853982f), X.Sin(-0.7853982f));
 				MdStripe.allocUv2(8, false).Uv2((float)(flag2 ? 10 : 30), flag2 ? 0.5f : 0.02f, false);
 				MdStripe.KadoPolyRect(x, y, w - 8f, w - 8f, w * 0.12f, 1, 0f, false, 0f, 0f, false);
 				MdStripe.allocUv2(0, true);
@@ -192,12 +192,12 @@ namespace nel
 			{
 				submit_select = this.submit_select;
 			}
-			float num = global::XX.X.Abs(tz);
-			float num2 = (w * 0.0625f + w) * (0.25f + 0.75f * global::XX.X.ZSIN((tz < 0f) ? 1f : num));
+			float num = X.Abs(tz);
+			float num2 = (w * 0.0625f + w) * (0.25f + 0.75f * X.ZSIN((tz < 0f) ? 1f : num));
 			for (int i = 0; i < 8; i++)
 			{
 				UseItemSelector.ItCell itCell = this.ACell[i];
-				this.drawCell(itCell, x + (float)global::XX.CAim._XD(i, 1) * num2, y + (float)global::XX.CAim._YD(i, 1) * num2, iconscale, w, num, Md, MdIco, MdStripe, tz < 0f, i == selecting, i == submit_select);
+				this.drawCell(itCell, x + (float)CAim._XD(i, 1) * num2, y + (float)CAim._YD(i, 1) * num2, iconscale, w, num, Md, MdIco, MdStripe, tz < 0f, i == selecting, i == submit_select);
 			}
 		}
 
@@ -217,7 +217,7 @@ namespace nel
 			mesh.base_y = (meshImg.base_y = vector.y);
 			if (this.ed_quiting && this.PeSlow == null)
 			{
-				float num2 = global::XX.X.ZLINE(Ed.t, 40f);
+				float num2 = X.ZLINE(Ed.t, 40f);
 				if (num2 >= 1f || this.submit_select < 0 || (this.EdDraw != null && Ed != this.EdDraw))
 				{
 					return false;
@@ -225,19 +225,19 @@ namespace nel
 				MeshDrawer meshImg2 = Ef.GetMeshImg("", MTRX.MIicon, BLEND.MUL, false);
 				meshImg2.base_x = vector.x;
 				meshImg2.base_y = vector.y;
-				mesh.Col = mesh.ColGrd.White().mulA(global::XX.X.ZLINE(2f - 2f * num2)).C;
+				mesh.Col = mesh.ColGrd.White().mulA(X.ZLINE(2f - 2f * num2)).C;
 				float num3 = 170f * num;
-				meshImg2.Col = meshImg2.ColGrd.Set(4282006084U).mulA((0.85f + global::XX.X.COSIT(24f) * 0.1f) * (1f - num2)).C;
+				meshImg2.Col = meshImg2.ColGrd.Set(4282006084U).mulA((0.85f + X.COSIT(24f) * 0.1f) * (1f - num2)).C;
 				meshImg2.initForImg(MTRX.EffBlurCircle245, 0);
-				float num4 = num3 * (float)global::XX.CAim._XD(this.submit_select, 1);
-				float num5 = num3 * (float)global::XX.CAim._YD(this.submit_select, 1);
+				float num4 = num3 * (float)CAim._XD(this.submit_select, 1);
+				float num5 = num3 * (float)CAim._YD(this.submit_select, 1);
 				meshImg2.Rect(num4, num5, 160f * num * 2.5f, 160f * num * 2.5f, false);
-				this.drawCell(this.ACell[this.submit_select], num4, num5, 2f * num, 160f * num, 1f - num2, mesh, meshImg, null, true, false, global::XX.X.ANMT(2, 4f) == 0);
+				this.drawCell(this.ACell[this.submit_select], num4, num5, 2f * num, 160f * num, 1f - num2, mesh, meshImg, null, true, false, X.ANMT(2, 4f) == 0);
 				meshImg.initForImg(MTRX.EffCircle128, 0);
 			}
 			else
 			{
-				float num6 = global::XX.X.ZLINE(Ed.t, 12f);
+				float num6 = X.ZLINE(Ed.t, 12f);
 				MeshDrawer mesh2 = Ef.GetMesh("useitemsel", MTRX.MtrMeshStriped, false);
 				mesh2.base_z -= 1.02f;
 				mesh2.base_x = vector.x;
@@ -247,8 +247,8 @@ namespace nel
 			if (this.select_time > 0 && this.submit_select >= 0)
 			{
 				float num7 = 170f * num;
-				float num8 = num7 * (float)global::XX.CAim._XD(this.submit_select, 1);
-				float num9 = num7 * (float)global::XX.CAim._YD(this.submit_select, 1);
+				float num8 = num7 * (float)CAim._XD(this.submit_select, 1);
+				float num9 = num7 * (float)CAim._YD(this.submit_select, 1);
 				this.PtO.drawTo(meshImg, meshImg.base_x * 64f + num8, meshImg.base_y * 64f + num9, 0f, 0, (float)(IN.totalframe - this.select_time), 0f);
 			}
 			return true;
@@ -271,8 +271,8 @@ namespace nel
 					this.cur_select = -1;
 					if (this.TxDetail == null)
 					{
-						this.TxDetail = UiGO.CreateBottomRightText("USel-detail", 0f);
-						this.TxKD = UiGO.CreateBottomRightText("USel-KD", -0.01f);
+						this.TxDetail = NEL.CreateBottomRightText("USel-detail", 0f);
+						this.TxKD = NEL.CreateBottomRightText("USel-KD", -0.01f);
 						this.TxKD.Align(ALIGN.CENTER);
 						this.TxDetail.Align(ALIGN.CENTER).LetterSpacing(0.95f).LineSpacing(0.95f);
 						this.TxDetail.transform.SetParent(UIBase.Instance.transform, false);
@@ -300,7 +300,7 @@ namespace nel
 							fillImageBlock.StartFb(" ", null, true);
 							M2DBase.Instance.addValotAddition(fillImageBlock);
 							float num = 165f;
-							IN.PosP2(fillImageBlock.transform, (float)global::XX.X.MPF(i == 1) * num * 0.77f, num * 0.05f);
+							IN.PosP2(fillImageBlock.transform, (float)X.MPF(i == 1) * num * 0.77f, num * 0.05f);
 						}
 					}
 					this.TxDetail.gameObject.SetActive(true);
@@ -479,7 +479,7 @@ namespace nel
 					}
 					this.TxKD.gameObject.SetActive(true);
 					float num = 165f;
-					IN.PosP2(this.TxKD.transform, num * (float)global::XX.CAim._XD(this.cur_select, 1), num * (float)global::XX.CAim._YD(this.cur_select, 1) - 30f);
+					IN.PosP2(this.TxKD.transform, num * (float)CAim._XD(this.cur_select, 1), num * (float)CAim._YD(this.cur_select, 1) - 30f);
 					int num2;
 					if (itCell.slideGrade(-1, out num2, false))
 					{
@@ -571,7 +571,7 @@ namespace nel
 				}
 				else
 				{
-					num = ((this.cur_select >= 0) ? global::XX.CAim._XD(this.cur_select, 1) : 0);
+					num = ((this.cur_select >= 0) ? CAim._XD(this.cur_select, 1) : 0);
 				}
 			}
 			else
@@ -593,22 +593,22 @@ namespace nel
 				}
 				else
 				{
-					num2 = ((this.cur_select >= 0) ? global::XX.CAim._YD(this.cur_select, 1) : 0);
+					num2 = ((this.cur_select >= 0) ? CAim._YD(this.cur_select, 1) : 0);
 				}
 			}
 			else
 			{
 				num2 = (flag ? 1 : (flag2 ? (-1) : 0));
 			}
-			int num3 = (int)((num == 0 && num2 == 0) ? ((global::XX.AIM)4294967295U) : global::XX.CAim.get_aim2(0f, 0f, (float)num, (float)num2, false));
+			int num3 = (int)((num == 0 && num2 == 0) ? ((AIM)4294967295U) : CAim.get_aim2(0f, 0f, (float)num, (float)num2, false));
 			bool flag3 = false;
-			if (global::XX.CAim.is_naname((global::XX.AIM)this.cur_select) && this.naname_lock > 0)
+			if (CAim.is_naname((AIM)this.cur_select) && this.naname_lock > 0)
 			{
 				if (num3 < 0)
 				{
 					this.naname_lock = 0;
 				}
-				else if (!global::XX.CAim.is_naname((global::XX.AIM)num3) && global::XX.CAim.nanameMarging((global::XX.AIM)this.cur_select, (global::XX.AIM)num3))
+				else if (!CAim.is_naname((AIM)num3) && CAim.nanameMarging((AIM)this.cur_select, (AIM)num3))
 				{
 					flag3 = true;
 					num3 = this.cur_select;
@@ -618,7 +618,7 @@ namespace nel
 			{
 				num3 = this.cur_select;
 			}
-			if (num3 >= 0 && global::XX.CAim.is_naname((global::XX.AIM)num3))
+			if (num3 >= 0 && CAim.is_naname((AIM)num3))
 			{
 				if (!flag3)
 				{
@@ -725,9 +725,9 @@ namespace nel
 			{
 				return;
 			}
-			Stb.Add(Itm.getLocalizedName(grade, this.IMNG.getInventory()));
+			Itm.getLocalizedName(Stb, grade);
 			Stb.Add("\n\n");
-			Stb.Add(Itm.getDetail(null, grade, Info, true, false, false));
+			Itm.getDetail(Stb, null, grade, Info, true, false, false);
 		}
 
 		private bool FbDrawLR(MeshDrawer Md, FillImageBlock FI, float alpha, ref bool update_meshdrawer)
@@ -775,7 +775,7 @@ namespace nel
 			{
 				this.BtnSel = Bx.getBtn("usel_btn") as aBtnUItemSel;
 			}
-			this.BtnSel.Select(false);
+			this.BtnSel.Select(true);
 			this.fineCenterString(this.BtnSel.TxCenter, true);
 			this.UiItmTarget = Itm;
 			SND.Ui.play(this.select_init_snd_cue, false);
@@ -912,7 +912,7 @@ namespace nel
 			}
 		}
 
-		public void readBinaryFrom(ByteArray Ba)
+		public void readBinaryFrom(ByteReader Ba)
 		{
 			Ba.readByte();
 			for (int i = 0; i < 8; i++)
@@ -981,7 +981,7 @@ namespace nel
 
 		private int naname_lock;
 
-		private EfParticleOnce PtO = new EfParticleOnce("general_white_circle_l", EFCON_TYPE.UI);
+		private EfParticleOnce PtO = new EfParticleOnce("general_white_circle_l", EFCON_TYPE.FIXED);
 
 		private TextRenderer TxDetail;
 
@@ -1069,7 +1069,7 @@ namespace nel
 					if (num == 1)
 					{
 						num2 = (int)this.t_grade - i;
-						if (!global::XX.X.BTW(0f, (float)num2, 5f))
+						if (!X.BTW(0f, (float)num2, 5f))
 						{
 							return false;
 						}
@@ -1078,7 +1078,7 @@ namespace nel
 					else if (num == 2)
 					{
 						num2 = (int)this.t_grade + i;
-						if (!global::XX.X.BTW(0f, (float)num2, 5f))
+						if (!X.BTW(0f, (float)num2, 5f))
 						{
 							return false;
 						}
@@ -1086,8 +1086,8 @@ namespace nel
 					}
 					else
 					{
-						num2 = (int)this.t_grade + (i - 1) / 2 * global::XX.X.MPF(i % 2 == 1 == (this.sort == UseItemSelector.SORT.ASCEND));
-						if (global::XX.X.BTW(0f, (float)num2, 5f))
+						num2 = (int)this.t_grade + (i - 1) / 2 * X.MPF(i % 2 == 1 == (this.sort == UseItemSelector.SORT.ASCEND));
+						if (X.BTW(0f, (float)num2, 5f))
 						{
 							goto IL_00C9;
 						}

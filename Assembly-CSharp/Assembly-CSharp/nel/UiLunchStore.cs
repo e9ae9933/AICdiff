@@ -17,7 +17,6 @@ namespace nel
 			this.total_buy_count = 0;
 			this.load_my_inventory = false;
 			this.grade_on_desc_tab = true;
-			this.t_noel = -105f;
 			this.INIT_DELAY = 20;
 			if (UILog.Instance != null)
 			{
@@ -25,7 +24,14 @@ namespace nel
 			}
 			ItemStorage itemStorage = base.AwakeLunch();
 			itemStorage.sort_button_bits |= 8;
+			base.AwakeEvImgTicket(this.Img, 5);
 			return itemStorage;
+		}
+
+		protected override Material runNoelEvImgFinalize(EvImg Img)
+		{
+			this.SMtrNoel = base.runNoelEvImgFinalize(Img);
+			return this.SMtrNoel;
 		}
 
 		public void addExternal(StoreManager _Store)
@@ -84,8 +90,8 @@ namespace nel
 			{
 				return this.Store.fnSortInStore(Ra, Rb, sort_type, out ret, true);
 			}
-			RecipeManager.RecipeDish recipeDish = ((Ra.Data.RecipeInfo != null) ? Ra.Data.RecipeInfo.DishInfo : null);
-			RecipeManager.RecipeDish recipeDish2 = ((Rb.Data.RecipeInfo != null) ? Rb.Data.RecipeInfo.DishInfo : null);
+			RCP.RecipeDish recipeDish = ((Ra.Data.RecipeInfo != null) ? Ra.Data.RecipeInfo.DishInfo : null);
+			RCP.RecipeDish recipeDish2 = ((Rb.Data.RecipeInfo != null) ? Rb.Data.RecipeInfo.DishInfo : null);
 			if (recipeDish == null && recipeDish2 == null)
 			{
 				return this.Store.fnSortInStore(Ra, Rb, ItemStorage.SORT_TYPE.PRICE | (sort_type & ItemStorage.SORT_TYPE._DESCEND), out ret, true);
@@ -190,7 +196,7 @@ namespace nel
 			int num = base.consumeEaten();
 			if (num > 0 && this.StBuy != null)
 			{
-				this.Store.confirmCheckout(this.StBuy, null, new UiItemStore.StoreResult
+				this.Store.confirmCheckout(this.M2D, this.StBuy, null, new UiItemStore.StoreResult
 				{
 					buy_money = this.total_buy_money,
 					buy_count = this.total_buy_count
@@ -216,7 +222,7 @@ namespace nel
 			return base.ReduceFromInventorySrc(Str, Itm, StrObt);
 		}
 
-		protected override bool executeEat(aBtn B, ItemStorage.IRow IR, RecipeManager.RecipeDish AppliedDish)
+		protected override bool executeEat(aBtn B, ItemStorage.IRow IR, RCP.RecipeDish AppliedDish)
 		{
 			if (IR == null)
 			{
@@ -241,10 +247,6 @@ namespace nel
 
 		protected override void runNoelImg(MeshDrawer MdNoel, ref bool need_redraw_noel)
 		{
-			if (this.t_noel >= -100f && this.t_noel < 0f && !UiLunchTime.runNoelImgS(MdNoel, ref this.t_noel, -100f, this.Img, ref this.ImgLoader, ref this.SMtrNoel))
-			{
-				return;
-			}
 			if (this.t_noel >= 0f)
 			{
 				need_redraw_noel = true;
@@ -267,7 +269,7 @@ namespace nel
 		{
 			if (this.PtcUseFood == null)
 			{
-				this.PtcUseFood = new EfParticleOnce("ui_use_food", EFCON_TYPE.UI);
+				this.PtcUseFood = new EfParticleOnce("ui_use_food", EFCON_TYPE.FIXED);
 				return;
 			}
 			this.PtcUseFood.shuffle();

@@ -26,7 +26,7 @@ namespace nel
 			{
 				return -4.75f;
 			}
-			return 301.5f;
+			return 401.5f;
 		}
 
 		public bool RenderToCam(XCameraBase XCon, ProjectionContainer JCon, Camera Cam)

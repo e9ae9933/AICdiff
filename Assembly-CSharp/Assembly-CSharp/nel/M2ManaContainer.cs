@@ -16,7 +16,7 @@ namespace nel
 			this.ABuf = new M2Mana[8];
 			this.ODesire = new BDic<NelM2Attacker, float>();
 			this.Ostock = new BDic<MANA_HIT, byte>();
-			this.can_collect_en_mana_immediately = -1;
+			this.can_collect_en_mana_immediately_ = -1;
 			this.AreaDr = new DRect("");
 		}
 
@@ -45,12 +45,12 @@ namespace nel
 			}
 			if ((mana_hit & MANA_HIT.EN) != MANA_HIT.NOUSE)
 			{
-				this.can_collect_en_mana_immediately = -1;
+				this.can_collect_en_mana_immediately_ = -1;
 			}
 			return m2Mana2;
 		}
 
-		public void AddMulti(float mapx, float mapy, float mp, MANA_HIT mana_hit = MANA_HIT.ALL)
+		public void AddMulti(float mapx, float mapy, float mp, MANA_HIT mana_hit = MANA_HIT.ALL, float additional_fall_ratio = 1f)
 		{
 			byte b2;
 			byte b = (this.Ostock.TryGetValue(mana_hit, out b2) ? (b2 / 32) : 0);
@@ -65,13 +65,13 @@ namespace nel
 				float num4 = ((((float)i + 0.5f) / (float)num - 0.5f) * num2 + 0.023f * (-0.5f + X.XORSP()) + 0.25f) * 6.2831855f;
 				this.Add(mapx, mapy - 1f, mapx + X.Cos(num4) * X.NIXP(1.3f, 2f), mapy + X.Sin(num4) * X.NIXP(0.2f, 0.4f) + X.NIXP(0f, 0.4f), num4, mana_hit | ((i < num3) ? MANA_HIT.IMMEDIATE_COLLECTABLE : MANA_HIT.NOUSE));
 			}
-			if ((mana_hit & MANA_HIT.CHECK_BIT) != MANA_HIT.NOUSE && (mana_hit & MANA_HIT.FALL) != MANA_HIT.NOUSE && (mana_hit & MANA_HIT.CRYSTAL) == MANA_HIT.NOUSE)
+			if (additional_fall_ratio > 0f && (mana_hit & MANA_HIT.CHECK_BIT) != MANA_HIT.NOUSE && (mana_hit & MANA_HIT.FALL) != MANA_HIT.NOUSE && (mana_hit & MANA_HIT.CRYSTAL) == MANA_HIT.NOUSE)
 			{
 				if ((mana_hit & MANA_HIT.FROM_DAMAGE_SPLIT) > MANA_HIT.NOUSE && (mana_hit & MANA_HIT.PR) == MANA_HIT.NOUSE)
 				{
-					this.Mp.PtcST("pr_mana_fall_absorbed_init", null, PTCThread.StFollow.NO_FOLLOW);
+					this.Mp.PtcSTsetVar("cx", (double)mapx).PtcSTsetVar("cy", (double)mapy).PtcST("pr_mana_fall_absorbed_init", null, PTCThread.StFollow.NO_FOLLOW);
 				}
-				this.AddMulti(mapx, mapy, X.NIXP(4f, 8f) * 4f, MANA_HIT.FALL | (mana_hit & MANA_HIT.FROM_DAMAGE_SPLIT) | (((mana_hit & MANA_HIT.PR) != MANA_HIT.NOUSE) ? MANA_HIT.FALL_PR : MANA_HIT.FALL_EN));
+				this.AddMulti(mapx, mapy, X.NIXP(1f, 2f) * X.Mn(mp, 4f) * additional_fall_ratio * 4f, MANA_HIT.FALL | (mana_hit & MANA_HIT.FROM_DAMAGE_SPLIT) | (((mana_hit & MANA_HIT.PR) != MANA_HIT.NOUSE) ? MANA_HIT.FALL_PR : MANA_HIT.FALL_EN), 1f);
 			}
 		}
 
@@ -88,21 +88,23 @@ namespace nel
 			this.fineRecheckTarget(10f);
 		}
 
+		public bool can_collect_en_mana_immediately
+		{
+			get
+			{
+				if (this.can_collect_en_mana_immediately_ == -1)
+				{
+					this.can_collect_en_mana_immediately_ = (this.Mp.isPlayerFacingEnemy() ? 0 : 1);
+				}
+				return this.can_collect_en_mana_immediately_ == 1;
+			}
+		}
+
 		public override bool run(float fcnt)
 		{
-			if (this.can_collect_en_mana_immediately == -1)
-			{
-				this.can_collect_en_mana_immediately = (this.Mp.isPlayerFacingEnemy() ? 0 : 1);
-			}
 			if (!base.run(fcnt))
 			{
-				if (this.Ed != null)
-				{
-					this.Ed = this.Mp.remED(this.Ed);
-					this.Ed = null;
-					this.index_count = 0;
-				}
-				this.target_t = 0f;
+				this.deactivate();
 				return false;
 			}
 			this.anmp = X.ANMP((int)this.Mp.floort, 24, 1f);
@@ -115,6 +117,27 @@ namespace nel
 				}
 			}
 			return true;
+		}
+
+		public void ClearAll()
+		{
+			for (int i = this.LEN - 1; i >= 0; i--)
+			{
+				this.AItems[i].destruct();
+			}
+			base.clear();
+			this.deactivate();
+		}
+
+		private void deactivate()
+		{
+			if (this.Ed != null)
+			{
+				this.Ed = this.Mp.remED(this.Ed);
+				this.Ed = null;
+				this.index_count = 0;
+			}
+			this.target_t = 0f;
 		}
 
 		public void considerTarget()
@@ -318,7 +341,7 @@ namespace nel
 
 		private M2Mana TargetFirst;
 
-		public int can_collect_en_mana_immediately = -1;
+		private int can_collect_en_mana_immediately_ = -1;
 
 		public float anmp;
 

@@ -11,38 +11,47 @@ namespace nel
 		{
 			if (Md != null)
 			{
-				this.initMesh(Md, Mrd, auto_connect_mrd, 1f);
+				this.initMesh(Md, Mrd, auto_connect_mrd, 1f, -1);
 			}
 		}
 
-		public void initMesh(MeshDrawer Md, MeshRenderer Mrd = null, bool auto_connect_mrd = false, float scale = 1f)
+		public void initMesh(MeshDrawer Md, MeshRenderer Mrd = null, bool auto_connect_mrd = false, float scale = 1f, int stencil_ref = -1)
 		{
-			if (DangerGageDrawer.MtrF == null)
+			if (this.MtrF == null)
 			{
-				DangerGageDrawer.MtrF = MTR.newMtr("Hachan/RakuraiGlitch");
-				DangerGageDrawer.PFBack = MTRX.getPF("nel_danger_gage_back");
+				this.MtrF = MTR.newMtr("Hachan/RakuraiGlitch");
+				this.PFBack = MTRX.getPF("nel_danger_gage_back");
 				PxlFrame pf = MTRX.getPF("gage_filled");
-				DangerGageDrawer.BaseImg = DangerGageDrawer.PFBack.getLayer(0).Img;
-				DangerGageDrawer.FillImg = pf.getLayer(0).Img;
-				MTRX.setMaterialST(DangerGageDrawer.MtrF, "_MainTex", DangerGageDrawer.FillImg, 2f);
-				DangerGageDrawer.MtrF.SetFloat("_RGBNoiseScaleX", 6f);
-				DangerGageDrawer.MtrF.SetFloat("_RGBNoiseScaleY", 0.44f);
+				this.BaseImg = this.PFBack.getLayer(0).Img;
+				this.FillImg = pf.getLayer(0).Img;
+				MTRX.setMaterialST(this.MtrF, "_MainTex", this.FillImg, 2f);
+				this.MtrF.SetFloat("_RGBNoiseScaleX", 6f);
+				this.MtrF.SetFloat("_RGBNoiseScaleY", 0.44f);
 			}
-			DangerGageDrawer.MtrF.SetFloat("_GlitchXScale", 0.021639999f * scale);
-			DangerGageDrawer.MtrF.SetFloat("_GlitchYScale", 0.014079999f * scale);
+			this.MtrF.SetFloat("_GlitchXScale", 0.021639999f * scale);
+			this.MtrF.SetFloat("_GlitchYScale", 0.014079999f * scale);
+			if (stencil_ref >= 0)
+			{
+				this.MtrF.SetFloat("_StencilRef", (float)stencil_ref);
+				this.MtrF.SetFloat("_StencilComp", 3f);
+			}
+			else
+			{
+				this.MtrF.SetFloat("_StencilComp", 8f);
+			}
 			this.ran0 = X.xors() & 16777215U;
 			Md.clear(false, false);
 			Md.chooseSubMesh(1, false, true);
-			Md.setMaterial(MTR.MIiconL.getMtr(BLEND.NORMAL, -1), false);
+			Md.setMaterial(MTR.MIiconL.getMtr(BLEND.NORMAL, stencil_ref), false);
 			Md.base_z = 0.0001f;
 			Md.chooseSubMesh(2, false, true);
-			Md.setMaterial(MTR.MIiconL.getMtr(BLEND.SUB, -1), false);
+			Md.setMaterial(MTR.MIiconL.getMtr(BLEND.SUB, stencil_ref), false);
 			Md.chooseSubMesh(3, false, true);
 			Md.base_z = -0.0001f;
-			Md.setMaterial(DangerGageDrawer.MtrF, false);
+			Md.setMaterial(this.MtrF, false);
 			Md.chooseSubMesh(4, false, true);
 			Md.base_z = -0.0002f;
-			Md.setMaterial(MTRX.MtrMeshNormal, false);
+			Md.setMaterial((stencil_ref >= 0) ? MTRX.getMtr(stencil_ref) : MTRX.MtrMeshNormal, false);
 			if (Mrd != null)
 			{
 				if (auto_connect_mrd)
@@ -56,6 +65,10 @@ namespace nel
 
 		public void destruct()
 		{
+			if (this.MtrF != null)
+			{
+				IN.DestroyOne(this.MtrF);
+			}
 		}
 
 		public Vector2 getPos(int i)
@@ -119,10 +132,10 @@ namespace nel
 			Md.chooseSubMesh(2, false, true);
 			Md.chooseSubMesh(4, false, true);
 			Md.chooseSubMesh(1, false, true);
-			float num = (float)DangerGageDrawer.BaseImg.width * 0.5f * 0.015625f;
-			float num2 = (float)DangerGageDrawer.BaseImg.height * 0.5f * 0.015625f;
+			float num = (float)this.BaseImg.width * 0.5f * 0.015625f;
+			float num2 = (float)this.BaseImg.height * 0.5f * 0.015625f;
 			float num3 = -0.125f;
-			Md.uvRect(-num + Md.base_x, -num2 + Md.base_y + num3, num * 2f, num2 * 2f, DangerGageDrawer.BaseImg, true, false);
+			Md.uvRect(-num + Md.base_x, -num2 + Md.base_y + num3, num * 2f, num2 * 2f, this.BaseImg, true, false);
 			Md.Col = C32.MulA(4283780170U, alpha);
 			Md.RectBL(-num + Md.base_x, -num2 + num3, num * X.ZPOWN(this.t, 44f, 3f) * 2f, num2 * 2f, true);
 			if (this.t >= 20f)
@@ -137,7 +150,7 @@ namespace nel
 					float num7 = ((i < this.already_show) ? ((float)(this.daia_delay * 16 * 20 + 256)) : num6);
 					if (num7 < 0f)
 					{
-						goto IL_0597;
+						goto IL_059D;
 					}
 					for (int j = num5 + 16; j < this.value_; j += 16)
 					{
@@ -153,7 +166,7 @@ namespace nel
 					uint ran = X.GETRAN2((int)(this.ran0 + (uint)(num5 * 17) + (uint)(i * 9)), (int)(this.ran0 % 6U + (uint)(num5 % 7)));
 					if (num5 >= this.value_)
 					{
-						goto IL_0597;
+						goto IL_059D;
 					}
 					Md.chooseSubMesh(3, false, false);
 					Md.allocUv2(4, false).allocUv3(4, false);
@@ -171,19 +184,19 @@ namespace nel
 					C32 color2 = this.getColor(Md.ColGrd, num5);
 					float num11 = X.MMX(0f, 1f - X.ZSIN(num7, 10f) + 0.125f * X.SINI(num7 + X.RAN(ran, 2306) * 400f, 8.4f + X.RAN(ran, 1581) * 2.7f) + 0.125f * X.SINI(num7 + X.RAN(ran, 1372) * 400f, 19.4f + X.RAN(ran, 2913) * 4.1f), 1f);
 					Md.Col = color2.blend(uint.MaxValue, num11).mulA(alpha).C;
-					float num12 = ((float)DangerGageDrawer.FillImg.width * 0.5f - 2f) * 0.015625f * num9;
-					float num13 = ((float)DangerGageDrawer.FillImg.height * 0.5f - 2f) * 0.015625f * num10;
+					float num12 = ((float)this.FillImg.width * 0.5f - 2f) * 0.015625f * num9;
+					float num13 = ((float)this.FillImg.height * 0.5f - 2f) * 0.015625f * num10;
 					vector *= 0.015625f;
-					Md.uvRect(vector.x - num12 - 0.03125f * num9 + Md.base_x, vector.y - num13 - 0.03125f * num10 + Md.base_y, num12 * 2f + 0.0625f * num9, num13 * 2f + 0.0625f * num10, DangerGageDrawer.FillImg, true, false);
+					Md.uvRect(vector.x - num12 - 0.03125f * num9 + Md.base_x, vector.y - num13 - 0.03125f * num10 + Md.base_y, num12 * 2f + 0.0625f * num9, num13 * 2f + 0.0625f * num10, this.FillImg, true, false);
 					Md.RectBL(vector.x - num12, vector.y - num13, num12 * 2f, num13 * 2f, true);
 					Md.allocUv2(0, true).allocUv3(0, true);
 					Md.chooseSubMesh(2, false, false);
 					Md.Col = C32.MulA(4285558896U, alpha);
 					Md.RectBL(vector.x - num12, vector.y - num13, num12 * 2f, num13 * 2f, true);
-					IL_0694:
+					IL_069A:
 					i++;
 					continue;
-					IL_0597:
+					IL_059D:
 					if (this.already_show != 0)
 					{
 						num7 = 128f;
@@ -193,7 +206,7 @@ namespace nel
 						num7 = this.t - 20f - (float)(this.daia_delay * i);
 						if (num7 < 0f)
 						{
-							goto IL_0694;
+							goto IL_069A;
 						}
 					}
 					Vector2 pos = this.getPos(i);
@@ -206,7 +219,7 @@ namespace nel
 						pos.y += (X.RAN(ran2, 2754) - 0.5f) * 2f * 8f;
 					}
 					Md.Daia3(pos.x, pos.y, 44f, 44f, 7f, 7f, false);
-					goto IL_0694;
+					goto IL_069A;
 				}
 			}
 			Md.updateForMeshRenderer(true);
@@ -246,13 +259,13 @@ namespace nel
 
 		public const int MID_EMPTY = 4;
 
-		private static Material MtrF;
+		private Material MtrF;
 
-		private static PxlImage BaseImg;
+		private PxlImage BaseImg;
 
-		private static PxlFrame PFBack;
+		private PxlFrame PFBack;
 
-		private static PxlImage FillImg;
+		private PxlImage FillImg;
 
 		private const float gage_w = 320f;
 

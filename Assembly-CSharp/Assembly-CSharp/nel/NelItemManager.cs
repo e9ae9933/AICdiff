@@ -23,7 +23,7 @@ namespace nel
 			{
 				if (value && this.pr_active_count >= 0)
 				{
-					this.pr_active_count = global::XX.X.Mn(-1, this.pr_active_count);
+					this.pr_active_count = X.Mn(-1, this.pr_active_count);
 				}
 			}
 		}
@@ -61,22 +61,23 @@ namespace nel
 			this.StInventory.FD_RowNameAddition = new UiItemManageBox.FnRowNameAddition(NelItemManager.ItemRowNameAddition);
 			this.StInventory.FD_RowIconAddition = new UiItemManageBox.FnRowIconAddition(NelItemManager.ItemRowIconAddition);
 			this.StInventory.check_quest_target = true;
-			this.StInventory.fnAddable = (NelItem _Itm) => !_Itm.is_precious;
+			this.StInventory.fnAddable = (NelItem _Itm, bool ignore_area) => !_Itm.is_precious;
 			this.StHouseInventory = new ItemStorage("Inventory_house", 12);
-			this.StHouseInventory.fnAddable = (NelItem _Itm) => this.M2D.canAccesableToHouseInventory() && !_Itm.is_precious;
+			this.StHouseInventory.fnAddable = (NelItem _Itm, bool ignore_area) => (ignore_area || this.M2D.canAccesableToHouseInventory()) && !_Itm.is_precious;
 			this.StHouseInventory.check_quest_target = true;
 			this.StPrecious = new ItemStorage("Inventory_precious", 255);
 			this.StPrecious.sort_button_bits &= -11;
 			this.StPrecious.infinit_stockable = (this.StPrecious.check_quest_target = true);
-			this.StPrecious.fnAddable = (NelItem _Itm) => _Itm.is_precious && !_Itm.is_enhancer;
+			this.StPrecious.fnAddable = (NelItem _Itm, bool ignore_area) => _Itm.is_precious && !_Itm.is_enhancer;
 			this.StEnhancer = new ItemStorage("Inventory_enhancer", 255);
 			this.StEnhancer.sort_button_bits &= -11;
 			this.StEnhancer.sort_button_bits |= 48;
 			this.StEnhancer.infinit_stockable = true;
-			this.StEnhancer.fnAddable = (NelItem _Itm) => _Itm.is_enhancer;
+			this.StEnhancer.fnAddable = (NelItem _Itm, bool ignore_area) => _Itm.is_enhancer;
 			this.ReelM = new ReelManager(null);
 			this.USel = new UseItemSelector(this);
 			this.StHouseInventory.infinit_stockable = (this.StHouseInventory.water_stockable = true);
+			this.AFD_PickupListener = new List<NelItemManager.IPickupListener>(1);
 			this.AInventory = new ItemStorage[] { this.StInventory, this.StHouseInventory, this.StPrecious, this.StEnhancer };
 			this.AInventoryNotHouse = new ItemStorage[] { this.StInventory, this.StPrecious, this.StEnhancer };
 			this.fnRunDropObject = (M2DropObject Dro, float fcnt) => this.runDropObjectInner(Dro, fcnt);
@@ -118,20 +119,9 @@ namespace nel
 			this.DescBox.gameObject.layer = IN.gui_layer;
 			this.DescBox.M2D = this.M2D;
 			this.DescBox.make(" ");
-			this.BoxCheckTarget = new GameObject("Box_check_target").AddComponent<OneLineBox>();
-			this.BoxCheckTarget.gameObject.layer = IN.gui_layer;
-			IN.setZ(this.BoxCheckTarget.transform, 20f);
-			this.BoxCheckTarget.gameObject.SetActive(false);
-			this.BoxCheckTarget.html_mode = true;
-			this.BoxCheckTarget.position_max_time(18, -1).appear_time(18).hideTime(26)
-				.col(3707764736U)
-				.TxCol(uint.MaxValue);
-			this.BoxCheckTarget.deactivating_set_sx_shift = 0f;
-			this.BoxCheckTarget.deactivating_set_sy_shift = -30f;
-			this.BoxCheckTarget.make(" ");
+			this.BoxCheckTarget = new GameObject("Box_check_target").AddComponent<M2BoxOneLine>().Init(this.M2D, false);
 			this.ODiscardStack = null;
-			this.use_valotile = !global::XX.X.DEBUGSTABILIZE_DRAW;
-			this.BoxCheckTarget.gameObject.SetActive(false);
+			this.use_valotile = !X.DEBUGSTABILIZE_DRAW;
 			this.StmNoel = new Stomach(null, this.M2D.PlayerNoel);
 		}
 
@@ -144,7 +134,6 @@ namespace nel
 			set
 			{
 				this.DescBox.use_valotile = value;
-				this.BoxCheckTarget.use_valotile = value;
 			}
 		}
 
@@ -173,7 +162,6 @@ namespace nel
 			this.ODrop.Clear();
 			this.id_cnt = 0;
 			this.holdover_alert = 0f;
-			this.floort_lock_self_explode = 0f;
 			this.PreTalkable = null;
 			this.SupplyTarget = (this.PreSupplyTarget = null);
 			if (this.Lp == null)
@@ -195,6 +183,7 @@ namespace nel
 			}
 			this.box_show_flag = NelItemManager.POPUP.HIDE;
 			this.pr_active_count = -1;
+			this.AFD_PickupListener.Clear();
 			if (this.Ed != null)
 			{
 				this.Ed.destruct();
@@ -266,7 +255,7 @@ namespace nel
 					catch (Exception ex)
 					{
 						byteArray = null;
-						global::XX.X.de(ex.ToString(), null);
+						X.de(ex.ToString(), null);
 						goto IL_00C7;
 					}
 				}
@@ -289,7 +278,7 @@ namespace nel
 				}
 				catch
 				{
-					global::XX.X.de("itemdropファイル展開エラー", null);
+					X.de("itemdropファイル展開エラー", null);
 				}
 			}
 		}
@@ -317,9 +306,12 @@ namespace nel
 			this.StmNoel.progress((float)(grade * (gameover ? 2 : 1)), true, out num, true, false);
 			if (!gameover)
 			{
-				this.M2D.IMNG.StmNoel.Pr.progressWaterDrunkCache(num, false, false);
+				this.M2D.IMNG.StmNoel.Pr.JuiceCon.progressWaterDrunkCache(num, false, false);
 			}
-			this.spoilRawDishes(true);
+			if (!this.M2D.isSafeArea())
+			{
+				this.spoilRawDishes(true);
+			}
 			if (!gameover)
 			{
 				this.M2D.getPrNoel().cureMpNotHunger(false);
@@ -339,7 +331,7 @@ namespace nel
 				{
 					flag = false;
 				}
-				if (TX.isStart(row.Data.key, "spconfig_", 0))
+				if (TX.isStart(row.Data.key, "spconfig_", 0) || TX.isStart(row.Data.key, "__guildquest_", 0))
 				{
 					flag = false;
 				}
@@ -353,7 +345,7 @@ namespace nel
 		public NelItemManager.NelItemDrop dropManual(NelItem Itm, int count, int grade, float mapx, float mapy, float vx = 0f, float vy = 0f, META Meta = null, bool check_auto_absorb = false, NelItemManager.TYPE type_merge = NelItemManager.TYPE.NORMAL)
 		{
 			NelItemManager.NelItemDrop nelItemDrop = this.AddDrop(mapx, mapy, Itm, count, grade);
-			nelItemDrop.rotR = global::XX.X.XORSP() * 6.2831855f;
+			nelItemDrop.rotR = X.XORSP() * 6.2831855f;
 			nelItemDrop.Dro.vx = vx;
 			nelItemDrop.Dro.vy = vy;
 			this.fineDropState(nelItemDrop, Meta, false);
@@ -400,10 +392,10 @@ namespace nel
 			return nelItemDrop;
 		}
 
-		public void assignTalkableObject(M2MoverPr FromMv, int x, int y, global::XX.AIM k, List<IM2TalkableObject> ATk)
+		public void assignTalkableObject(M2MoverPr FromMv, int x, int y, AIM k, List<IM2TalkableObject> ATk)
 		{
-			float num = (float)global::XX.CAim._XD(k, 1);
-			global::XX.CAim._YD(k, 1);
+			float num = (float)CAim._XD(k, 1);
+			CAim._YD(k, 1);
 			float num2;
 			float num3;
 			if (num != 0f)
@@ -422,7 +414,7 @@ namespace nel
 			{
 				M2DropObject key = keyValuePair.Key;
 				NelItemManager.NelItemDrop value = keyValuePair.Value;
-				if (global::XX.X.BTW(num2, key.x, num3) && global::XX.X.BTW(num4, key.y - 1.5f, num5) && value.isPickupAble(FromMv))
+				if (X.BTW(num2, key.x, num3) && X.BTW(num4, key.y - 1.5f, num5) && value.isPickupAble(FromMv))
 				{
 					ATk.Add(value);
 				}
@@ -435,8 +427,8 @@ namespace nel
 			{
 				_count = this.StInventory.getItemStockable(Itm);
 			}
-			_grade = global::XX.X.MMX(0, _grade, 4);
-			M2DropObject m2DropObject = this.DropCon.AddManual(x, y, 0f, global::XX.X.NIXP(0f, -0.025f), 0f, 0f);
+			_grade = X.MMX(0, _grade, 4);
+			M2DropObject m2DropObject = this.DropCon.AddManual(x, y, 0f, X.NIXP(0f, -0.025f), 0f, 0f);
 			m2DropObject.gravity_scale = 0.33f;
 			m2DropObject.size = 0.35f;
 			m2DropObject.FnRun = this.fnRunDropObject;
@@ -445,8 +437,8 @@ namespace nel
 			m2DropObject.type |= (DROP_TYPE)288;
 			NelItemManager.NelItemDrop nelItemDrop = new NelItemManager.NelItemDrop();
 			nelItemDrop.Itm = Itm;
-			nelItemDrop.zspdR = (float)global::XX.X.MPFXP() * global::XX.X.NIXP(0.2f, 0.65f) / 360f * 6.2831855f;
-			nelItemDrop.rotR = global::XX.X.XORSP() * 6.2831855f;
+			nelItemDrop.zspdR = (float)X.MPFXP() * X.NIXP(0.2f, 0.65f) / 360f * 6.2831855f;
+			nelItemDrop.rotR = X.XORSP() * 6.2831855f;
 			int num = this.id_cnt;
 			this.id_cnt = num + 1;
 			nelItemDrop.id = num;
@@ -472,7 +464,7 @@ namespace nel
 			return nelItemDrop2;
 		}
 
-		private bool removeItData(M2DropObject Dro, NelItemManager.NelItemDrop ItData = null)
+		public bool removeItData(M2DropObject Dro, NelItemManager.NelItemDrop ItData = null, bool pickuped = false)
 		{
 			if (ItData == null)
 			{
@@ -480,6 +472,11 @@ namespace nel
 			}
 			if (ItData != null)
 			{
+				int count = this.AFD_PickupListener.Count;
+				for (int i = 0; i < count; i++)
+				{
+					this.AFD_PickupListener[i].DropPickup(ItData, pickuped);
+				}
 				if (this.SupplyTarget != null && this.SupplyTarget == ItData)
 				{
 					this.DescBox.spliceStackIf(this.SupplyTarget);
@@ -507,7 +504,7 @@ namespace nel
 				return false;
 			}
 			nelItemDrop.rotR += nelItemDrop.zspdR;
-			nelItemDrop.zspdR = global::XX.X.VALWALK(nelItemDrop.zspdR, 0f, 1.7453292E-05f);
+			nelItemDrop.zspdR = X.VALWALK(nelItemDrop.zspdR, 0f, 1.7453292E-05f);
 			bool flag = (nelItemDrop.type & NelItemManager.TYPE.INVISIBLE) == NelItemManager.TYPE.NORMAL;
 			if ((nelItemDrop.type & (NelItemManager.TYPE)3) != NelItemManager.TYPE.NORMAL)
 			{
@@ -535,9 +532,9 @@ namespace nel
 					{
 						return true;
 					}
-					if (global::XX.X.LENGTHXYS(keyPr.x, keyPr.y, Dro.x, Dro.y) <= (float)(nelItemDrop.Itm.is_reelmbox ? 200 : ((!flag) ? 12 : 5)))
+					if (X.LENGTHXYS(keyPr.x, keyPr.y, Dro.x, Dro.y) <= (float)(nelItemDrop.Itm.is_reelmbox ? 200 : ((!flag) ? 12 : 5)))
 					{
-						if (global::XX.X.isCovering(keyPr.mleft, keyPr.mright, Dro.x, Dro.x, 0.5f) && global::XX.X.isCovering(keyPr.mtop, keyPr.mbottom, Dro.y, Dro.y, 0.5f))
+						if (X.isCovering(keyPr.mleft, keyPr.mright, Dro.x, Dro.x, 0.5f) && X.isCovering(keyPr.mtop, keyPr.mbottom, Dro.y, Dro.y, 0.5f))
 						{
 							if ((nelItemDrop.type & NelItemManager.TYPE.EVENT_SPILL) != NelItemManager.TYPE.NORMAL && !Map2d.can_handle)
 							{
@@ -551,7 +548,7 @@ namespace nel
 							}
 							if (nelItemDrop.count <= 0)
 							{
-								return this.removeItData(Dro, null);
+								return this.removeItData(Dro, null, true);
 							}
 							if ((nelItemDrop.type & NelItemManager.TYPE.EVENT_SPILL) != NelItemManager.TYPE.NORMAL)
 							{
@@ -561,32 +558,32 @@ namespace nel
 							nelItemDrop.type &= (NelItemManager.TYPE)(-8);
 							Dro.gravity_scale = 0.33f;
 							Dro.size = 0.35f;
-							Dro.vx = global::XX.X.absMn(Dro.vx, 0.07f);
-							Dro.vy = global::XX.X.Mn(Dro.vy, -0.1f);
+							Dro.vx = X.absMn(Dro.vx, 0.07f);
+							Dro.vy = X.Mn(Dro.vy, -0.1f);
 							return true;
 						}
 						else
 						{
 							Dro.gravity_scale = 0f;
-							Dro.af_ground = global::XX.X.Mn(Dro.af_ground, 0f);
+							Dro.af_ground = X.Mn(Dro.af_ground, 0f);
 							if (Dro.af_ground == 0f || (int)Dro.af % 8 == 0)
 							{
 								Dro.z = Dro.Mp.GAR(Dro.x, Dro.y, keyPr.x, keyPr.y - keyPr.sizey * 0.5f);
 							}
 							float num = 0.2f;
 							Dro.size = -1f;
-							float num2 = num * global::XX.X.Cos(Dro.z);
-							float num3 = -num * global::XX.X.Sin(Dro.z);
-							Dro.vx = global::XX.X.VALWALK(Dro.vx, num2, (flag ? (0.02f * fcnt) : (0.25f * fcnt)) * ((Dro.vx * num2 < 0f) ? 2.5f : 1f));
-							Dro.vy = global::XX.X.VALWALK(Dro.vy, num3, (flag ? (0.04f * fcnt) : (0.25f * fcnt)) * ((Dro.vx * num2 < 0f) ? 2.5f : 1f));
+							float num2 = num * X.Cos(Dro.z);
+							float num3 = -num * X.Sin(Dro.z);
+							Dro.vx = X.VALWALK(Dro.vx, num2, (flag ? (0.02f * fcnt) : (0.25f * fcnt)) * ((Dro.vx * num2 < 0f) ? 2.5f : 1f));
+							Dro.vy = X.VALWALK(Dro.vy, num3, (flag ? (0.04f * fcnt) : (0.25f * fcnt)) * ((Dro.vx * num2 < 0f) ? 2.5f : 1f));
 							Dro.af_ground -= fcnt;
 						}
 					}
 					else
 					{
 						Dro.size = 0.35f;
-						Dro.af_ground = global::XX.X.Mx(Dro.af_ground, 0f);
-						Dro.gravity_scale = global::XX.X.VALWALK(Dro.gravity_scale, 0.33f, 0.05f * fcnt);
+						Dro.af_ground = X.Mx(Dro.af_ground, 0f);
+						Dro.gravity_scale = X.VALWALK(Dro.gravity_scale, 0.33f, 0.05f * fcnt);
 					}
 				}
 			}
@@ -594,10 +591,10 @@ namespace nel
 			{
 				if (!flag)
 				{
-					this.removeItData(Dro, null);
+					this.removeItData(Dro, null, false);
 					return false;
 				}
-				if (global::XX.X.Abs(Dro.vx) + global::XX.X.Abs(Dro.vy) < 0.1f && Dro.af_ground >= 4f)
+				if (X.Abs(Dro.vx) + X.Abs(Dro.vy) < 0.1f && Dro.af_ground >= 4f)
 				{
 					if ((nelItemDrop.type & NelItemManager.TYPE.DISCARDED_NOELJUICE) != NelItemManager.TYPE.NORMAL && Dro.af >= 90f)
 					{
@@ -632,10 +629,10 @@ namespace nel
 						}
 						if (nelItemDrop.count > 0)
 						{
-							this.M2D.Mana.AddMulti(Dro.x, Dro.y, (float)nelItemDrop.count * global::XX.X.NIL(12f, 48f, (float)nelItemDrop.grade, 4f), (MANA_HIT)2050);
+							this.M2D.Mana.AddMulti(Dro.x, Dro.y, (float)nelItemDrop.count * X.NIL(12f, 48f, (float)nelItemDrop.grade, 4f), MANA_HIT.EN | MANA_HIT.FROM_GAGE_SPLIT, 1f);
 							this.Mp.PtcSTsetVar("x", (double)Dro.x).PtcSTsetVar("y", (double)Dro.y).PtcST("noeljuice_evaporate", null, PTCThread.StFollow.NO_FOLLOW);
 						}
-						this.removeItData(Dro, null);
+						this.removeItData(Dro, null, false);
 						return false;
 					}
 					if ((nelItemDrop.type & (NelItemManager.TYPE)3) == NelItemManager.TYPE.NORMAL && nelItemDrop.lock_time >= 0f)
@@ -662,14 +659,14 @@ namespace nel
 			PxlFrame pxlFrame = null;
 			int num = 14 * this.pr_active_count;
 			float num2 = (float)(this.ADroInCamera.Count * 9 + 30);
-			float num3 = 0.7f + 0.15f * global::XX.X.COSIT(34f) + 0.15f * global::XX.X.COSIT(19.4f);
+			float num3 = 0.7f + 0.15f * X.COSIT(34f) + 0.15f * X.COSIT(19.4f);
 			for (int i = this.ADroInCamera.Count - 1; i >= 0; i--)
 			{
 				NelItemManager.NelItemDrop nelItemDrop = this.ADroInCamera[i];
 				M2DropObject dro = nelItemDrop.Dro;
 				if (dro.MyObj as NelItemManager.NelItemDrop != nelItemDrop)
 				{
-					this.removeItData(dro, nelItemDrop);
+					this.removeItData(dro, nelItemDrop, false);
 				}
 				else if ((nelItemDrop.type & NelItemManager.TYPE.INVISIBLE) == NelItemManager.TYPE.NORMAL)
 				{
@@ -709,13 +706,13 @@ namespace nel
 					{
 						meshDrawer2.Col = meshDrawer2.ColGrd.White().blend(nelItemDrop.Itm.getColor(null), num3).C;
 						int icon = nelItemDrop.Itm.getIcon(null, null);
-						if (global::XX.X.BTW(0f, (float)icon, (float)MTR.AItemIcon.Length))
+						if (X.BTW(0f, (float)icon, (float)MTR.AItemIcon.Length))
 						{
 							meshDrawer2.RotaPF(0f, 0f, 1f, 1f, nelItemDrop.rotR, MTR.AItemIcon[icon], nelItemDrop.flip, false, false, uint.MaxValue, false, 0);
 						}
 					}
-					float num5 = 1f - global::XX.X.ZLINE(global::XX.X.Abs(num4 - 25f), 25f);
-					num5 = (nelItemDrop.da = global::XX.X.VALWALK(nelItemDrop.da, num5, 0.04f));
+					float num5 = 1f - X.ZLINE(X.Abs(num4 - 25f), 25f);
+					num5 = (nelItemDrop.da = X.VALWALK(nelItemDrop.da, num5, 0.04f));
 					if (num5 > 0f)
 					{
 						num5 *= num3;
@@ -724,24 +721,24 @@ namespace nel
 						meshDrawer.Col = meshDrawer.ColGrd.Set(4290361785U).mulA(0.7f * num5).C;
 						meshDrawer.initForImg(MTRX.EffBlurCircle245, 0);
 						meshDrawer.Rect(0f, 0f, 30f, 30f, false);
-						float num6 = global::XX.X.ZSIN2(dro.af - 2f, 30f);
+						float num6 = X.ZSIN2(dro.af - 2f, 30f);
 						meshDrawer2.initForImg(MTRX.EffCircle128, 0);
-						meshDrawer2.RectC(0f, 0f, 40f, 40f, false, global::XX.X.NI(1f, 0.75f, num6) * num5, global::XX.X.NI(1f, 0.42f, num6) * num5);
+						meshDrawer2.RectC(0f, 0f, 40f, 40f, false, X.NI(1f, 0.75f, num6) * num5, X.NI(1f, 0.42f, num6) * num5);
 					}
-					nelItemDrop.ptca = global::XX.X.VALWALK(nelItemDrop.ptca, (float)(nelItemDrop.pr_active ? 1 : 0), 0.05f);
+					nelItemDrop.ptca = X.VALWALK(nelItemDrop.ptca, (float)(nelItemDrop.pr_active ? 1 : 0), 0.05f);
 					if (nelItemDrop.ptca > 0f && num > 0)
 					{
 						num4 = (dro.af + (float)(dro.index * 9)) % (float)(50 + this.pr_active_count * 20);
-						float num7 = 1f - global::XX.X.ZLINE(global::XX.X.Abs(num4 - 25f), 25f);
+						float num7 = 1f - X.ZLINE(X.Abs(num4 - 25f), 25f);
 						if (num7 > 0f)
 						{
 							meshDrawer4.Col = meshDrawer4.ColGrd.White().mulA(nelItemDrop.ptca * num3 * num7).C;
 							for (int j = (nelItemDrop.pr_active ? 0 : 1); j < 2; j++)
 							{
-								uint ran = global::XX.X.GETRAN2(nelItemDrop.id + 44 + j * 64, nelItemDrop.id % 33);
-								float num8 = global::XX.X.RAN(ran, 2247) + dro.af / global::XX.X.NI(230, 420, global::XX.X.RAN(ran, 659));
-								float num9 = global::XX.X.RAN(ran, 3236) + dro.af / global::XX.X.NI(230, 420, global::XX.X.RAN(ran, 927));
-								meshDrawer4.Scale(global::XX.X.Cos0(num8), 1f, false);
+								uint ran = X.GETRAN2(nelItemDrop.id + 44 + j * 64, nelItemDrop.id % 33);
+								float num8 = X.RAN(ran, 2247) + dro.af / X.NI(230, 420, X.RAN(ran, 659));
+								float num9 = X.RAN(ran, 3236) + dro.af / X.NI(230, 420, X.RAN(ran, 927));
+								meshDrawer4.Scale(X.Cos0(num8), 1f, false);
 								meshDrawer4.Rotate01(num9, false);
 								meshDrawer4.RotaPF(0f, 0f, 1f, 1f, 0f, pxlFrame, false, false, false, uint.MaxValue, false, 0);
 								meshDrawer4.Identity();
@@ -799,11 +796,10 @@ namespace nel
 			{
 				if (!do_not_add_obtain_count)
 				{
-					this.M2D.QUEST.updateQuestCollectItem(Itm, num3, grade, true);
-					Itm.addObtainCount(num3);
+					this.addObtainCount(Itm, num3, grade);
 					if (Itm.is_recipe)
 					{
-						RecipeManager.Recipe recipeAllType = UiCraftBase.getRecipeAllType(Itm);
+						RCP.Recipe recipeAllType = UiCraftBase.getRecipeAllType(Itm);
 						if (recipeAllType != null)
 						{
 							recipeAllType.touchObtainCountAllIngredients();
@@ -823,7 +819,7 @@ namespace nel
 				Itm.touchObtainCount();
 				if (do_not_add_obtain_count)
 				{
-					nelItemDrop.type |= NelItemManager.TYPE.DO_NOT_PROGRESS_QUEST;
+					nelItemDrop.do_not_add_obtain_count = true;
 				}
 				nelItemDrop.lock_time = 0f;
 			}
@@ -838,7 +834,7 @@ namespace nel
 			}
 			if (Itm.key == "enhancer_slot")
 			{
-				EnhancerManager.fineEnhancerStorage(this.StPrecious, this.StEnhancer);
+				ENHA.fineEnhancerStorage(this.StPrecious, this.StEnhancer);
 			}
 			return num3;
 		}
@@ -866,7 +862,7 @@ namespace nel
 							int num4 = info.getCount(i);
 							if (num4 > 0)
 							{
-								num4 = global::XX.X.Mn(count, num4);
+								num4 = X.Mn(count, num4);
 								count -= num4;
 								num2 += num4;
 								itemStorage.Reduce(Itm, num4, i, true);
@@ -878,7 +874,7 @@ namespace nel
 						int num5 = itemStorage.getCount(Itm, grade);
 						if (num5 > 0)
 						{
-							num5 = global::XX.X.Mn(count, num5);
+							num5 = X.Mn(count, num5);
 							count -= num5;
 							num2 += num5;
 							itemStorage.Reduce(Itm, num5, grade, true);
@@ -900,7 +896,7 @@ namespace nel
 			{
 				this.ODiscardStack = new BDic<NelItem, ItemStorage.ObtainInfo>(4);
 			}
-			ItemStorage.ObtainInfo obtainInfo = global::XX.X.Get<NelItem, ItemStorage.ObtainInfo>(this.ODiscardStack, Data);
+			ItemStorage.ObtainInfo obtainInfo = X.Get<NelItem, ItemStorage.ObtainInfo>(this.ODiscardStack, Data);
 			if (obtainInfo == null)
 			{
 				obtainInfo = (this.ODiscardStack[Data] = new ItemStorage.ObtainInfo());
@@ -921,7 +917,7 @@ namespace nel
 			float num = Pr.x;
 			if (Pr is PR && (Pr as PR).isBenchState())
 			{
-				num -= 0.8f * (float)global::XX.CAim._XD(Pr.aim, 1);
+				num -= 0.8f * (float)CAim._XD(Pr.aim, 1);
 			}
 			foreach (KeyValuePair<NelItem, ItemStorage.ObtainInfo> keyValuePair in this.ODiscardStack)
 			{
@@ -931,17 +927,18 @@ namespace nel
 					int num2;
 					for (int j = value.getCount(i); j > 0; j -= num2)
 					{
-						num2 = global::XX.X.Mn(j, keyValuePair.Key.stock);
+						num2 = X.Mn(j, keyValuePair.Key.stock);
 						if (keyValuePair.Key.is_noel_water)
 						{
-							num2 = global::XX.X.Mn(num2, 1);
+							num2 = X.Mn(num2, 1);
 						}
 						if (keyValuePair.Key.is_bomb)
 						{
 							this.need_fine_bomb_self = true;
 						}
-						NelItemManager.NelItemDrop nelItemDrop = this.dropManual(keyValuePair.Key, num2, i, num, Pr.y, global::XX.X.NIXP(-0.003f, -0.07f) * (float)global::XX.CAim._XD(Pr.aim, 1), global::XX.X.NIXP(-0.01f, -0.04f), null, false, NelItemManager.TYPE.NORMAL);
+						NelItemManager.NelItemDrop nelItemDrop = this.dropManual(keyValuePair.Key, num2, i, num, Pr.y, X.NIXP(-0.003f, -0.07f) * (float)CAim._XD(Pr.aim, 1), X.NIXP(-0.01f, -0.04f), null, false, NelItemManager.TYPE.NORMAL);
 						nelItemDrop.discarded = true;
+						nelItemDrop.do_not_add_obtain_count = true;
 						if (keyValuePair.Key.is_noel_water)
 						{
 							nelItemDrop.type |= NelItemManager.TYPE.DISCARDED_NOELJUICE;
@@ -950,6 +947,25 @@ namespace nel
 				}
 			}
 			this.ODiscardStack = null;
+		}
+
+		public void addObtainCount(NelItem Itm, int c, int grade)
+		{
+			this.M2D.QUEST.updateQuestCollectItem(Itm, c, grade, true);
+			this.M2D.GUILD.addObtainItemForGQ(Itm, c, grade);
+			Itm.addObtainCount(c);
+		}
+
+		public void addObtainCount(NelItem Itm, ItemStorage.ObtainInfo Info)
+		{
+			for (int i = 0; i < 5; i++)
+			{
+				int count = Info.getCount(i);
+				if (count > 0)
+				{
+					this.addObtainCount(Itm, count, i);
+				}
+			}
 		}
 
 		public bool combineToInventory(ItemStorage StReelSpliced, ItemStorage Target, bool show_get_log, string added_alert = null, bool add_obtain_count = false)
@@ -975,7 +991,7 @@ namespace nel
 					Target.AddInfo(keyValuePair.Key, keyValuePair.Value);
 					if (add_obtain_count)
 					{
-						keyValuePair.Key.addObtainCount(keyValuePair.Value.total);
+						this.addObtainCount(keyValuePair.Key, keyValuePair.Value);
 					}
 					flag = true;
 				}
@@ -996,14 +1012,13 @@ namespace nel
 			foreach (KeyValuePair<NelItem, ItemStorage.ObtainInfo> keyValuePair in wholeInfoDictionary)
 			{
 				NelItem key = keyValuePair.Key;
-				key.addObtainCount(keyValuePair.Value.total);
 				if (key.is_enhancer)
 				{
 					this.DescBox.read_delay = 30f;
 					flag = true;
-					this.DescBox.addTaskFocus(EnhancerManager.Get(key), true);
+					this.DescBox.addTaskFocus(ENHA.Get(key), true);
 				}
-				else if (key.is_precious && key.FnGetName == new FnGetItemDetail(NelItem.fnGetNameSkillBook))
+				else if (key.is_precious && key.FnGetName == NelItem.fnGetNameSkillBook)
 				{
 					PrSkill prSkill = SkillManager.Get(TX.slice(key.key, 10));
 					if (prSkill != null)
@@ -1028,7 +1043,7 @@ namespace nel
 				}
 				else if (key.is_recipe)
 				{
-					RecipeManager.Recipe recipeAllType = UiCraftBase.getRecipeAllType(key);
+					RCP.Recipe recipeAllType = UiCraftBase.getRecipeAllType(key);
 					if (recipeAllType != null)
 					{
 						recipeAllType.touchObtainCountAllIngredients();
@@ -1036,7 +1051,7 @@ namespace nel
 				}
 				else if (TX.isStart(key.key, "spconfig_", 0))
 				{
-					CFG.addSp(TX.slice(key.key, "spconfig_".Length));
+					CFGSP.addSp(TX.slice(key.key, "spconfig_".Length));
 				}
 				if (this.M2D.QUEST.fineItemQuestTargetList())
 				{
@@ -1054,7 +1069,7 @@ namespace nel
 			}
 			if (flag2)
 			{
-				EnhancerManager.fineEnhancerStorage(this.StPrecious, this.StEnhancer);
+				ENHA.fineEnhancerStorage(this.StPrecious, this.StEnhancer);
 			}
 			if (flag)
 			{
@@ -1069,7 +1084,7 @@ namespace nel
 			for (int i = this.AInventory.Length - 1; i >= 0; i--)
 			{
 				ItemStorage itemStorage = this.AInventory[i];
-				if ((itemStorage != this.StHouseInventory || this.M2D.canAccesableToHouseInventory()) && itemStorage.isAddable(Itm))
+				if ((itemStorage != this.StHouseInventory || this.M2D.canAccesableToHouseInventory()) && itemStorage.isAddable(Itm, false))
 				{
 					num += itemStorage.getItemCapacity(Itm, false, false);
 				}
@@ -1082,7 +1097,7 @@ namespace nel
 			for (int i = this.AInventory.Length - 1; i >= 0; i--)
 			{
 				ItemStorage itemStorage = this.AInventory[i];
-				if (itemStorage != this.StHouseInventory && itemStorage.isAddable(Itm))
+				if (itemStorage != this.StHouseInventory && itemStorage.isAddable(Itm, false))
 				{
 					return itemStorage;
 				}
@@ -1090,15 +1105,25 @@ namespace nel
 			return this.StInventory;
 		}
 
-		public int countItem(NelItem Itm)
+		public int countItem(NelItem Itm, int grade = -1, bool force_can_access_house_inventory = false, bool min_grade = false)
 		{
 			int num = 0;
 			for (int i = this.AInventory.Length - 1; i >= 0; i--)
 			{
 				ItemStorage itemStorage = this.AInventory[i];
-				if ((itemStorage != this.StHouseInventory || this.M2D.canAccesableToHouseInventory()) && itemStorage.isAddable(Itm))
+				if ((itemStorage != this.StHouseInventory || force_can_access_house_inventory || this.M2D.canAccesableToHouseInventory()) && itemStorage.isAddable(Itm, force_can_access_house_inventory))
 				{
-					num += itemStorage.getCount(Itm, -1);
+					if (min_grade && grade >= 0)
+					{
+						for (int j = grade; j < 5; j++)
+						{
+							num += itemStorage.getCount(Itm, j);
+						}
+					}
+					else
+					{
+						num += itemStorage.getCount(Itm, grade);
+					}
 				}
 			}
 			return num;
@@ -1180,18 +1205,23 @@ namespace nel
 			return this.getInventory().hide_bottle_max;
 		}
 
-		public MsgBox showPopUp(NelItemManager.POPUP categ, string text, float mapx, float mapy, float shifty_toupper = 0f, float shifty_tounder = 0f)
+		public ItemDescBox.IdbTask showPopUp(NelItemManager.POPUP categ, string text, float mapx, float mapy, float shifty_toupper = 0f, float shifty_tounder = 0f)
 		{
-			this.DescBox.addTaskPopUp(categ, text, mapx, mapy, shifty_toupper, shifty_tounder, false);
+			ItemDescBox.IdbTask idbTask = this.DescBox.addTaskPopUp(categ, text, mapx, mapy, shifty_toupper, shifty_tounder, false);
 			this.box_show_flag = categ;
-			return this.DescBox;
+			return idbTask;
 		}
 
-		public MsgBox showPopUpAbs(NelItemManager.POPUP categ, string text, float pxx, float pxy)
+		public ItemDescBox.IdbTask showPopUpAbs(NelItemManager.POPUP categ, string text, float pxx, float pxy)
 		{
-			this.DescBox.addTaskPopUp(categ, text, pxx, pxy, 0f, -40f, true);
+			ItemDescBox.IdbTask idbTask = this.DescBox.addTaskPopUp(categ, text, pxx, pxy, 0f, -40f, true);
 			this.box_show_flag = categ;
-			return this.DescBox;
+			return idbTask;
+		}
+
+		public void fineTaskPosition(ItemDescBox.IdbTask Task)
+		{
+			this.DescBox.fineTaskPosition(Task);
 		}
 
 		public MsgBox hidePopUp(NelItemManager.POPUP categ)
@@ -1223,6 +1253,28 @@ namespace nel
 			return !this.M2D.PlayerNoel.Skill.isHoldingItem(null, -1);
 		}
 
+		public List<NelItemEntry> clearItemReelProgressMem(bool clearing = false)
+		{
+			this.AItemReelSource = (clearing ? null : new List<NelItemEntry>(1));
+			return this.AItemReelSource;
+		}
+
+		public void initItemReelUI(UiReelManager UiReel)
+		{
+			UiReel.fnItemReelProgressing = new ReelManager.FnItemReelProgressing(this.fnReelProcess);
+		}
+
+		private bool fnReelProcess(ReelManager.ItemReelContainer _Reel)
+		{
+			if (this.AItemReelSource != null && this.AItemReelSource.Count > 0)
+			{
+				NelItemEntry nelItemEntry = this.AItemReelSource[0];
+				this.reduceItem(nelItemEntry.Data, nelItemEntry.count, (int)nelItemEntry.grade);
+				this.AItemReelSource.RemoveAt(0);
+			}
+			return true;
+		}
+
 		public bool spoilRawDishes(bool announce = true)
 		{
 			this.StInventory.getWholeInfoDictionary();
@@ -1239,7 +1291,7 @@ namespace nel
 					{
 						ItemStorage.IRow row = blist[i];
 						num += row.total;
-						num2 = global::XX.X.Mx(row.Info.newer, num2);
+						num2 = X.Mx(row.Info.newer, num2);
 					}
 					for (int j = 0; j < count; j++)
 					{
@@ -1259,7 +1311,7 @@ namespace nel
 			}
 			foreach (KeyValuePair<M2DropObject, NelItemManager.NelItemDrop> keyValuePair in this.ODrop)
 			{
-				if (keyValuePair.Value.Itm.is_food)
+				if (NelItem.isRawFoodItem(keyValuePair.Value.Itm))
 				{
 					if (nelItem == null)
 					{
@@ -1267,7 +1319,7 @@ namespace nel
 					}
 					keyValuePair.Value.Itm = nelItem;
 					keyValuePair.Value.grade = 0;
-					keyValuePair.Value.discarded = false;
+					keyValuePair.Value.do_not_add_obtain_count = false;
 					num += keyValuePair.Value.count;
 				}
 			}
@@ -1294,10 +1346,8 @@ namespace nel
 		public void showCheckBoxAt(float mapx, float mapy, float shift_px_y, string title, bool refining = false)
 		{
 			int crop_value = this.M2D.curMap.get_crop_value();
-			this.BoxTarget_MapPos.Set(mapx, mapy, global::XX.X.Abs(shift_px_y), -40f);
-			this.BoxCheckTarget.activate();
+			this.BoxCheckTarget.setPos(mapx, mapy, X.Abs(shift_px_y), -40f);
 			this.BoxCheckTarget.make(title, refining);
-			this.fineCheckTargetPos(refining);
 		}
 
 		public void hideCheckBoxAt()
@@ -1306,52 +1356,6 @@ namespace nel
 			{
 				this.BoxCheckTarget.deactivate();
 			}
-		}
-
-		public void fineCheckTargetPos(bool out_pos = false)
-		{
-			if (!this.BoxCheckTarget.visible)
-			{
-				return;
-			}
-			NelItemManager.fineBoxPosOnMap(this.BoxCheckTarget, this.M2D, this.BoxTarget_MapPos, out_pos, false, 0f, 0f);
-		}
-
-		public static void fineBoxPosOnMap(IDesignerPosSetableBlock Box, M2DBase M2D, Vector4 Pos, bool out_pos = false, bool no_clip_screen = false, float add_x_px = 0f, float add_y_px = 0f)
-		{
-			Map2d curMap = M2D.curMap;
-			if (curMap == null)
-			{
-				return;
-			}
-			float num = IN.w - global::XX.X.Abs(M2D.ui_shift_x);
-			float h = IN.h;
-			float num2 = M2D.ux2effectScreenx(curMap.map2ux(Pos.x));
-			float num3 = M2D.uy2effectScreeny(curMap.map2uy(Pos.y));
-			float num4 = M2D.ux2effectScreenx(curMap.pixel2ux(M2D.Cam.x));
-			float num5 = M2D.uy2effectScreeny(curMap.pixel2uy(M2D.Cam.y));
-			float scale = M2D.Cam.getScale(true);
-			num2 = (num2 - num4) * scale * 64f;
-			num3 = (num3 - num5) * scale * 64f;
-			bool flag = num3 < IN.h * 0.35f;
-			if (flag)
-			{
-				num3 += Pos.z;
-			}
-			else
-			{
-				num3 += Pos.w;
-			}
-			if (!no_clip_screen)
-			{
-				float num6 = Box.get_swidth_px() / 2f + 8f;
-				float num7 = (Box.get_sheight_px() + 20f) * 0.5f;
-				num2 = global::XX.X.MMX2(-num * 0.5f + num6, num2, num * 0.5f - num6);
-				num3 = global::XX.X.MMX2(-h * 0.5f + num7, num3, h * 0.5f - num7);
-			}
-			num2 += M2D.ui_shift_x + add_x_px;
-			num3 += add_y_px;
-			Box.posSetA(num2, num3 - (float)(30 * global::XX.X.MPF(flag)), num2, num3, !out_pos);
 		}
 
 		public void run(float fcnt)
@@ -1449,19 +1453,15 @@ namespace nel
 			}
 			if (this.pickup_delay > 0f)
 			{
-				this.pickup_delay = global::XX.X.VALWALK(this.pickup_delay, 0f, fcnt);
+				this.pickup_delay = X.VALWALK(this.pickup_delay, 0f, fcnt);
 			}
 			if (this.holdover_alert > 0f)
 			{
-				this.holdover_alert = global::XX.X.VALWALK(this.holdover_alert, 0f, fcnt);
+				this.holdover_alert = X.VALWALK(this.holdover_alert, 0f, fcnt);
 			}
 			if (this.DescBox.NextSplTarget != this.SupplyTarget)
 			{
 				this.DescBox.addTaskSupplier(this.SupplyTarget);
-			}
-			if (this.BoxTarget_MapPos.z != 0f && global::XX.X.D)
-			{
-				this.fineCheckTargetPos(false);
 			}
 			this.need_fine_target_window = false;
 			this.DescBox.run(fcnt, false);
@@ -1483,7 +1483,7 @@ namespace nel
 				PR.PunchDecline(5, true);
 				if (ItData.count <= 0)
 				{
-					this.removeItData(ItData.Dro, null);
+					this.removeItData(ItData.Dro, null, true);
 					return;
 				}
 				if (this.holdover_alert == 0f)
@@ -1492,11 +1492,11 @@ namespace nel
 					string text;
 					if (this.getStorageFor(ItData.Itm) == this.StInventory && ItData.Itm.is_water)
 					{
-						text = TX.GetA("cannot_take_need_container_item", NelItem.Bottle.getLocalizedName(0, null));
+						text = TX.GetA("cannot_take_need_container_item", NelItem.Bottle.getLocalizedName(0));
 					}
 					else
 					{
-						text = TX.GetA("Alert_item_holdover", ItData.Itm.getLocalizedName(ItData.grade, null));
+						text = TX.GetA("Alert_item_holdover", ItData.Itm.getLocalizedName(ItData.grade));
 					}
 					UILog.Instance.AddAlert(text, UILogRow.TYPE.ALERT);
 					this.holdover_alert = 40f;
@@ -1519,7 +1519,7 @@ namespace nel
 
 		public void CheckBombSelfExplode(PR Pr, MGATTR attr, float ratio = 1f)
 		{
-			if ((attr != MGATTR.ENERGY && attr != MGATTR.FIRE && attr != MGATTR.BOMB && attr != MGATTR.EATEN && attr != MGATTR.THUNDER) || this.Mp.floort < this.floort_lock_self_explode)
+			if (attr != MGATTR.ENERGY && attr != MGATTR.FIRE && attr != MGATTR.BOMB && attr != MGATTR.EATEN && attr != MGATTR.THUNDER)
 			{
 				return;
 			}
@@ -1540,19 +1540,19 @@ namespace nel
 				if (num > nelItem.stock)
 				{
 					this.bombself |= NelItemManager.BOMB_SELF.FIRE;
-					this.bombself_fire = (byte)global::XX.X.Mn(6, (num - 1) / nelItem.stock);
+					this.bombself_fire = (byte)X.Mn(6, (num - 1) / nelItem.stock);
 				}
 				num = this.StInventory.getCount(nelItem2, -1);
 				if (num > nelItem2.stock)
 				{
 					this.bombself |= NelItemManager.BOMB_SELF.THUNDER;
-					this.bombself_thunder = (byte)global::XX.X.Mn(6, (num - 1) / nelItem2.stock);
+					this.bombself_thunder = (byte)X.Mn(6, (num - 1) / nelItem2.stock);
 				}
 				num = this.StInventory.getCount(nelItem3, -1);
 				if (num > nelItem3.stock)
 				{
 					this.bombself |= NelItemManager.BOMB_SELF.MAGIC;
-					this.bombself_magic = (byte)global::XX.X.Mn(6, (num - 1) / nelItem3.stock);
+					this.bombself_magic = (byte)X.Mn(6, (num - 1) / nelItem3.stock);
 				}
 			}
 			NelItemManager.BOMB_SELF bomb_SELF = (NelItemManager.BOMB_SELF)0;
@@ -1584,56 +1584,55 @@ namespace nel
 			int num3 = (int)this.bombself_fire;
 			int num4 = (int)this.bombself_thunder;
 			int num5 = (int)this.bombself_magic;
+			bool flag = false;
 			while (num2 > 0 && bomb_SELF != (NelItemManager.BOMB_SELF)0)
 			{
-				bool flag = false;
-				if ((bomb_SELF & NelItemManager.BOMB_SELF.FIRE) != (NelItemManager.BOMB_SELF)0)
+				bool flag2 = false;
+				if ((bomb_SELF & NelItemManager.BOMB_SELF.FIRE) != (NelItemManager.BOMB_SELF)0 && num2 > 0 && num3 > 0)
 				{
-					if (num3 > 0 && this.CheckBombSelfExplode(Pr, ref nelItem, ref obtainInfo, "throw_bomb", ratio))
+					flag2 = true;
+					if (num3 > 0 && this.CheckBombSelfExplode(Pr, 300f, ref nelItem, ref obtainInfo, "throw_bomb", ratio, RCP.RPI_EFFECT.FIRE_DAMAGE_REDUCE))
 					{
-						flag = true;
-						num2--;
-						num3--;
+						break;
 					}
-					else
-					{
-						bomb_SELF &= (NelItemManager.BOMB_SELF)253;
-					}
+					flag = true;
+					num3--;
+					num2--;
 				}
-				if ((bomb_SELF & NelItemManager.BOMB_SELF.THUNDER) != (NelItemManager.BOMB_SELF)0)
+				if ((bomb_SELF & NelItemManager.BOMB_SELF.THUNDER) != (NelItemManager.BOMB_SELF)0 && num2 > 0 && num4 > 0)
 				{
-					if (num4 > 0 && this.CheckBombSelfExplode(Pr, ref nelItem2, ref obtainInfo2, "throw_lightbomb", ratio))
+					flag2 = true;
+					if (num4 > 0 && this.CheckBombSelfExplode(Pr, 300f, ref nelItem2, ref obtainInfo2, "throw_lightbomb", ratio, RCP.RPI_EFFECT.ELEC_DAMAGE_REDUCE))
 					{
-						flag = true;
-						num2--;
-						num4--;
+						break;
 					}
-					else
-					{
-						bomb_SELF &= (NelItemManager.BOMB_SELF)251;
-					}
+					flag = true;
+					num4--;
+					num2--;
 				}
-				if ((bomb_SELF & NelItemManager.BOMB_SELF.MAGIC) != (NelItemManager.BOMB_SELF)0)
+				if ((bomb_SELF & NelItemManager.BOMB_SELF.MAGIC) != (NelItemManager.BOMB_SELF)0 && num2 > 0 && num5 > 0)
 				{
-					if (num5 > 0 && this.CheckBombSelfExplode(Pr, ref nelItem3, ref obtainInfo3, "throw_magicbomb", ratio))
+					flag2 = true;
+					if (this.CheckBombSelfExplode(Pr, 600f, ref nelItem3, ref obtainInfo3, "throw_magicbomb", ratio, RCP.RPI_EFFECT.__LISTUP_MAX))
 					{
-						flag = true;
-						num2--;
-						num5--;
+						break;
 					}
-					else
-					{
-						bomb_SELF &= (NelItemManager.BOMB_SELF)247;
-					}
+					flag = true;
+					num5--;
+					num2--;
 				}
-				if (!flag)
+				if (!flag2)
 				{
-					break;
+					num2--;
 				}
+			}
+			if (flag)
+			{
+				Pr.LockCntOccur.Add(PR.OCCUR.BOMB_SELF, 60f);
 			}
 		}
 
-		private bool CheckBombSelfExplode(PR Pr, ref NelItem Itm, ref ItemStorage.ObtainInfo Obt, string item_key, float ratio)
+		private bool CheckBombSelfExplode(PR Pr, float lock_t, ref NelItem Itm, ref ItemStorage.ObtainInfo Obt, string item_key, float ratio, RCP.RPI_EFFECT rpi_reduce = RCP.RPI_EFFECT.__LISTUP_MAX)
 		{
 			if (Itm == null)
 			{
@@ -1643,19 +1642,32 @@ namespace nel
 			{
 				Obt = this.StInventory.getInfo(Itm);
 			}
-			if (Obt == null || Obt.getCount(-1) <= Itm.stock)
+			if (Obt == null || Obt.getCount(-1) <= Itm.stock || Pr.LockCntOccur.isLocked(PR.OCCUR.BOMB_SELF))
 			{
 				return false;
 			}
-			int num = global::XX.X.Mn(Obt.getCount(-1) - Itm.stock, Itm.stock);
-			if (global::XX.X.XORSP() < ratio * ((num >= Itm.stock) ? 1f : ((float)num / (float)Itm.stock)))
+			int num = X.Mn(Obt.getCount(-1) - Itm.stock, Itm.stock);
+			if (rpi_reduce != RCP.RPI_EFFECT.__LISTUP_MAX)
+			{
+				float re = Pr.getRE(rpi_reduce);
+				if (re > 0f)
+				{
+					ratio *= X.NIL(1f, 0f, re * 1.4f, 1f);
+				}
+				else if (re < 0f)
+				{
+					ratio *= X.NIL(1f, 1.5f, -re, 1f);
+				}
+			}
+			if (X.XORSP() < ratio * ((num >= Itm.stock) ? 1f : ((float)num / (float)Itm.stock)))
 			{
 				bool flag = false;
 				if (!this.need_fine_bomb_self)
 				{
 					this.need_fine_bomb_self = true;
 					flag = true;
-					this.floort_lock_self_explode = this.Mp.floort + 30f;
+					Pr.LockCntOccur.Add(PR.OCCUR.BOMB_SELF, lock_t);
+					UILog.Instance.AddAlertTX("bomb_selfexplode", UILogRow.TYPE.ALERT);
 				}
 				for (int i = 0; i < num; i++)
 				{
@@ -1750,6 +1762,11 @@ namespace nel
 			return this.M2D.NightCon.getNoelJuiceQuality(dlevel_multiple);
 		}
 
+		public bool getNoelEggObtainable()
+		{
+			return !this.M2D.isSafeArea();
+		}
+
 		public void gatherWholeDropItem()
 		{
 			foreach (KeyValuePair<M2DropObject, NelItemManager.NelItemDrop> keyValuePair in this.ODrop)
@@ -1760,7 +1777,7 @@ namespace nel
 
 		public bool increaseInenvoryCapacity(int i, int _max = 0)
 		{
-			if (((_max > 0) ? global::XX.X.Mn(i, _max - this.StInventory.row_max) : i) <= 0)
+			if (((_max > 0) ? X.Mn(i, _max - this.StInventory.row_max) : i) <= 0)
 			{
 				return false;
 			}
@@ -1769,14 +1786,17 @@ namespace nel
 			return true;
 		}
 
-		public static string ItemRowNameAddition(ItemStorage.IRow Row, ItemStorage Storage, string def_string)
+		public static void ItemRowNameAddition(STB Stb, ItemStorage.IRow Row, ItemStorage Storage)
 		{
 			ItemStorage.IRow row;
 			if (!Storage.water_stockable && Row.Data.is_food && !Row.Data.is_water && Storage.isLinked(Row, out row))
 			{
-				return TX.GetA("food_in_lunchbox", def_string);
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					stb.AddTxA("food_in_lunchbox", false).TxRpl(Stb);
+					Stb.Clear().Add(stb);
+				}
 			}
-			return def_string;
 		}
 
 		public static int ItemRowIconAddition(ItemStorage.IRow Row, ItemStorage Storage, int def_icon)
@@ -1980,9 +2000,20 @@ namespace nel
 			return this.StmNoel;
 		}
 
+		public void addPickupListener(NelItemManager.IPickupListener FD)
+		{
+			this.AFD_PickupListener.Add(FD);
+		}
+
+		public void remPickupListener(NelItemManager.IPickupListener FD)
+		{
+			this.AFD_PickupListener.Remove(FD);
+		}
+
 		public void newGame()
 		{
 			this.EventCacheBa = null;
+			this.AItemReelSource = null;
 			this.DropObjectCache = null;
 			this.StInventory.clearAllItems(12);
 			this.StInventory.hide_bottle_max = 0;
@@ -1991,7 +2022,7 @@ namespace nel
 			this.StEnhancer.clearAllItems(255);
 			COOK.newGameItems(this.StInventory, this.StHouseInventory, this.StPrecious);
 			this.has_recipe_collection = false;
-			EnhancerManager.newGame();
+			ENHA.newGame();
 			this.ReelM.newGame();
 			this.fineSpecialNoelRow(null);
 			this.StmNoel.newGame();
@@ -2004,7 +2035,7 @@ namespace nel
 			this.initS();
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool use_shift = true, bool fine_pr_state = true, bool fix_ver024_recipeitem = false)
+		public void readBinaryFrom(ByteReader Ba, bool use_shift = true, bool fine_pr_state = true, bool fix_ver024_recipeitem = false)
 		{
 			this.newGame();
 			if (use_shift)
@@ -2029,11 +2060,11 @@ namespace nel
 			{
 				this.StInventory.hide_bottle_max = 0;
 			}
-			if (global::XX.X.DEBUGALLSKILL)
+			if (X.DEBUGALLSKILL)
 			{
-				EnhancerManager.prepareDebug(this.StPrecious, this.StEnhancer, false);
+				ENHA.prepareDebug(this.StPrecious, this.StEnhancer, false);
 			}
-			EnhancerManager.fineEnhancerStorage(this.StPrecious, this.StEnhancer);
+			ENHA.fineEnhancerStorage(this.StPrecious, this.StEnhancer);
 			this.DropObjectCache = new NelItemManager.DropObjectBytes((byte)num).readBinaryFrom(Ba);
 			if (num >= 5)
 			{
@@ -2092,7 +2123,7 @@ namespace nel
 								list = new List<NelItem>(8);
 							}
 							list.Add(keyValuePair.Key);
-							CFG.addSp(TX.slice(keyValuePair.Key.key, "spconfig_".Length));
+							CFGSP.addSp(TX.slice(keyValuePair.Key.key, "spconfig_".Length));
 						}
 					}
 					if (list != null && list.Count > 0)
@@ -2219,11 +2250,13 @@ namespace nel
 
 		private BDic<NelItem, ItemStorage.ObtainInfo> ODiscardStack;
 
-		private float floort_lock_self_explode;
-
 		public const string itemdrop_saved_header = "osake_no_okage_de_ironna_mono_wo_otoshi_te_simatta_HashinoMizuha";
 
 		public const string itemdrop_saved_ext = ".drpd";
+
+		private List<NelItemManager.IPickupListener> AFD_PickupListener;
+
+		private List<NelItemEntry> AItemReelSource;
 
 		private readonly M2DropObject.FnDropObjectRun fnRunDropObject;
 
@@ -2237,9 +2270,7 @@ namespace nel
 
 		public IM2TalkableObject PreTalkable;
 
-		private OneLineBox BoxCheckTarget;
-
-		private Vector4 BoxTarget_MapPos;
+		private M2BoxOneLine BoxCheckTarget;
 
 		private ItemDescBox DescBox;
 
@@ -2260,6 +2291,11 @@ namespace nel
 		public const int FIXVER024_IMNG_VER = 9;
 
 		public const int IMNG_SAVE_VER = 9;
+
+		public interface IPickupListener
+		{
+			void DropPickup(NelItemManager.NelItemDrop ItData, bool pickuped);
+		}
 
 		public class NelItemDrop : IItemSupplier, IM2TalkableObject
 		{
@@ -2289,10 +2325,10 @@ namespace nel
 					if (value)
 					{
 						this.type &= (NelItemManager.TYPE)(-4);
-						this.type |= (NelItemManager.TYPE)160;
+						this.type |= NelItemManager.TYPE.DISCARDED;
 						return;
 					}
-					this.type &= (NelItemManager.TYPE)(-161);
+					this.type &= (NelItemManager.TYPE)(-33);
 				}
 			}
 
@@ -2300,7 +2336,16 @@ namespace nel
 			{
 				get
 				{
-					return (this.type & (NelItemManager.TYPE)160) > NelItemManager.TYPE.NORMAL;
+					return (this.type & NelItemManager.TYPE.DO_NOT_PROGRESS_QUEST) > NelItemManager.TYPE.NORMAL;
+				}
+				set
+				{
+					if (value)
+					{
+						this.type |= NelItemManager.TYPE.DO_NOT_PROGRESS_QUEST;
+						return;
+					}
+					this.type &= (NelItemManager.TYPE)(-129);
 				}
 			}
 
@@ -2465,7 +2510,7 @@ namespace nel
 				this.ACache = new List<NelItemManager.DropObjectBytes.NelItemDropCache>(4);
 			}
 
-			public NelItemManager.DropObjectBytes readBinaryFrom(ByteArray Ba)
+			public NelItemManager.DropObjectBytes readBinaryFrom(ByteReader Ba)
 			{
 				int num = (int)Ba.readUShort();
 				bool flag = this.vers >= 8;

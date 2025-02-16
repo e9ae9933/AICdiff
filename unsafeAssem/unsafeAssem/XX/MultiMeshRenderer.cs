@@ -746,7 +746,7 @@ namespace XX
 					this.AMesh[i] = null;
 					if (gameObject != null)
 					{
-						Object.Destroy(gameObject);
+						global::UnityEngine.Object.Destroy(gameObject);
 					}
 				}
 				if (this.AMpb != null)
@@ -885,7 +885,7 @@ namespace XX
 		public static Camera DestroyRenderBufferAndCamera(Camera Cam)
 		{
 			IN.DestroyOne(Cam.gameObject);
-			Object targetTexture = Cam.targetTexture;
+			global::UnityEngine.Object targetTexture = Cam.targetTexture;
 			Cam.targetTexture = null;
 			IN.DestroyOne(targetTexture);
 			IN.DestroyOne(Cam);

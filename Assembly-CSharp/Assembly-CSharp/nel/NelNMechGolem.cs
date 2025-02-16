@@ -7,7 +7,7 @@ using XX;
 
 namespace nel
 {
-	public class NelNMechGolem : NelEnemy
+	public class NelNMechGolem : NelEnemy, MgNGeneralBeam.IGeneralBeamer
 	{
 		public override void Awake()
 		{
@@ -25,7 +25,6 @@ namespace nel
 			this.Mp = _Mp;
 			this.kind = ENEMYKIND.DEVIL;
 			float num = 25f;
-			this.Od = new OverDriveManager(this, 162, 102);
 			NOD.BasicData basicData;
 			if (this.id == ENEMYID.MECHGOLEM_1)
 			{
@@ -54,6 +53,14 @@ namespace nel
 			this.SqShotParts = this.Anm.getCurrentCharacter().getPoseByName("_shot_parts").getSequence(0);
 			this.SqOdMissile = this.Anm.getCurrentCharacter().getPoseByName("missile").getSequence(0);
 			this.Anm.addAdditionalDrawer(this.EadShotHand = new EnemyAnimator.EnemyAdditionalDrawFrame(this.SqShotParts.getFrame(1), new EnemyAnimator.EnemyAdditionalDrawFrame.FnDrawEAD(this.fnDrawShotHand), false));
+			this.AtkTackleBodyOd.Prepare(this, true);
+			this.AtkOdMissile.Prepare(this, true);
+			this.AtkShotHit.Prepare(this, true);
+			this.AtkAbsorbMain.Prepare(this, true);
+			if (base.nattr_has_mattr)
+			{
+				this.AtkShotHit.hpdmg0 = X.Mx(10, X.IntR((float)this.AtkShotHit.hpdmg0 * 0.6f));
+			}
 		}
 
 		public override void destruct()
@@ -93,10 +100,13 @@ namespace nel
 				this.FD_eye0 = (EffectItem Ef, M2DrawBinder Ed) => this.drawBinderRotateEye(Ed, Ef, "eye_0");
 				this.FD_eye1 = (EffectItem Ef, M2DrawBinder Ed) => this.drawBinderRotateEye(Ed, Ef, "eye_1");
 				this.FD_eye2 = (EffectItem Ef, M2DrawBinder Ed) => this.drawBinderRotateEye(Ed, Ef, "eye_2");
-				this.EfPtcOnceRotateEye = new EfParticleOnce("mgolem_od_rotate_eye", EFCON_TYPE.UI);
+				this.EfPtcOnceRotateEye = new EfParticleOnce("mgolem_od_rotate_eye", EFCON_TYPE.FIXED);
 			}
-			this.od_arrow_attr_grab = 3;
-			this.od_arrow_attr = (byte)NightController.xors(4);
+			this.od_arrow_attr_grab = MgNGeneralBeam.BATTR.ACME;
+			if (!MgNGeneralBeam.nattr2battr(this.nattr, out this.od_arrow_attr))
+			{
+				this.od_arrow_attr = (MgNGeneralBeam.BATTR)NightController.xors(4);
+			}
 			this.Danger = new NASDangerChecker(this, 11f);
 			this.Nai.RemF(NAI.FLAG.ATTACKED);
 			this.Nai.AddF(NAI.FLAG.WANDERING, 600f);
@@ -172,7 +182,7 @@ namespace nel
 			{
 				Nai.addTypeLock(NAI.TYPE.MAG, X.NIXP(40f, 110f));
 			}
-			if (Nai.fnAwakeBasicHead(Nai) || !base.hasFoot())
+			if (Nai.fnAwakeBasicHead(Nai, NAI.TYPE.GAZE) || !base.hasFoot())
 			{
 				return true;
 			}
@@ -213,7 +223,7 @@ namespace nel
 							Nai.AddF(NAI.FLAG.INJECTED, 150f);
 						}
 					}
-					if (flag3 && this.ammo_empty && base.Useable(this.McsRecharge, 1f, 0f) && !Nai.hasTypeLock(NAI.TYPE.MAG_1))
+					if (flag3 && this.ammo_empty && this.Useable(this.McsRecharge, 1f, 0f) && !Nai.hasTypeLock(NAI.TYPE.MAG_1))
 					{
 						if (!this.normal_too_near_target() && !Nai.HasF(NAI.FLAG.ATTACKED, false))
 						{
@@ -244,12 +254,12 @@ namespace nel
 								bccline3 = ((i == 0) ? bccline2.LinkS : bccline2.LinkD);
 								if (bccline3 == null || bccline3.foot_aim != AIM.B)
 								{
-									goto IL_0575;
+									goto IL_0577;
 								}
 								vector2.Set(bccline2.x, bccline2.y + 0.25f, X.LENGTHXY2(base.x, base.y, bccline2.x, bccline2.y + 0.25f));
 								if (!X.BTW(16f, vector2.z, 256f))
 								{
-									goto IL_0575;
+									goto IL_0577;
 								}
 								num2 = ((i == 0) ? (bccline3.right - 0.5f) : (bccline3.x + 0.5f));
 							}
@@ -280,7 +290,7 @@ namespace nel
 								}
 							}
 						}
-						IL_0575:;
+						IL_0577:;
 					}
 					if (vector.z >= 0f)
 					{
@@ -414,7 +424,7 @@ namespace nel
 					if (type == NAI.TYPE.WAIT)
 					{
 						base.AimToLr((X.xors(2) == 0) ? 0 : 2);
-						Tk.after_delay = 20f + this.Nai.RANtk(840) * 30f;
+						Tk.after_delay = 20f + this.Nai.RANtk(840) * 40f;
 						return false;
 					}
 					break;
@@ -969,7 +979,7 @@ namespace nel
 					Mg.Ray.clearTempReflect();
 					Mg.MnSetRay(Mg.Ray, 0, Mg.aim_agR, 0f);
 					HITTYPE hittype = Mg.Ray.Cast(true, null, false);
-					if ((hittype & (HITTYPE)4194336) != HITTYPE.NONE)
+					if ((hittype & (HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN)) != HITTYPE.NONE)
 					{
 						if (Mg.reflectAgR(Mg.Ray, ref Mg.aim_agR, 0.25f))
 						{
@@ -1363,6 +1373,10 @@ namespace nel
 				if ((hittype & HITTYPE.WALL_AND_BREAK) != HITTYPE.NONE)
 				{
 					Mg.PtcST("mgolem_gunshot_hit", PTCThread.StFollow.NO_FOLLOW, false);
+					if (base.nattr_has_mattr)
+					{
+						EnemyAttr.Splash(this, Mg.sx, Mg.sy, 0.6f, 1f, 1f);
+					}
 					return false;
 				}
 				mnShot.RayShift(Mg.Ray, 0, ref Mg.sx, ref Mg.sy, fcnt);
@@ -1395,10 +1409,12 @@ namespace nel
 				}
 				float num2 = (num - 1f) * 2f + 1f;
 				meshImg.Scale(num2, num2 * 0.3f, false).Rotate(Mg.sa, false);
-				meshImg.Col = meshImg.ColGrd.Set(4288526009U).blend(4279650404U, 0.5f + 0.5f * X.COSI(Mg.t, 12.35f)).C;
+				uint num3 = EnemyAttr.get_mcolor_sub(this, 4288526009U);
+				meshImg.Col = meshImg.ColGrd.Set(num3).blend(4279650404U, 0.5f + 0.5f * X.COSI(Mg.t, 12.35f)).C;
 				meshImg.initForImg(MTRX.EffBlurCircle245, 0).Rect(-50f, 0f, 120f, 120f, false);
 				meshDrawer.Scale(num2, num2 * 0.3f, false).Rotate(Mg.sa, false);
-				meshDrawer.Col = meshDrawer.ColGrd.Set(4294578021U).blend(4294945433U, 0.5f + 0.5f * X.COSI(Mg.t, 10.68f)).C;
+				num3 = EnemyAttr.get_mcolor(this, 4294578021U);
+				meshDrawer.Col = meshDrawer.ColGrd.Set(num3).blend(4294945433U, 0.5f + 0.5f * X.COSI(Mg.t, 10.68f)).C;
 				meshDrawer.initForImg(MTRX.EffBlurCircle245, 0).Rect(-30f, 0f, 100f, 100f, false);
 				meshDrawer.initForImg(MTRX.EffCircle128, 0).Rect(-18f, 0f, 55f, 40f, false);
 			}
@@ -1418,7 +1434,7 @@ namespace nel
 			{
 				this.walk_st = 1;
 				this.ammo = 3;
-				base.MpConsume(this.McsRecharge, null, 1f, 1f);
+				this.MpConsume(this.McsRecharge, null, 1f, 1f);
 			}
 			if (this.t >= 155f)
 			{
@@ -1474,7 +1490,7 @@ namespace nel
 						return Nai.AddTicketB(NAI.TYPE.PUNCH_0, 128, true);
 					}
 				}
-				if (!flag2 && Nai.tkC(4178, 0.88f, true))
+				if (!flag2 && Nai.tkC(4178, Nai.HasF(NAI.FLAG.POWERED, false) ? 0.35f : 0.88f, true))
 				{
 					Nai.AddTicketB(NAI.TYPE.WAIT, 1, true);
 					return true;
@@ -1500,7 +1516,7 @@ namespace nel
 					Nai.delay = 2f;
 					return false;
 				}
-				if (Nai.tkC(2345, 0.3f, true) && !Nai.hasTypeLock(NAI.TYPE.MAG_0) && base.Useable(this.McsOdMissile, 1f, 0f))
+				if (Nai.tkC(2345, 0.3f, true) && !Nai.hasTypeLock(NAI.TYPE.MAG_0) && this.Useable(this.McsOdMissile, 1f, 0f))
 				{
 					return Nai.AddTicketB(NAI.TYPE.MAG_0, 128, true);
 				}
@@ -1528,7 +1544,7 @@ namespace nel
 				{
 					return Nai.AddTicketB(NAI.TYPE.GUARD_1, 128, true);
 				}
-				if (base.Useable(this.McsOdArrow, 1f, 0f) && (this.od_wait_continue >= 6 || this.Mp.canThroughBcc(base.x, base.y, Nai.target_x, Nai.target_y, 0.1f, 0.1f, -1, false, false, null, true, null)))
+				if (this.Useable(this.McsOdArrow, 1f, 0f) && (this.od_wait_continue >= 6 || this.Mp.canThroughBcc(base.x, base.y, Nai.target_x, Nai.target_y, 0.1f, 0.1f, -1, false, false, null, true, null)))
 				{
 					return Nai.AddTicketB(NAI.TYPE.GUARD, 128, true);
 				}
@@ -1664,7 +1680,7 @@ namespace nel
 					if (!this.Nai.HasF(NAI.FLAG.ATTACKED, false))
 					{
 						this.Nai.AddF(NAI.FLAG.ATTACKED, 200f);
-						base.MpConsume(this.McsOdMissile, null, 1f, 0f);
+						this.MpConsume(this.McsOdMissile, null, 1f, 0f);
 					}
 					if (Tk.Progress(ref this.t, 260, true))
 					{
@@ -1731,14 +1747,14 @@ namespace nel
 				NelNGolemToyMisPod.MgMissileInit(Mg, (num3 % 4 < 2) ? 1 : 0);
 				Mg.MpConsume(this.McsOdMissile, 0.03125f);
 			}
-			return NelNGolemToyMisPod.MgRun(Mg, fcnt, 2, 25f);
+			return NelNGolemToyMisPod.MgRun(Mg, this, fcnt, 2, 25f);
 		}
 
 		private bool MgDrawOdMisisle(MagicItem Mg, float fcnt)
 		{
 			if (Mg.phase < 1000)
 			{
-				return NelNGolemToyMisPod.MgDraw(Mg, fcnt, this.SqOdMissile, this.Anm.getMI());
+				return NelNGolemToyMisPod.MgDraw(Mg, this, fcnt, this.SqOdMissile, this.Anm.getMI());
 			}
 			int num = Mg.phase - 1000;
 			float num2 = (float)((num % 16 * 2 + ((num >= 16) ? 1 : 0)) * 2);
@@ -1787,7 +1803,7 @@ namespace nel
 				base.Size((float)this.Od.od_size_pixel_y, (float)this.Od.od_size_pixel_y, ALIGN.CENTER, ALIGNY.MIDDLE, false);
 				base.PtcST("mgolem_rotate_ground_spark", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C);
 				Tk.prog = (base.hasFoot() ? PROG.PROG1 : PROG.PROG0);
-				this.MhJumpWire = new MagicItemHandlerS(base.tackleInit(this.AtkTackleBodyOd, 0f, 0f, this.sizey + 0.4f, true, false));
+				this.MhJumpWire = new MagicItemHandlerS(base.tackleInit(this.AtkTackleBodyOd, 0f, 0f, this.sizey + 0.4f, true, false, MGHIT.AUTO));
 				this.MhJumpWire.Mg.projectile_power = -50;
 				this.MhJumpWire.Mg.phase = 5;
 				this.MhJumpWire.Mg.Ray.HitLock(70f, null);
@@ -1929,6 +1945,10 @@ namespace nel
 			base.PtcVar("sx", (double)(base.x + base.mpf_is_right * this.sizex)).PtcST("mgolem_rotate_ground_land_wall", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 			this.AtkCeilDrop.Caster = this;
 			MgNCeilDrop.setCeilDrop(this.Mp, this.AtkCeilDrop, base.mg_hit, this.Nai.TargetLastBcc, base.x, base.y, 35f, 14, 80f, 180f, 0.25f);
+			if (base.nattr_has_mattr)
+			{
+				EnemyAttr.Splash(this, base.x + base.mpf_is_right * this.sizex * 0.8f, base.y, 2.3f, 1f, 1f);
+			}
 		}
 
 		public bool drawBinderRotateEye(M2DrawBinder Ed, EffectItem Ef, string lname)
@@ -2014,7 +2034,7 @@ namespace nel
 				this.Nai.AddF(NAI.FLAG.INJECTED, 3f);
 				if (this.t >= 300f)
 				{
-					bool flag = this.Nai.hasTypeLock(NAI.TYPE.GUARD) || !base.Useable(this.McsOdArrow, 1f, 0f);
+					bool flag = this.Nai.hasTypeLock(NAI.TYPE.GUARD) || !this.Useable(this.McsOdArrow, 1f, 0f);
 					bool flag2 = !this.Nai.is_aiming_target || flag;
 					if (!this.Nai.isPrGaraakiState() && this.od_grab_attackable_wide && X.XORSP() < (flag2 ? 0.55f : 0.2f) + (float)(this.walk_st - 1) * 0.05f)
 					{
@@ -2079,12 +2099,15 @@ namespace nel
 				{
 					base.nM2D.MGC.FindMg(NelNMechGolem.FD_QuitOdArrow, this);
 					this.walk_st = 0;
-					base.MpConsume(this.McsOdArrow, null, 1f, 1f);
+					this.MpConsume(this.McsOdArrow, null, 1f, 1f);
 				}
 			}
 			if (Tk.prog == PROG.PROG3 && this.t >= 80f)
 			{
-				this.od_arrow_attr = (byte)(((int)(this.od_arrow_attr + 1) + X.xors(4)) % 4);
+				if (!base.nattr_has_mattr)
+				{
+					this.od_arrow_attr = (this.od_arrow_attr + 1 + (byte)X.xors(4)) % MgNGeneralBeam.BATTR.SLIMY;
+				}
 				this.SpSetPose("od_shield3", -1, null, false);
 				Tk.AfterDelay(X.NIXP(45f, 60f));
 				if (X.XORSP() < 0.5f)
@@ -2143,7 +2166,7 @@ namespace nel
 			if (Tk.prog == PROG.PROG1 && Tk.Progress(ref this.t, 10, true))
 			{
 				base.PtcST("mgolem_od_grab2", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-				base.tackleInit(this.AtkOdGrab, this.TkiOdGrab);
+				base.tackleInit(this.AtkOdGrab, this.TkiOdGrab, MGHIT.AUTO);
 			}
 			if (Tk.prog == PROG.PROG2)
 			{
@@ -2233,7 +2256,7 @@ namespace nel
 						this.t = 200f - X.NIXP(30f, 50f);
 						pr.PtcST("mgolem_absorb_squeeze", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 						this.Mp.DropCon.setBlood(pr, 15, MTR.col_blood, 0.2f, true);
-						base.applyAbsorbDamageTo(pr, this.AtkAbsorbMain, true, false, true, 0f, true, null, false);
+						base.applyAbsorbDamageTo(pr, this.AtkAbsorbMain, true, false, true, 0f, true, null, false, true);
 						this.Anm.animReset(this.Anm.cframe + X.xors(3), true);
 					}
 					else
@@ -2316,13 +2339,17 @@ namespace nel
 					}
 					else
 					{
-						if ((!this.Nai.isPrAlive() && X.XORSP() < 0.3f) || (this.od_arrow_attr_grab != 3 && this.Nai.tkC(815, 0.75f, true)))
+						if ((!this.Nai.isPrAlive() && X.XORSP() < 0.3f) || (this.od_arrow_attr_grab != MgNGeneralBeam.BATTR.ACME && this.Nai.tkC(815, 0.75f, true)))
 						{
-							this.od_arrow_attr_grab = 3;
+							this.od_arrow_attr_grab = MgNGeneralBeam.BATTR.ACME;
+						}
+						else if (base.nattr_has_mattr)
+						{
+							MgNGeneralBeam.nattr2battr(this.nattr, out this.od_arrow_attr_grab);
 						}
 						else
 						{
-							this.od_arrow_attr_grab = (byte)(((int)(this.od_arrow_attr_grab + 1) + X.xors(4)) % 4);
+							this.od_arrow_attr_grab = (this.od_arrow_attr_grab + 1 + (byte)X.xors(4)) % MgNGeneralBeam.BATTR.SLIMY;
 						}
 						this.walk_st = 0;
 					}
@@ -2333,53 +2360,29 @@ namespace nel
 
 		private void prepareLaser(bool is_absorb)
 		{
-			if (this.FD_MgRunOdArrow == null)
-			{
-				this.FD_MgRunOdArrow = new MagicItem.FnMagicRun(this.MgRunOdArrow);
-				this.FD_MgDrawOdArrow = new MagicItem.FnMagicRun(this.MgDrawOdLaser);
-			}
 			if (this.ALaserMn == null)
 			{
 				this.ALaserMn = new MagicNotifiear[8];
-				for (int i = 0; i < 8; i++)
-				{
-					this.ALaserMn[i] = new MagicNotifiear(1).AddHit(new MagicNotifiear.MnHit
-					{
-						type = MagicNotifiear.HIT.CIRCLE,
-						maxt = 1f,
-						thick = 0.11880001f,
-						accel = 0f,
-						accel_mint = 160f,
-						accel_maxt = 0f,
-						v0 = 0f,
-						penetrate = false,
-						aim_fixed = true,
-						wall_hit = true,
-						other_hit = false,
-						cast_on_autotarget = true,
-						draw_only_line = true
-					});
-				}
+			}
+			if (this.ALaserAtk == null)
+			{
+				this.ALaserAtk = new NelAttackInfo[5];
 			}
 			int num = 0;
 			int num2 = 8;
-			int num3 = (int)this.od_arrow_attr;
+			MgNGeneralBeam.BATTR battr = this.od_arrow_attr;
 			if (is_absorb)
 			{
 				num = 10;
 				num2 /= 2;
-				num3 = (int)this.od_arrow_attr_grab;
+				battr = this.od_arrow_attr_grab;
 			}
-			for (int j = 0; j < num2; j++)
+			for (int i = 0; i < num2; i++)
 			{
-				MagicItem magicItem = base.nM2D.MGC.setMagic(this, MGKIND.BASIC_BEAM, base.mg_hit | MGHIT.IMMEDIATE).initFunc(this.FD_MgRunOdArrow, this.FD_MgDrawOdArrow);
-				int num4 = j % 4;
-				magicItem.Mn = this.ALaserMn[j];
-				magicItem.Mn._0.penetrate_only_mv = !is_absorb;
-				magicItem.Mn._0.no_draw_wide = is_absorb;
-				magicItem.dz = (float)(num + j);
-				NelNGolemToyBow.prepareMagic(this, ref this.ALaserAtk, magicItem, num3, 0.5f);
-				if (num3 == 3 && magicItem.Atk0.EpDmg != null)
+				MagicItem magicItem = MgNGeneralBeam.setGeneralBeam(this.Mp, this, this, base.mg_hit, num + i, battr, ref this.ALaserAtk[(int)battr], ref this.ALaserMn[i], 0.5f, !is_absorb, 0.11880001f, 160f, is_absorb);
+				int num3 = i % 4;
+				bool flag = battr == MgNGeneralBeam.BATTR.ACME;
+				if (flag && magicItem.Atk0.EpDmg != null)
 				{
 					magicItem.Atk0.EpDmg.vagina = 5;
 					magicItem.Atk0.EpDmg.uterus = 4;
@@ -2387,13 +2390,23 @@ namespace nel
 					magicItem.Atk0.EpDmg.anal = 15;
 					magicItem.Atk0.EpDmg.other = 1;
 				}
-				magicItem.Ray.HitLock((float)((num3 == 3) ? 4 : 31) + (float)((num3 == 3) ? 59 : 75) * ((float)num4 / 3f), null);
+				magicItem.Ray.HitLock((float)(flag ? 4 : 31) + (float)(flag ? 59 : 75) * ((float)num3 / 3f), null);
 				magicItem.Atk0.nodamage_time = 0;
 				magicItem.run(0f);
 			}
 		}
 
-		private bool getOdArrowPos(MagicItem Mg, int id, out Vector2 P, out float def_agR, out bool slow_angle_walk)
+		float MgNGeneralBeam.IGeneralBeamer.getBeamReachableLength()
+		{
+			return 18f;
+		}
+
+		float MgNGeneralBeam.IGeneralBeamer.getBeamPositionWalkSpeed()
+		{
+			return base.scaleX * 0.08f;
+		}
+
+		bool MgNGeneralBeam.IGeneralBeamer.getBeamPosition(MagicItem Mg, int id, out Vector2 P, out float def_agR, out bool slow_angle_walk)
 		{
 			P = default(Vector2);
 			def_agR = 0f;
@@ -2491,67 +2504,12 @@ namespace nel
 			return true;
 		}
 
-		private bool MgRunOdArrow(MagicItem Mg, float fcnt)
-		{
-			if (base.destructed || !this.canHoldMagic(Mg))
-			{
-				return false;
-			}
-			int num = NelNGolemToyBow.MgRunArrowLaser(Mg, fcnt, 4f);
-			if (num == 0)
-			{
-				return false;
-			}
-			bool flag = false;
-			if (Mg.phase == 1)
-			{
-				Mg.phase = 2;
-				flag = true;
-				Mg.t = 10f;
-			}
-			if (Mg.da <= 0f && Mg.phase < 4)
-			{
-				Mg.da = 4f;
-				Vector2 vector;
-				float num2;
-				bool flag2;
-				if (!this.getOdArrowPos(Mg, (int)Mg.dz, out vector, out num2, out flag2))
-				{
-					return false;
-				}
-				Mg.dx = vector.x;
-				Mg.dy = vector.y;
-				if (flag)
-				{
-					Mg.Mn._0.agR = num2;
-					Mg.sx = Mg.dx;
-					Mg.sy = Mg.dy;
-				}
-				else
-				{
-					Mg.Mn._0.agR = X.VALWALKANGLER(Mg.Mn._0.agR, num2, (flag2 ? 0.0045f : 0.012f) * fcnt * 3.1415927f);
-				}
-			}
-			Mg.sx = X.VALWALK(Mg.sx, Mg.dx, 0.08f * base.scaleX * fcnt);
-			Mg.sy = X.VALWALK(Mg.sy, Mg.dy, 0.08f * base.scaleY * fcnt);
-			Mg.da -= fcnt;
-			if (num == 2 && Mg.phase <= 3)
-			{
-				Mg.Mn._0.v0 = 18f;
-				Mg.Mn._0.CalcReachable(Mg.Ray, new Vector2(Mg.sx, Mg.sy), 0f, null);
-				Mg.Mn._0.accel_maxt = ((Mg.Mn._0.v0 > Mg.Mn._0.len) ? 0.6f : 0f);
-				Mg.Mn._0.v0 = Mg.Mn._0.len;
-			}
-			return true;
-		}
-
-		private bool MgDrawOdLaser(MagicItem Mg, float fcnt)
+		bool MgNGeneralBeam.IGeneralBeamer.BeamDrawAfter(MagicItem Mg, float fcnt)
 		{
 			if (base.destructed)
 			{
 				return false;
 			}
-			NelNGolemToyBow.MgDrawArrow(Mg, fcnt, true);
 			float t = Mg.t;
 			if (Mg.phase == 2)
 			{
@@ -2647,7 +2605,7 @@ namespace nel
 			{
 				this.walk_st = ((this.walk_st >= 0) ? X.Mn(this.walk_st, 0) : (this.walk_st - 2));
 			}
-			if (HitMv != null && Atk.PublishMagic != null && Atk.PublishMagic.kind == MGKIND.BASIC_BEAM && base.isAbsorbState() && Atk.PublishMagic.dz >= 10f && base.AimPr != null && HitMv.Mv == base.AimPr)
+			if (HitMv != null && Atk.PublishMagic != null && Atk.PublishMagic.kind == MGKIND.GENERAL_BEAM && base.isAbsorbState() && Atk.PublishMagic.dz >= 10f && base.AimPr != null && HitMv.Mv == base.AimPr)
 			{
 				this.walk_time += 1f;
 				if (X.XORSP() < 0.3f)
@@ -2689,12 +2647,21 @@ namespace nel
 
 		public override int applyDamage(NelAttackInfo Atk, bool force = false)
 		{
+			if (this.Nai == null)
+			{
+				return 0;
+			}
 			base.remF(NelEnemy.FLAG._DMG_EFFECT_BITS);
 			if (base.isOverDrive())
 			{
 				if (this.Nai.HasF(NAI.FLAG.INJECTED, false))
 				{
 					base.addF(NelEnemy.FLAG.DMG_EFFECT_SHIELD);
+				}
+				if ((this.Nai.HasF(NAI.FLAG.ATTACKED, false) || !this.Nai.HasF(NAI.FLAG.POWERED, false) || this.Nai.isFrontType(NAI.TYPE.WAIT, PROG.ACTIVE)) && Atk != null && Atk.Caster is M2MoverPr && X.XORSP() < ((Atk.PublishMagic != null && Atk.PublishMagic.is_normal_attack) ? 0.62f : 0.25f))
+				{
+					this.Nai.RemF(NAI.FLAG.ATTACKED);
+					this.Nai.AddF(NAI.FLAG.POWERED, 130f);
 				}
 			}
 			else if (this.Nai.isFrontType(NAI.TYPE.MAG, PROG.ACTIVE) && X.XORSP() < 0.6f)
@@ -2752,14 +2719,24 @@ namespace nel
 					if (Tk.type == NAI.TYPE.MAG_0)
 					{
 						this.Nai.addTypeLock(NAI.TYPE.MAG_0, 400f);
+						this.Nai.RemF(NAI.FLAG.POWERED);
 						if (!this.Nai.HasF(NAI.FLAG.ATTACKED, false))
 						{
 							this.Nai.AddF(NAI.FLAG.ATTACKED, 200f);
-							base.MpConsume(this.McsOdMissile, null, 1f, 1f);
+							this.MpConsume(this.McsOdMissile, null, 1f, 1f);
 						}
+					}
+					if (Tk.type == NAI.TYPE.GUARD)
+					{
+						this.Nai.RemF(NAI.FLAG.POWERED);
+					}
+					if (Tk.type == NAI.TYPE.GUARD_1 || Tk.type == NAI.TYPE.GUARD_2)
+					{
+						this.Nai.RemF(NAI.FLAG.POWERED);
 					}
 					if (Tk.type == NAI.TYPE.PUNCH_0 || Tk.type == NAI.TYPE.PUNCH)
 					{
+						this.Nai.RemF(NAI.FLAG.POWERED);
 						base.addF(NelEnemy.FLAG.CHECK_ENLARGE);
 						this.Nai.AddF(NAI.FLAG.WANDERING, X.NIXP(700f, 1800f));
 					}
@@ -2827,7 +2804,7 @@ namespace nel
 			{
 				return this.canAbsorbContinue() && this.can_hold_tackle;
 			}
-			if (Mg.kind == MGKIND.BASIC_BEAM)
+			if (Mg.kind == MGKIND.GENERAL_BEAM)
 			{
 				if (base.isAbsorbState())
 				{
@@ -2841,16 +2818,16 @@ namespace nel
 			return false;
 		}
 
-		protected NelAttackInfo AtkShotHit = new NelAttackInfo
+		protected EnAttackInfo AtkShotHit = new EnAttackInfo(0.01f, 0.04f)
 		{
-			hpdmg0 = 35,
+			hpdmg0 = 28,
 			split_mpdmg = 16,
 			burst_vx = 0.03f,
 			huttobi_ratio = 0.15f,
 			parryable = true,
 			Beto = BetoInfo.Mud,
 			attr = MGATTR.MUD
-		}.Torn(0.01f, 0.04f);
+		};
 
 		private MagicNotifiear MnShot = new MagicNotifiear(2).AddHit(new MagicNotifiear.MnHit
 		{
@@ -2924,7 +2901,7 @@ namespace nel
 
 		public const float normaljump_threshold = 4.5f;
 
-		protected NelAttackInfo AtkOdMissile = new NelAttackInfo
+		protected EnAttackInfo AtkOdMissile = new EnAttackInfo(0.02f, 0.14f)
 		{
 			hpdmg0 = 16,
 			split_mpdmg = 7,
@@ -2934,15 +2911,15 @@ namespace nel
 			Beto = BetoInfo.Lava.Pow(55, false),
 			shield_break_ratio = -4f,
 			parryable = true
-		}.Torn(0.02f, 0.14f);
+		};
 
 		private const float od_rotate_xspd = 0.15f;
 
 		private const float knockback_od_tackle = 1.2f;
 
-		protected NelAttackInfo AtkTackleBodyOd = new NelAttackInfo
+		protected EnAttackInfo AtkTackleBodyOd = new EnAttackInfo(0.02f, 0.2f)
 		{
-			hpdmg0 = 10,
+			hpdmg0 = 25,
 			split_mpdmg = 2,
 			mpdmg0 = 4,
 			burst_vx = 0.38f,
@@ -2955,7 +2932,7 @@ namespace nel
 			shield_success_nodamage = 20f,
 			Beto = BetoInfo.Normal,
 			parryable = true
-		}.Torn(0.02f, 0.2f);
+		};
 
 		protected NelAttackInfo AtkCeilDrop = new NelAttackInfo
 		{
@@ -2973,7 +2950,7 @@ namespace nel
 
 		protected NelAttackInfo AtkOdGrab = new NelAttackInfo
 		{
-			hpdmg0 = 14,
+			hpdmg0 = 32,
 			ndmg = NDMG.GRAB,
 			split_mpdmg = 3,
 			Beto = BetoInfo.Grab,
@@ -2981,13 +2958,13 @@ namespace nel
 			shield_break_ratio = 1.5f
 		};
 
-		protected NelAttackInfo AtkAbsorbMain = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbMain = new EnAttackInfo(0.03f, 0.05f)
 		{
 			split_mpdmg = 8,
-			hpdmg0 = 8,
+			hpdmg0 = 19,
 			attr = MGATTR.BITE_V,
 			Beto = BetoInfo.Blood
-		}.Torn(0.03f, 0.05f);
+		};
 
 		private const int OD_LASER_MAX = 8;
 
@@ -3043,9 +3020,9 @@ namespace nel
 
 		private byte od_wait_continue;
 
-		private byte od_arrow_attr_grab;
+		private MgNGeneralBeam.BATTR od_arrow_attr_grab;
 
-		private byte od_arrow_attr;
+		private MgNGeneralBeam.BATTR od_arrow_attr;
 
 		private NASDangerChecker Danger;
 
@@ -3081,14 +3058,14 @@ namespace nel
 
 		private static MagicItem.FnCheckMagicFrom FD_ProgressOdArrowForWalkSt = delegate(MagicItem Mg, M2MagicCaster Caster)
 		{
-			if (Mg.kind == MGKIND.BASIC_BEAM && Mg.Caster == Caster && Mg.phase < 3)
+			if (Mg.kind == MGKIND.GENERAL_BEAM && Mg.Caster == Caster && Mg.phase < 3)
 			{
 				NelNMechGolem nelNMechGolem = Caster as NelNMechGolem;
 				if (Mg.dz < (float)nelNMechGolem.walk_st)
 				{
 					Mg.phase = 3;
 					Mg.t = 1f;
-					Mg.PtcVar("agR", (double)Mg.aim_agR).PtcVarS("attr", FEnum<MGATTR>.ToStr(Mg.Atk0.attr).ToString()).PtcST("golemtoy_arrow_shot_rotate", PTCThread.StFollow.FOLLOW_S, false);
+					Mg.PtcVar("agR", (double)Mg.aim_agR).PtcVarS("attr", FEnum<MGATTR>.ToStr(Mg.Atk0.attr)).PtcST("golemtoy_arrow_shot_rotate", PTCThread.StFollow.FOLLOW_S, false);
 					return true;
 				}
 			}
@@ -3097,16 +3074,12 @@ namespace nel
 
 		private static MagicItem.FnCheckMagicFrom FD_QuitOdArrow = delegate(MagicItem Mg, M2MagicCaster Caster)
 		{
-			if (Mg.kind == MGKIND.BASIC_BEAM && Mg.Caster == Caster)
+			if (Mg.kind == MGKIND.GENERAL_BEAM && Mg.Caster == Caster)
 			{
 				Mg.phase = 4;
 				Mg.t = 0f;
 			}
 			return false;
 		};
-
-		public MagicItem.FnMagicRun FD_MgRunOdArrow;
-
-		public MagicItem.FnMagicRun FD_MgDrawOdArrow;
 	}
 }

@@ -114,6 +114,11 @@ namespace nel
 			return true;
 		}
 
+		public float auto_target_priority(M2Mover CalcFrom)
+		{
+			return 4f;
+		}
+
 		public RAYHIT can_hit(M2Ray Ray)
 		{
 			return (RAYHIT)3;

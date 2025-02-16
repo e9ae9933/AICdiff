@@ -13,7 +13,7 @@ namespace nel
 			X.dli("SCENE GAME AWAKEN", null);
 			this.GobHideScreen = new GameObject("HideScreen");
 			this.GobHideScreen.layer = IN.LAY(IN.gui_layer_name);
-			IN.setZ(this.GobHideScreen.transform, -9.41f);
+			IN.setZ(this.GobHideScreen.transform, -9.4f);
 			SceneGame.InitG();
 		}
 
@@ -25,6 +25,7 @@ namespace nel
 
 		public static void InitG()
 		{
+			MTR.init1();
 			SceneGame.uistatus_fine_load = true;
 		}
 
@@ -83,53 +84,41 @@ namespace nel
 			{
 				if (SceneGame.contents_loaded)
 				{
-					this.t = 2f;
+					this.t = 1f;
 					this.prepareHideScreen();
 				}
-				else
+				else if (MTRX.prepared)
 				{
+					this.prepareHideScreen();
 					this.t = 0f;
 				}
 			}
 			else if (this.t == 0f)
 			{
-				if (MTRX.prepared && MTR.prepare1 && MTR.preparedG)
+				if (MTR.prepare1 && MTR.preparedG && NEL.loaded)
 				{
-					EV.loadEV();
 					COOK.clear(false);
 					this.t = 1f;
-					this.prepareHideScreen();
-				}
-			}
-			else if (this.t == 1f)
-			{
-				if (EV.material_prepared)
-				{
-					if (!X.DEBUGNOCFG)
-					{
-						CFG.loadSdFile(true, true);
-						MGV.loadSdFile();
-					}
-					SVD.prepareList(true);
-					this.t = 2f;
 				}
 				else
 				{
 					this.fillBlack(1f, false);
 				}
 			}
-			else if (this.t == 2f)
+			else if (this.t == 1f)
 			{
 				if (SceneGame.M2D == null)
 				{
 					SceneGame.prepareM2DObject();
 				}
-				if (!SceneGame.M2D.loadBasicMaterialProgress(200) && MTR.preparedG)
+				if (!SceneGame.M2D.loadBasicMaterialProgress(20) && MTR.preparedG)
 				{
 					SVD.prepareList(false);
 					this.Pr = this.GobNoel.GetComponent<PRNoel>();
 					SceneGame.M2D.PlayerNoel = this.Pr;
-					SceneGame.M2D.initGameObject(base.gameObject, IN.wh, IN.hh, true);
+					SceneGame.M2D.initGameObject(base.gameObject, IN.wh, IN.hh);
+					SceneGame.M2D.initGameObjectAfter();
+					COOK.newGame(SceneGame.M2D, false);
 					new GameObject("UI").AddComponent<UIBase>();
 					SceneGame.restartGameSceneASync(SceneGame.M2D, false, SceneGame.contents_loaded ? "" : "");
 					if (COOK.error_loaded_index >= 0)
@@ -142,7 +131,28 @@ namespace nel
 					{
 						this.GobHideScreen.SetActive(false);
 					}
+					this.t = 2f;
+					SceneGame.uistatus_fine_load = true;
+					Bench.mark("Event loading", false, false);
+					EV.loadEV();
+					EV.do_not_draw_loading_circle = true;
+					if (SceneGame.M2D.Tips.fineEnabled())
+					{
+						SceneGame.M2D.Tips.activate();
+					}
+				}
+				else
+				{
+					this.fillBlack(1f, false);
+				}
+			}
+			else if (this.t == 2f)
+			{
+				if (MTR.is_noel_picture_prepared && EV.material_prepared)
+				{
+					Bench.mark(null, false, false);
 					this.t = 3f;
+					SceneGame.M2D.initEvent();
 					SceneGame.M2D.stackFirstEvent();
 				}
 				else
@@ -156,20 +166,18 @@ namespace nel
 				{
 					this.t = 3f;
 				}
-				EV.do_not_draw_loading_circle = true;
 				if (!SceneGame.M2D.loadMapAsync())
 				{
 					SceneGame.fill_black_all = false;
 					Resources.UnloadUnusedAssets();
 					SceneGame.M2D.transferring_game_stopping = false;
+					EV.do_not_draw_loading_circle = false;
 					if (SceneGame.uistatus_fine_load)
 					{
-						this.t = 3f;
 						SceneGame.uistatus_fine_load = false;
 						UIStatus.Instance.fineLoad();
 						EV.stack("__INITNEWGAME", 0, -1, null, null);
 					}
-					EV.do_not_draw_loading_circle = false;
 					if (this.t == 3f)
 					{
 						this.t = 4f;
@@ -273,7 +281,7 @@ namespace nel
 				M2D.setFlushAllFlag(true);
 				M2D.AddToCoreMover(prNoel);
 				prNoel.newGame();
-				EnhancerManager.fineEnhancerStorage(M2D.IMNG.getInventoryPrecious(), M2D.IMNG.getInventoryEnhancer());
+				ENHA.fineEnhancerStorage(M2D.IMNG.getInventoryPrecious(), M2D.IMNG.getInventoryEnhancer());
 				flag = false;
 			}
 			else if (TX.valid(def_map))
@@ -294,6 +302,10 @@ namespace nel
 			if (again)
 			{
 				EV.stack("__INITM2D", 0, -1, null, null);
+			}
+			if (M2D.Tips.fineEnabled())
+			{
+				M2D.Tips.activate();
 			}
 			return flag;
 		}
@@ -322,5 +334,7 @@ namespace nel
 		public static bool fill_black_all = false;
 
 		public static bool uistatus_fine_load = true;
+
+		public const float Z_FILTER = -9.4f;
 	}
 }

@@ -11,6 +11,7 @@ namespace nel
 			: base("stain")
 		{
 			this.ABcc = new M2BlockColliderContainer.BCCLine[4];
+			this.ABccInfo = new M2BlockColliderContainer.BCCInfo[4];
 			this.Afoot_len = new float[4];
 			this.AFooted = new List<StainItem.FootT>(4);
 		}
@@ -32,6 +33,7 @@ namespace nel
 			this.t = 0f;
 			this.maxt = _maxt;
 			X.ALLN<M2BlockColliderContainer.BCCLine>(this.ABcc);
+			X.ALLDEF<M2BlockColliderContainer.BCCInfo>(this.ABccInfo);
 			base.Set(0f, 0f, 0f, 0f);
 			int num = 0;
 			if (Bcc == null || Bcc.is_map_bcc)
@@ -86,7 +88,7 @@ namespace nel
 						{
 							num5 = (float)num3 - 0.05f;
 							num7 = (float)num3 + 0.05f;
-							if (Mp.BCC.isFallable((float)num2 + 0.5f, (float)num3, 0.2f, 0.11f, out Bcc, true, true, -1f) < 0f)
+							if (Mp.BCC.isFallable((float)num2 + 0.5f, (float)num3, 0.2f, 0.11f, out Bcc, true, true, -1f, null) < 0f)
 							{
 								Bcc = null;
 							}
@@ -140,11 +142,21 @@ namespace nel
 				for (int i = Bcc.AFootLsnRegistered.Count - 1; i >= 0; i--)
 				{
 					StainItem stainItem = Bcc.AFootLsnRegistered[i] as StainItem;
-					if (stainItem != null && stainItem.type == this.type && (stainItem.footable_bits & (1U << footaim)) != 0U && stainItem.getMapBounds(null).isin(mapx, mapy, Bcc.is_map_bcc ? (-0.05f) : (-0.2f)))
+					if (stainItem != null && (stainItem.footable_bits & (1U << footaim)) != 0U && stainItem.getMapBounds(null).isin(mapx, mapy, Bcc.is_map_bcc ? (-0.05f) : (-0.2f)))
 					{
-						stainItem.t = 0f;
+						if (stainItem.type == this.type)
+						{
+							stainItem.t = 0f;
+							stainItem.maxt = X.Mx(stainItem.maxt, this.maxt);
+						}
+						else if (StainManager.isConflictStainType(stainItem.type, this.type))
+						{
+							stainItem.maxt = 1f;
+							goto IL_00FF;
+						}
 						return false;
 					}
+					IL_00FF:;
 				}
 			}
 			float num4 = mapx;
@@ -181,6 +193,7 @@ namespace nel
 			}
 			base.Expand(num4 - num6, num5 - num7, num6 * 2f, num7 * 2f, false);
 			this.ABcc[footaim] = Bcc;
+			this.ABccInfo[footaim] = new M2BlockColliderContainer.BCCInfo(Bcc);
 			Bcc.addBCCFootListener(this, false);
 			return true;
 		}
@@ -192,34 +205,33 @@ namespace nel
 				this.maxt = 0f;
 				return false;
 			}
-			this.t += fcnt;
 			int i = this.AFooted.Count - 1;
 			while (i >= 0)
 			{
 				StainItem.FootT footT = this.AFooted[i];
-				float num = footT.t;
-				if (num > 0f)
+				if (footT.t > 0f)
 				{
-					goto IL_008A;
+					goto IL_0070;
 				}
-				if (this.FnRun(this, fcnt, false, footT.FootD))
+				footT.t = 6f;
+				if (this.FtRunPre(ref footT, footT.FootD, true) != 0)
 				{
-					num = (footT.t = 6f);
-					goto IL_008A;
+					goto IL_0070;
 				}
 				this.AFooted.RemoveAt(i);
-				IL_00B9:
+				IL_00A4:
 				i--;
 				continue;
-				IL_008A:
-				footT.t = X.Mx(0f, num - fcnt);
+				IL_0070:
+				footT.t = X.Mx(0f, footT.t - fcnt);
 				if (i < this.AFooted.Count)
 				{
 					this.AFooted[i] = footT;
-					goto IL_00B9;
+					goto IL_00A4;
 				}
-				goto IL_00B9;
+				goto IL_00A4;
 			}
+			this.t += fcnt;
 			return true;
 		}
 
@@ -233,6 +245,7 @@ namespace nel
 			{
 				M2BlockColliderContainer.BCCLine bccline = this.ABcc[j];
 				this.ABcc[j] = null;
+				this.ABccInfo[j] = default(M2BlockColliderContainer.BCCInfo);
 				if (bccline != null)
 				{
 					bccline.remBCCFootListener(this, false);
@@ -256,6 +269,15 @@ namespace nel
 			return this.ABcc[dir];
 		}
 
+		public M2BlockColliderContainer.BCCInfo GetBccInfo(int dir)
+		{
+			if (this.ABcc[dir] == null)
+			{
+				return default(M2BlockColliderContainer.BCCInfo);
+			}
+			return this.ABccInfo[dir];
+		}
+
 		public void SetBcc(int dir, M2BlockColliderContainer.BCCLine _Bcc, bool removing_listener = false)
 		{
 			if (removing_listener && this.ABcc[dir] != null)
@@ -263,6 +285,7 @@ namespace nel
 				this.ABcc[dir].remBCCFootListener(this, false);
 			}
 			this.ABcc[dir] = _Bcc;
+			this.ABccInfo[dir] = new M2BlockColliderContainer.BCCInfo(_Bcc);
 			_Bcc.addBCCFootListener(this, false);
 		}
 
@@ -280,11 +303,12 @@ namespace nel
 		{
 			if (StainItem.FootT.IndexOf(this.AFooted, Fd) == -1)
 			{
-				if (!this.FnRun(this, 0f, true, Fd))
+				StainItem.FootT footT = new StainItem.FootT(Fd, 0f);
+				if (this.FtRunPre(ref footT, Fd, true) < 1)
 				{
 					return false;
 				}
-				this.AFooted.Add(new StainItem.FootT(Fd, 0f));
+				this.AFooted.Add(footT);
 			}
 			return true;
 		}
@@ -297,6 +321,57 @@ namespace nel
 				this.AFooted.RemoveAt(num);
 			}
 			return true;
+		}
+
+		private int FtRunPre(ref StainItem.FootT _Ft, IMapDamageListener Fm, bool execute_run = true)
+		{
+			DRect mapBounds = Fm.getMapBounds(M2BlockColliderContainer.BufRc);
+			if (mapBounds == null)
+			{
+				return 0;
+			}
+			if (!mapBounds.isCovering(this, 0f))
+			{
+				if (!mapBounds.isCovering(this, 1f))
+				{
+					return 0;
+				}
+				return 1;
+			}
+			else
+			{
+				M2BlockColliderContainer.BCCLine bccFor = this.GetBccFor(Fm);
+				if (bccFor == null)
+				{
+					return 0;
+				}
+				if (!execute_run || this.FnRun == null)
+				{
+					return 2;
+				}
+				if (!this.FnRun(this, bccFor, ref _Ft, 0f, true, Fm))
+				{
+					return 0;
+				}
+				return 2;
+			}
+		}
+
+		public void rewriteFootType(M2BlockColliderContainer.BCCLine Bcc, IMapDamageListener Fm, ref string s)
+		{
+			string text = StainManager.stain_foottype_overwrite(this.type);
+			if (text == null)
+			{
+				return;
+			}
+			for (int i = this.AFooted.Count - 1; i >= 0; i--)
+			{
+				StainItem.FootT footT = this.AFooted[i];
+				if (footT.FootD == Fm && this.FtRunPre(ref footT, Fm, false) == 2)
+				{
+					s = text;
+				}
+			}
 		}
 
 		public StainItem.TYPE type;
@@ -319,17 +394,21 @@ namespace nel
 
 		private M2BlockColliderContainer.BCCLine[] ABcc;
 
+		private M2BlockColliderContainer.BCCInfo[] ABccInfo;
+
 		public float[] Afoot_len;
 
 		public StainItem.FnStainRun FnRun;
 
 		private const float T_RECHECK = 6f;
 
-		public delegate bool FnStainRun(StainItem Stn, float fcnt, bool firstrun, IMapDamageListener Fm);
+		public delegate bool FnStainRun(StainItem Stn, M2BlockColliderContainer.BCCLine Bcc, ref StainItem.FootT Ft, float fcnt, bool firstrun, IMapDamageListener Fm);
 
 		public enum TYPE : byte
 		{
 			FIRE,
+			ICE,
+			WEB,
 			_MAX
 		}
 
@@ -339,6 +418,11 @@ namespace nel
 			{
 				this.FootD = Ft;
 				this.t = _t;
+			}
+
+			public void recheckImmediate()
+			{
+				this.t = X.Mn(1f, this.t);
 			}
 
 			public static int IndexOf(List<StainItem.FootT> A, IMapDamageListener Ft)

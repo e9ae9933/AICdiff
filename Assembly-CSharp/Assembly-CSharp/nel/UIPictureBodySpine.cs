@@ -108,7 +108,7 @@ namespace nel
 								{
 									return;
 								}
-								goto IL_0899;
+								goto IL_089A;
 							}
 							else
 							{
@@ -116,7 +116,7 @@ namespace nel
 								{
 									return;
 								}
-								goto IL_07F5;
+								goto IL_07F6;
 							}
 						}
 						else
@@ -144,7 +144,7 @@ namespace nel
 								{
 									return;
 								}
-								goto IL_0721;
+								goto IL_0722;
 							}
 							else if (!(cmd == "%SPINE_ADD_SKIN_REMOVE"))
 							{
@@ -208,7 +208,7 @@ namespace nel
 							{
 								return;
 							}
-							goto IL_0721;
+							goto IL_0722;
 						}
 					}
 					else if (num != 1695751543U)
@@ -232,7 +232,7 @@ namespace nel
 							{
 								return;
 							}
-							goto IL_07F5;
+							goto IL_07F6;
 						}
 					}
 					else
@@ -318,7 +318,7 @@ namespace nel
 						{
 							return;
 						}
-						this.Spv = new SpineViewerNel(CR._1, chara_key);
+						this.Spv = new SpineViewerNel(this, CR._1, chara_key);
 						this.first_line = CR.get_cur_line();
 						if (!FEnum<UIEMOT>.TryParse(CR._2U, out this.base_emo, true))
 						{
@@ -368,7 +368,7 @@ namespace nel
 					{
 						return;
 					}
-					goto IL_0899;
+					goto IL_089A;
 				}
 				UIPictureBase.EMSTATE emstate = this.PCon.getMultipleEmot(CR._1);
 				this.variation_bits |= emstate;
@@ -389,7 +389,7 @@ namespace nel
 					return;
 				}
 				return;
-				IL_0721:
+				IL_0722:
 				emstate = this.PCon.getMultipleEmot(CR._1);
 				this.variation_bits |= emstate;
 				int num2 = CR.Int(3, 1);
@@ -405,7 +405,7 @@ namespace nel
 				};
 				aanim.Add(stateVariation);
 				return;
-				IL_07F5:
+				IL_07F6:
 				int num3 = CR.Int(3, 1);
 				this.max_anim_id = X.Mx(num3, this.max_anim_id);
 				List<UIPictureBodySpine.StateVariation> aanim2 = this.AAnim;
@@ -419,7 +419,7 @@ namespace nel
 				};
 				aanim2.Add(stateVariation);
 				return;
-				IL_0899:
+				IL_089A:
 				int num4 = CR.Int(3, 1);
 				this.max_anim_id = X.Mx(num4, this.max_anim_id);
 				List<UIPictureBodySpine.StateVariation> aanim3 = this.AAnim;
@@ -454,7 +454,7 @@ namespace nel
 				this.Spv.updateAnim(true, 0f);
 				return;
 			}
-			this.Spv.updateAnim(true, TS * fcnt_d * this.timeScale * 1f);
+			this.Spv.updateAnim(true, TS * fcnt_d * this.timeScale * 1f * this.PCon.TS_animation);
 		}
 
 		public override bool redraw(MeshDrawer Md, UIPictureBase.PrEmotion.BodyPaint Bp, UIPictureBase.EMSTATE st, int first, IEfPtcSetable EfSt)
@@ -487,7 +487,7 @@ namespace nel
 				int num = this.Aptc_key.Length;
 				for (int i = 0; i < num; i++)
 				{
-					EfSt.PtcST(this.Aptc_key[i], null);
+					EfSt.PtcST(this.Aptc_key[i], null, PTCThread.StFollow.NO_FOLLOW);
 				}
 			}
 		}
@@ -608,7 +608,7 @@ namespace nel
 						uint num4 = (uint)((stateVariation.reverse_flag ? (~st) : st) & stateVariation.state);
 						if (!TX.valid(stateVariation.enable_skin) || pre_skin == stateVariation.enable_skin != stateVariation.reverse_flag)
 						{
-							if (stateVariation.st_add > UIPictureBase.EMSTATE_ADD.EMPTY)
+							if (stateVariation.st_add > UIPictureBase.EMSTATE_ADD.NORMAL)
 							{
 								if (stateVariation.disableSTA(this.current_sta))
 								{
@@ -660,7 +660,10 @@ namespace nel
 
 		public void releaseWithSvTextureSpine(BetobetoManager.SvTexture Svt)
 		{
-			this.Spv.releaseWithSvTextureSpine(Svt);
+			if (this.Spv != null)
+			{
+				this.Spv.releaseWithSvTextureSpine(Svt);
+			}
 		}
 
 		public override bool readPtcScript(PTCThread rER)
@@ -1041,7 +1044,7 @@ namespace nel
 				this.enable_skin = "";
 				this.reverse_flag = false;
 				this.state = UIPictureBase.EMSTATE.NORMAL;
-				this.st_add = UIPictureBase.EMSTATE_ADD.EMPTY;
+				this.st_add = UIPictureBase.EMSTATE_ADD.NORMAL;
 				this.check_or = false;
 				this.key_name_ = null;
 			}
@@ -1065,7 +1068,7 @@ namespace nel
 
 			public bool disableSTA(UIPictureBase.EMSTATE_ADD sta)
 			{
-				return this.st_add > UIPictureBase.EMSTATE_ADD.EMPTY && (sta & this.st_add) == UIPictureBase.EMSTATE_ADD.EMPTY != this.reverse_flag;
+				return this.st_add > UIPictureBase.EMSTATE_ADD.NORMAL && (sta & this.st_add) == UIPictureBase.EMSTATE_ADD.NORMAL != this.reverse_flag;
 			}
 
 			public float alpha;

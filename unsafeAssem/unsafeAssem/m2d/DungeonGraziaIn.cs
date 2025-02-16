@@ -6,11 +6,11 @@ namespace m2d
 {
 	public class DungeonGraziaIn : DungeonHouse
 	{
-		public DungeonGraziaIn(string _key, DungeonContainer _DGN)
+		public DungeonGraziaIn(string _key, DungeonContainer _DGN, string _color_family_key)
 			: base(_key, _DGN)
 		{
 			this.foot_type = "woodbridge";
-			this.color_family_key = "city_in";
+			this.color_family_key = _color_family_key;
 			this.use_window_remover = true;
 			this.Achip_top_light_level[0] = 1f;
 			this.Achip_top_light_level[1] = 0.7f;
@@ -75,13 +75,13 @@ namespace m2d
 				Mtr = base.getChipMaterial(layer, Mtr);
 				if (this.isHouseInSM(this.SubMpData))
 				{
-					Mtr.SetFloat("_Level", (float)this.SMinCpBright.a / 255f);
+					Mtr.SetFloat("_Level", (float)this.SMinCpBright.a * 0.003921569f);
 					Mtr.SetColor("_Color", this.SMinCpColor);
 					Mtr.SetColor("_MinColor", this.SMinMinColor);
 					Mtr.SetColor("_MulColor", this.SMinMulColor);
 					Mtr.SetColor("_MulBottomColor", this.SMinMulBottomColor);
 					Mtr.SetColor("_BrightColor", this.SMinCpBright);
-					flag = true;
+					flag = this.nouse_chipw_in_house_sm;
 				}
 			}
 			if (this.SubMpData != null && !flag)
@@ -102,9 +102,19 @@ namespace m2d
 			return Mtr;
 		}
 
-		public bool isHouseInSM(M2SubMap SubMapData)
+		public override float getIconLightAlpha(Map2d Mp, M2SubMap Sm)
 		{
-			return this.SubMpData != null && this.SubMpData.getTargetMap().key.IndexOf("_city_in_") >= 0;
+			if (this.isHouseInSM(Sm))
+			{
+				float camera_length = Sm.camera_length;
+				return X.NIL(0.21f, 0.35f, camera_length, 1f);
+			}
+			return base.getIconLightAlpha(Mp, Sm);
+		}
+
+		public bool isHouseInSM(M2SubMap SubMpData)
+		{
+			return SubMpData != null && (SubMpData.getTargetMap().key.IndexOf("_city_in_") >= 0 || SubMpData.getTargetMap().key.IndexOf("_school_in_") >= 0);
 		}
 
 		public override Color32 getSimplifyTransparentColor(M2SubMap SubMpData, Map2d Mp)
@@ -125,5 +135,7 @@ namespace m2d
 		private Color32 SMinCpBright;
 
 		private Color32 SMinMinColor;
+
+		public bool nouse_chipw_in_house_sm;
 	}
 }

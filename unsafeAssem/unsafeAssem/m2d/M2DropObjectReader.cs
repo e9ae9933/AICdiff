@@ -15,6 +15,8 @@ namespace m2d
 				M2DropObjectReader.OFnDraw["splash_blood"] = new M2DropObject.FnDropObjectDraw(M2DropObject.fnDropRunDraw_splash_blood);
 				M2DropObjectReader.OFnDraw["splash_love_juice"] = new M2DropObject.FnDropObjectDraw(M2DropObject.fnDropRunDraw_splash_love_juice);
 				M2DropObjectReader.OFnDraw["splash_sperma"] = new M2DropObject.FnDropObjectDraw(M2DropObject.fnDropRunDraw_splash_sperma);
+				M2DropObjectReader.OFnDraw["splash_sperma_b"] = new M2DropObject.FnDropObjectDraw(M2DropObject.fnDropRunDraw_splash_sperma_b);
+				M2DropObjectReader.OFnDraw["graystone"] = new M2DropObject.FnDropObjectDraw(M2DropObject.fnDropRunDraw_graystone);
 			}
 		}
 

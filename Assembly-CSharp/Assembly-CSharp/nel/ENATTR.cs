@@ -1,0 +1,28 @@
+﻿using System;
+
+namespace nel
+{
+	[Flags]
+	public enum ENATTR : uint
+	{
+		NORMAL = 0U,
+		ATK = 1U,
+		DEF = 2U,
+		MP_STABLE = 4U,
+		_AATTR = 7U,
+		FIRE = 256U,
+		ICE = 512U,
+		THUNDER = 1024U,
+		SLIMY = 2048U,
+		ACME = 4096U,
+		_MATTR = 7936U,
+		_MATTR_COUNT = 5U,
+		_MATTR_BASIC = 1792U,
+		INVISIBLE = 65536U,
+		_MAX_RANDOMIZE = 131072U,
+		_KIND2 = 65536U,
+		_DEBUG_FORCE_ATTACH = 131072U,
+		_FIXED = 262144U,
+		__OPTIONAL = 393216U
+	}
+}

@@ -63,9 +63,9 @@ namespace XX
 			return this.Gob.transform;
 		}
 
-		public virtual void fineValue(string val, bool set_to_element = false)
+		public virtual void fineValue(STB Stb, bool set_to_element = false)
 		{
-			this.Tx.Txt(val);
+			this.Tx.Txt(Stb);
 		}
 
 		public Color32 Color

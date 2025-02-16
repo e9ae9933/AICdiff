@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using evt;
 using m2d;
 using nel.gm;
 using UnityEngine;
@@ -8,7 +9,7 @@ using XX;
 
 namespace nel
 {
-	public class M2LpSummon : NelLpRunner, ICheckPointListener, IM2WeedManager
+	public class M2LpSummon : NelLpRunner, ICheckPointListener, IM2WeedManager, IStatDangerousDescriptor, IEventListener
 	{
 		public M2LpSummon(string _key, int _index, M2MapLayer _Lay, EnemySummoner _Reader)
 			: base(_key, _index, _Lay)
@@ -45,7 +46,7 @@ namespace nel
 			}
 		}
 
-		public MANA_HIT deassignActiveWeed(M2ManaWeed _Weed, AttackInfo AtkHitExecute = null)
+		public virtual MANA_HIT deassignActiveWeed(M2ManaWeed _Weed, AttackInfo AtkHitExecute = null)
 		{
 			if (this.AActiveWeed != null)
 			{
@@ -72,12 +73,29 @@ namespace nel
 			this.ABelongWeed = null;
 			this.AActiveWeed = null;
 			this.ASafeWeed = null;
-			this.NInfo = base.nM2D.NightCon.GetLpInfo(this, false);
-			this.NInfo.summoner_is_night = this.Reader.only_night;
-			this.defeated_count = this.NInfo.defeat_count;
-			this.is_sudden = (base.nM2D.NightCon.isSudden(this.NInfo) ? M2LpSummon.SUDDEN.SUDDEN : M2LpSummon.SUDDEN.NORMAL);
+			this.initActionPreSummon(ref this.NInfo, ref this.defeated_count, out this.is_sudden);
 			this.AFirstShownWeed = null;
 			M2LpSummon.NearLpSmn = null;
+			if (base.nM2D.GM != null)
+			{
+				base.nM2D.GM.addStatDangerDescriptor(this);
+			}
+			EV.addListener(this);
+		}
+
+		protected virtual void initActionPreSummon(ref NightController.SummonerData NInfo, ref int defeated_count, out M2LpSummon.SUDDEN is_sudden)
+		{
+			QuestTracker.QuestProgress questProgress;
+			this.Reader.QEntry = base.nM2D.QUEST.getSummonerEntryFor(this.Reader, out questProgress);
+			if (this.Reader.QEntry.valid && this.Reader.QEntry.fix_enemykind > 0)
+			{
+				ENEMYID fix_enemykind = (ENEMYID)this.Reader.QEntry.fix_enemykind;
+				NDAT.getResources(base.nM2D, fix_enemykind.ToString());
+			}
+			NInfo = base.nM2D.NightCon.GetLpInfo(this, false);
+			NInfo.summoner_is_night = this.Reader.only_night;
+			defeated_count = NInfo.defeat_count;
+			is_sudden = ((this.Reader.QEntry.valid && questProgress != null && !questProgress.aborted) ? M2LpSummon.SUDDEN.SUDDEN_QUEST : (base.nM2D.NightCon.isSudden(NInfo) ? M2LpSummon.SUDDEN.SUDDEN : M2LpSummon.SUDDEN.NORMAL));
 		}
 
 		public override void initAction(bool normal_map)
@@ -120,14 +138,24 @@ namespace nel
 					this.need_recheck_config_after = -1f;
 				}
 				this.bottom_clip = this.Meta.GetNm("bottom_clip", this.bottom_clip, 0);
-				this.WmIco = new WMIconCreator(this, WMIcon.TYPE.ENEMY, this.cleared_sf_key);
+				this.fallable_ringout = false;
+				string[] array2 = this.Meta.Get("under_fill");
+				if (array2 != null && array2.Length != 0)
+				{
+					this.under_extend = (byte)X.Mx(0, X.NmI(array2[0], 4, false, false));
+					this.fallable_ringout = this.under_extend > 0;
+				}
+				if (this.wm_icon_enabled)
+				{
+					this.WmIco = new WMIconCreator(this, WMIcon.TYPE.ENEMY, this.cleared_sf_key);
+				}
 				for (int j = 3; j >= 0; j--)
 				{
 					M2LpSummon.ALpOutSide[j] = null;
 				}
 			}
 			this.t_ui = -40f;
-			this.Reader.flush_memory(true, false);
+			this.Reader.flush_memory(true, false, false);
 			if (this.Reader.has_puppetrevenge_replace && PuppetRevenge.isRevengeEnabled(base.nM2D, this.Reader, this))
 			{
 				this.is_sudden = M2LpSummon.SUDDEN.SUDDEN_PUPPETREVENGE;
@@ -141,7 +169,7 @@ namespace nel
 				}
 				this.Mp.addRunnerObject(this);
 			}
-			this.hold_submit_time = 0;
+			this.deactivateBoxes();
 		}
 
 		public override void closeAction(bool when_map_close)
@@ -174,8 +202,12 @@ namespace nel
 				{
 					M2LpSummon.ALpOutSide[i] = null;
 				}
+				EV.remListener(this);
 			}
-			this.desc_string = null;
+			if (base.nM2D.GM != null)
+			{
+				base.nM2D.GM.remStatDangerDescriptor(this);
+			}
 		}
 
 		public bool close_action_finished
@@ -211,7 +243,6 @@ namespace nel
 		{
 			if (!this.Reader.isActive())
 			{
-				NEL.stopPressingSound("LP");
 				if (MvFrom != null)
 				{
 					if (_Weed != null && this.ASafeWeed != null)
@@ -224,29 +255,13 @@ namespace nel
 							{
 								this.ASafeWeed = null;
 							}
-							return (MANA_HIT)5123;
+							return MANA_HIT.PR | MANA_HIT.EN | MANA_HIT.IMMEDIATE_COLLECTABLE | MANA_HIT.SPECIAL;
 						}
 					}
-					if (!this.type_no_border && !base.isContainingMapXy(MvFrom.x, MvFrom.y, MvFrom.x, MvFrom.y))
+					if (!this.type_no_border && !base.isContainingMapXy(MvFrom.x, MvFrom.y, MvFrom.x, MvFrom.y, 0f))
 					{
 						X.dl("外側に MvFrom がいるためリーダーはオープンされません", null, false, false);
-						return (MANA_HIT)2050;
-					}
-				}
-				if (this.BxT != null)
-				{
-					IN.FlgUiUse.Rem("LPSUMMON");
-					this.Mp.M2D.DeassignPauseable(this.BxT);
-					this.Mp.M2D.DeassignPauseable(this.BxDL);
-					this.Mp.M2D.DeassignPauseable(this.BxDR);
-					this.Mp.M2D.DeassignPauseable(this.BxDB);
-					this.Mp.M2D.remValotAddition(this.BxT);
-					this.Mp.M2D.remValotAddition(this.BxDB);
-					this.Mp.M2D.remValotAddition(this.BxDR);
-					this.Mp.M2D.remValotAddition(this.BxDL);
-					if (this.ConfirmSkin != null)
-					{
-						this.Mp.M2D.remValotAddition(this.ConfirmSkin.getBtn());
+						return MANA_HIT.EN | MANA_HIT.FROM_GAGE_SPLIT;
 					}
 				}
 				this.deactivateBoxes();
@@ -256,7 +271,6 @@ namespace nel
 				}
 				this.deactivateLog();
 				this.AShowingChipsD = null;
-				this.desc_string = null;
 				UiBenchMenu.initBattle();
 				this.fineUsingDifficultyRestrict(true);
 				if ((this.type & M2LpSummon.TYPE.NO_EFFECT) == M2LpSummon.TYPE.MAIN)
@@ -267,25 +281,7 @@ namespace nel
 					}
 					this.Ed.f0 = IN.totalframe;
 					this.Ed.t = 0f;
-					M2LpSummon.SUDDEN sudden = this.is_sudden & M2LpSummon.SUDDEN._TYPE;
-					Map2d mp = this.Mp;
-					M2LpSummon.ACTV_EFFECT actv_EFFECT;
-					if (sudden != M2LpSummon.SUDDEN.SUDDEN)
-					{
-						if (sudden != M2LpSummon.SUDDEN.SUDDEN_PUPPETREVENGE)
-						{
-							actv_EFFECT = M2LpSummon.ACTV_EFFECT.NORMAL;
-						}
-						else
-						{
-							actv_EFFECT = M2LpSummon.ACTV_EFFECT.SUDDEN_PUPPETREVENGE;
-						}
-					}
-					else
-					{
-						actv_EFFECT = (sudden_effect ? M2LpSummon.ACTV_EFFECT.SUDDEN : M2LpSummon.ACTV_EFFECT.NORMAL);
-					}
-					M2LpSummon.summonerActivateEffect(mp, actv_EFFECT, base.mapfocx, base.mapfocy, (float)this.mapw);
+					M2LpSummon.summonerActivateEffect(this.Mp, this.getActvEffectType(sudden_effect), base.mapfocx, base.mapfocy, (float)this.mapw);
 				}
 				bool flag;
 				this.Reader.activate(this, out flag);
@@ -332,6 +328,27 @@ namespace nel
 			return MANA_HIT.ALL;
 		}
 
+		protected virtual M2LpSummon.ACTV_EFFECT getActvEffectType(bool sudden_effect)
+		{
+			M2LpSummon.ACTV_EFFECT actv_EFFECT;
+			switch (this.is_sudden & M2LpSummon.SUDDEN._TYPE)
+			{
+			case M2LpSummon.SUDDEN.SUDDEN:
+				actv_EFFECT = (sudden_effect ? M2LpSummon.ACTV_EFFECT.SUDDEN : M2LpSummon.ACTV_EFFECT.NORMAL);
+				break;
+			case M2LpSummon.SUDDEN.SUDDEN_PUPPETREVENGE:
+				actv_EFFECT = M2LpSummon.ACTV_EFFECT.SUDDEN_PUPPETREVENGE;
+				break;
+			case M2LpSummon.SUDDEN.SUDDEN_QUEST:
+				actv_EFFECT = (sudden_effect ? M2LpSummon.ACTV_EFFECT.SUDDEN : M2LpSummon.ACTV_EFFECT.NORMAL);
+				break;
+			default:
+				actv_EFFECT = M2LpSummon.ACTV_EFFECT.NORMAL;
+				break;
+			}
+			return actv_EFFECT;
+		}
+
 		public static void summonerActivateEffect(Map2d Mp, M2LpSummon.ACTV_EFFECT _actv, float mapfocx, float mapfocy, float mapw)
 		{
 			Mp.M2D.Cam.Qu.Vib(5f, 8f, 2f, 0);
@@ -362,8 +379,29 @@ namespace nel
 				Mp.PtcST2Base("summoner_activate_event", 1f, PTCThread.StFollow.NO_FOLLOW);
 				return;
 			}
-			Mp.PtcSTsetVar("x", (double)mapfocx).PtcSTsetVar("y", (double)mapfocy);
-			Mp.PtcST2Base("summoner_activate", 1f, PTCThread.StFollow.NO_FOLLOW);
+			if (_actv != M2LpSummon.ACTV_EFFECT.SMNC)
+			{
+				Mp.PtcSTsetVar("x", (double)mapfocx).PtcSTsetVar("y", (double)mapfocy);
+				Mp.PtcST2Base("summoner_activate", 1f, PTCThread.StFollow.NO_FOLLOW);
+				return;
+			}
+			Mp.PtcST2Base("summoner_activate_smnc", 1f, PTCThread.StFollow.NO_FOLLOW);
+		}
+
+		public virtual string summoned_prepare_ptc_key
+		{
+			get
+			{
+				return "en_summoned_prepare";
+			}
+		}
+
+		public virtual string summoned_appear_ptc_key
+		{
+			get
+			{
+				return "en_summoned";
+			}
 		}
 
 		public bool type_no_effect
@@ -418,6 +456,27 @@ namespace nel
 			}
 		}
 
+		public bool type_no_weedsecure_after_defeat
+		{
+			get
+			{
+				return (this.type & M2LpSummon.TYPE.NO_WEEDSECURE_AFTER_DEFEAT) > M2LpSummon.TYPE.MAIN;
+			}
+			set
+			{
+				if (value == this.type_no_weedsecure_after_defeat)
+				{
+					return;
+				}
+				if (value)
+				{
+					this.type |= M2LpSummon.TYPE.NO_WEEDSECURE_AFTER_DEFEAT;
+					return;
+				}
+				this.type &= (M2LpSummon.TYPE)(-33);
+			}
+		}
+
 		public bool type_no_border
 		{
 			get
@@ -450,6 +509,10 @@ namespace nel
 				if (this.Reader.fatal_key != null)
 				{
 					UILog.Instance.AddAlertTX("Fatal_exists_in_this_battle", UILogRow.TYPE.ALERT);
+				}
+				if (this.Reader.isActive())
+				{
+					this.Reader.getPlayer().fineEnemyDropItem();
 				}
 			}
 			if (fine_config && this.isActive())
@@ -510,7 +573,7 @@ namespace nel
 				}
 				if (this.isActive())
 				{
-					this.Reader.fineEventEnemyFlag();
+					this.Reader.getPlayer().fineEventEnemyFlag();
 				}
 			}
 		}
@@ -635,7 +698,7 @@ namespace nel
 			{
 				eventContainer.FlgStandDecline.Add("ENEMYSUMMONER");
 			}
-			int num = this.mapy + this.maph + 4;
+			int num = this.mapy + this.maph + (int)this.under_extend;
 			int num2 = this.mapx + this.mapw;
 			for (int i = _t; i < _b; i++)
 			{
@@ -811,7 +874,7 @@ namespace nel
 			}
 		}
 
-		public void closeSummoner(bool defeated, out bool is_first_defeat)
+		public virtual void closeSummoner(bool defeated, out bool is_first_defeat)
 		{
 			BGM.remBattleTransition(base.unique_key);
 			is_first_defeat = false;
@@ -826,8 +889,11 @@ namespace nel
 				eventContainer.FlgStandDecline.Rem("ENEMYSUMMONER");
 			}
 			X.dl("Summoner " + this.Reader.key + " is " + (defeated ? "defeated" : "closed"), null, false, false);
-			this.desc_string = null;
 			base.nM2D.CheckPoint.removeCheckPointManual(this);
+			if (this.Ui != null)
+			{
+				this.Ui.releaseTextCache();
+			}
 			this.deactivateLog();
 			base.nM2D.MGC.clearPoolHitLink();
 			if (!this.type_no_hide_layer)
@@ -849,12 +915,22 @@ namespace nel
 				}
 				else
 				{
-					base.nM2D.IMNG.battleFinishProgress(this.Reader.grade, false);
+					if (!this.no_item_progress)
+					{
+						base.nM2D.IMNG.battleFinishProgress(this.Reader.grade, false);
+					}
+					if (!this.no_gq_progress)
+					{
+						base.nM2D.QUEST.summonerFinished(this.Reader, false, false);
+					}
 				}
-				base.nM2D.NightCon.clearPuppetRevengeCache(this.is_sudden_puppetrevenge, this.Mp.key);
+				if (!this.no_item_progress)
+				{
+					base.nM2D.NightCon.clearPuppetRevengeCache(this.is_sudden_puppetrevenge, this.Mp.key);
+				}
 				this.is_sudden = M2LpSummon.SUDDEN.NORMAL;
 				this.t_ui = -30f;
-				if (this.ABelongWeed != null)
+				if (this.ABelongWeed != null && !this.type_no_weedsecure_after_defeat)
 				{
 					this.ASafeWeed = new List<M2ManaWeed>(this.ABelongWeed.Count);
 					for (int i = this.ABelongWeed.Count - 1; i >= 0; i--)
@@ -873,7 +949,6 @@ namespace nel
 			{
 				this.t_ui = 0f;
 			}
-			this.hold_submit_time = 0;
 			if (this.need_set_effect)
 			{
 				if (this.Ed == null)
@@ -1106,58 +1181,6 @@ namespace nel
 
 		public void createBox()
 		{
-			this.desc_string = null;
-			for (int i = 0; i < 4; i++)
-			{
-				UiBox uiBox = null;
-				MsgBox msgBox;
-				GameObject gameObject;
-				if (i == 0)
-				{
-					msgBox = (this.BxT = new GameObject("LpSummon-" + base.unique_key + "-Box-" + i.ToString()).AddComponent<MsgBoxGrdBanner>());
-					msgBox.use_valotile = this.Mp.M2D.use_valotile;
-					gameObject = msgBox.gameObject;
-				}
-				else
-				{
-					if (i == 1 || i == 3)
-					{
-						UiBoxDesigner uiBoxDesigner = new GameObject("LpSummon-" + base.unique_key + "-Box-" + i.ToString()).AddComponent<UiBoxDesigner>();
-						gameObject = uiBoxDesigner.gameObject;
-						if (i == 1)
-						{
-							this.BxDL = uiBoxDesigner;
-						}
-						else
-						{
-							this.BxDB = uiBoxDesigner;
-							this.BxDB.box_stencil_ref_mask = 250;
-						}
-						uiBoxDesigner.Focusable(false, true, null);
-						uiBoxDesigner.use_valotile = true;
-						uiBox = uiBoxDesigner.getBox();
-						uiBoxDesigner.alignx = ALIGN.CENTER;
-					}
-					else
-					{
-						uiBox = (this.BxDR = new GameObject("LpSummon-" + base.unique_key + "-Box-" + i.ToString()).AddComponent<UiBox>());
-						uiBox.use_valotile = this.Mp.M2D.use_valotile;
-						gameObject = this.BxDR.gameObject;
-						this.BxDR.use_focus = false;
-						this.BxDR.mouse_click_focus = false;
-					}
-					msgBox = uiBox;
-					msgBox.delayt = 40 + (i - 1) * 8;
-					uiBox.bkg_scale(true, true, false);
-				}
-				IN.setZAbs(gameObject.transform, 27f);
-				msgBox.gradation(ItemDescBox.Acol_normal, null).TxCol(uint.MaxValue).Align(ALIGN.CENTER, ALIGNY.MIDDLE);
-				if (uiBox != null)
-				{
-					uiBox.frametype = UiBox.FRAMETYPE.NO_OVERRIDE;
-				}
-			}
-			this.BxT.gameObject.layer = (this.BxDL.gameObject.layer = (this.BxDB.gameObject.layer = (this.BxDR.gameObject.layer = IN.gui_layer)));
 		}
 
 		private void deactivateBoxes()
@@ -1166,59 +1189,260 @@ namespace nel
 			{
 				M2LpSummon.NearLpSmn = null;
 			}
-			this.hold_submit_time = 0;
-			IN.FlgUiUse.Rem("LPSUMMON");
-			if (this.BxT != null && this.BxT.isActive())
+			if (this.Ui != null)
 			{
-				NEL.stopPressingSound("LP");
-				this.Mp.M2D.DeassignPauseable(this.BxT);
-				this.Mp.M2D.DeassignPauseable(this.BxDL);
-				this.Mp.M2D.DeassignPauseable(this.BxDB);
-				this.Mp.M2D.DeassignPauseable(this.BxDR);
-				this.Mp.M2D.remValotAddition(this.BxT);
-				this.Mp.M2D.remValotAddition(this.BxDL);
-				this.Mp.M2D.remValotAddition(this.BxDB);
-				this.Mp.M2D.remValotAddition(this.BxDR);
-				this.Mp.M2D.remValotAddition(this.ConfirmSkin.getBtn());
-				this.BxT.deactivate();
-				this.BxDL.deactivate();
-				this.BxDB.deactivate();
-				this.BxDR.deactivate();
-				this.ConfirmSkin.getBtn().hide();
-				this.ConfirmSkin.getBtn().gameObject.SetActive(false);
+				this.Ui.deactivate();
 			}
 		}
 
 		private void destructBox()
 		{
-			NEL.stopPressingSound("LP");
-			IN.FlgUiUse.Rem("LPSUMMON");
-			if (this.BxT != null)
+			if (this.Ui != null)
 			{
-				this.desc_string = null;
-				this.Mp.M2D.DeassignPauseable(this.BxT);
-				this.Mp.M2D.DeassignPauseable(this.BxDL);
-				this.Mp.M2D.DeassignPauseable(this.BxDB);
-				this.Mp.M2D.DeassignPauseable(this.BxDR);
-				if (this.ConfirmSkin != null)
-				{
-					this.Mp.M2D.remValotAddition(this.ConfirmSkin.getBtn());
-				}
-				this.Mp.M2D.remValotAddition(this.BxT);
-				this.Mp.M2D.remValotAddition(this.BxDL);
-				this.Mp.M2D.remValotAddition(this.BxDB);
-				this.Mp.M2D.remValotAddition(this.BxDR);
-				IN.DestroyOne(this.BxT.gameObject);
-				IN.DestroyOne(this.BxDL.gameObject);
-				IN.DestroyOne(this.BxDB.gameObject);
-				IN.DestroyOne(this.BxDR.gameObject);
-				this.bxdb_created = 0;
-				this.BxT = null;
-				this.BxDL = null;
-				this.BxDB = null;
-				this.BxDR = null;
-				this.ConfirmSkin = null;
+				this.Ui.destruct();
+				this.Ui = null;
 			}
+		}
+
+		public virtual string getTabIconKey(UiGMCStat Gmc, out uint color)
+		{
+			color = 4293010506U;
+			if (!this.isActiveBorder() && this.t_ui <= 0f)
+			{
+				return null;
+			}
+			return "itemrow_category.29";
+		}
+
+		public virtual bool createGMDesc(UiGMCStat Gmc, Designer Ds, out aBtn FirstBtn, out aBtn LastBtn)
+		{
+			FirstBtn = null;
+			LastBtn = null;
+			uint num;
+			string tabIconKey = this.getTabIconKey(Gmc, out num);
+			if (tabIconKey == null)
+			{
+				return false;
+			}
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				stb.AddIconHtml(tabIconKey, num, num == 0U).Add(" ");
+				this.addTitleStringForGM(Gmc, stb);
+				UiBoxDesigner.addPTo(Ds, stb, ALIGN.LEFT, Ds.use_w, true, 0f, "", -1);
+				Ds.Br();
+				DsnDataP dsnDataP = new DsnDataP("", false)
+				{
+					Col = NEL.ColText,
+					text = (this.isActiveBorder() ? TX.Get("Smnc_title_enemy", "") : TX.Get("Summoner_descryption_enemies", "")),
+					size = 15f,
+					alignx = ALIGN.LEFT,
+					swidth = 180f,
+					text_auto_wrap = true,
+					text_margin_x = 12f,
+					text_margin_y = 6f,
+					sheight = 1f
+				};
+				FillBlock fillBlock = Ds.addP(dsnDataP, false);
+				DsnDataButtonMulti dsnDataButtonMulti = new DsnDataButtonMulti();
+				dsnDataButtonMulti.name = "gmdesc_enemy";
+				dsnDataButtonMulti.skin = "row";
+				dsnDataButtonMulti.margin_h = 0f;
+				dsnDataButtonMulti.clms = 1;
+				dsnDataButtonMulti.h = 32f;
+				dsnDataButtonMulti.w = Ds.use_w - 24f;
+				dsnDataButtonMulti.fnClick = (aBtn B) => false;
+				DsnDataButtonMulti dsnDataButtonMulti2 = dsnDataButtonMulti;
+				using (BList<string> blist = ListBuffer<string>.Pop(0))
+				{
+					using (BList<int> blist2 = ListBuffer<int>.Pop(0))
+					{
+						dsnDataButtonMulti2.titlesL = blist;
+						int num2;
+						if (this.isActiveBorder())
+						{
+							using (BList<Vector2Int> blist3 = ListBuffer<Vector2Int>.Pop(0))
+							{
+								this.Reader.getPlayer().listupRestEnemy(blist3);
+								num2 = blist3.Count;
+								for (int i = 0; i < num2; i++)
+								{
+									Vector2Int vector2Int = blist3[i];
+									if (this.isAvailableInStat((ENEMYID)vector2Int.x))
+									{
+										blist.Add(vector2Int.x.ToString());
+										blist2.Add(vector2Int.y);
+									}
+								}
+								goto IL_0262;
+							}
+						}
+						List<int> appearEnemyAbout = this.Reader.getAppearEnemyAbout();
+						num2 = appearEnemyAbout.Count;
+						for (int j = 0; j < num2; j++)
+						{
+							if (this.isAvailableInStat((ENEMYID)appearEnemyAbout[j]))
+							{
+								blist.Add(appearEnemyAbout[j].ToString());
+								blist2.Add(-1);
+							}
+						}
+						IL_0262:
+						BtnContainer<aBtn> btnContainer = Ds.addButtonMultiT<aBtnFDRow>(dsnDataButtonMulti2);
+						dsnDataButtonMulti2.titlesL = null;
+						num2 = blist.Count;
+						if (num2 > 0)
+						{
+							FirstBtn = btnContainer.Get(0);
+							LastBtn = btnContainer.Get(num2 - 1);
+						}
+						for (int k = 0; k < num2; k++)
+						{
+							stb.Clear();
+							aBtn aBtn = btnContainer.Get(k);
+							ButtonSkinFDItemRow buttonSkinFDItemRow = aBtn.get_Skin() as ButtonSkinFDItemRow;
+							ENEMYID enemyid = (ENEMYID)X.NmI(aBtn.title, 0, false, false);
+							stb.Add(NDAT.getEnemyName(enemyid, true));
+							int num3 = blist2[k];
+							if (num3 > 0)
+							{
+								stb.Add(" x ", num3, "");
+							}
+							buttonSkinFDItemRow.setItem(null, base.nM2D, new UiFieldGuide.FDR(enemyid, 1), stb);
+						}
+						fillBlock.heightPixel = btnContainer.get_sheight_px();
+						fillBlock.fineWH(true);
+						Ds.RowRemakeHeightRecalc(fillBlock, null);
+					}
+				}
+				Ds.Br();
+				ReelManager.ItemReelDrop[] array = null;
+				List<ReelManager.ItemReelDrop> list = null;
+				if (this.isActiveBorder())
+				{
+					list = this.Reader.getPlayer().getRestReelDrop();
+				}
+				else
+				{
+					array = this.Reader.getItemReelVector();
+				}
+				if (array == null && list == null)
+				{
+					dsnDataP.TxCol = NEL.ColText;
+					dsnDataP.Col = MTRX.ColTrnsp;
+					dsnDataP.text = TX.Get("Summoner_no_reward", "");
+					dsnDataP.swidth = Ds.use_w;
+					fillBlock = Ds.addP(dsnDataP, false);
+				}
+				else
+				{
+					dsnDataP.text = TX.Get("Summoner_reward", "");
+					fillBlock = Ds.addP(dsnDataP, false);
+					int num4 = ((array != null) ? array.Length : list.Count);
+					dsnDataButtonMulti2.titles = X.makeToStringed<int>(X.makeCountUpArray(num4, 0, 1));
+					BtnContainer<aBtn> btnContainer2 = Ds.addButtonMultiT<aBtnFDRow>(dsnDataButtonMulti2);
+					dsnDataButtonMulti2.titles = null;
+					for (int l = 0; l < num4; l++)
+					{
+						ButtonSkinFDItemRow buttonSkinFDItemRow2 = btnContainer2.Get(l).get_Skin() as ButtonSkinFDItemRow;
+						ReelManager.ItemReelDrop itemReelDrop = ((array != null) ? array[l] : list[l]);
+						buttonSkinFDItemRow2.setItem(null, base.nM2D, new UiFieldGuide.FDR(itemReelDrop.IR.GReelItem, 0), null);
+					}
+					fillBlock.heightPixel = btnContainer2.get_sheight_px();
+					fillBlock.fineWH(true);
+					Ds.RowRemakeHeightRecalc(fillBlock, null);
+					if (num4 > 0)
+					{
+						if (FirstBtn == null)
+						{
+							btnContainer2.Get(0);
+						}
+						if (LastBtn != null)
+						{
+							LastBtn.setNaviB(btnContainer2.Get(0), true, true);
+						}
+						LastBtn = btnContainer2.Get(num4 - 1);
+					}
+				}
+			}
+			if (base.nM2D.IMNG.has_recipe_collection)
+			{
+				Ds.Br();
+				Ds.addP(new DsnDataP("", false)
+				{
+					html = true,
+					text = TX.Get("KD_show_catalog", ""),
+					text_margin_x = 20f,
+					text_margin_y = 8f,
+					size = 12f,
+					alignx = ALIGN.RIGHT,
+					swidth = Ds.use_w,
+					TxCol = NEL.ColText
+				}, false);
+			}
+			if (this.isActiveBorder())
+			{
+				string text = this.abortButtonTXKeyForGM(Gmc);
+				if (TX.valid(text))
+				{
+					Ds.Br();
+					Ds.addTab("_Abort", Ds.use_w, 46f, Ds.use_w, 46f, false).alignx = ALIGN.CENTER;
+					aBtnNel aBtnNel = Ds.addButtonT<aBtnNel>(new DsnDataButton
+					{
+						name = "summoner_abort",
+						title = "summoner_abort",
+						skin_title = text,
+						skin = "normal",
+						w = 240f,
+						h = 26f,
+						fnClick = new FnBtnBindings(this.fnAbortSummonerFromGM)
+					});
+					Ds.endTab(true);
+					Ds.Br();
+					if (LastBtn != null)
+					{
+						LastBtn.setNaviB(aBtnNel, true, true);
+					}
+					FirstBtn = FirstBtn ?? aBtnNel;
+					LastBtn = aBtnNel;
+				}
+			}
+			return true;
+		}
+
+		private bool isAvailableInStat(ENEMYID id)
+		{
+			NOD.BasicData basicData = NOD.getBasicData(id);
+			return basicData != null && (basicData.hide_in_FG_list & 4) == 0;
+		}
+
+		public virtual void addTitleStringForGM(UiGMCStat Gmc, STB Stb)
+		{
+			Stb.AddTxA("Status_Tab_current_battle", false);
+			Stb.TxRpl(this.Reader.name_localized);
+		}
+
+		public virtual string abortButtonTXKeyForGM(UiGMCStat Gmc)
+		{
+			return "&&Status_Tab_battle_abort";
+		}
+
+		public virtual string abortEventFromGM()
+		{
+			return "__M2D_abort_summoner";
+		}
+
+		protected virtual bool fnAbortSummonerFromGM(aBtn B)
+		{
+			if (!this.isActive() || EV.isActive(false))
+			{
+				return false;
+			}
+			string text = this.abortEventFromGM();
+			if (TX.valid(text))
+			{
+				EV.stack(text, 0, -1, new string[] { (base.nM2D.GameOver != null && base.nM2D.GameOver.isActive()) ? "1" : "0" }, null);
+			}
+			return true;
 		}
 
 		public override bool run(float fcnt)
@@ -1226,8 +1450,8 @@ namespace nel
 			if (this.defeated_pre_frame)
 			{
 				this.defeated_pre_frame = false;
-				base.nM2D.Mana.transformMana(base.mapfocx, base.mapfocy, 28f, (MANA_HIT)5249);
-				if (!this.type_no_revert)
+				base.nM2D.Mana.transformMana(base.mapfocx, base.mapfocy, 28f, MANA_HIT.PR | MANA_HIT.NO_FARE_HIT | MANA_HIT.IMMEDIATE_COLLECTABLE | MANA_HIT.SPECIAL);
+				if (!this.type_no_revert && !this.type_no_weedsecure_after_defeat)
 				{
 					this.RowSafeArea = UILog.Instance.AddAlert(this.safe_area_alert_string(-1), UILogRow.TYPE.ALERT);
 				}
@@ -1315,7 +1539,7 @@ namespace nel
 							}
 							if (flag2)
 							{
-								(this.Mp.Pr as PR).EpCon.lockOazuke();
+								(this.Mp.Pr as PR).EpCon.lockOazuke(0f);
 							}
 						}
 						if (!flag2)
@@ -1350,7 +1574,7 @@ namespace nel
 					{
 						this.Reader.loadMaterial(this.Mp, false);
 					}
-					bool flag3 = this.BxT == null || !this.BxT.isActive();
+					bool flag3 = this.Ui == null || !this.Ui.isActive();
 					if (flag3)
 					{
 						byte b = (byte)TX.getCurrentFamilyIndex();
@@ -1360,118 +1584,16 @@ namespace nel
 							this.destructBox();
 							flag3 = true;
 						}
-						string text = null;
-						if (this.desc_string == null)
+						if (this.Ui == null)
 						{
-							STB stb = TX.PopBld(null, 0);
-							this.Reader.getDescription(this.Mp, stb, true);
-							text = (this.desc_string = stb.ToString());
-							TX.ReleaseBld(stb);
+							this.Ui = new UILpSummon(this);
 						}
-						if (this.BxT == null)
-						{
-							this.createBox();
-							this.BxT.TargetFont = TX.getTitleFont();
-							this.BxT.margin(new float[] { 60f, 10f }).TxSize(30f).bkg_scale(false, true, false)
-								.AlignY(ALIGNY.MIDDLE);
-							this.BxT.html_mode = true;
-							this.BxT.LineSpacing(0.7f);
-							this.BxT.TxCol(this.Reader.is_dangerous ? 4279500800U : uint.MaxValue);
-							this.BxT.col(this.Reader.is_dangerous ? C32.d2c(4292874256U) : MTRX.ColMenu);
-							this.BxT.wh(X.Mx(this.BxT.get_text_swidth_px(), 460f) + (float)(this.Reader.is_dangerous ? 45 : 0), (float)(this.Reader.is_dangerous ? 50 : 34));
-							this.BxT.make(this.Reader.name_localized + (this.Reader.is_dangerous ? ("\n" + TX.Get("Alert_dangerous", "")) : ""));
-							this.BxT.GradationDirect(180f, 0f);
-							this.BxDR.margin(new float[] { 62f, 24f });
-							this.BxDL.margin(new float[] { 30f, 24f });
-							this.BxDB.margin(new float[] { 60f, 6f });
-							this.BxDL.WH(320f, 120f);
-							this.BxDR.swh(320f, 120f);
-							this.BxDB.WH(684f, 40f);
-							this.BxDB.alignx = ALIGN.LEFT;
-							this.BxDB.margin_in_lr = 38f;
-							this.BxDB.margin_in_tb = 6f;
-							this.BxDL.init();
-							this.BxDR.make("");
-							this.bxdb_created = 0;
-							aBtnNel aBtnNel = IN.CreateGobGUI(this.BxDR.gameObject, "LpSummon-" + base.unique_key + "Bt").AddComponent<aBtnNel>();
-							aBtnNel.title = "summon_submit";
-							aBtnNel.w = this.BxDL.use_w;
-							aBtnNel.h = this.BxDL.use_h + (float)(X.ENG_MODE ? 8 : 0);
-							aBtnNel.initializeSkin("normal_dark", "");
-							aBtnNel.get_Skin().html_mode = true;
-							aBtnNel.get_Skin().setTitle(TX.Get("Summoner__initialize", ""));
-							aBtnNel.unselectable(true);
-							aBtnNel.click_snd = "";
-							this.BxDL.addP(new DsnDataP("", false)
-							{
-								size = 13f,
-								TxCol = C32.d2c(uint.MaxValue),
-								html = true,
-								text = " ",
-								alignx = ALIGN.LEFT,
-								aligny = ALIGNY.MIDDLE,
-								swidth = this.BxDL.use_w,
-								sheight = this.BxDL.use_h,
-								name = "descl"
-							}, false);
-							this.ConfirmSkin = aBtnNel.get_Skin() as ButtonSkinNormalNel;
-							this.ConfirmSkin.html_mode = true;
-						}
-						byte b2 = (base.nM2D.NightCon.alreadyCleardInThisSession(this) ? 2 : 1);
-						if (this.bxdb_created != b2)
-						{
-							this.bxdb_created = b2;
-							this.Reader.recreateMBoxList(this.BxDB, this.bxdb_created == 2);
-						}
-						this.footpos = (int)this.Mp.getFootableY(base.mapfocx, (int)base.mapfocy, 12, true, -1f, false, true, true, 0f);
-						IN.FlgUiUse.Add("LPSUMMON");
-						this.Mp.M2D.AssignPauseable(this.BxT);
-						this.Mp.M2D.AssignPauseable(this.BxDL);
-						this.Mp.M2D.AssignPauseable(this.BxDB);
-						this.Mp.M2D.AssignPauseable(this.BxDR);
-						this.Mp.M2D.addValotAddition(this.BxT);
-						this.Mp.M2D.addValotAddition(this.BxDL);
-						this.Mp.M2D.addValotAddition(this.BxDB);
-						this.Mp.M2D.addValotAddition(this.ConfirmSkin.getBtn());
-						this.Mp.M2D.addValotAddition(this.BxDR);
-						this.BxT.activate();
-						this.BxDL.activate();
-						this.BxDB.activate();
-						this.BxDR.activate();
-						this.hold_submit_time = 0;
-						if (text != null)
-						{
-							this.BxDL.checkInit();
-							this.BxDL.Get("descl", false).setValue(text);
-						}
+						this.Ui.activate();
 					}
-					Vector4 vector = new Vector4(base.mapfocx, base.mapfocy, 0.0001f, 0.0001f);
-					NelItemManager.fineBoxPosOnMap(this.BxT, this.Mp.M2D, vector, flag3, true, 0f, 0f);
-					NelItemManager.fineBoxPosOnMap(this.BxDL, this.Mp.M2D, vector, flag3, true, -342f + this.BxDL.swidth / 2f, -100f);
-					NelItemManager.fineBoxPosOnMap(this.BxDR, this.Mp.M2D, vector, flag3, true, 342f - this.BxDR.swidth / 2f, -100f);
-					NelItemManager.fineBoxPosOnMap(this.BxDB, this.Mp.M2D, vector, flag3, true, 0f, -166f - this.BxDB.get_sheight_px() * 0.5f);
-					if (this.BxDR.isActive() && !this.BxDR.show_delaying && !this.ConfirmSkin.getBtn().gameObject.activeSelf)
-					{
-						this.ConfirmSkin.getBtn().bind();
-						this.ConfirmSkin.getBtn().gameObject.SetActive(true);
-					}
-					if (X.D || flag3)
-					{
-						this.ConfirmSkin.getBtn().setAlpha(this.BxDR.showing_alpha);
-					}
-					bool flag4 = (this.Mp.Pr.hasFoot() && this.Mp.Pr.isNormalState()) || this.ConfirmSkin.isChecked();
-					bool flag5 = this.BxDR.isShown() && base.nM2D.t_lock_check_push_up == 0f && (this.ConfirmSkin.isChecked() ? this.Mp.Pr.isCheckO(0) : this.Mp.Pr.isCheckPD(1));
-					if (flag5 && flag4 && !this.Mp.Pr.isLO(0) && !this.Mp.Pr.isRO(0))
-					{
-						this.Mp.Pr.jump_hold_lock = true;
-					}
-					if (this.BxDR.isShown() && NEL.confirmHold("LP", ref this.hold_submit_time, 120, this.ConfirmSkin, false, flag4 ? (this.ConfirmSkin.isPushDown() ? 3 : (flag5 ? 2 : 0)) : 0, false))
+					if (this.Ui.run(fcnt, flag3))
 					{
 						SND.Ui.play("enter_enemy_summon", false);
 						this.openSummoner(null, null, false);
-					}
-					if (IN.isSubmitOn(0))
-					{
 					}
 				}
 				else
@@ -1495,6 +1617,106 @@ namespace nel
 			}
 			this.skill_difficulty_restrict = DIFF.I;
 			X.dl("skill_difficulty_restrict is " + this.skill_difficulty_restrict.ToString(), null, false, false);
+		}
+
+		public virtual bool EvtTargetIsMe(string t)
+		{
+			return TX.valid(t) && TX.isEnd(this.key, t) && this.key.Length == "Summon_".Length + t.Length;
+		}
+
+		public virtual bool EvtRead(EvReader ER, StringHolder rER, int skipping)
+		{
+			string cmd = rER.cmd;
+			if (cmd != null)
+			{
+				if (!(cmd == "SUMMONER_TYPE"))
+				{
+					if (!(cmd == "SUMMONER_RECHECK_HR_BUFFER"))
+					{
+						if (!(cmd == "SUMMONER_ACTIVATE"))
+						{
+							if (cmd == "SUMMONER_ACTIVATE_EFFECT")
+							{
+								if (this.Mp.Pr != null)
+								{
+									M2LpSummon.ACTV_EFFECT actv_EFFECT = M2LpSummon.ACTV_EFFECT.NORMAL;
+									if (rER._1 != "" && !FEnum<M2LpSummon.ACTV_EFFECT>.TryParse(rER._1, out actv_EFFECT, true))
+									{
+										return rER.tError("不明なM2LpSummon.ACTV_EFFECT: " + rER._1);
+									}
+									M2LpSummon.summonerActivateEffect(this.Mp, actv_EFFECT, this.Mp.Pr.x, this.Mp.Pr.y, 16f);
+								}
+								return true;
+							}
+							if (!(cmd == "ENEMY_ADD_TICKET"))
+							{
+								if (cmd == "SUMMONER_DEFEAT_NIGHT_PROGRESS")
+								{
+									EnemySummoner enemySummoner = EnemySummoner.Get(rER._1, true);
+									if (enemySummoner == null)
+									{
+										return rER.tError("不明な Summoner : " + rER._1);
+									}
+									if (enemySummoner == this.Reader)
+									{
+										if (base.nM2D.NightCon.SummonerDefeated(enemySummoner, rER.Int(3, -1)) > 0 && rER.Nm(2, 1f) != 0f)
+										{
+											base.nM2D.NightCon.showNightLevelAdditionUI();
+										}
+										return true;
+									}
+								}
+							}
+							else
+							{
+								if (!(M2EventCommand.EvMV is NelEnemy))
+								{
+									return rER.tError("EvMV が NelEnemy ではない");
+								}
+								(M2EventCommand.EvMV as NelEnemy).createTicketFromEvent(rER);
+								return true;
+							}
+						}
+						else if (this.EvtTargetIsMe(rER._1))
+						{
+							X.dl("OPEN SUMMONER FROM EVENT!", null, false, false);
+							this.openSummoner(M2EventCommand.EvMV, null, false);
+							return true;
+						}
+					}
+					else if (this.EvtTargetIsMe(rER._1) && this.Reader.getPlayer() != null)
+					{
+						this.Reader.getPlayer().recheckHrBuffer();
+						return true;
+					}
+				}
+				else if (this.EvtTargetIsMe(rER._1))
+				{
+					this.parseType(rER.slice_join(2, " ", ""));
+					return true;
+				}
+			}
+			return false;
+		}
+
+		bool IEventListener.EvtOpen(bool is_first_or_end)
+		{
+			return true;
+		}
+
+		public virtual bool EvtClose(bool is_first_or_end)
+		{
+			return true;
+		}
+
+		int IEventListener.EvtCacheRead(EvReader ER, string cmd, CsvReader rER)
+		{
+			return 0;
+		}
+
+		bool IEventListener.EvtMoveCheck()
+		{
+			return true;
 		}
 
 		public void checkValidate()
@@ -1530,15 +1752,15 @@ namespace nel
 		{
 			get
 			{
-				return this.Reader.only_night && !base.nM2D.NightCon.isLastBattled(this) && !base.nM2D.NightCon.isNight();
+				return !this.Reader.QEntry.valid && !this.Reader.do_not_open && (this.Reader.only_night && !base.nM2D.NightCon.isLastBattled(this)) && !base.nM2D.NightCon.isNight();
 			}
 		}
 
-		public bool cannot_open_summoner
+		public virtual bool cannot_open_summoner
 		{
 			get
 			{
-				return (this.type_no_revert && this.defeated_count > 0) || (this.noon_donot_show && !this.is_sudden_puppetrevenge);
+				return (this.type_no_revert && this.defeated_count > 0) || (this.noon_donot_show && !this.is_sudden_puppetrevenge) || this.Reader.do_not_open;
 			}
 		}
 
@@ -1547,6 +1769,22 @@ namespace nel
 			get
 			{
 				return (this.is_sudden & M2LpSummon.SUDDEN._TYPE) == M2LpSummon.SUDDEN.SUDDEN_PUPPETREVENGE;
+			}
+		}
+
+		public virtual bool wm_icon_enabled
+		{
+			get
+			{
+				return !this.Reader.do_not_open;
+			}
+		}
+
+		public virtual Vector2 RevertPosPr
+		{
+			get
+			{
+				return new Vector2(base.mapcx, base.mapcy);
 			}
 		}
 
@@ -1563,6 +1801,11 @@ namespace nel
 		public bool isActive()
 		{
 			return this.Reader != null && this.Reader.isActive();
+		}
+
+		public bool isActiveBorder()
+		{
+			return this.Reader != null && this.Reader.isActive() && !this.type_no_border;
 		}
 
 		public void returnChcekPoint(PR Pr)
@@ -1600,6 +1843,10 @@ namespace nel
 
 		public readonly EnemySummoner Reader;
 
+		public bool no_item_progress;
+
+		public bool no_gq_progress;
+
 		private M2DrawBinder Ed;
 
 		public int border = 15;
@@ -1622,25 +1869,7 @@ namespace nel
 
 		public WMIconCreator WmIco;
 
-		private MsgBoxGrdBanner BxT;
-
-		private UiBoxDesigner BxDL;
-
-		private UiBoxDesigner BxDB;
-
-		private UiBox BxDR;
-
-		private const float desc_w = 320f;
-
-		private const float desc_h = 120f;
-
-		private int hold_submit_time = -20;
-
-		public string desc_string;
-
 		public float need_recheck_config_after = -2f;
-
-		private int footpos;
 
 		public byte eng = byte.MaxValue;
 
@@ -1656,6 +1885,14 @@ namespace nel
 
 		public float bottom_clip = 3f;
 
+		public const byte under_extend_default = 4;
+
+		protected byte under_extend = 4;
+
+		public bool fallable_ringout;
+
+		private UILpSummon Ui;
+
 		public List<M2ManaWeed> ASafeWeed;
 
 		public List<M2ManaWeed> ABelongWeed;
@@ -1670,13 +1907,11 @@ namespace nel
 
 		private bool defeated_pre_frame;
 
-		private byte bxdb_created;
-
 		private NightController.SummonerData NInfo;
 
 		public static M2LpSummon NearLpSmn;
 
-		private ButtonSkinNormalNel ConfirmSkin;
+		public const string evt_abort = "__M2D_abort_summoner";
 
 		private bool validate;
 
@@ -1691,14 +1926,16 @@ namespace nel
 			NO_EFFECT,
 			EVENT_ENEMY = 4,
 			NO_HIDE_LAYER = 8,
-			NO_REVERT = 16
+			NO_REVERT = 16,
+			NO_WEEDSECURE_AFTER_DEFEAT = 32
 		}
 
-		private enum SUDDEN
+		protected enum SUDDEN
 		{
 			NORMAL,
 			SUDDEN,
 			SUDDEN_PUPPETREVENGE,
+			SUDDEN_QUEST,
 			_TYPE = 127,
 			_CHIP_FINED
 		}
@@ -1707,6 +1944,7 @@ namespace nel
 		{
 			NORMAL,
 			EVENT,
+			SMNC,
 			SUDDEN = 64,
 			SUDDEN_PUPPETREVENGE
 		}

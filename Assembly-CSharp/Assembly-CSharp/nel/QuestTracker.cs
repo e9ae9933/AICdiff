@@ -215,7 +215,7 @@ namespace nel
 								NelItem byId = NelItem.GetById(csvReader._2, false);
 								if (byId != null)
 								{
-									list2[num5].Add(new NelItemEntry(byId, global::XX.X.Mx(1, csvReader.Int(3, 1)), (byte)global::XX.X.MMX(0, csvReader.Int(4, 0), 4)));
+									list2[num5].Add(new NelItemEntry(byId, X.Mx(1, csvReader.Int(3, 1)), (byte)X.MMX(0, csvReader.Int(4, 0), 4)));
 								}
 							}
 						}
@@ -254,7 +254,7 @@ namespace nel
 								{
 									if (text2 == "auto_hide")
 									{
-										int num5 = global::XX.X.NmI(csvReader._1, -1, false, false);
+										int num5 = X.NmI(csvReader._1, -1, false, false);
 										if (num5 >= 0)
 										{
 											quest.auto_hide_bits |= 1U << num5;
@@ -312,15 +312,53 @@ namespace nel
 		public QuestTracker.Quest Get(string key, bool no_error = false)
 		{
 			this.fineScript();
+			return QuestTracker.GetS(key, no_error);
+		}
+
+		public static QuestTracker.Quest GetS(string key, bool no_error = false)
+		{
 			QuestTracker.Quest quest;
 			if (!QuestTracker.OQuest.TryGetValue(key, out quest) && !no_error)
 			{
-				global::XX.X.de("不明な Quest: " + key, null);
+				X.de("不明な Quest: " + key, null);
 			}
 			return quest;
 		}
 
-		public static QuestTracker.Quest GetById(ushort id, bool no_error = false)
+		private static bool GetFromBa(ByteReader Ba, out QuestTracker.Quest Q, bool no_error = false)
+		{
+			ushort num = Ba.readUShort();
+			if (num == 64999)
+			{
+				Q = null;
+				return false;
+			}
+			if (num != 65000)
+			{
+				Q = QuestTracker.GetById(num, no_error);
+			}
+			else
+			{
+				Q = QuestTracker.GetS(Ba.readPascalString("utf-8", false), false);
+			}
+			return true;
+		}
+
+		private static void writeKeyToBa(ByteArray Ba, QuestTracker.Quest Q)
+		{
+			if (Q == null)
+			{
+				Ba.writeUShort(64999);
+				return;
+			}
+			Ba.writeUShort(Q.uid);
+			if (Q.uid == 65000)
+			{
+				Ba.writePascalString(Q.key, "utf-8");
+			}
+		}
+
+		private static QuestTracker.Quest GetById(ushort id, bool no_error = false)
 		{
 			foreach (KeyValuePair<string, QuestTracker.Quest> keyValuePair in QuestTracker.OQuest)
 			{
@@ -331,9 +369,75 @@ namespace nel
 			}
 			if (!no_error)
 			{
-				global::XX.X.de("不明な Quest id: " + id.ToString(), null);
+				X.de("不明な Quest id: " + id.ToString(), null);
 			}
 			return null;
+		}
+
+		public static void newGameS()
+		{
+			using (BList<string> blist = ListBuffer<string>.Pop(0))
+			{
+				foreach (KeyValuePair<string, QuestTracker.Quest> keyValuePair in QuestTracker.OQuest)
+				{
+					if (keyValuePair.Value.isTemporary())
+					{
+						blist.Add(keyValuePair.Key);
+					}
+				}
+				for (int i = blist.Count - 1; i >= 0; i--)
+				{
+					QuestTracker.OQuest.Remove(blist[i]);
+				}
+			}
+		}
+
+		public void assignTemporaryQuest(QuestTracker.Quest Qt)
+		{
+			if (Qt.uid != 65000)
+			{
+				X.de("TEMP_UID ではないクエストを追加しようとしています", null);
+			}
+			QuestTracker.OQuest[Qt.key] = Qt;
+			this.need_fine_item_quest_target = true;
+			this.need_fine_auto_check_item_collection = true;
+		}
+
+		public void removeTemporary(QuestTracker.Quest Qt)
+		{
+			if (Qt.uid != 65000)
+			{
+				X.de("TEMP_UID ではないクエストを破棄しようとしています", null);
+			}
+			this.need_fine_item_quest_target = true;
+			QuestTracker.OQuest.Remove(Qt.key);
+			this.need_fine_auto_check_item_collection = true;
+			using (BList<int> blist = ListBuffer<int>.Pop(0))
+			{
+				foreach (KeyValuePair<QuestTracker.CATEG, QuestTracker.Quest> keyValuePair in this.OSelectedQuest)
+				{
+					if (keyValuePair.Value == Qt)
+					{
+						blist.Add((int)keyValuePair.Key);
+					}
+				}
+				for (int i = blist.Count - 1; i >= 0; i--)
+				{
+					this.OSelectedQuest.Remove((QuestTracker.CATEG)blist[i]);
+				}
+			}
+			for (int j = 0; j < 3; j++)
+			{
+				List<QuestTracker.QuestProgress> list = ((j == 0) ? this.AProg : ((j == 1) ? this.AProgFinished : this.AProgBuf));
+				for (int k = list.Count - 1; k >= 0; k--)
+				{
+					if (list[k].Q == Qt)
+					{
+						list.RemoveAt(k);
+						break;
+					}
+				}
+			}
 		}
 
 		public QuestTracker(NelM2DBase _M2D)
@@ -373,7 +477,7 @@ namespace nel
 				for (int i = this.AProg.Count - 1; i >= 0; i--)
 				{
 					QuestTracker.QuestProgress questProgress = this.AProg[i];
-					questProgress.Q = global::XX.X.Get<string, QuestTracker.Quest>(QuestTracker.OQuest, questProgress.Q.key);
+					questProgress.Q = X.Get<string, QuestTracker.Quest>(QuestTracker.OQuest, questProgress.Q.key);
 					if (questProgress.Q == null)
 					{
 						this.AProg.RemoveAt(i);
@@ -388,7 +492,7 @@ namespace nel
 			this.releaseItemQuestTargetList();
 		}
 
-		public void readBinaryFrom(ByteArray Ba)
+		public void readBinaryFrom(ByteReader Ba)
 		{
 			this.newGame();
 			this.need_fine_head_quest_ = (this.need_fine_auto_check_item_collection = true);
@@ -406,7 +510,7 @@ namespace nel
 					if (questProgress != null)
 					{
 						list.Add(questProgress);
-						this.current_update = global::XX.X.Mx(questProgress.update_count, this.current_update);
+						this.current_update = X.Mx(questProgress.update_count, this.current_update);
 					}
 				}
 				if (i == 0)
@@ -419,17 +523,17 @@ namespace nel
 			for (int k = 0; k < num2; k++)
 			{
 				QuestTracker.CATEG categ = (QuestTracker.CATEG)Ba.readByte();
-				QuestTracker.Quest byId = QuestTracker.GetById(Ba.readUShort(), false);
-				if (byId != null)
+				QuestTracker.Quest quest;
+				if (QuestTracker.GetFromBa(Ba, out quest, true) && quest != null)
 				{
-					this.OSelectedQuest[categ] = byId;
+					this.OSelectedQuest[categ] = quest;
 				}
 			}
 		}
 
 		public void writeBinaryTo(ByteArray Ba)
 		{
-			Ba.writeByte(0);
+			Ba.writeByte(1);
 			for (int i = 0; i < 2; i++)
 			{
 				List<QuestTracker.QuestProgress> list = ((i == 0) ? this.AProg : this.AProgFinished);
@@ -445,18 +549,18 @@ namespace nel
 			foreach (KeyValuePair<QuestTracker.CATEG, QuestTracker.Quest> keyValuePair in this.OSelectedQuest)
 			{
 				Ba.writeByte((int)keyValuePair.Key);
-				Ba.writeUShort(keyValuePair.Value.uid);
+				QuestTracker.writeKeyToBa(Ba, keyValuePair.Value);
 			}
 		}
 
-		public void updateQuest(string k, int phase, bool hidden = false, bool fill_target_item = false, bool set_focus = false)
+		public void updateQuest(string k, int phase, bool hidden = false, bool fill_target_item = false, bool set_focus = false, bool fix_phase = false)
 		{
 			QuestTracker.Quest quest = this.Get(k, false);
 			if (quest == null || phase < 0)
 			{
 				return;
 			}
-			phase = global::XX.X.Mn(phase, quest.end_phase);
+			phase = X.Mn(phase, quest.end_phase);
 			QuestTracker.QuestProgress questProgress = null;
 			int i = this.AProg.Count - 1;
 			while (i >= 0)
@@ -464,7 +568,7 @@ namespace nel
 				QuestTracker.QuestProgress questProgress2 = this.AProg[i];
 				if (questProgress2.Q == quest)
 				{
-					if (questProgress2.phase >= phase)
+					if (fix_phase ? (questProgress2.phase == phase) : (questProgress2.phase >= phase))
 					{
 						return;
 					}
@@ -474,7 +578,7 @@ namespace nel
 					{
 						hidden = true;
 					}
-					this.ProgressAnounce(questProgress2, i, hidden);
+					this.ProgressAnounce(questProgress2, i, hidden, 0U);
 					questProgress = questProgress2;
 					break;
 				}
@@ -510,7 +614,7 @@ namespace nel
 				}
 				if (!hidden && this.Ui != null && (quest.invisible & QuestTracker.INVISIBLE.START) == (QuestTracker.INVISIBLE)0)
 				{
-					this.Ui.AddStack(questProgress, QuestTracker.INVISIBLE.START, phase);
+					this.Ui.AddStack(questProgress, QuestTracker.INVISIBLE.START, phase, 0U);
 				}
 				this.need_fine_head_quest_ = (this.need_fine_auto_check_item_collection = true);
 			}
@@ -586,7 +690,7 @@ namespace nel
 			}
 		}
 
-		private bool ProgressAnounce(QuestTracker.QuestProgress Prog, int index, bool hidden = false)
+		private bool ProgressAnounce(QuestTracker.QuestProgress Prog, int index, bool hidden = false, uint written_row_bits_for_task = 0U)
 		{
 			bool flag = false;
 			QuestTracker.Quest q = Prog.Q;
@@ -598,7 +702,7 @@ namespace nel
 				Prog.tracking = false;
 				if ((q.invisible & QuestTracker.INVISIBLE.END) == (QuestTracker.INVISIBLE)0 && !hidden && this.Ui != null)
 				{
-					this.Ui.AddStack(Prog, QuestTracker.INVISIBLE.END, Prog.phase);
+					this.Ui.AddStack(Prog, QuestTracker.INVISIBLE.END, Prog.phase, written_row_bits_for_task);
 					flag = true;
 				}
 				if (Prog == this.HeadQuest_)
@@ -611,7 +715,7 @@ namespace nel
 			}
 			else if ((q.invisible & QuestTracker.INVISIBLE.UPDATE) == (QuestTracker.INVISIBLE)0 && !hidden && this.Ui != null)
 			{
-				this.Ui.AddStack(Prog, QuestTracker.INVISIBLE.UPDATE, Prog.phase);
+				this.Ui.AddStack(Prog, QuestTracker.INVISIBLE.UPDATE, Prog.phase, written_row_bits_for_task);
 				flag = true;
 			}
 			return flag;
@@ -655,7 +759,7 @@ namespace nel
 				}
 				if (Prog.phase < Prog.Q.end_phase && Prog.Q.auto_check_item_collection && !Prog.collectionFinished(phase))
 				{
-					Prog.phase = global::XX.X.Mn(phase, Prog.phase);
+					Prog.phase = X.Mn(phase, Prog.phase);
 				}
 			}
 			return flag2;
@@ -664,7 +768,7 @@ namespace nel
 		public int updateQuestCollectItem(NelItem Itm, int count, int grade, bool obtaining = true)
 		{
 			int num = 0;
-			if (this.fineItemQuestTargetList())
+			if (this.fineItemQuestTargetList() && count > 0)
 			{
 				for (int i = this.AProg.Count - 1; i >= 0; i--)
 				{
@@ -683,7 +787,8 @@ namespace nel
 			while (num3 <= num && count > 0)
 			{
 				bool flag = false;
-				int num4 = Prog.addCollectionCount(num3, Itm, count, grade, obtaining);
+				uint num5;
+				int num4 = Prog.addCollectionCount(num3, Itm, count, grade, out num5, obtaining);
 				if (num4 > 0)
 				{
 					count -= num4;
@@ -693,11 +798,11 @@ namespace nel
 					if (Prog.collectionFinished(num3))
 					{
 						flag = true;
-						int num5 = global::XX.X.Mx(Prog.phase, num3 + 1);
-						if (num5 != Prog.phase)
+						int num6 = X.Mx(Prog.phase, num3 + 1);
+						if (num6 != Prog.phase)
 						{
-							Prog.phase = num5;
-							if (this.ProgressAnounce(Prog, index, hidden))
+							Prog.phase = num6;
+							if (this.ProgressAnounce(Prog, index, hidden, num5))
 							{
 								flag2 = false;
 							}
@@ -705,7 +810,7 @@ namespace nel
 					}
 					if (flag2 && this.Ui != null && (Prog.Q.invisible & QuestTracker.INVISIBLE.COLLECT) == (QuestTracker.INVISIBLE)0)
 					{
-						this.Ui.AddStack(Prog, QuestTracker.INVISIBLE.COLLECT, num3);
+						this.Ui.AddStack(Prog, QuestTracker.INVISIBLE.COLLECT, num3, num5);
 					}
 					if (count <= 0)
 					{
@@ -721,6 +826,115 @@ namespace nel
 			return num2++;
 		}
 
+		public QuestTracker.SummonerEntry getSummonerEntryFor(EnemySummoner Smn, out QuestTracker.QuestProgress OutProg)
+		{
+			int count = this.AProg.Count;
+			OutProg = null;
+			for (int i = 0; i < count; i++)
+			{
+				QuestTracker.QuestProgress questProgress = this.AProg[i];
+				if (!questProgress.finished)
+				{
+					QuestTracker.SummonerEntry[] summonerEntryTarget = questProgress.Q.getSummonerEntryTarget(questProgress.phase);
+					if (summonerEntryTarget != null && !questProgress.summonerAlreadyDefeated(questProgress.phase, Smn.key))
+					{
+						for (int j = summonerEntryTarget.Length - 1; j >= 0; j--)
+						{
+							if (summonerEntryTarget[j].summoner_key == Smn.key)
+							{
+								OutProg = questProgress;
+								return summonerEntryTarget[j];
+							}
+						}
+					}
+				}
+			}
+			return default(QuestTracker.SummonerEntry);
+		}
+
+		public int summonerFinished(EnemySummoner Smn, bool noel_defeated, bool hidden = false)
+		{
+			bool flag = !hidden;
+			bool flag2 = false;
+			if (!noel_defeated)
+			{
+				int count = this.AProg.Count;
+				bool flag3 = false;
+				for (int i = 0; i < count; i++)
+				{
+					QuestTracker.QuestProgress questProgress = this.AProg[i];
+					if (!questProgress.finished)
+					{
+						if (questProgress.Q.GQ != null && this.M2D.WM.CurWM != null)
+						{
+							if (!questProgress.aborted)
+							{
+								flag3 = true;
+							}
+							if (questProgress.Q.GQ.WM.enable_gq_type == this.M2D.WM.CurWM.enable_gq_type)
+							{
+								string enable_gq_type = questProgress.Q.GQ.WM.enable_gq_type;
+							}
+							if (questProgress.Q.GQ.WM != this.M2D.WM.CurWM && questProgress.Q.GQ.auto_abort_qt_in_other_battle && !questProgress.Q.GQ.isQTFinishedAuto(true))
+							{
+								flag2 = (questProgress.aborted = true);
+							}
+						}
+						uint num2;
+						int num = (int)questProgress.defeatedSummoner(questProgress.phase, Smn, out num2);
+						if (num > 0)
+						{
+							if (!questProgress.aborted && questProgress.collectionFinished(questProgress.phase))
+							{
+								questProgress.phase++;
+								if (this.ProgressAnounce(questProgress, i, hidden, num2))
+								{
+									flag = false;
+								}
+							}
+							if (num == 2 && flag && this.Ui != null && !questProgress.aborted && (questProgress.Q.invisible & QuestTracker.INVISIBLE.COLLECT) == (QuestTracker.INVISIBLE)0)
+							{
+								this.Ui.AddStack(questProgress, QuestTracker.INVISIBLE.COLLECT, questProgress.phase, num2);
+							}
+						}
+					}
+				}
+				if (flag3)
+				{
+					this.M2D.GUILD.summonerFinished(null);
+				}
+			}
+			else
+			{
+				int count2 = this.AProg.Count;
+				bool flag4 = false;
+				for (int j = 0; j < count2; j++)
+				{
+					QuestTracker.QuestProgress questProgress2 = this.AProg[j];
+					if (!questProgress2.finished && !questProgress2.aborted)
+					{
+						if (questProgress2.Q.GQ != null)
+						{
+							flag4 = true;
+						}
+						if (questProgress2.Q.GQ != null && this.M2D.WM.CurWM != null && !questProgress2.Q.GQ.isQTFinishedAuto(true))
+						{
+							flag2 = (questProgress2.aborted = true);
+						}
+					}
+				}
+				if (flag4)
+				{
+					this.M2D.GUILD.summonerFinished(null);
+				}
+			}
+			if (flag2)
+			{
+				GF.setC("GLD_RENZOKU", 0U);
+			}
+			return 0;
+		}
+
 		public void positionNoticeCheck(Map2d Mp)
 		{
 			if (this.Ui == null)
@@ -732,9 +946,9 @@ namespace nel
 			for (int i = 0; i < count; i++)
 			{
 				QuestTracker.QuestProgress questProgress = this.AProg[i];
-				if (!questProgress.finished && (questProgress.Q.invisible & QuestTracker.INVISIBLE.POS) == (QuestTracker.INVISIBLE)0 && questProgress.CurrentDepert.real_map_target == Mp.key)
+				if (!questProgress.finished && !questProgress.aborted && (questProgress.Q.invisible & QuestTracker.INVISIBLE.POS) == (QuestTracker.INVISIBLE)0 && questProgress.isDepertArrived(this.M2D, Mp.key))
 				{
-					this.Ui.AddStack(questProgress, QuestTracker.INVISIBLE.POS, questProgress.phase);
+					this.Ui.AddStack(questProgress, QuestTracker.INVISIBLE.POS, questProgress.phase, 0U);
 				}
 			}
 		}
@@ -749,7 +963,7 @@ namespace nel
 				for (int i = 0; i < count; i++)
 				{
 					QuestTracker.QuestProgress questProgress = this.AProg[i];
-					if (!questProgress.finished)
+					if (!questProgress.finished && !questProgress.aborted)
 					{
 						int phase = questProgress.phase;
 						for (int j = 0; j <= phase; j++)
@@ -767,7 +981,7 @@ namespace nel
 									{
 										blist = (this.OAQuestTarget[data] = ListBuffer<QuestTracker.QuestProgress>.Pop(0));
 									}
-									global::XX.X.pushIdentical<QuestTracker.QuestProgress>(blist, questProgress);
+									X.pushIdentical<QuestTracker.QuestProgress>(blist, questProgress);
 								}
 							}
 						}
@@ -787,10 +1001,34 @@ namespace nel
 			this.OAQuestTarget.Clear();
 		}
 
-		public bool isQuestTargetItem(NelItem Itm)
+		public bool isQuestTargetItem(NelItem Itm, int grade = -1)
 		{
 			this.fineAutoItemCollection(false);
-			return this.fineItemQuestTargetList() && this.OAQuestTarget.ContainsKey(Itm);
+			BList<QuestTracker.QuestProgress> blist;
+			if (this.fineItemQuestTargetList() && this.OAQuestTarget.TryGetValue(Itm, out blist))
+			{
+				if (grade < 0)
+				{
+					return true;
+				}
+				for (int i = blist.Count - 1; i >= 0; i--)
+				{
+					QuestTracker.QuestProgress questProgress = blist[i];
+					int num = questProgress.phase;
+					for (int j = num; j <= num; j++)
+					{
+						if (questProgress.isQuestTargetItem(j, Itm, grade))
+						{
+							return true;
+						}
+						if (questProgress.Q.cascade_show_phase(j))
+						{
+							num++;
+						}
+					}
+				}
+			}
+			return false;
 		}
 
 		public void reassign(Designer DsSort, Designer GmTargetDs, QuestTracker.CATEG _target_categ)
@@ -934,7 +1172,7 @@ namespace nel
 				{
 					this.Ui.deactivateRow(questProgress, true);
 				}
-				UiQuestCard uiQuestCard = Ds.addTabT<UiQuestCard>("tab_" + i.ToString(), Ds.use_w, 0f, Ds.use_w, 80f, false) as UiQuestCard;
+				UiQuestCard uiQuestCard = Ds.addTabT<UiQuestCard>("tab_" + i.ToString(), Ds.use_w, 0f, Ds.use_w, 80f, false);
 				uiQuestCard.QM = this;
 				uiQuestCard.fnQBtnTouched = fnQBtnTouched;
 				uiQuestCard.initQ(Ds.stencil_ref, questProgress, fnClickBtn);
@@ -956,7 +1194,7 @@ namespace nel
 			{
 				this.GmTargetDs.getRowManager().copyMems(blist, null, null);
 				int count = blist.Count;
-				QuestTracker.Quest quest = global::XX.X.Get<QuestTracker.CATEG, QuestTracker.Quest>(this.OSelectedQuest, this.target_categ);
+				QuestTracker.Quest quest = X.Get<QuestTracker.CATEG, QuestTracker.Quest>(this.OSelectedQuest, this.target_categ);
 				UiQuestCard uiQuestCard = null;
 				for (int i = 0; i < count; i++)
 				{
@@ -1056,7 +1294,7 @@ namespace nel
 
 		public static int sortProg(QuestTracker.QuestProgress ProgA, QuestTracker.QuestProgress ProgB, QuestTracker.SORT_TYPE sort_type)
 		{
-			int num = global::XX.X.MPF((sort_type & QuestTracker.SORT_TYPE._DESCEND) == QuestTracker.SORT_TYPE.NEWER);
+			int num = X.MPF((sort_type & QuestTracker.SORT_TYPE._DESCEND) == QuestTracker.SORT_TYPE.NEWER);
 			sort_type &= (QuestTracker.SORT_TYPE)(-9);
 			if (ProgA.finished != ProgB.finished)
 			{
@@ -1091,11 +1329,11 @@ namespace nel
 
 		public UiQuestCard getTabForButton(aBtn B)
 		{
-			if (!(this.GmTargetDs != null))
+			if (B is UiQuestCard.aBtnNelQuestCard)
 			{
-				return null;
+				return (B as UiQuestCard.aBtnNelQuestCard).DsCard;
 			}
-			return UiQuestCard.getTabForButton(this.GmTargetDs, B);
+			return null;
 		}
 
 		public UiQuestCard getTabForQuest(QuestTracker.Quest Q)
@@ -1159,7 +1397,7 @@ namespace nel
 						if (wholeMapItem != null)
 						{
 							blist.Clear();
-							if (currentDepert.WmDepert.getPosCache(wholeMapItem).getPos(this.M2D, byTextKey, blist))
+							if (currentDepert.listupWmDepert(this.M2D, wholeMapItem, blist, byTextKey, questProgress, questProgress.phase))
 							{
 								int count2 = blist.Count;
 								for (int j = 0; j < count2; j++)
@@ -1169,7 +1407,7 @@ namespace nel
 									for (int k = ADep.Count - 1; k >= 0; k--)
 									{
 										QuestTracker.QuestDepertureOnMap questDepertureOnMap = ADep[k];
-										if (global::XX.X.LENGTHXYS(questDepertureOnMap.x, questDepertureOnMap.y, mapPosition.x, mapPosition.y) < 0.1f)
+										if (X.LENGTHXYS(questDepertureOnMap.x, questDepertureOnMap.y, mapPosition.x, mapPosition.y) < 0.1f)
 										{
 											questDepertureOnMap.addProg(this.M2D, questProgress);
 											flag = false;
@@ -1201,7 +1439,7 @@ namespace nel
 					if (currentDepert.wm_key != text)
 					{
 						text = currentDepert.wm_key;
-						questDepertureOnWa = global::XX.X.Get<string, QuestTracker.QuestDepertureOnWa>(ODep, text);
+						questDepertureOnWa = X.Get<string, QuestTracker.QuestDepertureOnWa>(ODep, text);
 						if (questDepertureOnWa == null)
 						{
 							WAManager.WARecord wa = WAManager.GetWa(text, false);
@@ -1308,15 +1546,34 @@ namespace nel
 			return -1;
 		}
 
+		public QuestTracker.QuestProgress getProgressObject(QuestTracker.Quest Q)
+		{
+			for (int i = this.AProg.Count - 1; i >= 0; i--)
+			{
+				QuestTracker.QuestProgress questProgress = this.AProg[i];
+				if (questProgress.Q == Q)
+				{
+					return questProgress;
+				}
+			}
+			return null;
+		}
+
 		public const string need_new_item_wm = "need_new";
 
 		private static BDic<string, QuestTracker.Quest> OQuest;
 
 		private static DateTime LoadDate;
 
+		public const string CLIENT_GUILDQUEST = "Guildq";
+
+		public const ushort TEMP_UID = 65000;
+
+		public const ushort REMOVED_UID = 64999;
+
 		public UiQuestTracker Ui;
 
-		private readonly NelM2DBase M2D;
+		public readonly NelM2DBase M2D;
 
 		private List<QuestTracker.QuestProgress> AProg;
 
@@ -1380,6 +1637,53 @@ namespace nel
 			AUTOREM = 4096
 		}
 
+		public struct SummonerEntry
+		{
+			public SummonerEntry(string _summoner_key, string _quest_key, int add_dlevel_, WeatherItem.WEATHER _weather, ENATTR nattr_, int _fix_enemykind, int nattr_addable_max_)
+			{
+				this.summoner_key = _summoner_key;
+				this.quest_key = _quest_key;
+				this.add_dlevel = add_dlevel_;
+				this.weather = _weather;
+				this.nattr = nattr_;
+				this.nattr_addable_max = nattr_addable_max_;
+				this.fix_enemykind = _fix_enemykind;
+			}
+
+			public bool valid
+			{
+				get
+				{
+					return this.summoner_key != null;
+				}
+			}
+
+			public bool Equals(QuestTracker.SummonerEntry Src)
+			{
+				return Src.summoner_key == this.summoner_key && Src.quest_key == this.quest_key;
+			}
+
+			public bool kindMatch(string s)
+			{
+				ENEMYID enemyid;
+				return this.valid && this.fix_enemykind >= 0 && FEnum<ENEMYID>.TryParse(s, out enemyid, true) && enemyid == (ENEMYID)this.fix_enemykind;
+			}
+
+			public string summoner_key;
+
+			public string quest_key;
+
+			public int add_dlevel;
+
+			public WeatherItem.WEATHER weather;
+
+			public ENATTR nattr;
+
+			public int nattr_addable_max;
+
+			public int fix_enemykind;
+		}
+
 		public class Quest
 		{
 			public Quest(string _key, QuestTracker.CATEG _categ, ushort _uid, string _client)
@@ -1413,7 +1717,7 @@ namespace nel
 					}
 					num2++;
 				}
-				int num3 = stb.NmI(num, -1, 0);
+				int num3 = stb.NmI(num2, -1, 0);
 				if (flag)
 				{
 					this.smooth_show_bits |= 1U << num3;
@@ -1442,22 +1746,25 @@ namespace nel
 
 			public void finalizeLoading(List<QuestTracker.QuestDeperture> ADepBuf, List<QuestTracker.QuestItemBufList> AADepItem, ref bool show_progress_num_all, ref bool auto_check_item_collection)
 			{
-				this.end_phase = global::XX.X.Mx(this.end_phase, global::XX.X.Mx(this.end_phase, global::XX.X.Mx(AADepItem.Count, ADepBuf.Count)));
+				this.end_phase = X.Mx(this.end_phase, X.Mx(this.end_phase, X.Mx((AADepItem == null) ? 0 : AADepItem.Count, ADepBuf.Count)));
 				while (this.end_phase > ADepBuf.Count)
 				{
 					ADepBuf.Add(default(QuestTracker.QuestDeperture));
 				}
 				bool flag = false;
-				for (int i = AADepItem.Count - 1; i >= 0; i--)
+				if (AADepItem != null)
 				{
-					QuestTracker.QuestItemBufList questItemBufList = AADepItem[i];
-					if (questItemBufList != null)
+					for (int i = AADepItem.Count - 1; i >= 0; i--)
 					{
-						QuestTracker.QuestDeperture questDeperture = ADepBuf[i];
-						questDeperture.AItm = questItemBufList.ToArray();
-						questDeperture.wm_key = (questItemBufList.need_new_item ? "need_new" : "");
-						ADepBuf[i] = questDeperture;
-						flag = true;
+						QuestTracker.QuestItemBufList questItemBufList = AADepItem[i];
+						if (questItemBufList != null)
+						{
+							QuestTracker.QuestDeperture questDeperture = ADepBuf[i];
+							questDeperture.AItm = questItemBufList.ToArray();
+							questDeperture.wm_key = (questItemBufList.need_new_item ? "need_new" : "");
+							ADepBuf[i] = questDeperture;
+							flag = true;
+						}
 					}
 				}
 				if (show_progress_num_all)
@@ -1473,7 +1780,10 @@ namespace nel
 				auto_check_item_collection = (show_progress_num_all = false);
 				this.Adepert = ADepBuf.ToArray();
 				ADepBuf.Clear();
-				AADepItem.Clear();
+				if (AADepItem != null)
+				{
+					AADepItem.Clear();
+				}
 				this.Adesc_buffer = new string[this.end_phase];
 			}
 
@@ -1492,26 +1802,35 @@ namespace nel
 				using (STB stb = TX.PopBld(null, 0))
 				{
 					int i;
-					for (i = phase; i >= 0; i--)
+					if (this.GQ != null)
 					{
-						stb.Clear();
-						stb.Add(text2).Add("__").Add(i);
-						TX tx = TX.getTX(stb.ToString(), true, true, null);
-						if (tx != null)
+						this.GQ.getDescriptionForQT(phase, stb);
+						text = stb.ToString();
+						i = phase;
+					}
+					else
+					{
+						for (i = phase; i >= 0; i--)
 						{
-							text = tx.text;
-							break;
+							stb.Clear();
+							stb.Add(text2).Add("__").Add(i);
+							TX tx = TX.getTX(stb.ToString(), true, true, null);
+							if (tx != null)
+							{
+								text = tx.text;
+								break;
+							}
 						}
-					}
-					if (text == null)
-					{
-						i = 0;
-						TX tx2 = TX.getTX(text2, true, true, null);
-						text = ((tx2 == null) ? "" : tx2.text);
-					}
-					if (i < 0)
-					{
-						i = 0;
+						if (text == null)
+						{
+							i = 0;
+							TX tx2 = TX.getTX(text2, true, true, null);
+							text = ((tx2 == null) ? "" : tx2.text);
+						}
+						if (i < 0)
+						{
+							i = 0;
+						}
 					}
 					while (i <= phase)
 					{
@@ -1540,6 +1859,17 @@ namespace nel
 				personal_color = 4293980400U;
 				if (TX.valid(this.client))
 				{
+					if (this.client == "Guildq")
+					{
+						PFIco = MTRX.getPF("IconGQ");
+						personal_color = 4291622970U;
+						localize_name = TX.Get("MAP_city_in_guild", "");
+						if (this.GQ != null)
+						{
+							localize_name = localize_name + " (" + this.GQ.WM.localized_name + ")";
+						}
+						return;
+					}
 					if (this.ClientPerson == null)
 					{
 						this.ClientPerson = EvPerson.getPersonByNameDefault(this.client);
@@ -1582,19 +1912,24 @@ namespace nel
 
 			public void flushLocalizeDesc()
 			{
-				global::XX.X.ALLN<string>(this.Adesc_buffer);
+				X.ALLN<string>(this.Adesc_buffer);
 			}
 
 			public int CollectTargetMax()
 			{
 				for (int i = this.end_phase - 1; i >= 0; i--)
 				{
-					if (this.Adepert[i].AItm != null)
+					if (this.hasCollect(i))
 					{
 						return i + 1;
 					}
 				}
 				return 0;
+			}
+
+			public bool hasCollect(int phase)
+			{
+				return this.Adepert != null && phase < this.end_phase && phase < this.Adepert.Length && (this.Adepert[phase].AItm is NelItemEntry[] || this.Adepert[phase].AItm is QuestTracker.SummonerEntry[]);
 			}
 
 			public QuestTracker.QuestDeperture getDepert(int phase)
@@ -1613,12 +1948,21 @@ namespace nel
 				{
 					return null;
 				}
-				NelItemEntry[] aitm = this.Adepert[phase].AItm;
-				if (aitm != null)
+				NelItemEntry[] array = this.Adepert[phase].AItm as NelItemEntry[];
+				if (array != null)
 				{
 					need_new_item = this.Adepert[phase].wm_key == "need_new";
 				}
-				return aitm;
+				return array;
+			}
+
+			public QuestTracker.SummonerEntry[] getSummonerEntryTarget(int phase)
+			{
+				if (phase >= this.end_phase || phase >= this.Adepert.Length)
+				{
+					return null;
+				}
+				return this.Adepert[phase].AItm as QuestTracker.SummonerEntry[];
 			}
 
 			public EvImg getTreasureImg(int phase)
@@ -1655,9 +1999,41 @@ namespace nel
 				}
 			}
 
+			public bool getFieldGuideTarget(int phase, out object Target)
+			{
+				if (this.GQ != null && this.GQ.Con.getCateg(this.GQ.categ).getFieldGuideTarget(phase, this.GQ, out Target))
+				{
+					return true;
+				}
+				phase = X.Mn(X.Mn(phase, this.Adepert.Length - 1), this.end_phase - 1);
+				for (int i = phase; i >= 0; i--)
+				{
+					bool flag;
+					NelItemEntry[] collectTarget = this.getCollectTarget(i, out flag);
+					if (collectTarget != null)
+					{
+						Target = collectTarget[0].Data;
+						return true;
+					}
+					QuestTracker.SummonerEntry[] summonerEntryTarget = this.getSummonerEntryTarget(i);
+					if (summonerEntryTarget != null)
+					{
+						Target = EnemySummoner.Get(summonerEntryTarget[0].summoner_key, false);
+						return true;
+					}
+				}
+				Target = null;
+				return false;
+			}
+
 			public override string ToString()
 			{
 				return "<Quest> " + this.key;
+			}
+
+			public bool isTemporary()
+			{
+				return this.uid == 65000;
 			}
 
 			public readonly ushort uid;
@@ -1667,6 +2043,8 @@ namespace nel
 			public readonly QuestTracker.CATEG categ;
 
 			public string desc_key;
+
+			public GuildManager.GQEntry GQ;
 
 			private QuestTracker.QuestDeperture[] Adepert;
 
@@ -1735,15 +2113,57 @@ namespace nel
 
 			public bool isActiveMap()
 			{
-				return this.wm_key != null && this.AItm == null;
+				return this.wm_key != null && (this.AItm == null || this.AItm is QuestTracker.SummonerEntry[]);
 			}
 
-			public WmDeperture WmDepert
+			public WmDeperture WmDepert(QuestTracker.QuestProgress Prog, int phase)
 			{
-				get
+				if (TX.valid(this.map_key))
 				{
 					return new WmDeperture(this.wm_key, this.map_key);
 				}
+				if (Prog != null && this.AItm is QuestTracker.SummonerEntry[] && M2DBase.Instance != null)
+				{
+					NelM2DBase nelM2DBase = M2DBase.Instance as NelM2DBase;
+					WholeMapItem byTextKey = nelM2DBase.WM.GetByTextKey(this.wm_key);
+					if (byTextKey != null)
+					{
+						EnemySummonerManager manager = EnemySummonerManager.GetManager(this.wm_key);
+						QuestTracker.SummonerEntry[] array = this.AItm as QuestTracker.SummonerEntry[];
+						int num = array.Length;
+						for (int i = 0; i < num; i++)
+						{
+							string summoner_key = array[i].summoner_key;
+							WMIconPosition wmiconPosition;
+							if (!Prog.summonerAlreadyDefeated(phase, summoner_key) && manager.getWMPosition(nelM2DBase, summoner_key, byTextKey, out wmiconPosition, true, false))
+							{
+								return new WmDeperture(this.wm_key, wmiconPosition.getDepertureMap().key);
+							}
+						}
+					}
+				}
+				return new WmDeperture(this.wm_key, this.map_key);
+			}
+
+			public bool listupWmDepert(NelM2DBase M2D, WholeMapItem Wm, List<MapPosition> APosBuf, WholeMapItem WmShowingFrom, QuestTracker.QuestProgress Prog, int phase)
+			{
+				bool flag = new WmDeperture(this.wm_key, this.map_key).getPosCache(Wm).getPos(M2D, WmShowingFrom, APosBuf);
+				if (this.AItm is QuestTracker.SummonerEntry[])
+				{
+					EnemySummonerManager manager = EnemySummonerManager.GetManager(this.wm_key);
+					QuestTracker.SummonerEntry[] array = this.AItm as QuestTracker.SummonerEntry[];
+					int num = array.Length;
+					for (int i = 0; i < num; i++)
+					{
+						string summoner_key = array[i].summoner_key;
+						WMIconPosition wmiconPosition;
+						if (!Prog.summonerAlreadyDefeated(phase, summoner_key) && manager.getWMPosition(M2D, summoner_key, Wm, out wmiconPosition, true, false))
+						{
+							flag = new WmDeperture(this.wm_key, wmiconPosition.getDepertureMap().key).getPosCache(Wm).getPos(M2D, WmShowingFrom, APosBuf) || flag;
+						}
+					}
+				}
+				return flag;
 			}
 
 			public bool isEqual(QuestTracker.QuestDeperture S)
@@ -1752,22 +2172,44 @@ namespace nel
 				{
 					return false;
 				}
-				if (this.AItm == null)
+				if (this.AItm is NelItemEntry[])
 				{
-					return this.wm_key == S.wm_key && this.map_key == S.map_key && this.real_map_target == S.real_map_target;
-				}
-				if (this.AItm.Length != S.AItm.Length)
-				{
-					return false;
-				}
-				for (int i = this.AItm.Length - 1; i >= 0; i--)
-				{
-					if (this.AItm[i] != S.AItm[i])
+					NelItemEntry[] array = this.AItm as NelItemEntry[];
+					NelItemEntry[] array2 = S.AItm as NelItemEntry[];
+					if (array2 == null || array.Length != array2.Length)
 					{
 						return false;
 					}
+					for (int i = array.Length - 1; i >= 0; i--)
+					{
+						if (array[i] != array2[i])
+						{
+							return false;
+						}
+					}
+					return true;
 				}
-				return true;
+				else
+				{
+					if (!(this.AItm is QuestTracker.SummonerEntry[]))
+					{
+						return this.wm_key == S.wm_key && this.map_key == S.map_key && this.real_map_target == S.real_map_target;
+					}
+					QuestTracker.SummonerEntry[] array3 = this.AItm as QuestTracker.SummonerEntry[];
+					QuestTracker.SummonerEntry[] array4 = S.AItm as QuestTracker.SummonerEntry[];
+					if (array4 == null || array3.Length != array4.Length)
+					{
+						return false;
+					}
+					for (int j = array3.Length - 1; j >= 0; j--)
+					{
+						if (array3[j].Equals(array4[j]))
+						{
+							return false;
+						}
+					}
+					return true;
+				}
 			}
 
 			public string wm_key;
@@ -1776,7 +2218,7 @@ namespace nel
 
 			public string real_map_target;
 
-			public NelItemEntry[] AItm;
+			public object AItm;
 
 			public bool show_progress_num;
 
@@ -1973,7 +2415,7 @@ namespace nel
 							ushort[] array = this.AAcollected_count[i];
 							if (array != null)
 							{
-								global::XX.X.ALL0(array);
+								X.ALL0(array);
 							}
 						}
 						return;
@@ -1983,7 +2425,7 @@ namespace nel
 						ushort[] array2 = this.AAcollected_count[_phase];
 						if (array2 != null)
 						{
-							global::XX.X.ALL0(array2);
+							X.ALL0(array2);
 						}
 					}
 				}
@@ -1991,7 +2433,14 @@ namespace nel
 
 			public int addCollectionCount(int phase, NelItem Itm, int count, int grade, bool obtaining = true)
 			{
-				if (count <= 0)
+				uint num;
+				return this.addCollectionCount(phase, Itm, count, grade, out num, obtaining);
+			}
+
+			public int addCollectionCount(int phase, NelItem Itm, int count, int grade, out uint written_row, bool obtaining = true)
+			{
+				written_row = 0U;
+				if (count <= 0 || this.aborted)
 				{
 					return 0;
 				}
@@ -2008,7 +2457,7 @@ namespace nel
 					NelItemEntry nelItemEntry = collectTarget[i];
 					if (nelItemEntry.Data == Itm && (int)nelItemEntry.grade <= grade)
 					{
-						this.allocCollectionArray(num2);
+						this.allocCollectionArray(phase + 1);
 						ushort[] array = this.AAcollected_count[phase];
 						if (array == null)
 						{
@@ -2021,12 +2470,13 @@ namespace nel
 						}
 						if ((int)array[i] < collectTarget[i].count)
 						{
-							int num3 = global::XX.X.Mn(collectTarget[i].count - (int)array[i], count);
+							int num3 = X.Mn(collectTarget[i].count - (int)array[i], count);
 							ushort[] array2 = array;
 							int num4 = i;
 							array2[num4] += (ushort)num3;
 							num += num3;
 							count -= num3;
+							written_row |= 1U << i;
 							if (count <= 0)
 							{
 								break;
@@ -2037,7 +2487,48 @@ namespace nel
 				return num;
 			}
 
-			public bool collectionFinished(int phase)
+			public byte defeatedSummoner(int phase, EnemySummoner Smn, out uint written_row)
+			{
+				written_row = 0U;
+				QuestTracker.SummonerEntry[] summonerEntryTarget = this.Q.getSummonerEntryTarget(phase);
+				if (summonerEntryTarget == null)
+				{
+					return 0;
+				}
+				int num = summonerEntryTarget.Length;
+				int i = 0;
+				while (i < num)
+				{
+					if (!(summonerEntryTarget[i].summoner_key != Smn.key))
+					{
+						this.allocCollectionArray(phase + 1);
+						ushort[] array = this.AAcollected_count[phase];
+						if (array == null)
+						{
+							array = (this.AAcollected_count[phase] = new ushort[num]);
+						}
+						else if (array.Length != num)
+						{
+							Array.Resize<ushort>(ref array, num);
+							this.AAcollected_count[phase] = array;
+						}
+						if (array[i] == 0)
+						{
+							written_row |= 1U << i;
+							array[i] = 1;
+							return 2;
+						}
+						return 1;
+					}
+					else
+					{
+						i++;
+					}
+				}
+				return 0;
+			}
+
+			public bool isQuestTargetItem(int phase, NelItem Itm, int grade)
 			{
 				bool flag;
 				NelItemEntry[] collectTarget = this.Q.getCollectTarget(phase, out flag);
@@ -2045,7 +2536,23 @@ namespace nel
 				{
 					return false;
 				}
-				if (this.AAcollected_count != null && this.AAcollected_count.Length > phase)
+				int num = collectTarget.Length;
+				for (int i = 0; i < num; i++)
+				{
+					NelItemEntry nelItemEntry = collectTarget[i];
+					if (nelItemEntry.Data == Itm && (grade < 0 || (int)nelItemEntry.grade <= grade))
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+
+			public bool collectionFinished(int phase)
+			{
+				bool flag;
+				NelItemEntry[] collectTarget = this.Q.getCollectTarget(phase, out flag);
+				if (collectTarget != null && this.AAcollected_count != null && this.AAcollected_count.Length > phase)
 				{
 					ushort[] array = this.AAcollected_count[phase];
 					int num = collectTarget.Length;
@@ -2059,6 +2566,44 @@ namespace nel
 							}
 						}
 						return true;
+					}
+				}
+				QuestTracker.SummonerEntry[] summonerEntryTarget = this.Q.getSummonerEntryTarget(phase);
+				if (summonerEntryTarget != null && this.AAcollected_count != null && this.AAcollected_count.Length > phase)
+				{
+					ushort[] array2 = this.AAcollected_count[phase];
+					int num2 = summonerEntryTarget.Length;
+					if (array2 != null && array2.Length >= num2)
+					{
+						for (int j = 0; j < num2; j++)
+						{
+							if (array2[j] == 0)
+							{
+								return false;
+							}
+						}
+						return true;
+					}
+				}
+				return false;
+			}
+
+			public bool summonerAlreadyDefeated(int phase, string smn)
+			{
+				QuestTracker.SummonerEntry[] summonerEntryTarget = this.Q.getSummonerEntryTarget(phase);
+				if (summonerEntryTarget != null && this.AAcollected_count != null && this.AAcollected_count.Length > phase)
+				{
+					ushort[] array = this.AAcollected_count[phase];
+					int num = summonerEntryTarget.Length;
+					if (array != null && array.Length >= num)
+					{
+						for (int i = 0; i < num; i++)
+						{
+							if (summonerEntryTarget[i].summoner_key == smn && array[i] > 0)
+							{
+								return true;
+							}
+						}
 					}
 				}
 				return false;
@@ -2097,6 +2642,66 @@ namespace nel
 				return questDeperture;
 			}
 
+			public bool isDepertArrived(NelM2DBase M2D, string key)
+			{
+				if (this.phase >= this.Q.end_phase)
+				{
+					return false;
+				}
+				EnemySummonerManager enemySummonerManager = null;
+				bool flag = false;
+				for (int i = this.phase; i >= 0; i--)
+				{
+					QuestTracker.QuestDeperture depert = this.Q.getDepert(i);
+					if (!(depert.wm_key == "^"))
+					{
+						if (depert.map_key == key)
+						{
+							return true;
+						}
+						if (TX.valid(depert.wm_key) && TX.valid(depert.map_key))
+						{
+							WmDeperture wmDeperture = new WmDeperture(depert.wm_key, depert.map_key);
+							WmPosition posCache = wmDeperture.getPosCache(M2D.WM.GetByTextKey(depert.wm_key));
+							if (posCache.valid && posCache.Wmi != null && posCache.Wmi.SrcMap.key == key)
+							{
+								return true;
+							}
+						}
+						if (depert.AItm is QuestTracker.SummonerEntry[])
+						{
+							QuestTracker.SummonerEntry[] array = depert.AItm as QuestTracker.SummonerEntry[];
+							if (!flag)
+							{
+								flag = true;
+								enemySummonerManager = EnemySummonerManager.GetManager(depert.wm_key);
+							}
+							if (enemySummonerManager != null)
+							{
+								foreach (QuestTracker.SummonerEntry summonerEntry in array)
+								{
+									string text = summonerEntry.summoner_key;
+									EnemySummonerManager.SDescription summonerDescription = enemySummonerManager.getSummonerDescription(summonerEntry.summoner_key, true);
+									if (summonerDescription.valid)
+									{
+										text = summonerDescription.map_target(summonerEntry.summoner_key);
+									}
+									if (key == text)
+									{
+										return true;
+									}
+								}
+							}
+						}
+						if (i <= 0 || !this.Q.cascade_show_phase(i - 1))
+						{
+							break;
+						}
+					}
+				}
+				return false;
+			}
+
 			public string current_description
 			{
 				get
@@ -2109,12 +2714,17 @@ namespace nel
 				}
 			}
 
-			public static QuestTracker.QuestProgress readBinaryFrom(ByteArray Ba, int vers, ref uint current_created)
+			public static QuestTracker.QuestProgress readBinaryFrom(ByteReader Ba, int vers, ref uint current_created)
 			{
-				QuestTracker.Quest byId = QuestTracker.GetById(Ba.readUShort(), false);
+				QuestTracker.Quest quest;
+				if (!QuestTracker.GetFromBa(Ba, out quest, false))
+				{
+					return null;
+				}
 				int num = Ba.readByte();
 				bool flag = false;
 				bool flag2 = false;
+				bool flag3 = false;
 				if ((num & 128) != 0)
 				{
 					num &= -129;
@@ -2124,6 +2734,10 @@ namespace nel
 				{
 					num &= -65;
 					flag2 = true;
+				}
+				if (vers >= 1)
+				{
+					flag3 = Ba.readBoolean();
 				}
 				uint num2 = Ba.readUInt();
 				int num3 = Ba.readByte();
@@ -2144,16 +2758,17 @@ namespace nel
 						}
 					}
 				}
-				if (byId != null)
+				if (quest != null)
 				{
-					QuestTracker.Quest quest = byId;
+					QuestTracker.Quest quest2 = quest;
 					uint num5 = current_created;
 					current_created = num5 + 1U;
-					return new QuestTracker.QuestProgress(quest, num5, num2, num)
+					return new QuestTracker.QuestProgress(quest2, num5, num2, num)
 					{
 						AAcollected_count = array,
 						new_icon = flag,
-						tracking = flag2
+						tracking = flag2,
+						aborted = flag3
 					};
 				}
 				return null;
@@ -2161,8 +2776,14 @@ namespace nel
 
 			public void writeBinaryTo(ByteArray Ba)
 			{
-				Ba.writeUShort(this.Q.uid);
+				if (this.Q.GQ != null && this.Q.GQ.destructed)
+				{
+					QuestTracker.writeKeyToBa(Ba, null);
+					return;
+				}
+				QuestTracker.writeKeyToBa(Ba, this.Q);
 				Ba.writeByte(this.phase | (this.tracking ? 64 : 0) | (this.new_icon ? 128 : 0));
+				Ba.writeBool(this.aborted);
 				Ba.writeUInt(this.update_count);
 				if (this.AAcollected_count == null)
 				{
@@ -2221,6 +2842,8 @@ namespace nel
 			public bool new_icon = true;
 
 			public bool tracking;
+
+			public bool aborted;
 
 			public uint update_count;
 

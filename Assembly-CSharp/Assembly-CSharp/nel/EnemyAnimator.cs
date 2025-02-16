@@ -35,11 +35,12 @@ namespace nel
 			return EnemyAnimator.EYE_DRAW_TYPE.BITMAP;
 		}
 
-		public EnemyAnimator(NelEnemy _Mv, EnemyAnimator.FnCreate _fnConvertPxlFrame, EnemyAnimator.FnFineFrame _fnFineFrame = null)
+		public EnemyAnimator(NelEnemy _Mv, EnemyAnimator.FnCreate _fnConvertPxlFrame, EnemyAnimator.FnFineFrame _fnFineFrame = null, bool _is_main_animator = true)
 			: base(_Mv)
 		{
+			this.is_main_animator = _is_main_animator;
 			this.index = this.Mv.index;
-			this.fnConvertPxlFrame = _fnConvertPxlFrame;
+			this.fnConvertPxlFrame = _fnConvertPxlFrame ?? EnemyFrameDataBasic.Create;
 			this.fnFineFrame = _fnFineFrame;
 			this.AEyePos = new List<EnemyAnimator.NEyePos>(0);
 			this.TempStop = new Flagger(delegate(FlaggerT<string> V)
@@ -59,34 +60,43 @@ namespace nel
 			}
 		}
 
+		public void initS(EnemyAnimator SrcAnm)
+		{
+			this.initS(SrcAnm.Anm);
+		}
+
 		public virtual void initS(M2PxlAnimatorRT _Anm)
 		{
 			base.initS(this.Mv.Mp);
 			this.Anm = _Anm;
 			this.Anm.auto_assign_tecon = false;
+			EnemyAttr.initAnimator(this.Mv, this);
 			this.fineAnimatorOffset(-1f);
 			this.TeCon = this.Mv.TeCon;
-			this.TeCon.RegisterPos(this.Anm);
 			string title = this.Anm.getCurrentCharacter().title;
 			if (!EnemyAnimator.OOFrmCache.TryGetValue(title, out this.OFrmCache))
 			{
 				this.OFrmCache = (EnemyAnimator.OOFrmCache[title] = new BDic<PxlFrame, EnemyFrameDataBasic>(64));
 			}
-			base.prepareMesh(MTRX.getMI(this.Anm.getCurrentCharacter()), null);
+			base.prepareMesh(MTRX.getMI(this.Anm.getCurrentCharacter(), false), null);
 			this.rot_center_y_u = this.Mv.sizey0 * this.Mp.CLENB * 0.75f * 0.015625f * this.TeScale.y;
 			this.eye_time_check = 1f;
 			this.af_shield_maxt = 0f;
 			this.af_shield = 25f;
-			base.prepareRendetTicket(this.Mv, null, this.Anm);
-			this.showToFront(this.is_front, true);
+			base.prepareRendetTicket(this.Mv, null, this.is_main_animator ? this.Anm : null);
+			this.showToFront(base.is_front, true);
 			this.checkFrame(0f, true);
-			if (this.RtkBuf != null)
+			if (this.is_main_animator)
 			{
-				this.Anm.gameObject.SetActive(false);
-			}
-			else
-			{
-				this.Anm.GetComponent<MeshFilter>().mesh = this.Md.getMesh();
+				this.TeCon.RegisterPos(this.Anm);
+				if (this.RtkBuf != null)
+				{
+					this.Anm.gameObject.SetActive(false);
+				}
+				else
+				{
+					this.Anm.GetComponent<MeshFilter>().mesh = this.Md.getMesh();
+				}
 			}
 			if (!this.is_evil)
 			{
@@ -163,7 +173,7 @@ namespace nel
 
 		public void fineAnimatorOffset(float r = -1f)
 		{
-			if (this.Anm == null)
+			if (this.Anm == null || !this.is_main_animator)
 			{
 				return;
 			}
@@ -175,8 +185,16 @@ namespace nel
 		public override void showToFront(bool val, bool force = false)
 		{
 			base.showToFront(val, force);
-			this.Anm.order = base.current_order;
-			IN.setZ(this.Anm.Trs, base.transform_z);
+			if (this.is_main_animator)
+			{
+				this.Anm.order = base.current_order;
+				IN.setZ(this.Anm.Trs, base.transform_z);
+				return;
+			}
+			if (this.Rtk != null)
+			{
+				this.Rtk.order = base.current_order;
+			}
 		}
 
 		public void runPre(float TS)
@@ -214,7 +232,7 @@ namespace nel
 			}
 			this.eye_time_check -= TS;
 			base.checkFrame(TS, force);
-			if (this.Anm.need_fine || this.need_fine_scale)
+			if (this.is_main_animator && (this.Anm.need_fine || this.need_fine_scale))
 			{
 				if (this.need_fine_scale || this.CurPose != this.Anm.getCurrentPose())
 				{
@@ -232,23 +250,27 @@ namespace nel
 					this.AEadLsn[i].checkFrame(this, TS);
 				}
 			}
-			if (force || this.Anm.isCurrentFrameChanged() || this.Anm.need_fine)
+			if (this.is_main_animator)
 			{
-				this.Anm.need_fine = false;
-				this.redrawMesh(this.RtkBuf == null);
-				if (this.Mv.isTortureUsing() && !this.Anm.allow_pose_jump && TX.valid(this.Anm.getCurrentPose().end_jump_title) && this.Anm.get_loop_count() >= this.Anm.getCurrentPose().end_jump_loop_count)
+				if (force || this.Anm.isCurrentFrameChanged() || this.Anm.need_fine)
 				{
-					AbsorbManager absorbManager = this.Mv.getAbsorbManager();
-					if (absorbManager != null)
+					this.Anm.need_fine = false;
+					this.fineCurrentFrameData();
+					if (this.Mv.isTortureUsingForAnim() && !this.Anm.allow_pose_jump && TX.valid(this.Anm.getCurrentPose().end_jump_title) && this.Anm.get_loop_count() >= this.Anm.getCurrentPose().end_jump_loop_count)
 					{
-						string text = this.Anm.getCurrentPose().end_jump_title;
-						if (TX.isStart(text, "od_", 0))
+						AbsorbManager absorbManager = this.Mv.getAbsorbManager();
+						if (absorbManager != null)
 						{
-							text = TX.slice(text, 3);
+							string text = this.Anm.getCurrentPose().end_jump_title;
+							text = this.odPose2Normal(text);
+							absorbManager.changeTorturePose(text);
 						}
-						absorbManager.changeTorturePose(text);
 					}
 				}
+			}
+			else if (force)
+			{
+				this.fineCurrentFrameData();
 			}
 			if (this.eye_time_check <= 0f && this.CurFrmData != null)
 			{
@@ -299,7 +321,12 @@ namespace nel
 			EnemyAnimator.NEyePos neyePos;
 			eyepos_search = this.getEyeReference(out neyePos, eyepos_search);
 			eyepos_search++;
-			neyePos.Set(L, pxlLayer, this.CMul, MxAfterMultiple, this.Mp.floort, this.Mv.enlarge_level_for_animator, this.alpha);
+			Color32 curEyeColor = base.CurEyeColor;
+			if (this.CAdd.rgb > 0U)
+			{
+				curEyeColor.a = X.Mx(curEyeColor.a, this.CAdd.a);
+			}
+			neyePos.Set(L, pxlLayer, curEyeColor, MxAfterMultiple, this.Mp.floort, this.Mv.enlarge_level_for_animator, this.alpha);
 		}
 
 		public int getEyeReference(out EnemyAnimator.NEyePos Out, int start_i = 0)
@@ -377,13 +404,14 @@ namespace nel
 			}
 		}
 
-		private void redrawMesh(bool redrawing = true)
+		public void fineCurrentFrameData()
 		{
+			bool flag = this.RtkBuf == null;
 			PxlFrame frame = this.Anm.getCurrentSequence().getFrame(this.Anm.getCurrentFrame());
 			EnemyFrameDataBasic enemyFrameDataBasic = null;
 			bool frameData = this.getFrameData(frame, out enemyFrameDataBasic);
 			this.CurFrmData = enemyFrameDataBasic;
-			if (!redrawing)
+			if (!flag)
 			{
 				this.need_fine_mesh = true;
 			}
@@ -430,7 +458,7 @@ namespace nel
 			if (this.MdNormal != null)
 			{
 				this.MdNormal.clearSimple();
-				this.MdNormal.Col = this.CMul.C;
+				this.MdNormal.Col = this.CurMulColor;
 			}
 		}
 
@@ -529,62 +557,71 @@ namespace nel
 				{
 					PxlImage pxlImage = neyePos.Img;
 					C32 c = MdEyeV.ColGrd.Set(neyePos.C);
+					float num5 = (float)c.a * 0.003921569f;
 					this.Mv.setEyeColor(c, MdEye.ColGrd, ref num2);
-					float num5;
-					if (this.eye_fade_type == EnemyAnimator.EYE_FADE_TYPE.NORMAL)
+					EnemyAnimator.EYE_FADE_TYPE eye_FADE_TYPE = this.eye_fade_type;
+					float num6;
+					if (eye_FADE_TYPE != EnemyAnimator.EYE_FADE_TYPE.ZPOWV)
 					{
-						num5 = X.ZSIN(num4, num3);
+						if (eye_FADE_TYPE != EnemyAnimator.EYE_FADE_TYPE.ZSIN2)
+						{
+							num6 = X.ZSIN(num4, num3);
+						}
+						else
+						{
+							num6 = X.ZSIN2(num4, num3);
+						}
 					}
 					else
 					{
-						num5 = 1f - X.ZPOW(num3 - num4, num3);
+						num6 = 1f - X.ZPOW(num3 - num4, num3);
 					}
-					if (num5 < 0.5f)
+					if (num6 < 0.5f)
 					{
-						float num6 = num5 * 2f;
-						c.blend(this.add_color_eye_fade_out, num6).mulA(X.NI(1f, neyePos.alpha, num6));
+						float num7 = num6 * 2f;
+						c.blend(this.add_color_eye_fade_out, num7).setA1(num5 * X.NI(1f, neyePos.alpha, num7));
 					}
 					else
 					{
-						float num7 = (num5 - 0.5f) * 2f;
-						c.Set(this.add_color_eye_fade_out).mulA(neyePos.alpha * (1f - num7 * 0.85f));
+						float num8 = (num6 - 0.5f) * 2f;
+						c.Set(this.add_color_eye_fade_out).setA1(num5 * neyePos.alpha * (1f - num8 * 0.85f));
 					}
 					if (neyePos.FnDraw != null)
 					{
-						neyePos.FnDraw(neyePos, c, num5);
+						neyePos.FnDraw(neyePos, c, num6);
 					}
 					else
 					{
 						if (neyePos.drawtype != EnemyAnimator.EYE_DRAW_TYPE.BITMAP)
 						{
-							float num8 = neyePos.enlarge_level * X.NI(1f, 1.5f, num2);
+							float num9 = neyePos.enlarge_level * X.NI(1f, 1.5f, num2);
 							MdEyeV.Col = c.C;
 							MdEyeV.setCurrentMatrix(neyePos.MatrixTransform, false);
 							pxlImage = null;
 							switch (neyePos.drawtype)
 							{
 							case EnemyAnimator.EYE_DRAW_TYPE.EYE:
-								MdEyeV.Daia3(0f, 0f, (float)neyePos.w + this.extend_eye_wh, (float)neyePos.h + this.extend_eye_wh, 2.5f + num8, 2.5f + num8, false);
+								MdEyeV.Daia3(0f, 0f, (float)neyePos.w + this.extend_eye_wh, (float)neyePos.h + this.extend_eye_wh, 2.5f + num9, 2.5f + num9, false);
 								break;
 							case EnemyAnimator.EYE_DRAW_TYPE.EYEF:
-								MdEyeV.Daia3(0f, 0f, (float)neyePos.w + this.extend_eye_wh, (float)neyePos.h + this.extend_eye_wh, 2.5f + num8, 2.5f + num8, false);
+								MdEyeV.Daia3(0f, 0f, (float)neyePos.w + this.extend_eye_wh, (float)neyePos.h + this.extend_eye_wh, 2.5f + num9, 2.5f + num9, false);
 								MdEyeV.Daia(0f, 0f, ((float)neyePos.w + this.extend_eye_wh) * 0.5f, ((float)neyePos.h + this.extend_eye_wh) * 0.5f, false);
 								break;
 							case EnemyAnimator.EYE_DRAW_TYPE.EYEH_75:
-								EnemyAnimator.DrawDaiaH(MdEyeV, 0f, ((float)neyePos.h + this.extend_eye_wh) / 6f, (float)neyePos.w + this.extend_eye_wh, ((float)neyePos.h + this.extend_eye_wh) * 4f / 3f, 2.5f + num8, 0.75f);
+								EnemyAnimator.DrawDaiaH(MdEyeV, 0f, ((float)neyePos.h + this.extend_eye_wh) / 6f, (float)neyePos.w + this.extend_eye_wh, ((float)neyePos.h + this.extend_eye_wh) * 4f / 3f, 2.5f + num9, 0.75f);
 								break;
 							case EnemyAnimator.EYE_DRAW_TYPE.EYEH_50:
-								EnemyAnimator.DrawDaiaH(MdEyeV, 0f, 0f, (float)neyePos.w + this.extend_eye_wh, ((float)neyePos.h + this.extend_eye_wh) * 2f, 2.5f + num8, 0.5f);
+								EnemyAnimator.DrawDaiaH(MdEyeV, 0f, 0f, (float)neyePos.w + this.extend_eye_wh, ((float)neyePos.h + this.extend_eye_wh) * 2f, 2.5f + num9, 0.5f);
 								break;
 							}
 						}
 						if (pxlImage != null)
 						{
-							float num9 = X.NI(1f, this.od_blink_extend_level, num2);
+							float num10 = X.NI(1f, this.od_blink_extend_level, num2);
 							MdEye.Col = c.C;
 							MdEye.setCurrentMatrix(neyePos.MatrixTransform, false);
 							MdEye.initForImg(this.Anm.getCurrentTexture(), pxlImage.RectIUv, false);
-							MdEye.Rect(0f, 0f, ((float)neyePos.w + this.extend_eye_wh) * num9, ((float)neyePos.h + this.extend_eye_wh) * num9, false);
+							MdEye.Rect(0f, 0f, ((float)neyePos.w + this.extend_eye_wh) * num10, ((float)neyePos.h + this.extend_eye_wh) * num10, false);
 						}
 					}
 				}
@@ -640,10 +677,10 @@ namespace nel
 			return this.CurFrmData == null || base.noNeedDraw() || !this.Mp.M2D.Cam.isCoveringMp(this.Mv.x - this.Mv.sizex - num, this.Mv.y - this.Mv.sizey - num, this.Mv.x + this.Mv.sizex + num, this.Mv.y + this.Mv.sizey + num, 0f);
 		}
 
-		protected override bool FnEnRenderBufferInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected override bool FnEnRenderBufferInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			bool flag = draw_id == 0;
-			if (base.FnEnRenderBufferInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref paste_mesh))
+			if (base.FnEnRenderBufferInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite))
 			{
 				this.need_refine_transform_on_eye = 0;
 				return true;
@@ -669,7 +706,7 @@ namespace nel
 			return false;
 		}
 
-		protected override bool FnEnRenderBaseInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected override bool FnEnRenderBaseInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			if (draw_id == 0 && this.MdMask != null && this.CurFrmData.mask_layer != 0U)
 			{
@@ -678,12 +715,11 @@ namespace nel
 				MdOut = this.MdMask;
 				return true;
 			}
-			if (base.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref paste_mesh))
+			if (base.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite))
 			{
 				return true;
 			}
-			int num = draw_id;
-			if (num == 0)
+			if (draw_id == 0)
 			{
 				if (this.CurFrmData.normal_render_layer != 0U)
 				{
@@ -692,28 +728,28 @@ namespace nel
 				}
 				return true;
 			}
-			if (num != 1)
+			draw_id--;
+			return false;
+		}
+
+		protected override void setBorderColor(C32 C)
+		{
+			base.setBorderColor(C);
+			if (this.nattr_invisible)
 			{
-				draw_id -= 2;
-				return false;
+				C.mulA(0.7f * X.Mx((float)this.CAdd.a, X.Mx(0f, 0.1f + 0.5f * this.Mv.invisible_cosi)));
 			}
-			if (this.Mv.MdHpMpBar != null && this.Mv.is_alive)
-			{
-				M2MoverPr aimPr = this.Mv.AimPr;
-				if (aimPr != null && aimPr.is_alive)
-				{
-					Tk.Matrix = Matrix4x4.Translate(new Vector3(0f, (-this.Mv.sizey * this.Mp.CLENB - 14f) * 0.015625f, 0f)) * this.BaseMatrix;
-					MdOut = this.Mv.MdHpMpBar;
-				}
-			}
-			return true;
 		}
 
 		public void openShield(NelAttackInfo Atk, float f = 12f)
 		{
+			if (this.Mp == null)
+			{
+				return;
+			}
 			if (Atk != null)
 			{
-				this.Mv.PtcVar("x", (double)X.NI(Atk.hit_x, this.Mv.x, 0.7f)).PtcVar("y", (double)X.NI(Atk.hit_y, this.Mv.y, 0.7f)).PtcVar("ax", (double)((Atk.burst_vx == 0f) ? CAim._XD(Atk.Caster.getAimDirection(), 1) : ((Atk.burst_vx > 0f) ? 1 : (-1))))
+				this.Mv.PtcVar("x", (double)X.NI(Atk.hit_x, this.Mv.x, 0.7f)).PtcVar("y", (double)X.NI(Atk.hit_y, this.Mv.y, 0.7f)).PtcVar("ax", (double)((Atk.Caster == null) ? 0 : ((Atk.burst_vx == 0f) ? CAim._XD(Atk.Caster.getAimDirection(), 1) : ((Atk.burst_vx > 0f) ? 1 : (-1)))))
 					.PtcST("hit_tackle_hard_enemy", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 			}
 			this.af_shield = 0f;
@@ -930,7 +966,7 @@ namespace nel
 		{
 			bool flag = this.Anm.poseIs("od_transform", false);
 			title = this.odPose(title);
-			this.Anm.read_point = this.Mv.isTortureUsing();
+			this.Anm.read_point = this.Mv.isTortureUsingForAnim();
 			this.Anm.allow_pose_jump = !this.Anm.read_point;
 			this.Anm.setPose(title, restart_anim);
 			bool flag2 = this.Anm.poseIs("od_transform", false);
@@ -988,6 +1024,24 @@ namespace nel
 					return text;
 				}
 				title = (EnemyAnimator.Ood_pose[title] = "od_" + title);
+			}
+			return title;
+		}
+
+		public string odPose2Normal(string title)
+		{
+			if (TX.isStart(title, "od_", 0))
+			{
+				foreach (KeyValuePair<string, string> keyValuePair in EnemyAnimator.Ood_pose)
+				{
+					if (keyValuePair.Value == title)
+					{
+						return keyValuePair.Key;
+					}
+				}
+				string text = TX.slice(title, 3);
+				EnemyAnimator.Ood_pose[text] = title;
+				return text;
 			}
 			return title;
 		}
@@ -1137,11 +1191,11 @@ namespace nel
 			return false;
 		}
 
-		public void randomizeFrame()
+		public void randomizeFrame(float progress_min = 0.5f, float progres_rand = 0.5f)
 		{
 			PxlSequence currentSequence = this.Anm.getCurrentSequence();
 			int num = currentSequence.countFrames();
-			int num2 = this.cframe + num / 2 + X.xors(X.IntC((float)num * 0.5f));
+			int num2 = this.cframe + (int)((float)num * progress_min) + X.xors(X.IntC((float)num * progres_rand));
 			num2 = ((num2 < currentSequence.loop_to) ? num2 : ((num2 - currentSequence.loop_to) % (num - currentSequence.loop_to) + currentSequence.loop_to));
 			this.animReset(num2, false);
 		}
@@ -1180,6 +1234,11 @@ namespace nel
 		public MImage getMI()
 		{
 			return this.MI;
+		}
+
+		public M2PxlAnimatorRT getMainAnimator()
+		{
+			return this.Anm;
 		}
 
 		public float anm_offset_pixel_y
@@ -1260,9 +1319,30 @@ namespace nel
 			return new Vector2(this.Mp.uxToMapx(this.Mp.M2D.effectScreenx2ux(vector2.x)), this.Mp.uyToMapy(this.Mp.M2D.effectScreeny2uy(vector2.y)));
 		}
 
+		public Vector2 getMapPosInPxlCanvas(float lay_x, float lay_y)
+		{
+			Matrix4x4 transformMatrix = base.getTransformMatrix(false);
+			float num;
+			float num2;
+			Texture2D texture2D;
+			float num3;
+			float num4;
+			Matrix4x4 matrix4x;
+			base.getTextureDataForDraw(out num, out num2, out texture2D, out num3, out num4, out matrix4x);
+			Matrix4x4 matrix4x2 = transformMatrix * matrix4x;
+			Vector3 vector = new Vector3(lay_x, -lay_y, 0f) * 0.015625f;
+			Vector2 vector2 = matrix4x2.MultiplyPoint3x4(vector);
+			return new Vector2(this.Mp.uxToMapx(this.Mp.M2D.effectScreenx2ux(vector2.x)), this.Mp.uyToMapy(this.Mp.M2D.effectScreeny2uy(vector2.y)));
+		}
+
 		public Vector2 getMapPosForLayer(PxlLayer L, Matrix4x4 TrxMtr_x_aftermultiple)
 		{
-			Vector2 vector = TrxMtr_x_aftermultiple.MultiplyPoint3x4(new Vector3(L.x * 0.015625f, -L.y * 0.015625f, 0f));
+			return this.getMapPosForLayer(L.x, L.y, TrxMtr_x_aftermultiple);
+		}
+
+		public Vector2 getMapPosForLayer(float lay_x, float lay_y, Matrix4x4 TrxMtr_x_aftermultiple)
+		{
+			Vector2 vector = TrxMtr_x_aftermultiple.MultiplyPoint3x4(new Vector3(lay_x * 0.015625f, -lay_y * 0.015625f, 0f));
 			return new Vector2(this.Mp.uxToMapx(this.Mp.M2D.effectScreenx2ux(vector.x)), this.Mp.uyToMapy(this.Mp.M2D.effectScreeny2uy(vector.y)));
 		}
 
@@ -1291,6 +1371,12 @@ namespace nel
 			{
 				this.Anm.allow_pose_jump = value;
 			}
+		}
+
+		public bool nextPoseJumpToIs(string s)
+		{
+			PxlPose currentPose = this.Anm.getCurrentPose();
+			return currentPose != null && currentPose.end_jump_title == s;
 		}
 
 		public int getEyeCount()
@@ -1381,6 +1467,8 @@ namespace nel
 
 		protected MeshDrawer MdNormal;
 
+		public readonly bool is_main_animator;
+
 		private static float sphere_draw_level;
 
 		private M2DrawBinder.FnEffectBind FD_drawShield;
@@ -1409,12 +1497,13 @@ namespace nel
 		public enum EYE_FADE_TYPE : byte
 		{
 			NORMAL,
-			ZPOWV
+			ZPOWV,
+			ZSIN2
 		}
 
 		public class NEyePos
 		{
-			public EnemyAnimator.NEyePos Set(PxlLayer _L, PxlLayer _LSource, C32 CMul, Matrix4x4 _MatrixTransform, float floort, float _enlarge_level, float _alpha)
+			public EnemyAnimator.NEyePos Set(PxlLayer _L, PxlLayer _LSource, Color32 CMul, Matrix4x4 _MatrixTransform, float floort, float _enlarge_level, float _alpha)
 			{
 				if (_L == _LSource || !TX.isStart(_LSource.pFrm.pPose.title, "_eye", 0))
 				{
@@ -1430,7 +1519,7 @@ namespace nel
 				}
 				this.w = (ushort)_L.Img.width;
 				this.h = (ushort)_L.Img.height;
-				this.C = CMul.C;
+				this.C = CMul;
 				this.MatrixTransform = _MatrixTransform;
 				this.enlarge_level = _enlarge_level;
 				this.alpha = _alpha;
@@ -1440,12 +1529,12 @@ namespace nel
 				return this;
 			}
 
-			public EnemyAnimator.NEyePos Set(float _w, float _h, C32 CMul, EnemyAnimator.EYE_DRAW_TYPE _drawtype, Matrix4x4 _MatrixTransform, float floort, float _enlarge_level, float _alpha = 1f)
+			public EnemyAnimator.NEyePos Set(float _w, float _h, Color32 CMul, EnemyAnimator.EYE_DRAW_TYPE _drawtype, Matrix4x4 _MatrixTransform, float floort, float _enlarge_level, float _alpha = 1f)
 			{
 				this.drawtype = _drawtype;
 				this.w = (ushort)_w;
 				this.h = (ushort)_h;
-				this.C = CMul.C;
+				this.C = CMul;
 				this.MatrixTransform = _MatrixTransform;
 				this.enlarge_level = _enlarge_level;
 				this.alpha = _alpha;

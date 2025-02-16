@@ -22,6 +22,9 @@ namespace nel
 			base.appear(_Mp);
 			this.Above = new NASAboveChecker(this, 240f, 5f);
 			this.AnmT.allow_check_main = false;
+			this.AtkMkb.Prepare(this, true);
+			this.AtkMkbAb.Prepare(this, true);
+			this.Nai.can_progress_delay_if_ticket_exists = true;
 		}
 
 		protected override void initBorn()
@@ -29,14 +32,28 @@ namespace nel
 			base.initBorn();
 			this.Nai.AddF(NAI.FLAG.GAZE, 180f);
 			this.cannot_move = false;
+			this.SqMokuba = this.Anm.getCurrentCharacter().getPoseByName("mokuba").getSequence(0);
 			this.makeMkb(out this.Mkb);
+			this.makeMkbA(out this.MkbA);
 		}
 
 		private void makeMkb(out MokubaDrawer Mkb)
 		{
 			Mkb = new MokubaDrawer();
-			this.SqMokuba = this.Anm.getCurrentCharacter().getPoseByName("mokuba").getSequence(0);
-			Mkb.setImage(this.SqMokuba.getImage(0, 0), this.SqMokuba.getImage(1, 0), this.SqMokuba.getImage(2, 0), this.SqMokuba.getImage(3, 0));
+			Mkb.setImage(this.SqMokuba.getImage(0, 0), this.SqMokuba.getImage(4 + EnemyAttr.mattrIndex(this.nattr), 0), this.SqMokuba.getImage(1, 0), this.SqMokuba.getImage(2, 0));
+			Mkb.draw_w_scale = 0.7878788f;
+		}
+
+		private void makeMkbA(out MokubaDrawer Mkb)
+		{
+			Mkb = null;
+			PxlImage image = this.SqMokuba.getImage(4 + EnemyAttr.mattrIndex(this.nattr), 1);
+			if (image == null)
+			{
+				return;
+			}
+			Mkb = new MokubaDrawer();
+			Mkb.setImage(null, image, null, null);
 			Mkb.draw_w_scale = 0.7878788f;
 		}
 
@@ -168,7 +185,6 @@ namespace nel
 				}
 			}
 			this.Above.maxt = X.NIXP(140f, 340f);
-			this.Phy.walk_xspeed = 0f;
 			this.rotXR = (this.rotZR = 0f);
 			base.throw_ray = !base.create_finished;
 			this.stopSndWalk();
@@ -243,7 +259,7 @@ namespace nel
 							this.playSndPos("golemtoy_mkb_start", 1);
 						}
 					}
-					this.Phy.walk_xspeed = base.VALWALK(this.Phy.walk_xspeed, 0f, 0.008f);
+					this.setWalkXSpeed(base.VALWALK(this.Phy.walk_xspeed, 0f, 0.008f), true, false);
 					if (Tk.prog == PROG.ACTIVE)
 					{
 						this.rotYR = base.VALWALK(this.rotYR, num, 0.11623893f);
@@ -262,7 +278,7 @@ namespace nel
 					this.t = 0f;
 					this.createSndWalk();
 				}
-				this.Phy.walk_xspeed = mpf_is_right * X.NI(0.084f, 0.03f, this.enlarge_level - 1f);
+				this.setWalkXSpeed(mpf_is_right * X.NI(0.084f, 0.03f, this.enlarge_level - 1f), true, false);
 				num += X.SINI(this.t, 40f) * 0.1f * 3.1415927f * mpf_is_right;
 				this.rotYR = base.VALWALK(this.rotYR, num, 0.07853982f);
 				AIM aim = this.aim;
@@ -322,7 +338,7 @@ namespace nel
 				this.walk_st = 0;
 				base.PtcVar("by", (double)base.mbottom).PtcVar("mpf", (double)(1.5707964f + 1.5707964f * base.mpf_is_right)).PtcST("golemtoy_mkb_bump_dive", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				this.Anm.setBorderMaskEnable(true);
-				this.Phy.walk_xspeed = 0f;
+				this.setWalkXSpeed(0f, false, true);
 			}
 			if (Tk.prog == PROG.ACTIVE)
 			{
@@ -378,12 +394,13 @@ namespace nel
 					base.PtcVar("cy", (double)(base.y + this.sizey * 0.33f)).PtcVar("by", (double)base.mbottom).PtcST("golemtoy_mkb_bump", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 					this.rotZR = 0f;
 					this.rotYR = X.XORSPS() * 0.1f * 3.1415927f;
+					EnemyAttr.Splash(this, 0.8f);
 					if (this.walk_st == 1)
 					{
 						this.RecreateJumping(Tk);
 						return true;
 					}
-					base.tackleInit(this.AtkMkb, this.TackleMkb);
+					base.tackleInit(this.AtkMkb, this.TackleMkb, MGHIT.AUTO);
 				}
 			}
 			if (Tk.prog == PROG.PROG2)
@@ -447,10 +464,10 @@ namespace nel
 			}
 			if (Tk.prog == PROG.PROG1 && Tk.Progress(ref this.t, 20, true))
 			{
-				this.Phy.walk_xspeed = 0f;
+				this.setWalkXSpeed(0f, false, true);
 				this.walk_st = 0;
 				base.PtcST("golemtoy_mkb_jump", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-				base.tackleInit(this.AtkMkb, this.TackleJump);
+				base.tackleInit(this.AtkMkb, this.TackleJump, MGHIT.AUTO);
 			}
 			if (Tk.prog == PROG.PROG2)
 			{
@@ -462,7 +479,7 @@ namespace nel
 				if (this.walk_st == 0)
 				{
 					this.Phy.addLockGravityFrame(5);
-					this.Phy.walk_xspeed = X.MMX(-0.1f, this.Phy.walk_xspeed + (float)X.MPF(base.x < this.Nai.target_x) * 0.008f * this.TS, 0.1f);
+					this.setWalkXSpeed(X.MMX(-0.1f, this.Phy.walk_xspeed + (float)X.MPF(base.x < this.Nai.target_x) * 0.008f * this.TS, 0.1f), true, false);
 					if (this.t >= 200f)
 					{
 						this.Phy.addFoc(FOCTYPE.JUMP | FOCTYPE._GRAVITY_LOCK, 0f, -0.14f, -1f, 0, 6, 60, 1, 0);
@@ -477,7 +494,7 @@ namespace nel
 				}
 				else
 				{
-					this.Phy.walk_xspeed = base.VALWALK(this.Phy.walk_xspeed, 0f, 0.003f);
+					this.setWalkXSpeed(base.VALWALK(this.Phy.walk_xspeed, 0f, 0.003f), true, false);
 					Tk.Progress(ref this.t, 0, base.hasFoot());
 				}
 			}
@@ -498,7 +515,7 @@ namespace nel
 
 		public override bool initAbsorb(NelAttackInfo Atk, NelM2Attacker MvTarget = null, AbsorbManager Abm = null, bool penetrate = false)
 		{
-			if (this.state != NelEnemy.STATE.STAND || this.Absorb != null || Abm.Con.current_pose_priority >= 6)
+			if (this.state != NelEnemy.STATE.STAND || this.Absorb != null || Abm.Con.current_pose_priority >= 5)
 			{
 				return false;
 			}
@@ -523,7 +540,7 @@ namespace nel
 			}
 			Abm.kirimomi_release = true;
 			Abm.no_clamp_speed = true;
-			Abm.pose_priority = 6;
+			Abm.pose_priority = 5;
 			Abm.target_pose = "stride_front";
 			Abm.no_shuffleframe_on_applydamage = true;
 			Abm.get_Gacha().activate(PrGachaItem.TYPE.REP, 7, KEY.getRandomKeyBitsLRTB(4));
@@ -531,7 +548,6 @@ namespace nel
 			m2Attackable.getPhysic().killSpeedForce(true, true, true, false, false);
 			this.walk_st = -1;
 			this.rotYR *= 0.2f;
-			this.Phy.walk_xspeed = 0f;
 			base.carryable_other_object = true;
 			return true;
 		}
@@ -551,7 +567,7 @@ namespace nel
 				this.AnmT.showToFront(true, false);
 				this.makeRideRenderTicket(true);
 				this.playSndPos("golemtoy_mkb_jump", 1);
-				this.Absorb.uipicture_fade_key = "torture_mkb";
+				this.Absorb.uipicture_fade_key = (((this.nattr & ENATTR.ACME) != ENATTR.NORMAL) ? "torture_mkb_acme" : "torture_mkb");
 				this.walk_time = 0.12f;
 			}
 			else if (pr.getFootManager().get_Foot() != this)
@@ -579,7 +595,7 @@ namespace nel
 				this.walk_time = X.NIXP(0.01f, 0.18f);
 				this.yshift = 8f;
 				this.playSndPos("golemtoy_mkb_jump", 1);
-				base.applyAbsorbDamageTo(pr, this.AtkMkbAb, true, false, X.XORSP() < 0.66f * (1f - 0.55f * (float)pr.ep / 1000f), 1f, false, null, false);
+				base.applyAbsorbDamageTo(pr, this.AtkMkbAb, true, false, X.XORSP() < 0.66f * (1f - 0.55f * (float)pr.ep / 1000f), 1f, false, null, false, true);
 				if (X.XORSP() < 0.51f)
 				{
 					this.Mp.DropCon.setBlood(pr, (int)X.NIXP(4f, 17f), uint.MaxValue, 0f, true);
@@ -709,7 +725,7 @@ namespace nel
 			Mkb.draw(Md, 0f, 12f + this.yshift + this.AnmT.vib_y / this.Anm.scaleY, matrix4x, 0f);
 		}
 
-		private bool FnRenderBack(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		private bool FnRenderBack(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			MdOut = null;
 			if (this.MkbBack.draw_bits == 7U)
@@ -804,6 +820,8 @@ namespace nel
 
 		private MokubaDrawer Mkb;
 
+		private MokubaDrawer MkbA;
+
 		public float rotYR_;
 
 		public float rotXR_;
@@ -826,12 +844,7 @@ namespace nel
 
 		private const float auto_vib_y_px = 6f;
 
-		protected static EpAtk EpMkb = new EpAtk(9, "mkb")
-		{
-			vagina = 4
-		};
-
-		protected NelAttackInfo AtkMkb = new NelAttackInfo
+		protected EnAttackInfo AtkMkb = new EnAttackInfo
 		{
 			hpdmg0 = 5,
 			split_mpdmg = 13,
@@ -839,9 +852,9 @@ namespace nel
 			shield_break_ratio = 0f,
 			huttobi_ratio = 1000f,
 			is_grab_attack = true
-		}.Torn(0.01f, 0.04f);
+		};
 
-		protected NelAttackInfo AtkMkbAb = new NelAttackInfo
+		protected EnAttackInfo AtkMkbAb = new EnAttackInfo(0.037037037f, 0.029411765f)
 		{
 			hpdmg0 = 5,
 			split_mpdmg = 13,
@@ -849,8 +862,11 @@ namespace nel
 			huttobi_ratio = -1000f,
 			attr = MGATTR.STAB,
 			pee_apply100 = 7f,
-			EpDmg = NelNGolemToyMkb.EpMkb
-		}.Torn(0.037037037f, 0.029411765f);
+			EpDmg = new EpAtk(9, "mkb")
+			{
+				vagina = 4
+			}
+		};
 
 		private NOD.TackleInfo TackleMkb = NOD.getTackle("mkb_bump");
 
@@ -858,10 +874,12 @@ namespace nel
 
 		private PxlSequence SqMokuba;
 
+		private const float draw_w_scale = 0.7878788f;
+
 		public const int PRI_ATK = 128;
 
 		public const int PRI_WALK = 5;
 
-		private const int ABSORB_PRI = 6;
+		private const int ABSORB_PRI = 5;
 	}
 }

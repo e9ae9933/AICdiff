@@ -12,6 +12,8 @@ namespace evt
 		public EvTextLog(int max = 192)
 		{
 			this.Operson2PF = new BDic<string, EvTextLog.IcoData>(8);
+			this.OAinj = new BDic<ushort, string[]>(2);
+			this.OAinjBuf = new BDic<ushort, string[]>(2);
 			this.ALog = new EvTextLog.LogItem[max];
 			this.ABuf = new List<EvTextLog.LogItem>(64);
 			this.DefaultIco = new EvTextLog.IcoData(MTRX.getPF("IconMob"), 4292072403U);
@@ -44,6 +46,8 @@ namespace evt
 		public void Clear()
 		{
 			this.use_ptr = (this.max_i = 0);
+			this.OAinj.Clear();
+			this.OAinjBuf.Clear();
 			this.slice_index = -1;
 		}
 
@@ -56,6 +60,12 @@ namespace evt
 		public EvTextLog AddBuffer(string person, string key)
 		{
 			this.ABuf.Add(new EvTextLog.LogItem(person, key));
+			return this;
+		}
+
+		public EvTextLog AddBufferInjection(string[] A)
+		{
+			this.OAinjBuf[(ushort)(this.ABuf.Count - 1)] = A;
 			return this;
 		}
 
@@ -82,7 +92,7 @@ namespace evt
 		public EvTextLog ExplodeBuffer()
 		{
 			this.popCache();
-			int num = global::XX.X.Mn(this.ABuf.Count, this.ALog.Length);
+			int num = X.Mn(this.ABuf.Count, this.ALog.Length);
 			int num2;
 			if (this.max_i >= num)
 			{
@@ -104,30 +114,50 @@ namespace evt
 				if (flag)
 				{
 					this.ABuf.Clear();
+					this.OAinjBuf.Clear();
 					return this;
 				}
 			}
 			num2 = this.ABuf.Count - num;
 			for (int i = 0; i < num; i++)
 			{
-				this.AddLogExecute(this.ABuf[num2++]);
+				this.AddLogExecute(this.ABuf[num2]);
+				this.AddLogExecuteInjection(X.Get<ushort, string[]>(this.OAinjBuf, (ushort)num2));
+				this.AddLogExecuteAfter();
+				num2++;
 			}
 			this.ABuf.Clear();
+			this.OAinjBuf.Clear();
 			return this;
 		}
 
 		private EvTextLog AddLogExecute(EvTextLog.LogItem Src)
 		{
-			EvTextLog.LogItem[] alog = this.ALog;
-			int num = this.use_ptr;
-			this.use_ptr = num + 1;
-			alog[num] = Src;
-			this.max_i = global::XX.X.Mx(this.use_ptr, this.max_i);
+			this.ALog[this.use_ptr] = Src;
+			this.max_i = X.Mx(this.use_ptr + 1, this.max_i);
+			return this;
+		}
+
+		private EvTextLog AddLogExecuteInjection(string[] A)
+		{
+			if (A == null)
+			{
+				this.OAinj.Remove((ushort)this.use_ptr);
+			}
+			else
+			{
+				this.OAinj[(ushort)this.use_ptr] = A;
+			}
+			return this;
+		}
+
+		private void AddLogExecuteAfter()
+		{
+			this.use_ptr++;
 			if (this.use_ptr >= this.ALog.Length)
 			{
 				this.use_ptr = 0;
 			}
-			return this;
 		}
 
 		private int pointerPos(int i)
@@ -136,14 +166,14 @@ namespace evt
 			{
 				return (this.use_ptr + i) % this.max_i;
 			}
-			return global::XX.X.MMX(0, this.use_ptr - this.max_i + i, this.max_i - 1);
+			return X.MMX(0, this.use_ptr - this.max_i + i, this.max_i - 1);
 		}
 
 		public void createToDesigner(Designer Ds, int start = 0, int create_count = -1)
 		{
 			if (start < 0)
 			{
-				start = global::XX.X.Mx(start, -this.ALog.Length);
+				start = X.Mx(start, -this.ALog.Length);
 				start = this.max_i + start;
 			}
 			if (create_count < 0)
@@ -152,7 +182,7 @@ namespace evt
 			}
 			else
 			{
-				create_count = global::XX.X.Mn(this.max_i - start, create_count);
+				create_count = X.Mn(this.max_i - start, create_count);
 			}
 			Ds.Br();
 			this.use_w = Ds.use_w;
@@ -162,6 +192,7 @@ namespace evt
 				while (--create_count >= 0)
 				{
 					EvTextLog.LogItem logItem = this.ALog[num];
+					string[] array = X.Get<ushort, string[]>(this.OAinj, (ushort)num);
 					string person = logItem.person;
 					if (person != null && person == "%SELECT")
 					{
@@ -171,7 +202,7 @@ namespace evt
 					else
 					{
 						blist.Clear();
-						this.getSentence(logItem.person, logItem.key, blist);
+						this.getSentence(logItem.person, logItem.key, blist, array);
 						int count = blist.Count;
 						if (count != 0)
 						{
@@ -261,7 +292,7 @@ namespace evt
 			Md.Col = C32.MulA(4286677115U, alpha);
 			float num = Fi.get_swidth_px() - 80f;
 			float num2 = -20f;
-			MTRX.kadomaruRectExtImg(Md, num2, 0f, num, global::XX.X.Mx(Fi.get_sheight_px(), 24f), 24f, null, false);
+			Shape.kadomaruRectExtImg(Md, num2, 0f, num, X.Mx(Fi.get_sheight_px(), 24f), 24f, null, false);
 			num2 -= num * 0.5f + 26f;
 			Md.Rect(num2, 0f, 10f, 10f, false);
 			Md.Rect(num2 + 16f, 0f, 16f, 16f, false);
@@ -294,9 +325,9 @@ namespace evt
 			float num5 = Fi.get_swidth_px() - 42f;
 			float num6 = 0f;
 			float num7 = 16f;
-			MTRX.kadomaruRectExtImg(Md, num6, 0f, num5, global::XX.X.Mx(Fi.get_sheight_px(), 30f), 24f, null, false);
+			Shape.kadomaruRectExtImg(Md, num6, 0f, num5, X.Mx(Fi.get_sheight_px(), 30f), 24f, null, false);
 			num6 += 4f;
-			MTRX.TriangleImg(Md, num6 - num5 * 0.5f - num7, 0f, num6 - num5 * 0.5f, num7 * 0.5f, num6 - num5 * 0.5f, -num7 * 0.5f, null, global::XX.AIM.L, false);
+			Shape.TriangleImg(Md, num6 - num5 * 0.5f - num7, 0f, num6 - num5 * 0.5f, num7 * 0.5f, num6 - num5 * 0.5f, -num7 * 0.5f, null, AIM.L, false);
 			if (num3 == 0)
 			{
 				float num8 = -num5 * 0.5f - 28f;
@@ -310,7 +341,7 @@ namespace evt
 			return true;
 		}
 
-		protected virtual bool getSentence(string person, string key, List<string> Adest)
+		protected virtual bool getSentence(string person, string key, List<string> Adest, string[] Ainj = null)
 		{
 			Adest.Clear();
 			TX tx = TX.getTX(key, true, true, null);
@@ -362,10 +393,10 @@ namespace evt
 			this.BaCache = null;
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool record_buffer = false)
+		public void readBinaryFrom(ByteReader Ba, bool record_buffer = false)
 		{
 			this.Clear();
-			Ba.readByte();
+			int num = Ba.readByte();
 			this.max_i = (int)Ba.readUShort();
 			this.use_ptr = (int)Ba.readUShort();
 			for (int i = 0; i < this.max_i; i++)
@@ -375,12 +406,16 @@ namespace evt
 				logItem.person = Ba.readPascalString("utf-8", false);
 				this.ALog[i] = logItem;
 			}
+			if (num >= 1)
+			{
+				this.readInjection(Ba, this.OAinj);
+			}
 			if (record_buffer)
 			{
-				int num = (int)Ba.readUShort();
+				int num2 = (int)Ba.readUShort();
 				List<EvTextLog.LogItem> abuf = this.ABuf;
-				this.ABuf = new List<EvTextLog.LogItem>(num + abuf.Count);
-				for (int j = 0; j < num; j++)
+				this.ABuf = new List<EvTextLog.LogItem>(num2 + abuf.Count);
+				for (int j = 0; j < num2; j++)
 				{
 					EvTextLog.LogItem logItem2 = default(EvTextLog.LogItem);
 					logItem2.key = Ba.readPascalString("utf-8", false);
@@ -388,12 +423,16 @@ namespace evt
 					this.ABuf.Add(logItem2);
 				}
 				this.ABuf.AddRange(abuf);
+				if (num >= 1)
+				{
+					this.readInjection(Ba, this.OAinjBuf);
+				}
 			}
 		}
 
 		public void writeBinaryTo(ByteArray Ba, bool record_buffer = false)
 		{
-			Ba.writeByte(0);
+			Ba.writeByte(1);
 			Ba.writeUShort((ushort)this.max_i);
 			Ba.writeUShort((ushort)this.use_ptr);
 			for (int i = 0; i < this.max_i; i++)
@@ -402,6 +441,7 @@ namespace evt
 				Ba.writePascalString(logItem.key, "utf-8");
 				Ba.writePascalString(logItem.person, "utf-8");
 			}
+			this.writeInjection(Ba, this.OAinj);
 			if (record_buffer)
 			{
 				int num = (int)((ushort)this.ABuf.Count);
@@ -412,6 +452,38 @@ namespace evt
 					Ba.writePascalString(logItem2.key, "utf-8");
 					Ba.writePascalString(logItem2.person, "utf-8");
 				}
+				this.writeInjection(Ba, this.OAinjBuf);
+			}
+		}
+
+		private void readInjection(ByteReader Ba, BDic<ushort, string[]> OAinj)
+		{
+			int num = (int)Ba.readUShort();
+			for (int i = 0; i < num; i++)
+			{
+				ushort num2 = Ba.readUShort();
+				int num3 = (int)Ba.readUByte();
+				string[] array = new string[num3];
+				for (int j = 0; j < num3; j++)
+				{
+					array[j] = Ba.readPascalString("utf-8", false);
+				}
+				OAinj[num2] = array;
+			}
+		}
+
+		private void writeInjection(ByteArray Ba, BDic<ushort, string[]> OAinj)
+		{
+			Ba.writeUShort((ushort)OAinj.Count);
+			foreach (KeyValuePair<ushort, string[]> keyValuePair in OAinj)
+			{
+				Ba.writeUShort(keyValuePair.Key);
+				int num = keyValuePair.Value.Length;
+				Ba.writeByte(num);
+				for (int i = 0; i < num; i++)
+				{
+					Ba.writePascalString(keyValuePair.Value[i], "utf-8");
+				}
 			}
 		}
 
@@ -419,9 +491,13 @@ namespace evt
 
 		private const string textlog_name_header = "TextLog-";
 
-		private BDic<string, EvTextLog.IcoData> Operson2PF;
+		private readonly BDic<string, EvTextLog.IcoData> Operson2PF;
 
-		private EvTextLog.LogItem[] ALog;
+		private readonly EvTextLog.LogItem[] ALog;
+
+		private readonly BDic<ushort, string[]> OAinj;
+
+		private readonly BDic<ushort, string[]> OAinjBuf;
 
 		private int use_ptr;
 

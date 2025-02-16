@@ -1,28 +1,46 @@
 ﻿using System;
 using m2d;
+using nel.smnp;
 using XX;
 
 namespace nel
 {
 	public abstract class NelEnemyBoss : NelEnemy
 	{
-		public override void initSummoned(EnemySummoner.SmnEnemyKind K, bool is_sudden, int _dupe_count)
+		public override void initSummoned(SmnEnemyKind K, bool is_sudden, int _dupe_count)
 		{
 			base.initSummoned(K, is_sudden, _dupe_count);
-			if (this.Summoner != null)
+			this.reassignCamFocus();
+		}
+
+		public void reassignCamFocus()
+		{
+			if (this.FocArea == null && this.Summoner != null && this.is_alive)
 			{
-				this.FocArea = new M2LpCamFocus("BossFocus", -1, this.Mp.get_KeyLayer());
-				M2LpSummon summonedArea = this.Summoner.getSummonedArea();
-				this.FocArea.Set(summonedArea);
-				this.Mp.NM.Assign(NearManager.NCK.CENTER_PR, this.FocArea);
-				this.FocArea.focus_level_x = this.foc_center_level_x;
-				this.FocArea.focus_level_y = this.foc_center_level_y;
+				if (this.Summoner.countActiveEnemy((NelEnemy N) => N is NelEnemyBoss, true) <= 1)
+				{
+					this.FocArea = new M2LpCamFocus("BossFocus", -1, this.Mp.get_KeyLayer());
+					M2LpSummon lp = this.Summoner.Lp;
+					this.FocArea.Set(lp);
+					this.Mp.NM.Assign(NearManager.NCK.CENTER_PR, this.FocArea);
+					this.FocArea.focus_level_x = this.foc_center_level_x;
+					this.FocArea.focus_level_y = this.foc_center_level_y;
+				}
 			}
+		}
+
+		public static void checkCamFocus()
+		{
 		}
 
 		public override void runPost()
 		{
 			base.runPost();
+			if (this.need_check_cam_focus_area)
+			{
+				this.need_check_cam_focus_area = false;
+				this.reassignCamFocus();
+			}
 			if (this.FocArea != null && X.D)
 			{
 				M2Mover baseMover = base.M2D.Cam.getBaseMover();
@@ -50,7 +68,18 @@ namespace nel
 				}
 				this.FocArea = null;
 			}
-			base.destruct();
+			if (this.Summoner != null)
+			{
+				this.Summoner.countActiveEnemy(delegate(NelEnemy N)
+				{
+					if (N is NelEnemyBoss)
+					{
+						(N as NelEnemyBoss).need_check_cam_focus_area = true;
+					}
+					return false;
+				}, true);
+				base.destruct();
+			}
 		}
 
 		public override bool showFlashEatenEffect(bool for_effect = false)
@@ -75,5 +104,7 @@ namespace nel
 		protected float foc_base_shift_y;
 
 		protected M2LpCamFocus FocArea;
+
+		private bool need_check_cam_focus_area;
 	}
 }

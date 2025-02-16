@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using Better;
 using m2d;
 using PixelLiner;
-using PixelLiner.PixelLinerLib;
+using PixelLiner.PixelLinerCore;
 using UnityEngine;
 using XX;
 
@@ -16,439 +15,16 @@ namespace nel
 			this.pre_pose_title = "stand";
 		}
 
-		public static bool initNoelAnimator(string[][] Anoel_pxls, float CLENB)
-		{
-			if (NoelAnimator.OPoseType != null)
-			{
-				return true;
-			}
-			float num = 1f / CLENB;
-			int num2 = Anoel_pxls.Length;
-			int num3 = 0;
-			for (int i = 0; i < num2; i++)
-			{
-				int num4 = Anoel_pxls[i].Length;
-				for (int j = 0; j < num4; j++)
-				{
-					PxlCharacter pxlCharacter = PxlsLoader.getPxlCharacter(Anoel_pxls[i][j]);
-					if (!pxlCharacter.isLoadCompleted())
-					{
-						return false;
-					}
-					num3 += pxlCharacter.countPoses();
-				}
-			}
-			NoelAnimator.MtrAlphaClipMask = MTRX.newMtr(MTRX.ShaderAlphaSplice);
-			NoelAnimator.MdClip = new MeshDrawer(null, 4, 6);
-			NoelAnimator.MdClip.draw_gl_only = true;
-			NoelAnimator.MdClip.activate("", NoelAnimator.MtrAlphaClipMask, false, MTRX.ColWhite, null);
-			NoelAnimator.OPoseType = new BDic<string, NoelAnimator.PoseInfo>(num3);
-			List<NoelAnimator.PoseInfo> list = new List<NoelAnimator.PoseInfo>();
-			CsvReader csvReader = new CsvReader(null, CsvReader.RegSpace, false);
-			int num5 = 0;
-			int num6 = 0;
-			for (int k = 0; k < num2; k++)
-			{
-				int num7 = Anoel_pxls[k].Length;
-				for (int l = 0; l < num7; l++)
-				{
-					PxlCharacter pxlCharacter2 = PxlsLoader.getPxlCharacter(Anoel_pxls[k][l]);
-					if (l == 0 && k == 0)
-					{
-						NoelAnimator.MainPxl = pxlCharacter2;
-						NoelAnimator.RodPose = pxlCharacter2.getPoseByName("RODRODRODROD");
-						PxlFrame frameByName = NoelAnimator.RodPose.getSequence(0).getFrameByName("hat");
-						if (frameByName != null)
-						{
-							NoelAnimator.AHatImg = new PxlImage[]
-							{
-								frameByName.getLayer(0).Img,
-								frameByName.getLayer(1).Img
-							};
-						}
-					}
-					int num8 = pxlCharacter2.countPoses();
-					for (int m = 0; m < num8; m++)
-					{
-						PxlPose pose = pxlCharacter2.getPose(m);
-						if (!(pose.title == "RODRODRODROD"))
-						{
-							NoelAnimator.PoseInfo poseInfo = null;
-							if (k == 0)
-							{
-								if (NoelAnimator.OPoseType.TryGetValue(pose.title, out poseInfo))
-								{
-									if (pose.title != "stand")
-									{
-										global::XX.X.dl("ポーズ名が重複している: " + pose.ToString(), null, false, false);
-										goto IL_07EA;
-									}
-									goto IL_07EA;
-								}
-								else
-								{
-									poseInfo = (NoelAnimator.OPoseType[pose.title] = new NoelAnimator.PoseInfo(pose));
-								}
-							}
-							else
-							{
-								if (!NoelAnimator.OPoseType.TryGetValue(pose.title, out poseInfo))
-								{
-									NoelAnimator.OUTFIT outfit = (NoelAnimator.OUTFIT)k;
-									global::XX.X.dl(outfit.ToString() + " ポーズの指定先が存在しない: " + pose.ToString(), null, false, false);
-									goto IL_07EA;
-								}
-								if (pose.title == "stand" && l != 0)
-								{
-									goto IL_07EA;
-								}
-								poseInfo.addPose(k, pose);
-								num5++;
-							}
-							string title = pose.title;
-							if (k == 0)
-							{
-								csvReader.parseText(pose.comment.ToLower());
-								while (csvReader.read())
-								{
-									string cmd = csvReader.cmd;
-									if (cmd != null)
-									{
-										uint num9 = <PrivateImplementationDetails>.ComputeStringHash(cmd);
-										if (num9 <= 2273894358U)
-										{
-											if (num9 <= 1035581717U)
-											{
-												if (num9 <= 329414684U)
-												{
-													if (num9 != 72357410U)
-													{
-														if (num9 == 329414684U)
-														{
-															if (cmd == "press_damage")
-															{
-																poseInfo.type |= POSE_TYPE.PRESS_DAMAGE;
-															}
-														}
-													}
-													else if (cmd == "manguri")
-													{
-														poseInfo.type |= POSE_TYPE.MANGURI;
-													}
-												}
-												else if (num9 != 502659160U)
-												{
-													if (num9 != 811740619U)
-													{
-														if (num9 == 1035581717U)
-														{
-															if (cmd == "down")
-															{
-																poseInfo.type |= POSE_TYPE.DOWN;
-															}
-														}
-													}
-													else if (cmd == "crouchb")
-													{
-														poseInfo.type |= POSE_TYPE.CROUCH | POSE_TYPE.BACK;
-													}
-												}
-												else if (cmd == "damage_reset")
-												{
-													poseInfo.type |= POSE_TYPE.DAMAGE_RESET;
-												}
-											}
-											else if (num9 <= 1313842571U)
-											{
-												if (num9 != 1203378667U)
-												{
-													if (num9 == 1313842571U)
-													{
-														if (cmd == "crouch")
-														{
-															poseInfo.type |= POSE_TYPE.CROUCH;
-														}
-													}
-												}
-												else if (cmd == "onground")
-												{
-													poseInfo.type |= POSE_TYPE.ONGROUND;
-												}
-											}
-											else if (num9 != 1436210240U)
-											{
-												if (num9 != 1628932526U)
-												{
-													if (num9 == 2273894358U)
-													{
-														if (cmd == "no_fall_cane")
-														{
-															poseInfo.type |= POSE_TYPE.NO_FALL_CANE;
-														}
-													}
-												}
-												else if (cmd == "use_top_layer")
-												{
-													poseInfo.type |= POSE_TYPE.USE_TOP_LAYER;
-												}
-											}
-											else if (cmd == "no_slow_in_water")
-											{
-												poseInfo.type |= POSE_TYPE.NO_SLOW_IN_WATER;
-											}
-										}
-										else if (num9 <= 2770559742U)
-										{
-											if (num9 <= 2721425853U)
-											{
-												if (num9 != 2341128772U)
-												{
-													if (num9 == 2721425853U)
-													{
-														if (cmd == "orgasm_frame_index")
-														{
-															poseInfo.orgasm_frame_index = (byte)csvReader.Int(1, 255);
-														}
-													}
-												}
-												else if (cmd == "orgasm")
-												{
-													poseInfo.type |= POSE_TYPE.ORGASM;
-												}
-											}
-											else if (num9 != 2724132437U)
-											{
-												if (num9 != 2730307407U)
-												{
-													if (num9 == 2770559742U)
-													{
-														if (cmd == "absorb_default")
-														{
-															poseInfo.type |= POSE_TYPE.ABSORB_DEFAULT;
-														}
-													}
-												}
-												else if (cmd == "sensitive")
-												{
-													if (!TX.isEnd(pose.title, "_sensitive"))
-													{
-														poseInfo.type |= POSE_TYPE.SENSITIVE;
-														list.Add(poseInfo);
-													}
-												}
-											}
-											else if (cmd == "downb")
-											{
-												poseInfo.type |= POSE_TYPE.DOWN | POSE_TYPE.BACK;
-											}
-										}
-										else if (num9 <= 2872309231U)
-										{
-											if (num9 != 2805947405U)
-											{
-												if (num9 != 2855531612U)
-												{
-													if (num9 == 2872309231U)
-													{
-														if (cmd == "counter_shift_x")
-														{
-															poseInfo.counter_shift_x = csvReader.Int(1, 0);
-														}
-													}
-												}
-												else if (cmd == "counter_shift_y")
-												{
-													poseInfo.counter_shift_y = csvReader.Int(1, 0);
-												}
-											}
-											else if (cmd == "jump")
-											{
-												poseInfo.type |= POSE_TYPE.JUMP;
-											}
-										}
-										else if (num9 != 2904147653U)
-										{
-											if (num9 != 2980534815U)
-											{
-												if (num9 == 4166649696U)
-												{
-													if (cmd == "fall")
-													{
-														poseInfo.type |= POSE_TYPE.FALL;
-													}
-												}
-											}
-											else if (cmd == "marunomi")
-											{
-												poseInfo.type |= POSE_TYPE.MARUNOMI;
-											}
-										}
-										else if (cmd == "body_angle")
-										{
-											poseInfo.body_agR = global::XX.X.GAR(0f, 0f, csvReader.Nm(1, 0f), csvReader.Nm(2, 0f));
-										}
-									}
-								}
-							}
-							num6 += NoelAnimator.countImageForDebug(pose);
-						}
-						IL_07EA:;
-					}
-				}
-			}
-			global::XX.X.dl(string.Concat(new string[]
-			{
-				"Noel ポーズ数: ",
-				NoelAnimator.OPoseType.Count.ToString(),
-				" / 服ビリポーズ数:",
-				num5.ToString(),
-				"/ イメージ数: ",
-				num6.ToString()
-			}), null, false, false);
-			if (list.Count != 0)
-			{
-				int count = list.Count;
-				for (int n = 0; n < count; n++)
-				{
-					NoelAnimator.PoseInfo poseInfo2 = list[n];
-					string text = poseInfo2.title + "_sensitive";
-					NoelAnimator.PoseInfo poseInfo3;
-					if (NoelAnimator.OPoseType.TryGetValue(text, out poseInfo3))
-					{
-						poseInfo2.PI_S = poseInfo3.copyBasicDataFrom(poseInfo2);
-						NoelAnimator.OPoseType.Remove(text);
-					}
-					else
-					{
-						global::XX.X.de("sensitive ポーズ " + text + " が見つかりません", null);
-					}
-				}
-			}
-			return true;
-		}
-
-		public static void initPoseInfo(NoelAnimator.PoseInfo PI, float rCLENB)
-		{
-			if (PI.initted)
-			{
-				return;
-			}
-			PI.initted = true;
-			PxlPose pxlPose = PI.APose[0];
-			int num = 0;
-			while ((long)num < 8L)
-			{
-				if (pxlPose.isValidAim(num))
-				{
-					PxlSequence sequence = pxlPose.getSequence(num);
-					int num2 = sequence.countFrames();
-					bool flag = false;
-					for (int i = 0; i < num2; i++)
-					{
-						PxlFrame frame = sequence.getFrame(i);
-						NoelAnimator.NFrame nframe;
-						if (!PI.OFrmData.TryGetValue(frame, out nframe))
-						{
-							nframe = (PI.OFrmData[frame] = new NoelAnimator.NFrame(frame, rCLENB));
-						}
-						if (!flag)
-						{
-							flag = nframe.hatlost;
-						}
-						else
-						{
-							nframe.hatlost = true;
-						}
-					}
-				}
-				num++;
-			}
-			if (TX.isStart(pxlPose.title, "torture", 0))
-			{
-				PI.PointData = new M2PxlPointContainer.PosePointsData();
-				bool flag2 = (PI.type & POSE_TYPE.MARUNOMI) > POSE_TYPE.STAND;
-				for (int j = 0; j < PI.APose.Length; j++)
-				{
-					pxlPose = PI.APose[j];
-					int num3 = 0;
-					while ((long)num3 < 8L)
-					{
-						if (pxlPose.isValidAim(num3))
-						{
-							PxlSequence sequence2 = pxlPose.getSequence(num3);
-							for (int k = sequence2.countFrames() - 1; k >= 0; k--)
-							{
-								PxlFrame frame2 = sequence2.getFrame(k);
-								int num4 = -1;
-								bool flag3 = false;
-								NoelAnimator.NFrame nframe2;
-								if (!PI.OFrmData.TryGetValue(frame2, out nframe2))
-								{
-									nframe2 = (PI.OFrmData[frame2] = new NoelAnimator.NFrame(frame2, rCLENB));
-								}
-								int num5 = frame2.countLayers();
-								for (int l = 0; l < num5; l++)
-								{
-									PxlLayer layer = frame2.getLayer(l);
-									if (TX.isStart(layer.name, "mask", 0))
-									{
-										nframe2.clip_mask_layer |= 1 << l;
-										layer.alpha = 0f;
-										frame2.releaseDrawnMesh();
-									}
-									else if (TX.isStart(layer.name, "point_", 0) || layer.alpha == 0f)
-									{
-										layer.alpha = 0f;
-										frame2.releaseDrawnMesh();
-									}
-									else
-									{
-										if (TX.isStart(layer.name, "enemy", 0))
-										{
-											layer.alpha = 0f;
-											num4 = l;
-											if (flag3)
-											{
-												nframe2.clip_mask_layer |= 1 << num4;
-											}
-										}
-										else
-										{
-											flag3 = true;
-											if (num4 >= 0)
-											{
-												PI.use_front_drawing = true;
-												nframe2.clip_mask_layer |= 1 << num4;
-											}
-										}
-										if (flag2 && nframe2.clip_mask_layer > 0)
-										{
-											layer.alpha = -global::XX.X.Abs(layer.alpha);
-										}
-									}
-								}
-							}
-						}
-						num3++;
-					}
-				}
-				return;
-			}
-			if ((PI.type & POSE_TYPE.USE_TOP_LAYER) != POSE_TYPE.STAND)
-			{
-				PI.use_front_drawing = true;
-			}
-		}
-
-		public static NoelAnimator.PoseInfo getPoseInfo(string s)
-		{
-			return global::XX.X.Get<string, NoelAnimator.PoseInfo>(NoelAnimator.OPoseType, s);
-		}
-
-		public NoelAnimator(PRNoel _Pr, M2PxlAnimatorRT _Anm)
+		public NoelAnimator(PRNoel _Pr, M2PxlAnimatorRT _Anm, PrPoseContainer _PCon)
 		{
 			this.Pr = _Pr;
 			this.M2D = this.Pr.M2D as NelM2DBase;
+			this.PCon = _PCon;
+			this.SfPose = this.Pr.SfPose ?? new AnimationShuffler(this.Pr);
+			this.MtrAlphaClipMask = MTRX.newMtr(MTRX.ShaderAlphaSplice);
+			this.MdClip = new MeshDrawer(null, 4, 6);
+			this.MdClip.draw_gl_only = true;
+			this.MdClip.activate("", this.MtrAlphaClipMask, false, MTRX.ColWhite, null);
 			this.FD_drawEffectMagicElec = new M2DrawBinder.FnEffectBind(this.drawEffectMagicElecInner);
 			this.FD_RenderPrepareMesh = new M2RenderTicket.FnPrepareMd(this.RenderPrepareMesh);
 			this.FD_ElecGetPos = new Func<Vector2>(this.getTargetRodPos);
@@ -465,22 +41,30 @@ namespace nel
 			});
 			this.MtrBase = MTRX.newMtr(MTRX.ShaderGDTP3);
 			this.Cane.gameObject.SetActive(false);
-			this.pose_is_stand_t = 0f;
-			this.MtrFrozen = MTRX.newMtr(MTR.MtrFrozen);
+			this.MtrFrozen = MTR.newMtrFrozenMain();
 			this.MtrFrozen.SetFloat("_ZTest", 8f);
-			this.MtrFrozen.SetColor("_Color", C32.d2c(4288008150U));
-			this.MtrFrozen.SetColor("_BColor", C32.d2c(4279786863U));
-			this.MtrFrozen.SetColor("_WColor", C32.d2c(4292867578U));
+			this.MtrStone = MTR.newMtrStone();
+			this.MtrStone.SetFloat("_ZTest", 8f);
 			this.initS(_Anm);
-			PxlFrame frame = NoelAnimator.RodPose.getSequence(0).getFrame(0);
-			this.Cane.initCane(this, frame.getLayerByName("rod_base").Img, 1f, true);
+			this.setCaneDefault();
+		}
+
+		public void destruct()
+		{
+			IN.DestroyOne(this.MtrBase);
+			IN.DestroyOne(this.MtrFrozen);
+			IN.DestroyOne(this.MtrStone);
+			if (this.MdFront != null)
+			{
+				this.MdFront.destruct();
+			}
 		}
 
 		private void initHat()
 		{
 			this.Hat = this.Pr.Mp.createMover<M2NoelHat>("NoelHat", this.Pr.x, this.Pr.y, false, false);
 			this.Hat.do_not_destruct_when_remove = true;
-			this.Hat.initImage(NoelAnimator.AHatImg);
+			this.Hat.initImage(this.PCon.getHatImgArray());
 			this.Hat.gameObject.SetActive(false);
 			this.initDropGob(this.Hat);
 		}
@@ -517,12 +101,12 @@ namespace nel
 			this.Anm.ReplaceCurrentFrame = new Func<PxlSequence, int, PxlFrame>(this.fnReplaceCurrentFrame);
 			this.Anm.allow_pose_jump = false;
 			this.Anm.FnReplaceRender = this.FD_RenderPrepareMesh;
-			this.pose_down_turning = false;
+			this.pose_down_turning = (this.torture_by_invisible_enemy = false);
 			this.hat_assign_recheck = true;
 			this.FlgDropCane.Clear();
 			if (this.CurInfo == null)
 			{
-				this.CurInfo = NoelAnimator.OPoseType["stand"];
+				this.CurInfo = this.PCon.Get("stand");
 				this.Anm.setPose(this.pose_title, -1);
 			}
 			else
@@ -531,32 +115,28 @@ namespace nel
 			}
 			this.need_fine_mesh = true;
 			this.checkFrame(true);
-			if (this.pose_is_stand_t > 0f)
-			{
-				this.pose_is_stand_t = 1f;
-			}
+			this.SfPose.initS();
 			if (this.Cane.gameObject.activeSelf)
 			{
 				this.Cane.gameObject.SetActive(false);
 			}
-			this.FrontDrawEd = null;
+			if (this.RtkFront != null && this.Mp != null)
+			{
+				this.Mp.MovRenderer.deassignDrawable(this.RtkFront, -1);
+			}
+			this.RtkFront = null;
 			this.HoldMagicEd = null;
 			this.fineMaterialColor();
 			this.Pr.TeCon.clearRegistered();
 			this.Pr.TeCon.RegisterCol(this, false);
 			this.Pr.TeCon.RegisterPos(this.Anm);
-			this.fineFrozenAppearance();
+			this.fineFrozenAppearance(false);
 			return this;
 		}
 
 		public void runPost(float f)
 		{
 			NoelAnimator.prepareHoldElecAndEd(this.Mp, this.Pr.getSkillManager().magic_chant_completed, ref this.HoldMagicElec, ref this.HoldMagicEd, this.FD_drawEffectMagicElec, true);
-			if (this.pose_is_stand_t > 0f)
-			{
-				this.pose_is_stand_t = (Map2d.can_handle ? (this.pose_is_stand_t + f) : global::XX.X.Mn(this.pose_is_stand_t, 3000f));
-				this.Anm.setPose(this.getWaitingPoseTitle(), -1);
-			}
 		}
 
 		public bool updateAnimator(float f)
@@ -601,12 +181,20 @@ namespace nel
 			PxlPose pxlPose = this.Anm.getCurrentPose();
 			if (!this.isTortured() && pxlPose.end_jump_title != "" && this.Anm.get_loop_count() >= pxlPose.end_jump_loop_count)
 			{
-				this.setPose(pxlPose.end_jump_title, 1, true);
-				this.Anm.runPre(0f);
-				pxlPose = this.Anm.getCurrentPose();
+				bool flag = true;
+				if (this.poseIs(POSE_TYPE.JUMP_ON_GROUND, false) && !this.Pr.canJump())
+				{
+					flag = false;
+				}
+				if (flag)
+				{
+					this.setPose(pxlPose.end_jump_title, 1, true);
+					this.Anm.runPre(0f);
+					pxlPose = this.Anm.getCurrentPose();
+				}
 			}
 			PxlFrame pxlFrame;
-			if (this.FrozenF != null && !this.Pr.frozenAnimReplaceable())
+			if (this.FrozenF != null && !this.Pr.frozenAnimReplaceable(true))
 			{
 				pxlFrame = this.FrozenF;
 			}
@@ -615,15 +203,13 @@ namespace nel
 				pxlFrame = this.Anm.getCurrentSequence().getFrame(this.cframe);
 				if (this.FrozenF != null)
 				{
-					this.FrozenF = pxlFrame;
-					this.FrozenInfo = this.CurInfo;
-					this.Pr.need_check_bounds = true;
+					this.fineFreezeFrame(true, true);
 				}
 			}
-			NoelAnimator.NFrame nframe;
+			PrPoseContainer.NFrame nframe;
 			if (!this.CurInfo.OFrmData.TryGetValue(pxlFrame, out nframe))
 			{
-				nframe = (this.CurInfo.OFrmData[pxlFrame] = new NoelAnimator.NFrame(pxlFrame, this.Anm.Mp.rCLENB));
+				nframe = (this.CurInfo.OFrmData[pxlFrame] = new PrPoseContainer.NFrame(pxlFrame, this.Anm.Mp.rCLENB));
 			}
 			if (nframe == this.CurFrame)
 			{
@@ -634,21 +220,22 @@ namespace nel
 			{
 				int num = pxlFrame.countLayers();
 				int num2 = nframe.clip_mask_layer;
-				NoelAnimator.MdClip.clearSimple();
+				this.MdClip.clearSimple();
+				this.MdClip.Col = this.MdClip.ColGrd.White().mulA(this.torture_by_invisible_enemy ? 0.66f : 1f).C;
 				for (int i = 0; i < num; i++)
 				{
 					if ((num2 & (1 << i)) != 0)
 					{
 						num2 &= ~(1 << i);
 						PxlLayer layer = pxlFrame.getLayer(i);
-						NoelAnimator.MdClip.RotaL(0f, 0f, layer, false, false, 0);
+						this.MdClip.RotaL(0f, 0f, layer, false, false, 0);
 						if (num2 == 0)
 						{
 							break;
 						}
 					}
 				}
-				NoelAnimator.MdClip.updateForMeshRenderer(false);
+				this.MdClip.updateForMeshRenderer(false);
 			}
 			this.PPFrame = this.PFrame;
 			this.PFrame = this.CurFrame;
@@ -657,8 +244,8 @@ namespace nel
 			{
 				if (this.PFrame != null && this.PPFrame != null)
 				{
-					bool flag = ((this.ARodErasePose != null) ? null : this.CurFrame.RodL) != null || this.poseIs(POSE_TYPE.NO_FALL_CANE, false) || this.outfit_type > NoelAnimator.OUTFIT.NORMAL;
-					if (!flag && this.PFrame.RodL != null && !this.Cane.gameObject.activeSelf)
+					bool flag2 = ((this.ARodErasePose != null) ? null : this.CurFrame.RodL) != null || this.poseIs(POSE_TYPE.NO_FALL_CANE, false) || this.outfit_type > PRNoel.OUTFIT.NORMAL;
+					if (!flag2 && this.PFrame.RodL != null && !this.Cane.gameObject.activeSelf)
 					{
 						float num3 = 0f;
 						float num4 = 0f;
@@ -687,7 +274,7 @@ namespace nel
 							this.FlgDropCane.Add("DMG");
 						}
 					}
-					else if (flag && this.Cane.gameObject.activeSelf)
+					else if (flag2 && this.Cane.gameObject.activeSelf)
 					{
 						this.hideCane();
 						this.pre_rod_erase = false;
@@ -698,7 +285,7 @@ namespace nel
 					this.hat_assign_recheck = false;
 					if (!this.Hat.gameObject.activeSelf)
 					{
-						bool flag2 = true;
+						bool flag3 = true;
 						if (this.cframe >= 2)
 						{
 							PxlFrame frame = pxlFrame.pSq.getFrame(this.cframe - 1);
@@ -707,7 +294,7 @@ namespace nel
 							PxlLayer layerByName2 = frame2.getLayerByName("hat");
 							if (layerByName != null && layerByName2 != null)
 							{
-								flag2 = false;
+								flag3 = false;
 								float num7 = global::XX.X.NI(layerByName2.x, layerByName.x, 1.5f);
 								float num8 = global::XX.X.NI(layerByName2.y, layerByName.y, 1.2f);
 								float num9 = global::XX.X.NI(layerByName2.rotR, layerByName.rotR, 1.5f);
@@ -715,10 +302,10 @@ namespace nel
 								this.appearDropObject(this.Hat, num7 * this.Mp.rCLENB, num8 * this.Mp.rCLENB, (num7 - layerByName.x) * 0.03f * this.Mp.rCLENB, (num8 - layerByName.y) * 0.03f * this.Mp.rCLENB, -num9, -(num9 - layerByName.rotR) * 0.012f);
 							}
 						}
-						if (flag2)
+						if (flag3)
 						{
 							Vector3 headPos = this.getHeadPos();
-							this.Hat.initObject(this, NoelAnimator.AHatImg[0], 1f);
+							this.Hat.initObject(this, this.PCon.getHatImgArray()[0], 1f);
 							this.appearDropObject(this.Hat, headPos.x - this.mv_anmx, headPos.y - this.mv_anmy, 0f, 0f, global::XX.CAim.get_agR((global::XX.AIM)headPos.z, 0f) + 3.1415927f, global::XX.X.NIXP(-0.004f, 0.004f) * 3.1415927f);
 						}
 					}
@@ -734,15 +321,28 @@ namespace nel
 			}
 		}
 
-		public void fineFreezeFrame()
+		public void fineFreezeFrame(bool force = false, bool fine_texture = true)
 		{
-			if (this.Pr.isFrozen())
+			if (force || this.Pr.isAnimationFrozen())
 			{
-				this.FrozenF = this.Anm.getCurrentSequence().getFrame(this.cframe);
-				this.FrozenInfo = this.CurInfo;
-				return;
+				if (force || this.FrozenF == null)
+				{
+					PxlFrame frame = this.Anm.getCurrentSequence().getFrame(this.cframe);
+					fine_texture = fine_texture && (this.FrozenF == null || this.FrozenF.getImageTexture() != frame.getImageTexture());
+					this.FrozenF = frame;
+					this.FrozenInfo = this.CurInfo;
+					this.Pr.need_check_bounds = true;
+				}
+				if (fine_texture && (this.Anm.getRendererMaterial() == this.MtrFrozen || this.Anm.getRendererMaterial() == this.MtrStone))
+				{
+					this.fineFrozenAppearance(false);
+					return;
+				}
 			}
-			this.FrozenF = null;
+			else
+			{
+				this.FrozenF = null;
+			}
 		}
 
 		public byte frozen_lv
@@ -758,36 +358,88 @@ namespace nel
 					return;
 				}
 				this.frozen_lv_ = value;
-				this.fineFrozenAppearance();
+				this.need_fine_frozen_appear = true;
 			}
 		}
 
-		public void fineFrozenAppearance()
+		public byte stone_lv
+		{
+			get
+			{
+				return this.stone_lv_;
+			}
+			set
+			{
+				if (this.stone_lv == value)
+				{
+					return;
+				}
+				this.stone_lv_ = value;
+				this.need_fine_mesh = true;
+				this.need_fine_frozen_appear = true;
+			}
+		}
+
+		public bool use_mtr_stone
+		{
+			get
+			{
+				return this.stone_lv > 0 && this.frozen_lv == 0;
+			}
+		}
+
+		public void fineFrozenAppearance(bool force = false)
 		{
 			Material material;
-			if (this.frozen_lv > 0)
+			if ((this.frozen_lv > 0 || this.stone_lv > 0) && this.frz_state != NoelAnimator.FRZ_STATE.NORMAL)
 			{
-				material = this.MtrFrozen;
+				material = (this.use_mtr_stone ? this.MtrStone : this.MtrFrozen);
+				if (this.need_fine_frozen_appear || force)
+				{
+					this.need_fine_frozen_appear = false;
+					if (this.use_mtr_stone)
+					{
+						material.SetColor("_BColor", MTRX.ColBlack);
+						material.SetColor("_Color", C32.d2c(4288716960U));
+						material.SetFloat("_Level", 0.4f + (float)global::XX.X.Mx(this.stone_lv, this.frozen_lv) * 0.16f);
+					}
+					else
+					{
+						C32 cola = MTRX.cola;
+						float num = (float)(((this.frz_state & NoelAnimator.FRZ_STATE.FROZEN) != NoelAnimator.FRZ_STATE.NORMAL) ? 1 : 0);
+						float num2 = (((this.frz_state & NoelAnimator.FRZ_STATE.WEB_TRAPPED) != NoelAnimator.FRZ_STATE.NORMAL) ? 0.75f : 0f);
+						float num3 = (((this.frz_state & NoelAnimator.FRZ_STATE.STONE) != NoelAnimator.FRZ_STATE.NORMAL) ? 5.5f : 0f);
+						material.SetColor("_Color", cola.blend3(4288008150U, 4291808711U, 4289965998U, num, num2, num3).C);
+						material.SetColor("_BColor", cola.blend3(4279786863U, 4290294960U, 4286349697U, num, num2, num3).C);
+						material.SetColor("_WColor", cola.blend3(4292867578U, 4293980142U, 4291940039U, num, num2, num3).C);
+						material.SetFloat("_Level", 0.3f + (float)global::XX.X.Mx(this.stone_lv, this.frozen_lv) * 0.17f);
+					}
+				}
 				Texture currentTexture = this.Anm.getCurrentTexture();
 				if (currentTexture != null)
 				{
-					float num = (float)currentTexture.width / 512f * 4f;
-					float num2 = (float)currentTexture.height / 512f * 4f;
-					material.SetFloat("_ScaleX", num);
-					material.SetFloat("_ScaleY", num2);
+					float num4 = (float)currentTexture.width / 512f * 4f;
+					float num5 = (float)currentTexture.height / 512f * 4f;
+					material.SetFloat("_ScaleX", num4);
+					material.SetFloat("_ScaleY", num5);
 				}
-				material.SetFloat("_Level", 0.3f + (float)this.frozen_lv * 0.17f);
 			}
 			else
 			{
 				material = this.MtrBase;
 			}
+			this.need_fine_mesh = true;
 			this.Anm.setRendererMaterial(material);
+			if (this.MdFront != null)
+			{
+				this.MdFront.setMaterial(material, false);
+			}
+			this.MdClip.getMaterial().SetTexture("_MainTex", this.Anm.getCurrentDrawnTexture());
 		}
 
 		public PxlFrame fnReplaceCurrentFrame(PxlSequence pSq, int i)
 		{
-			if (this.FrozenF != null)
+			if (this.FrozenF != null && !this.Pr.fine_frozen_replace)
 			{
 				return this.FrozenF;
 			}
@@ -796,78 +448,6 @@ namespace nel
 				return null;
 			}
 			return pSq.getFrame(i);
-		}
-
-		public string getWaitingPoseTitle()
-		{
-			return this.getWaitingPoseTitle(this.pose_title0);
-		}
-
-		public string getWaitingPoseTitle(string pose0)
-		{
-			if (this.pose_is_stand_t < 0f)
-			{
-				return this.Anm.getCurrentPose().title;
-			}
-			if (pose0 == "ladder" || pose0 == "ladder_wait")
-			{
-				if (this.pose_is_stand_t >= 1400f)
-				{
-					this.pose_is_stand_t = 1f;
-				}
-				if (this.pose_is_stand_t >= 400f)
-				{
-					return this.Anm.pose_title;
-				}
-				if (this.pose_is_stand_t >= 360f)
-				{
-					return "ladder_wait";
-				}
-				return "ladder";
-			}
-			else
-			{
-				if (this.pose_is_stand_t < 180f)
-				{
-					return "stand";
-				}
-				if (360f <= this.pose_is_stand_t && this.pose_is_stand_t < 2000f && this.Anm.looped_in_preveious_frame)
-				{
-					this.pose_is_stand_t = 2000f;
-					return "stand_slow";
-				}
-				if (2000f > this.pose_is_stand_t)
-				{
-					return "stand";
-				}
-				if (this.pose_is_stand_t < 2220f)
-				{
-					return "stand_slow";
-				}
-				if (this.pose_is_stand_t < 2500f)
-				{
-					this.pose_is_stand_t = 3000f;
-				}
-				if (this.pose_is_stand_t < 3520f)
-				{
-					return "stand_ev";
-				}
-				if (this.Pr.BetoMng.is_torned || this.pose_aim == 7 || this.pose_aim == 6 || this.outfit_type != NoelAnimator.OUTFIT.NORMAL)
-				{
-					this.pose_is_stand_t = 3000f;
-					return "stand_ev";
-				}
-				if (this.pose_is_stand_t < 3610f)
-				{
-					return "stand_wait_normal_0";
-				}
-				if (this.pose_is_stand_t < 3660f)
-				{
-					return "stand_wait_normal_1";
-				}
-				this.pose_is_stand_t = 2600f;
-				return "stand_ev";
-			}
 		}
 
 		public void appearCane(float depx, float depy, float vx, float vy, float rotR, float rotspdR)
@@ -916,12 +496,17 @@ namespace nel
 				{
 					this.Pr.Mp.removeMover(this.CaneB);
 				}
-				Object gameObject = this.CaneB.gameObject;
+				global::UnityEngine.Object gameObject = this.CaneB.gameObject;
 				IN.DestroyOne(this.CaneB);
 				IN.DestroyOne(gameObject);
 				this.CaneB = null;
 			}
-			PxlFrame frame = NoelAnimator.RodPose.getSequence(0).getFrame(0);
+			this.setCaneDefault();
+		}
+
+		public void setCaneDefault()
+		{
+			PxlFrame frame = this.PCon.getRodPose().getSequence(0).getFrame(0);
 			this.Cane.initCane(this, frame.getLayerByName("rod_base").Img, 1f, true);
 		}
 
@@ -1013,7 +598,7 @@ namespace nel
 					this.Pr.Mp.playSnd("cane_poki", "", this.Pr.Mp.uxToMapx(vector.x), this.Pr.Mp.uyToMapy(vector.y), 1);
 					this.initDropGob(this.CaneB);
 				}
-				PxlFrame frame = NoelAnimator.RodPose.getSequence(0).getFrame(0);
+				PxlFrame frame = this.PCon.getRodPose().getSequence(0).getFrame(0);
 				PxlLayer layerByName = frame.getLayerByName("rod_0");
 				PxlLayer layerByName2 = frame.getLayerByName("rod_1");
 				this.Cane.initCane(this, layerByName.Img, 1f, true);
@@ -1112,350 +697,27 @@ namespace nel
 			return true;
 		}
 
-		private bool fnDrawFrontMesh(EffectItem E, M2DrawBinder Ed)
-		{
-			if (this.CurInfo == null)
-			{
-				return true;
-			}
-			MeshDrawer meshDrawer = null;
-			PxlFrame currentDrawnFrame = this.Anm.getCurrentDrawnFrame();
-			int num = currentDrawnFrame.countLayers();
-			bool flag = false;
-			bool flag2 = (this.CurInfo.type & POSE_TYPE.MARUNOMI) > POSE_TYPE.STAND;
-			for (int i = 0; i < num; i++)
-			{
-				PxlLayer layer = currentDrawnFrame.getLayer(i);
-				if (TX.isStart(layer.name, "enemy", 0))
-				{
-					flag = true;
-				}
-				else
-				{
-					if (!flag && TX.isStart(layer.name, "top_layer", 0))
-					{
-						flag = true;
-					}
-					float num2 = (float)global::XX.X.MPF(!flag2) * layer.alpha;
-					if (flag && num2 > 0f)
-					{
-						float num3 = 1f;
-						if (flag2 && CFG.sp_opacity_marunomi < 100 && TX.isStart(layer.name, "marunomi", 0))
-						{
-							num3 *= (float)CFG.sp_opacity_marunomi * 0.01f;
-							if (num3 <= 0f)
-							{
-								goto IL_022F;
-							}
-						}
-						if (meshDrawer == null)
-						{
-							meshDrawer = E.GetMesh("", this.Anm.getRendererMaterial(), false);
-							meshDrawer.allocUv23(16, false);
-							Vector3 vector = this.Anm.Trs.localPosition;
-							meshDrawer.base_x = vector.x * this.Mp.base_scale;
-							meshDrawer.base_y = vector.y * this.Mp.base_scale;
-							vector = this.Anm.Trs.localScale;
-							meshDrawer.Scale(vector.x * 2f, vector.y * 2f, false);
-							meshDrawer.Rotate(this.Anm.Trs.localEulerAngles.z / 180f * 3.1415927f, false);
-						}
-						meshDrawer.initForImg(layer.Img, 0);
-						meshDrawer.ColGrd.White();
-						if (TX.isStart(layer.name, "Layer", 0))
-						{
-							meshDrawer.ColGrd.Set(this.Anm.color);
-						}
-						meshDrawer.Col = meshDrawer.ColGrd.mulA(num2 * num3 * 0.01f).C;
-						meshDrawer.RotaL(0f, 0f, layer, true, true, 0);
-					}
-				}
-				IL_022F:;
-			}
-			if (meshDrawer != null)
-			{
-				meshDrawer.Uv23(this.Anm.CAdd, false);
-				meshDrawer.allocUv23(0, true);
-				meshDrawer.Identity();
-			}
-			return true;
-		}
-
 		public void finePose(int restart_anim = 0)
 		{
 			this.setPose(this.pose_title0, restart_anim, false);
-		}
-
-		public void clearStandPoseTime()
-		{
-			this.pose_is_stand_t = global::XX.X.Mn(0f, this.pose_is_stand_t);
 		}
 
 		public void setPose(string title, int restart_anim = -1, bool loop_jumping = false)
 		{
 			string text = title;
 			string title2 = this.Anm.getCurrentPose().title;
-			if (title == "stand")
+			title = this.SfPose.initSetPoseA(title, restart_anim, loop_jumping);
+			if (title == null)
 			{
-				if (this.Pr.isBreatheStop(false, false))
-				{
-					title = (this.Pr.isBreatheStop(true, false) ? "dmg_breathe" : "stand_hardbreathe");
-					this.pose_is_stand_t = -1f;
-				}
-				else if (this.Pr.applying_wind)
-				{
-					title = "stand_wind";
-					this.pose_is_stand_t = -1f;
-				}
-				else if (this.Pr.BetoMng.is_torned && !global::XX.X.SENSITIVE)
-				{
-					title = "stand";
-					this.pose_is_stand_t = -1f;
-				}
-				else if (this.isWetPose() || this.isWeakPose())
-				{
-					title = "stand_wet_weak";
-					this.pose_is_stand_t = -1f;
-				}
-				else
-				{
-					if (this.pose_is_stand_t > 0f && restart_anim > -2 && restart_anim != 1)
-					{
-						return;
-					}
-					this.pose_is_stand_t = 1f;
-					string title3 = this.Anm.getCurrentPose().title;
-					if (!loop_jumping && (this.Pr.isPoseCrouch(false) || title3 == "crouch2stand"))
-					{
-						title = "crouch2stand";
-					}
-					else
-					{
-						title = this.getWaitingPoseTitle("stand");
-					}
-				}
-			}
-			else if (title == "ladder")
-			{
-				if (this.Pr.BetoMng.is_torned)
-				{
-					this.pose_is_stand_t = -1f;
-				}
-				else if (this.Pr.applying_wind)
-				{
-					this.pose_is_stand_t = -1f;
-					title = "ladder_wind";
-				}
-				else
-				{
-					if (this.pose_is_stand_t > 0f && restart_anim > -2 && restart_anim != 1 && !loop_jumping)
-					{
-						return;
-					}
-					this.pose_is_stand_t = 1f;
-					title = this.getWaitingPoseTitle("ladder");
-				}
-			}
-			else
-			{
-				this.pose_is_stand_t = 0f;
+				return;
 			}
 			bool flag = this.pose_title0 == text;
 			string text2 = text;
-			if (title != null)
+			title = this.SfPose.initSetPoseB(title, title2, loop_jumping);
+			if (title == null)
 			{
-				uint num = <PrivateImplementationDetails>.ComputeStringHash(title);
-				if (num <= 1325572695U)
-				{
-					if (num <= 508974720U)
-					{
-						if (num != 231209156U)
-						{
-							if (num != 508974720U)
-							{
-								goto IL_061E;
-							}
-							if (!(title == "crawl"))
-							{
-								goto IL_061E;
-							}
-							if (this.Pr.isBreatheStop(false, false))
-							{
-								title = "crawl_hardbreathe";
-								goto IL_061E;
-							}
-							title = ((this.isWetPose() || this.isWeakPose()) ? "crawl_wet_weak" : "crawl");
-							goto IL_061E;
-						}
-						else if (!(title == "magic_hold"))
-						{
-							goto IL_061E;
-						}
-					}
-					else if (num != 718098122U)
-					{
-						if (num != 1313842571U)
-						{
-							if (num != 1325572695U)
-							{
-								goto IL_061E;
-							}
-							if (!(title == "stand2bench"))
-							{
-								goto IL_061E;
-							}
-							if (this.Pr.Ser.isShamed() || this.Pr.Ser.has(SER.MP_REDUCE))
-							{
-								title = "bench_shamed";
-								goto IL_061E;
-							}
-							goto IL_061E;
-						}
-						else
-						{
-							if (!(title == "crouch"))
-							{
-								goto IL_061E;
-							}
-							string title4 = this.Anm.getCurrentPose().title;
-							bool flag2 = TX.isStart(title4, "crawl", 0);
-							title = (flag2 ? "crawl2crouch" : "stand2crouch");
-							if (loop_jumping || (!(title4 == title) && !(title4 == "crouch2stand") && !flag2 && this.Pr.isPoseCrouch(false)))
-							{
-								title = "crouch";
-							}
-							if (this.Pr.isBreatheStop(false, false))
-							{
-								if (title == "stand2crouch")
-								{
-									title = "stand2crouch_hardbreathe";
-								}
-								if (title == "crouch")
-								{
-									title = "crouch_hardbreathe";
-									goto IL_061E;
-								}
-								goto IL_061E;
-							}
-							else
-							{
-								if (title == "crouch" && this.Pr.applying_wind)
-								{
-									title = "crouch_wind";
-									goto IL_061E;
-								}
-								goto IL_061E;
-							}
-						}
-					}
-					else
-					{
-						if (!(title == "run"))
-						{
-							goto IL_061E;
-						}
-						if (this.Pr.isBreatheStop(false, false))
-						{
-							title = "run_hardbreathe";
-							goto IL_061E;
-						}
-						if (this.Pr.applying_wind)
-						{
-							title = "run_wind";
-							goto IL_061E;
-						}
-						title = ((this.isWetPose() || this.isWeakPose()) ? "run_wet_weak" : "run");
-						goto IL_061E;
-					}
-				}
-				else if (num <= 2502056623U)
-				{
-					if (num != 2248295223U)
-					{
-						if (num != 2502056623U)
-						{
-							goto IL_061E;
-						}
-						if (!(title == "stand_ev"))
-						{
-							goto IL_061E;
-						}
-						this.pose_is_stand_t = 3000f;
-						goto IL_061E;
-					}
-					else if (!(title == "magic_init"))
-					{
-						goto IL_061E;
-					}
-				}
-				else if (num != 2686853648U)
-				{
-					if (num != 2805947405U)
-					{
-						if (num != 4166649696U)
-						{
-							goto IL_061E;
-						}
-						if (!(title == "fall"))
-						{
-							goto IL_061E;
-						}
-						if (!loop_jumping && this.Anm.getCurrentPose().end_jump_title == "fall2" && !TX.isStart(title2, "fall", 0))
-						{
-							return;
-						}
-						if (this.Pr.isBreatheStop(false, false))
-						{
-							title = "fall_hardbreathe";
-							if (title2 == "fall_hardbreathe2")
-							{
-								return;
-							}
-							goto IL_061E;
-						}
-						else
-						{
-							if (title2 == "fall2")
-							{
-								return;
-							}
-							goto IL_061E;
-						}
-					}
-					else
-					{
-						if (!(title == "jump"))
-						{
-							goto IL_061E;
-						}
-						if (!loop_jumping && this.Anm.getCurrentPose().end_jump_title == "fall2")
-						{
-							return;
-						}
-						goto IL_061E;
-					}
-				}
-				else
-				{
-					if (!(title == "walk"))
-					{
-						goto IL_061E;
-					}
-					if (this.Pr.isBreatheStop(false, false))
-					{
-						title = (this.Pr.isBreatheStop(true, false) ? "walk_dmg_breathe" : "walk_hardbreathe");
-						goto IL_061E;
-					}
-					if (this.Pr.applying_wind)
-					{
-						title = "walk_wind";
-						goto IL_061E;
-					}
-					title = (this.isWetPose() ? "walk_wet_weak" : (this.isWeakPose() ? "walk_weak" : "walk"));
-					goto IL_061E;
-				}
-				title = this.getSpecialMagicPose(this.Pr.getCurMagic(), title == "magic_init");
+				return;
 			}
-			IL_061E:
 			if (restart_anim < 0 && flag && title == this.pre_pose_title)
 			{
 				return;
@@ -1463,11 +725,11 @@ namespace nel
 			this.pose_title0 = text2;
 			this.pre_pose_title = title;
 			PxlPose pxlPose = null;
-			NoelAnimator.PoseInfo curInfo = this.CurInfo;
-			NoelAnimator.PoseInfo poseInfo = (this.CurInfo = this.getPoseInfo(text, ref title, ref pxlPose));
-			NoelAnimator.initPoseInfo(this.CurInfo, this.Mp.rCLENB);
+			PrPoseContainer.PoseInfo curInfo = this.CurInfo;
+			PrPoseContainer.PoseInfo poseInfo = (this.CurInfo = this.getPoseInfo(text, ref title, ref pxlPose));
+			this.PCon.initPoseInfo(this.CurInfo, this.Mp.rCLENB);
 			this.cur_type = poseInfo.type;
-			Object currentTexture = this.Anm.getCurrentTexture();
+			global::UnityEngine.Object currentTexture = this.Anm.getCurrentTexture();
 			this.Anm.setPose(pxlPose, -1000);
 			this.PreTargetPose = pxlPose;
 			if (!loop_jumping)
@@ -1479,27 +741,33 @@ namespace nel
 			this.Anm.PointData = poseInfo.PointData;
 			this.Anm.check_torture = poseInfo.use_torture;
 			this.Anm.timescale = (float)(poseInfo.use_torture ? 0 : 1);
-			Texture currentTexture2 = this.Anm.getCurrentTexture();
-			if (currentTexture != currentTexture2)
+			Texture currentDrawnTexture = this.Anm.getCurrentDrawnTexture();
+			if (currentTexture != currentDrawnTexture)
 			{
-				NoelAnimator.MtrAlphaClipMask.SetTexture("_MainTex", this.Anm.getCurrentTexture());
 				this.fineMaterialColor();
-				this.fineFrozenAppearance();
+				this.fineFrozenAppearance(false);
 			}
 			if (poseInfo.use_front_drawing)
 			{
-				if (this.FD_fnDrawFrontMesh == null)
+				if (this.MdFront == null)
 				{
-					this.FD_fnDrawFrontMesh = new M2DrawBinder.FnEffectBind(this.fnDrawFrontMesh);
+					this.MdFront = new MeshDrawer(null, 4, 6);
+					this.MdFront.draw_gl_only = true;
+					this.MdFront.setMaterial(this.Anm.getRendererMaterial(), false);
+					this.FD_FnPrepareFrontMd = new M2RenderTicket.FnPrepareMd(this.FnPrepareFrontMd);
 				}
-				if (this.FrontDrawEd == null)
+				if (this.RtkFront == null)
 				{
-					this.FrontDrawEd = this.Mp.setED("noel frontdraw", this.FD_fnDrawFrontMesh, 0f);
+					this.RtkFront = this.Mp.MovRenderer.assignDrawable(M2Mover.DRAW_ORDER.N_TOP2, this.Anm.transform, this.FD_FnPrepareFrontMd, this.MdFront, this.Pr, null);
 				}
 			}
-			else if (this.FrontDrawEd != null)
+			else
 			{
-				this.FrontDrawEd = this.Mp.remED(this.FrontDrawEd);
+				if (this.RtkFront != null && this.Mp != null)
+				{
+					this.Mp.MovRenderer.deassignDrawable(this.RtkFront, -1);
+				}
+				this.RtkFront = null;
 			}
 			if (restart_anim != -1000)
 			{
@@ -1514,7 +782,7 @@ namespace nel
 				}
 				else
 				{
-					global::XX.AIM aim = (global::XX.AIM)((loop_jumping || this.Pr.fix_aim) ? this.Anm.pose_aim : ((global::PixelLiner.PixelLinerLib.AIM)this.Pr.aim));
+					global::XX.AIM aim = (global::XX.AIM)((loop_jumping || this.Pr.fix_aim) ? this.Anm.pose_aim : ((global::PixelLiner.PixelLinerCore.AIM)this.Pr.aim));
 					POSE_TYPE type = curInfo.type;
 					restart_anim = ((restart_anim == -1) ? ((title2 == title) ? 0 : 1) : restart_anim);
 					if ((type & POSE_TYPE.DOWN) != POSE_TYPE.STAND && (this.cur_type & POSE_TYPE.DOWN) != POSE_TYPE.STAND)
@@ -1543,11 +811,11 @@ namespace nel
 			}
 		}
 
-		private NoelAnimator.PoseInfo getPoseInfo(string title0, ref string title, ref PxlPose TargetPose)
+		private PrPoseContainer.PoseInfo getPoseInfo(string title0, ref string title, ref PxlPose TargetPose)
 		{
-			NoelAnimator.PoseInfo poseInfo = null;
-			NoelAnimator.PoseInfo poseInfo2 = null;
-			NoelAnimator.PoseInfo poseInfo3 = null;
+			PrPoseContainer.PoseInfo poseInfo = null;
+			PrPoseContainer.PoseInfo poseInfo2 = null;
+			PrPoseContainer.PoseInfo poseInfo3 = null;
 			int num = global::XX.X.Mx((int)this.outfit_type, 1);
 			int num2 = num;
 			while (num2 >= 0 && poseInfo == null)
@@ -1556,32 +824,32 @@ namespace nel
 				while (i < 2)
 				{
 					string text = ((i == 0) ? title : title0);
-					NoelAnimator.PoseInfo poseInfo4 = null;
+					PrPoseContainer.PoseInfo poseInfo4 = null;
 					if (num2 != num)
 					{
 						poseInfo4 = ((i == 0) ? poseInfo2 : poseInfo3);
-						goto IL_0061;
+						goto IL_005F;
 					}
-					if (NoelAnimator.OPoseType.TryGetValue(text, out poseInfo4))
+					if (this.PCon.TryGetValue(text, out poseInfo4))
 					{
 						if (i == 0)
 						{
 							poseInfo2 = poseInfo4;
-							goto IL_0061;
+							goto IL_005F;
 						}
 						poseInfo3 = poseInfo4;
-						goto IL_0061;
+						goto IL_005F;
 					}
-					IL_00CB:
+					IL_00B5:
 					i++;
 					continue;
-					IL_0061:
+					IL_005F:
 					if (poseInfo4 == null)
 					{
-						goto IL_00CB;
+						goto IL_00B5;
 					}
 					PxlPose pxlPose = poseInfo4.Get(num2);
-					if (pxlPose != null && (num2 != 1 || (!global::XX.X.SENSITIVE && this.Pr.BetoMng.is_torned)))
+					if (pxlPose != null && this.sensitive_check(num2))
 					{
 						poseInfo = poseInfo4;
 						TargetPose = pxlPose;
@@ -1594,7 +862,7 @@ namespace nel
 						}
 						return poseInfo;
 					}
-					goto IL_00CB;
+					goto IL_00B5;
 				}
 				num2--;
 			}
@@ -1605,6 +873,11 @@ namespace nel
 				return this.getPoseInfo(title0, ref title, ref TargetPose);
 			}
 			return poseInfo;
+		}
+
+		private bool sensitive_check(int _t)
+		{
+			return _t != 1 || (!global::XX.X.SENSITIVE && this.Pr.BetoMng.is_torned);
 		}
 
 		public Color32 getColorTe()
@@ -1651,7 +924,12 @@ namespace nel
 				mainMeshDrawer.clearSimple();
 				mainMeshDrawer.Uv23(this.Anm.CAdd, false);
 				mainMeshDrawer.setMaterial(this.Anm.getRendererMaterial(), false);
-				mainMeshDrawer.Col = this.Anm.color;
+				mainMeshDrawer.ColGrd.Set(this.Anm.color);
+				if (this.stone_lv_ == 1 || this.stone_lv_ == 2)
+				{
+					mainMeshDrawer.ColGrd.blend(4278190080U, 0.33f);
+				}
+				mainMeshDrawer.Col = mainMeshDrawer.ColGrd.C;
 				if ((this.CurInfo.type & POSE_TYPE.PRESS_DAMAGE) != POSE_TYPE.STAND)
 				{
 					if ((this.CurInfo.type & POSE_TYPE.DOWN) != POSE_TYPE.STAND)
@@ -1659,12 +937,12 @@ namespace nel
 						Matrix4x4 currentMatrix = mainMeshDrawer.getCurrentMatrix();
 						float num = 0f;
 						float num2 = 0f;
-						int num3 = global::XX.CAim._YD((int)this.Anm.pose_aim, 1);
+						int num3 = global::XX.CAim._YD(this.pose_aim_visible, 1);
 						if (num3 != 0 && this.Pr.is_alive)
 						{
 							float pressdamage_float_level = this.Pr.pressdamage_float_level;
 							num = ((num3 == -1) ? (global::XX.X.ZSIN(pressdamage_float_level, 0.3f) * 24f) : 0f) - global::XX.X.ZCOS(pressdamage_float_level - 0.25f, 0.75f) * (float)((num3 == -1) ? 24 : 15);
-							num2 = global::XX.X.SINI(global::XX.X.ZSIN(pressdamage_float_level), 1f) * (float)global::XX.CAim._XD((int)this.Anm.pose_aim, 1) * 3.1415927f * 0.16f;
+							num2 = global::XX.X.SINI(global::XX.X.ZSIN(pressdamage_float_level), 1f) * (float)global::XX.CAim._XD(this.pose_aim_visible, 1) * 3.1415927f * 0.16f;
 						}
 						mainMeshDrawer.TranslateP(0f, -70f + num, true).Rotate(num2, false).Scale(1f, this.Pr.pressdamage_scale_level, true)
 							.TranslateP(0f, 70f, true);
@@ -1683,11 +961,80 @@ namespace nel
 				}
 				mainMeshDrawer.allocUv23(0, true);
 				mainMeshDrawer.updateForMeshRenderer(false);
+				if (this.RtkFront != null)
+				{
+					this.drawFrontMesh();
+				}
 			}
 			return mainMeshDrawer;
 		}
 
-		private bool RenderPrepareMesh(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		private void drawFrontMesh()
+		{
+			this.MdFront.clear(false, false);
+			if (this.CurInfo == null)
+			{
+				return;
+			}
+			PxlFrame currentDrawnFrame = this.Anm.getCurrentDrawnFrame();
+			int num = currentDrawnFrame.countLayers();
+			bool flag = false;
+			bool flag2 = true;
+			bool flag3 = (this.CurInfo.type & POSE_TYPE.MARUNOMI) > POSE_TYPE.STAND;
+			for (int i = 0; i < num; i++)
+			{
+				PxlLayer layer = currentDrawnFrame.getLayer(i);
+				if (TX.isStart(layer.name, "enemy", 0))
+				{
+					flag = true;
+				}
+				else
+				{
+					if (!flag && TX.isStart(layer.name, "top_layer", 0))
+					{
+						flag = true;
+					}
+					float num2 = (float)global::XX.X.MPF(!flag3) * layer.alpha;
+					if (flag && num2 > 0f)
+					{
+						float num3 = 1f;
+						if (flag3 && CFGSP.opacity_marunomi < 100 && TX.isStart(layer.name, "marunomi", 0))
+						{
+							num3 *= (float)CFGSP.opacity_marunomi * 0.01f;
+							if (num3 <= 0f)
+							{
+								goto IL_0220;
+							}
+						}
+						if (flag2)
+						{
+							flag2 = false;
+							this.MdFront.allocUv23(16, false);
+							Vector3 localScale = this.Anm.Trs.localScale;
+							this.MdFront.Scale(localScale.x * 2f, localScale.y * 2f, false);
+							this.MdFront.Rotate(this.Anm.Trs.localEulerAngles.z / 180f * 3.1415927f, false);
+						}
+						this.MdFront.initForImg(layer.Img, 0);
+						this.MdFront.ColGrd.White();
+						if (TX.isStart(layer.name, "Layer", 0) || TX.isStart(layer.name, "top_layer", 0))
+						{
+							this.MdFront.ColGrd.Set(this.Anm.color);
+						}
+						this.MdFront.Col = this.MdFront.ColGrd.mulA(num2 * num3 * 0.01f).C;
+						this.MdFront.RotaL(0f, 0f, layer, true, true, 0);
+					}
+				}
+				IL_0220:;
+			}
+			if (!flag2)
+			{
+				this.MdFront.Uv23(this.Anm.CAdd, false);
+				this.MdFront.allocUv23(0, true);
+				this.MdFront.Identity();
+			}
+		}
+
+		private bool RenderPrepareMesh(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			MdOut = null;
 			if (this.hidden_flag)
@@ -1723,8 +1070,25 @@ namespace nel
 			{
 				return false;
 			}
-			MdOut = ((this.CurFrame != null && this.CurFrame.clip_mask_layer != 0 && (this.CurInfo.type & POSE_TYPE.MARUNOMI) == POSE_TYPE.STAND) ? NoelAnimator.MdClip : null);
+			MdOut = ((this.CurFrame != null && this.CurFrame.clip_mask_layer != 0 && (this.CurInfo.type & POSE_TYPE.MARUNOMI) == POSE_TYPE.STAND) ? this.MdClip : null);
 			return true;
+		}
+
+		private bool FnPrepareFrontMd(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
+		{
+			if (draw_id < 2)
+			{
+				MdOut = null;
+				return true;
+			}
+			draw_id -= 2;
+			if (draw_id == 0)
+			{
+				MdOut = this.MdFront;
+				return true;
+			}
+			MdOut = null;
+			return false;
 		}
 
 		public void clearDownTurning(bool fine_anm = true)
@@ -1757,39 +1121,6 @@ namespace nel
 			this.Anm.setAim(global::XX.CAim.toPxlAim(global::XX.CAim.get_aim2(0f, 0f, (float)(global::XX.CAim._XD(aim, 1) * global::XX.X.MPF(!this.pose_down_turning)), (float)global::XX.CAim._YD(aim, 1), false)), restart_anim);
 		}
 
-		public int getAim()
-		{
-			return (int)this.Anm.pose_aim;
-		}
-
-		public string getSpecialMagicPose(MagicItem Mg, bool is_init)
-		{
-			if (Mg != null)
-			{
-				MGKIND kind = Mg.kind;
-				if (kind != MGKIND.FIREBALL)
-				{
-					if (kind == MGKIND.DROPBOMB)
-					{
-						if (!is_init)
-						{
-							return "magic_bomb_hold";
-						}
-						return "magic_bomb_init";
-					}
-				}
-				else if (is_init)
-				{
-					return "magic_fireball_init";
-				}
-			}
-			if (!is_init)
-			{
-				return "magic_hold";
-			}
-			return "magic_init";
-		}
-
 		public Vector3 getHipPos()
 		{
 			bool flag = false;
@@ -1810,7 +1141,8 @@ namespace nel
 
 		public Vector3 getHipPos(ref bool success_point_hip)
 		{
-			float num = (this.poseIs(POSE_TYPE.MANGURI, false) ? global::XX.AIM.T : (this.Pr.isPoseBack(false) ? global::XX.CAim.get_opposite((global::XX.AIM)this.Anm.pose_aim) : ((global::XX.AIM)this.Anm.pose_aim)));
+			int pose_aim_visible = this.pose_aim_visible;
+			float num = (this.poseIs(POSE_TYPE.MANGURI, false) ? global::XX.AIM.T : (this.Pr.isPoseBack(false) ? global::XX.CAim.get_opposite((global::XX.AIM)pose_aim_visible) : ((global::XX.AIM)pose_aim_visible)));
 			if (this.CurInfo.PointData != null)
 			{
 				PxlFrame currentDrawnFrame = this.Anm.getCurrentDrawnFrame();
@@ -1827,28 +1159,6 @@ namespace nel
 			}
 			success_point_hip = false;
 			return new Vector3(this.Pr.drawx * this.Mp.rCLEN + (float)(global::XX.CAim._XD(this.pose_aim, 1) * global::XX.X.MPF(!this.Pr.isPoseBack(false))) * 0.12f, this.Pr.drawy * this.Mp.rCLEN + 0.19f * (float)global::XX.X.MPF(!this.poseIs(POSE_TYPE.MANGURI, false)), num);
-		}
-
-		public void fineSerState()
-		{
-			if (this.pose_is_stand_t != 0f)
-			{
-				float num = this.pose_is_stand_t;
-				this.setPose(this.pose_title0, -2, false);
-				if (this.pose_is_stand_t > 0f && num > 0f)
-				{
-					this.pose_is_stand_t = global::XX.X.Mx(this.pose_is_stand_t, num);
-					return;
-				}
-			}
-			else
-			{
-				string text = this.pose_title0;
-				if (text != null && (text == "stand_ev" || text == "run" || text == "walk" || text == "crawl" || text == "crouch"))
-				{
-					this.setPose(this.pose_title0, -2, false);
-				}
-			}
 		}
 
 		public int get_loop_count()
@@ -2060,6 +1370,14 @@ namespace nel
 			}
 		}
 
+		public float counter_expand_x
+		{
+			get
+			{
+				return (float)(this.CurInfo.counter_expand_x * 2) * 0.01f;
+			}
+		}
+
 		public float counter_shift_map_y
 		{
 			get
@@ -2148,23 +1466,14 @@ namespace nel
 			return this.Anm.PointData.GetPoints(this.Anm.getCurrentDrawnFrame(), false);
 		}
 
-		public bool isWetPose()
-		{
-			return this.Pr.isWetPose();
-		}
-
-		public bool isWeakPose()
-		{
-			return this.Pr.isWeakPose();
-		}
-
 		public float body_agR
 		{
 			get
 			{
+				int pose_aim_visible = this.pose_aim_visible;
 				if (this.CurInfo.body_agR != -1000f)
 				{
-					if (global::XX.CAim._XD((int)this.Anm.pose_aim, 1) >= 0)
+					if (global::XX.CAim._XD(pose_aim_visible, 1) >= 0)
 					{
 						return 3.1415927f - this.CurInfo.body_agR;
 					}
@@ -2185,7 +1494,7 @@ namespace nel
 						}
 						num = 2.0071287f;
 					}
-					if (global::XX.CAim._XD((int)this.Anm.pose_aim, 1) >= 0)
+					if (global::XX.CAim._XD(pose_aim_visible, 1) >= 0)
 					{
 						return 3.1415927f - num;
 					}
@@ -2202,6 +1511,14 @@ namespace nel
 			}
 		}
 
+		public float mpf_is_right_visible
+		{
+			get
+			{
+				return (float)global::XX.CAim._XD(this.pose_aim_visible, 1);
+			}
+		}
+
 		public string pose_title
 		{
 			get
@@ -2214,7 +1531,7 @@ namespace nel
 		{
 			get
 			{
-				return this.pose_is_stand_t != 0f;
+				return this.SfPose.pose_is_stand;
 			}
 		}
 
@@ -2266,6 +1583,11 @@ namespace nel
 			}
 		}
 
+		public PrPoseContainer.PoseInfo getPoseInfo(string s)
+		{
+			return this.PCon.Get(s);
+		}
+
 		public M2PxlAnimator getAnimator()
 		{
 			return this.Anm;
@@ -2295,6 +1617,23 @@ namespace nel
 			}
 		}
 
+		public int pose_aim_visible
+		{
+			get
+			{
+				if (this.FrozenF != null)
+				{
+					return this.FrozenF.pSq.aim;
+				}
+				return this.pose_aim;
+			}
+		}
+
+		public string getManualSettedPoseTitle()
+		{
+			return this.pose_title0;
+		}
+
 		public bool need_fine
 		{
 			get
@@ -2307,7 +1646,7 @@ namespace nel
 			}
 		}
 
-		public NoelAnimator.OUTFIT outfit_type
+		public PRNoel.OUTFIT outfit_type
 		{
 			get
 			{
@@ -2323,12 +1662,7 @@ namespace nel
 			}
 		}
 
-		public static int countImageForDebug(PxlPose P)
-		{
-			return 0;
-		}
-
-		private const bool CHECK_DEBUG_COUNT = true;
+		public readonly PrPoseContainer PCon;
 
 		private readonly PRNoel Pr;
 
@@ -2336,17 +1670,15 @@ namespace nel
 
 		public bool hidden_flag;
 
-		private NoelAnimator.NFrame CurFrame;
+		private PrPoseContainer.NFrame CurFrame;
 
-		private NoelAnimator.NFrame PFrame;
+		private PrPoseContainer.NFrame PFrame;
 
-		private NoelAnimator.NFrame PPFrame;
+		private PrPoseContainer.NFrame PPFrame;
 
 		private M2PxlAnimatorRT Anm;
 
 		private POSE_TYPE cur_type;
-
-		private float pose_is_stand_t;
 
 		private M2NoelCane Cane;
 
@@ -2366,29 +1698,35 @@ namespace nel
 
 		private M2DrawBinder HoldMagicEd;
 
-		private M2DrawBinder FrontDrawEd;
-
 		private PxlFrame FrozenF;
 
-		private NoelAnimator.PoseInfo FrozenInfo;
+		private PrPoseContainer.PoseInfo FrozenInfo;
+
+		private MeshDrawer MdFront;
+
+		private M2RenderTicket RtkFront;
 
 		private Material MtrBase;
 
 		private Material MtrFrozen;
 
+		private Material MtrStone;
+
 		private byte frozen_lv_;
+
+		private byte stone_lv_;
+
+		public NoelAnimator.FRZ_STATE frz_state;
+
+		public bool need_fine_frozen_appear;
 
 		private string pose_title0 = "stand";
 
 		private string pre_pose_title = "stand";
 
-		private const int stand_ev_t = 3000;
-
 		public const string stand_pose = "stand";
 
 		public const string crouch_pose = "crouch";
-
-		public const string rod_pose_title = "RODRODRODROD";
 
 		private const string LAY_HEADER_MARUNOMI = "marunomi";
 
@@ -2398,23 +1736,17 @@ namespace nel
 
 		private bool fine_rot;
 
-		private NoelAnimator.PoseInfo CurInfo;
+		private PrPoseContainer.PoseInfo CurInfo;
 
 		private PxlPose PreTargetPose;
 
-		private static PxlImage[] AHatImg;
-
-		private static BDic<string, NoelAnimator.PoseInfo> OPoseType;
-
-		public static PxlCharacter MainPxl;
-
-		private static PxlPose RodPose;
+		private AnimationShuffler SfPose;
 
 		private bool need_fine_mesh = true;
 
-		private static Material MtrAlphaClipMask;
+		private Material MtrAlphaClipMask;
 
-		private static MeshDrawer MdClip;
+		private MeshDrawer MdClip;
 
 		private M2DrawBinder.FnEffectBind FD_drawEffectMagicElec;
 
@@ -2424,137 +1756,20 @@ namespace nel
 
 		public Flagger FlgDropCane;
 
-		private M2DrawBinder.FnEffectBind FD_fnDrawFrontMesh;
+		public bool torture_by_invisible_enemy;
 
 		public const float downpose_center_shift_y = 70f;
 
-		public sealed class NFrame
-		{
-			public NFrame(PxlFrame F, float rCLENB)
-			{
-				this.RodL = M2PxlAnimator.getRodPosS(rCLENB, F, ref this.target_x, ref this.target_y, "rod", "ROD", 0.5f, 0f, ALIGN.LEFT, ALIGNY.MIDDLE, 2);
-				if (this.RodL != null)
-				{
-					this.rodx = this.RodL.x * rCLENB;
-					this.rody = this.RodL.y * rCLENB;
-				}
-				this.hatlost = TX.isStart(F.name, "hat_lost", 0);
-			}
+		private M2RenderTicket.FnPrepareMd FD_FnPrepareFrontMd;
 
-			public override string ToString()
-			{
-				return "<NFrame:" + ((this.RodL != null) ? this.RodL.ToString() : "-") + "> ";
-			}
-
-			public PxlLayer RodL;
-
-			public float rodx;
-
-			public float rody;
-
-			public float target_x;
-
-			public float target_y;
-
-			public int clip_mask_layer;
-
-			public bool hatlost;
-		}
-
-		public enum OUTFIT
+		public enum FRZ_STATE
 		{
 			NORMAL,
-			TORNED,
-			BABYDOLL,
-			DOJO,
+			FROZEN,
+			WEB_TRAPPED,
+			STONE = 4,
+			STONEOVER = 8,
 			_MAX
-		}
-
-		public sealed class PoseInfo
-		{
-			public PoseInfo(PxlPose P)
-			{
-				this.APose = new PxlPose[] { P };
-				this.OFrmData = new BDic<PxlFrame, NoelAnimator.NFrame>();
-			}
-
-			public PxlPose Get(int outfit_type)
-			{
-				if (this.APose.Length <= outfit_type)
-				{
-					return null;
-				}
-				return this.APose[outfit_type];
-			}
-
-			public void addPose(int index, PxlPose P)
-			{
-				if (this.APose.Length <= index)
-				{
-					Array.Resize<PxlPose>(ref this.APose, index + 1);
-				}
-				this.APose[index] = P;
-			}
-
-			public NoelAnimator.PoseInfo copyBasicDataFrom(NoelAnimator.PoseInfo Src)
-			{
-				this.type = Src.type;
-				this.counter_shift_x = Src.counter_shift_x;
-				this.counter_shift_y = Src.counter_shift_y;
-				this.body_agR = Src.body_agR;
-				return this;
-			}
-
-			public string title
-			{
-				get
-				{
-					return this.APose[0].title;
-				}
-			}
-
-			public string end_jump_title
-			{
-				get
-				{
-					return this.APose[0].end_jump_title;
-				}
-			}
-
-			public bool use_torture
-			{
-				get
-				{
-					return this.PointData != null;
-				}
-			}
-
-			public override string ToString()
-			{
-				return "<Info:" + this.title + "> -" + this.type.ToString();
-			}
-
-			public PxlPose[] APose;
-
-			public NoelAnimator.PoseInfo PI_S;
-
-			public POSE_TYPE type;
-
-			public int counter_shift_x;
-
-			public int counter_shift_y;
-
-			public float body_agR = -1000f;
-
-			public M2PxlPointContainer.PosePointsData PointData;
-
-			public bool use_front_drawing;
-
-			public BDic<PxlFrame, NoelAnimator.NFrame> OFrmData;
-
-			public byte orgasm_frame_index = byte.MaxValue;
-
-			public bool initted;
 		}
 	}
 }

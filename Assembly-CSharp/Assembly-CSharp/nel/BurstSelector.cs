@@ -65,7 +65,7 @@ namespace nel
 
 		public void fineFaintedRatio()
 		{
-			this.fainted_ratio = MDAT.calcBurstFaintedRatio(this.Pr, this.MKBurst, this.execute_count);
+			this.fainted_ratio = MDAT.calcBurstFaintedRatio(this.Pr, this.MKBurst, this.execute_count, this.Pr.Ser.burstConsumeRatio());
 			if (this.Tx != null)
 			{
 				using (STB stb = TX.PopBld(null, 0))

@@ -26,8 +26,8 @@ namespace m2d
 
 		public static void calcClmsAndRows(float CLEN, int srcl, int srct, int srcw, int srch, int iclms_, int irows_, out int ns_clms_, out int ns_rows_)
 		{
-			ns_clms_ = global::XX.X.IntC((float)(global::XX.X.IntC((float)(srcl + srcw) / CLEN) - (int)((float)srcl / CLEN)) / (float)iclms_);
-			ns_rows_ = global::XX.X.IntC((float)(global::XX.X.IntC((float)(srct + srch) / CLEN) - (int)((float)srct / CLEN)) / (float)irows_);
+			ns_clms_ = X.IntC((float)(X.IntC((float)(srcl + srcw) / CLEN) - (int)((float)srcl / CLEN)) / (float)iclms_);
+			ns_rows_ = X.IntC((float)(X.IntC((float)(srct + srch) / CLEN) - (int)((float)srct / CLEN)) / (float)irows_);
 		}
 
 		public override void assignLayerAndAtlas(PxlLayer Lay, M2ImageAtlas.AtlasRect _Atlas, bool apply_basic = false)
@@ -61,7 +61,7 @@ namespace m2d
 				{
 					text = TX.add(text, "H" + this.srch.ToString() + "=>" + Lay.Img.height.ToString(), " / ");
 				}
-				global::XX.X.de("CImgNestedの内容に変更あり " + base.src + ": " + text, null);
+				X.de("CImgNestedの内容に変更あり " + base.src + ": " + text, null);
 				this.ImgMain0 = null;
 				int ns_len = this.ns_len;
 				if (this.AChild != null)
@@ -97,13 +97,13 @@ namespace m2d
 					if (this.Apreload_id != null)
 					{
 						uint[] array = new uint[this.ns_len];
-						global::XX.X.copyTwoDimensionArray<uint>(array, this.ns_clms_, this.ns_rows_, this.Apreload_id, num4, num5, false);
+						X.copyTwoDimensionArray<uint>(array, this.ns_clms_, this.ns_rows_, this.Apreload_id, num4, num5, false);
 						this.Apreload_id = array;
 					}
 					if (!this.need_recalc_unuse_pixels && this.Acalced_unuse != null)
 					{
 						bool[] array2 = new bool[this.ns_len];
-						global::XX.X.copyTwoDimensionArray<bool>(array2, this.ns_clms_, this.ns_rows_, this.Acalced_unuse, num4, num5, false);
+						X.copyTwoDimensionArray<bool>(array2, this.ns_clms_, this.ns_rows_, this.Acalced_unuse, num4, num5, false);
 						this.Acalced_unuse = array2;
 					}
 				}
@@ -112,12 +112,12 @@ namespace m2d
 				{
 					if (achild != null)
 					{
-						global::XX.X.copyTwoDimensionArray<M2ChipImageNested>(this.AChild, this.ns_clms_, this.ns_rows_, achild, num4, num5, false);
+						X.copyTwoDimensionArray<M2ChipImageNested>(this.AChild, this.ns_clms_, this.ns_rows_, achild, num4, num5, false);
 					}
 				}
 				else if (achild != null)
 				{
-					Array.Copy(achild, this.AChild, global::XX.X.Mn(this.ns_len, num4 * num5));
+					Array.Copy(achild, this.AChild, X.Mn(this.ns_len, num4 * num5));
 				}
 				int ns_len2 = this.ns_len;
 				string basename = this.basename;
@@ -195,7 +195,7 @@ namespace m2d
 			{
 				if (!no_error)
 				{
-					global::XX.X.de("チップリストに登録されていない画像: " + base.src, null);
+					X.de("チップリストに登録されていない画像: " + base.src, null);
 				}
 				return;
 			}
@@ -222,8 +222,8 @@ namespace m2d
 			}
 			base.AtlasRescale(x, y);
 			base.AtlasRescaleExecute(this.ImgMain0, x, y);
-			int ns_len = this.ns_len;
-			for (int i = 0; i < ns_len; i++)
+			int num = this.ns_len;
+			for (int i = 0; i < num; i++)
 			{
 				M2ChipImageNested m2ChipImageNested = this.AChild[i];
 				if (m2ChipImageNested != null && m2ChipImageNested != this)
@@ -231,16 +231,21 @@ namespace m2d
 					m2ChipImageNested.AtlasRescale(x, y);
 				}
 			}
+			num = ((this.ACIMeshForPicture != null) ? this.ACIMeshForPicture.Length : 0);
+			for (int j = 0; j < num; j++)
+			{
+				base.AtlasRescaleExecute(this.ACIMeshForPicture[j].Img, x, y);
+			}
 		}
 
 		private void recalcChildBounds(int x, int y, out int shiftx, out int shifty, out int iwidth, out int iheight)
 		{
 			shiftx = ((x == 0) ? this.srcl : 0);
-			int num = global::XX.X.Mx(-this.srcl + x * base.CLEN * this.iclms_, 0);
-			iwidth = global::XX.X.Mn(base.CLEN * this.iclms_ - shiftx, base.SourceLayer.Img.width - num);
+			int num = X.Mx(-this.srcl + x * base.CLEN * this.iclms_, 0);
+			iwidth = X.Mn(base.CLEN * this.iclms_ - shiftx, base.SourceLayer.Img.width - num);
 			shifty = ((y == 0) ? this.srct : 0);
-			int num2 = global::XX.X.Mx(-this.srct + y * base.CLEN * this.irows_, 0);
-			iheight = global::XX.X.Mn(base.CLEN * this.irows_ - shifty, base.SourceLayer.Img.height - num2);
+			int num2 = X.Mx(-this.srct + y * base.CLEN * this.irows_, 0);
+			iheight = X.Mn(base.CLEN * this.irows_ - shifty, base.SourceLayer.Img.height - num2);
 		}
 
 		public bool[] recalcUnusedPixels()
@@ -250,7 +255,7 @@ namespace m2d
 
 		public M2ImageAtlas.AtlasRect getAtlasDrawArea(int i)
 		{
-			if (this.AChild == null || !global::XX.X.BTW(0f, (float)i, (float)this.AChild.Length))
+			if (this.AChild == null || !X.BTW(0f, (float)i, (float)this.AChild.Length))
 			{
 				return base.SourceAtlas;
 			}
@@ -262,14 +267,14 @@ namespace m2d
 			int num;
 			int num2;
 			this.getPosition(i, out num, out num2);
-			int num3 = global::XX.X.Mx(0, num * base.CLEN * this.iclms_ - this.srcl);
-			int num4 = global::XX.X.Mx(0, num2 * base.CLEN * this.irows_ - this.srct) + m2ChipImageNested.iheight;
+			int num3 = X.Mx(0, num * base.CLEN * this.iclms_ - this.srcl);
+			int num4 = X.Mx(0, num2 * base.CLEN * this.irows_ - this.srct) + m2ChipImageNested.iheight;
 			return new M2ImageAtlas.AtlasRect(this.SourceAtlas_.x + num3, this.SourceAtlas_.y + this.SourceAtlas_.h - num4, m2ChipImageNested.iwidth, m2ChipImageNested.iheight);
 		}
 
 		public Rect getClipArea(int i)
 		{
-			if (this.AChild != null && global::XX.X.BTW(0f, (float)i, (float)this.AChild.Length))
+			if (this.AChild != null && X.BTW(0f, (float)i, (float)this.AChild.Length))
 			{
 				int num;
 				int num2;
@@ -290,8 +295,8 @@ namespace m2d
 					num5 = iwidth;
 					num6 = iheight;
 				}
-				float num7 = (float)global::XX.X.Mx(0, num * base.CLEN * this.iclms_ - this.srcl);
-				int num8 = global::XX.X.Mx(0, num2 * base.CLEN * this.irows_ - this.srct) + num6;
+				float num7 = (float)X.Mx(0, num * base.CLEN * this.iclms_ - this.srcl);
+				int num8 = X.Mx(0, num2 * base.CLEN * this.irows_ - this.srct) + num6;
 				return new Rect(num7, (float)(this.SourceLayer_.Img.height - num8), (float)num5, (float)num6);
 			}
 			return new Rect(0f, 0f, (float)this.iwidth, (float)this.iheight);
@@ -299,8 +304,8 @@ namespace m2d
 
 		public void recalcConfig()
 		{
-			this.config_base_x = global::XX.X.Mn(this.config_base_x, this.ns_clms_ * this.iclms_);
-			this.config_base_y = global::XX.X.Mn(this.config_base_y, this.ns_rows_ * this.irows_);
+			this.config_base_x = X.Mn(this.config_base_x, this.ns_clms_ * this.iclms_);
+			this.config_base_y = X.Mn(this.config_base_y, this.ns_rows_ * this.irows_);
 			int ns_len = this.ns_len;
 			for (int i = 0; i < ns_len; i++)
 			{
@@ -335,7 +340,7 @@ namespace m2d
 								else
 								{
 									int num6 = M2ChipImageNestedParent.ccalc_divide(configcalc);
-									int num7 = this.config_base_y + global::XX.X.Abs(num3 - this.config_base_x + ((num3 < this.config_base_x) ? 1 : 0)) / num6;
+									int num7 = this.config_base_y + X.Abs(num3 - this.config_base_x + ((num3 < this.config_base_x) ? 1 : 0)) / num6;
 									if (num4 < num7)
 									{
 										num5 = 4;
@@ -372,7 +377,7 @@ namespace m2d
 								else
 								{
 									int num8 = M2ChipImageNestedParent.ccalc_divide(configcalc2);
-									int num9 = this.config_base_y - 1 - global::XX.X.Abs(num3 - this.config_base_x + ((num3 < this.config_base_x) ? 1 : 0)) / num8;
+									int num9 = this.config_base_y - 1 - X.Abs(num3 - this.config_base_x + ((num3 < this.config_base_x) ? 1 : 0)) / num8;
 									if (num4 > num9)
 									{
 										num5 = 4;
@@ -396,7 +401,7 @@ namespace m2d
 							{
 								m2ChipImageNested.Aconfig = new byte[m2ChipImageNested.clms * m2ChipImageNested.rows];
 							}
-							if (global::XX.X.BTW(0f, (float)j, (float)m2ChipImageNested.clms) && global::XX.X.BTW(0f, (float)k, (float)m2ChipImageNested.rows))
+							if (X.BTW(0f, (float)j, (float)m2ChipImageNested.clms) && X.BTW(0f, (float)k, (float)m2ChipImageNested.rows))
 							{
 								m2ChipImageNested.Aconfig[k * m2ChipImageNested.clms + j] = (byte)num5;
 							}
@@ -751,21 +756,22 @@ namespace m2d
 			}
 		}
 
-		public PxlMeshDrawer getSourceMesh(int _layer)
+		public PxlMeshDrawer getSourceMeshForPicture(int _layer)
 		{
 			int num = base.mesh_type - 1;
 			if ((_layer == 0) ? (num <= 0) : (_layer == num))
 			{
 				return this.ImgMain0;
 			}
-			return null;
+			return base.getSrcMeshCI(_layer, this.ACIMeshForPicture);
 		}
 
 		protected override void MeshPushFromAdditionalLayer(PxlLayer Lay, M2ImageAtlas.AtlasRect nAtlas, int layer)
 		{
+			base.MeshPush(Lay, nAtlas, layer, ref this.ACIMeshForPicture);
 			if (Lay.isTransformed())
 			{
-				global::XX.X.dl("Nested へのTransformedレイヤー追加:" + base.src + " +" + Lay.ToString(), null, false, false);
+				X.dl("Nested へのTransformedレイヤー追加:" + base.src + " +" + Lay.ToString(), null, false, false);
 			}
 			float num = (float)Lay.cvs_left;
 			float num2 = (float)Lay.cvs_top;
@@ -782,8 +788,8 @@ namespace m2d
 					int num6;
 					int num7;
 					this.getPosition(i, out num6, out num7);
-					float num8 = (float)global::XX.X.Mx(0, num6 * base.CLEN * this.iclms_ - this.srcl);
-					float num9 = (float)global::XX.X.Mx(0, num7 * base.CLEN * this.irows_ - this.srct);
+					float num8 = (float)X.Mx(0, num6 * base.CLEN * this.iclms_ - this.srcl);
+					float num9 = (float)X.Mx(0, num7 * base.CLEN * this.irows_ - this.srct);
 					float num10 = num8 + (float)m2ChipImageNested.iwidth;
 					float num11 = num9 + (float)m2ChipImageNested.iheight;
 					num8 += (float)base.SourceLayer.cvs_left - num;
@@ -811,12 +817,12 @@ namespace m2d
 						num15 += 600f;
 					}
 					Rect rect = new Rect(0f, 0f, (float)nAtlas.w, (float)nAtlas.h);
-					rect = global::XX.X.rectMultiply(rect, num12, num13, num14 - num12, num15 - num13);
+					rect = X.rectMultiply(rect, num12, num13, num14 - num12, num15 - num13);
 					if (rect.width > 0f && rect.height > 0f)
 					{
 						M2ImageAtlas.AtlasRect atlasRect = new M2ImageAtlas.AtlasRect(nAtlas.x + (int)rect.x, nAtlas.y + nAtlas.h - (int)rect.yMax, (int)rect.width, (int)rect.height);
-						float num16 = global::XX.X.Mx(0f, rect.x - num8);
-						float num17 = global::XX.X.Mx(0f, num11 - rect.yMax);
+						float num16 = X.Mx(0f, rect.x - num8);
+						float num17 = X.Mx(0f, num11 - rect.yMax);
 						PxlMeshDrawer pxlMeshDrawer = atlasRect.makeMesh(this.IMGS.MIchip, (float)(-(float)m2ChipImageNested.iwidth) * 0.5f + (float)atlasRect.w * 0.5f + num16, (float)(-(float)m2ChipImageNested.iheight) * 0.5f + (float)atlasRect.h * 0.5f + num17, m2ChipImageNested.getSrcMesh(layer));
 						m2ChipImageNested.MeshPush(pxlMeshDrawer, layer);
 					}
@@ -824,12 +830,12 @@ namespace m2d
 			}
 		}
 
-		public static M2ChipImageNestedParent readFromBytesN(ByteArray Ba, byte load_ver, M2ImageContainer IMGS, string dirname, bool create = true)
+		public static M2ChipImageNestedParent readFromBytesN(ByteReader Ba, byte load_ver, M2ImageContainer IMGS, string dirname, bool create = true)
 		{
 			string text = Ba.readPascalString("utf-8", false);
 			if (load_ver <= 6)
 			{
-				text = global::XX.X.basename_noext(text);
+				text = X.basename_noext(text);
 			}
 			int num = ((load_ver < 5) ? ((int)Ba.readUShort()) : Ba.readByte());
 			int num2 = ((load_ver < 5) ? ((int)Ba.readUShort()) : Ba.readByte());
@@ -864,6 +870,10 @@ namespace m2d
 				if (array != null)
 				{
 					array[i] = num18;
+					if (num18 >= IMGS.imgs_capacity + 1000U)
+					{
+						array[i] = 0U;
+					}
 				}
 			}
 			ushort num19 = Ba.readUShort();
@@ -979,6 +989,8 @@ namespace m2d
 		private M2ChipImageNested[] AChild;
 
 		private PxlMeshDrawer ImgMain0;
+
+		private M2ChipImage.CIMesh[] ACIMeshForPicture;
 
 		public const string nested_expat_footer = ".pat.png";
 

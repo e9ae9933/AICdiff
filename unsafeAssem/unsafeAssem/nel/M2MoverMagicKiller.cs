@@ -22,12 +22,17 @@ namespace nel
 			{
 				return HITTYPE.NONE;
 			}
-			return (HITTYPE)65544;
+			return HITTYPE.OTHER | HITTYPE.KILLED;
 		}
 
 		protected override bool noHitableAttack()
 		{
 			return false;
+		}
+
+		public float auto_target_priority(M2Mover CalcFrom)
+		{
+			return -1f;
 		}
 
 		public virtual RAYHIT can_hit(M2Ray Ray)

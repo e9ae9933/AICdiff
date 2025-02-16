@@ -32,13 +32,22 @@ namespace evt
 			}
 		}
 
+		public bool emot_prepared
+		{
+			get
+			{
+				return this.APose.Count != 0;
+			}
+		}
+
 		public void activate(string s)
 		{
 		}
 
-		public bool setGrp(EvDrawer Drw, string s)
+		public bool setGrp(EvDrawer Drw, string s, out EvEmotVisibility NextPose, out string next_emotion)
 		{
-			this.NextPose = null;
+			NextPose = null;
+			next_emotion = null;
 			if (!REG.match(s, EvPerson.RegPicDirAndAM))
 			{
 				return false;
@@ -65,8 +74,8 @@ namespace evt
 				}
 				text = rightContext;
 			}
-			this.NextPose = evEmotVisibility;
-			this.next_emotion = text;
+			NextPose = evEmotVisibility;
+			next_emotion = text;
 			return true;
 		}
 
@@ -77,7 +86,6 @@ namespace evt
 
 		public EvPerson release()
 		{
-			this.CurPose = (this.NextPose = null);
 			if (this.talker_name != this.talker_name_first)
 			{
 				this.talker_name = this.talker_name_first;
@@ -114,30 +122,30 @@ namespace evt
 			return Tx;
 		}
 
-		public void drawTo(TalkDrawer Drwr, MeshDrawer Md)
+		public void drawTo(TalkDrawer Drwr, MeshDrawer Md, ref EvEmotVisibility CurPose, ref string cur_emotion, EvEmotVisibility NextPose, string next_emotion)
 		{
 			RenderTexture renderTexture;
-			if (this.CurPose != this.NextPose || this.cur_emotion != this.next_emotion)
+			if (CurPose != NextPose || cur_emotion != next_emotion)
 			{
-				this.CurPose = this.NextPose;
-				int num = (int)((this.CurPose.swidth_px + 0f) * 1f);
-				int num2 = (int)((this.CurPose.sheight_px + 0f) * 1f);
-				this.cur_emotion = this.next_emotion;
-				if (this.CurPose == null)
+				CurPose = NextPose;
+				if (CurPose == null)
 				{
 					return;
 				}
+				int num = (int)((CurPose.swidth_px + 0f) * 1f);
+				int num2 = (int)((CurPose.sheight_px + 0f) * 1f);
+				cur_emotion = next_emotion;
 				renderTexture = Drwr.PrepareBufferTx(num, num2, true);
-				this.prepareTextureAndEmotion(renderTexture, Drwr.getBufferStaticMesh(), this.CurPose, this.cur_emotion, 1f);
+				this.prepareTextureAndEmotion(renderTexture, Drwr.getBufferStaticMesh(), CurPose, cur_emotion, 1f);
 			}
 			else
 			{
-				if (this.CurPose == null)
+				if (CurPose == null)
 				{
 					return;
 				}
-				int num = (int)((this.CurPose.swidth_px + 0f) * 1f);
-				int num2 = (int)((this.CurPose.sheight_px + 0f) * 1f);
+				int num = (int)((CurPose.swidth_px + 0f) * 1f);
+				int num2 = (int)((CurPose.sheight_px + 0f) * 1f);
 				renderTexture = Drwr.PrepareBufferTx(num, num2, false);
 			}
 			if (Md != null)
@@ -148,91 +156,32 @@ namespace evt
 					Drwr.changeMMRDMaterial(Md, this.DrawerMtr);
 				}
 				Md.initForImgAndTexture(renderTexture);
-				Md.RotaGraph(Drwr.img_center_shift_x, Drwr.img_center_shift_y, this.CurPose.draw_scale, 0f, null, false);
+				Md.RotaGraph(Drwr.img_center_shift_x, Drwr.img_center_shift_y, CurPose.draw_scale, 0f, null, false);
 			}
 		}
 
-		public bool cacheGraphics(bool do_not_add_ev_list = false)
+		public void cacheGraphics()
 		{
-			EvPerson.EvPxlsLoader evPxlsLoader = null;
-			bool flag = false;
-			if ((this.load_image & EvPerson.LOAD.LOADED) == EvPerson.LOAD.OFFLINE)
-			{
-				evPxlsLoader = evPxlsLoader ?? EV.getLoaderForPerson(this.key);
-				if (evPxlsLoader != null)
-				{
-					PxlCharacter pxlCharacter = evPxlsLoader.preparePxlChar(true, !evPxlsLoader.is_static, null);
-					if (pxlCharacter == null || !pxlCharacter.isLoadCompleted())
-					{
-						if (!do_not_add_ev_list)
-						{
-							EV.recheckPersonCacheReadAfter(this);
-						}
-						flag = true;
-					}
-					else
-					{
-						this.initPxEmot(pxlCharacter, evPxlsLoader.is_static);
-						this.load_image |= (evPxlsLoader.is_static ? EvPerson.LOAD.STATIC_LOADED : EvPerson.LOAD.LOADED);
-					}
-				}
-			}
-			if ((this.load_image & EvPerson.LOAD._BIT_IMAGE_PREPARED) == EvPerson.LOAD.OFFLINE)
-			{
-				evPxlsLoader = evPxlsLoader ?? EV.getLoaderForPerson(this.key);
-				if (evPxlsLoader != null)
-				{
-					if (evPxlsLoader.preparePxlImage(false) || !Caching.ready)
-					{
-						flag = true;
-					}
-					else
-					{
-						this.load_image |= EvPerson.LOAD._BIT_IMAGE_PREPARED;
-					}
-				}
-			}
-			return flag;
+			this.Loader.preparePxlChar(true, true);
 		}
 
-		internal void releaseLoadedExternalTexture(EvPerson.EvPxlsLoader Pcl = null)
+		internal void initPxEmot(PxlCharacter Pc)
 		{
-			if (this.load_image != EvPerson.LOAD.LOADED_IMAGE_PREPARED)
-			{
-				return;
-			}
-			Pcl = Pcl ?? EV.getLoaderForPerson(this.key);
-			if (Pcl == null)
-			{
-				return;
-			}
-			Pcl.releasePxlImage();
-			this.load_image = EvPerson.LOAD.LOADED;
-		}
-
-		internal void initPxEmot(PxlCharacter Pc, bool is_static = false)
-		{
-			if ((this.load_image & EvPerson.LOAD.LOADED) == EvPerson.LOAD.LOADED)
-			{
-				return;
-			}
-			this.load_image = (is_static ? EvPerson.LOAD.STATIC_LOADED : EvPerson.LOAD.LOADED);
-			int num = Pc.countPoses();
-			for (int i = 0; i < num; i++)
+			for (int i = Pc.countPoses() - 1; i >= 0; i--)
 			{
 				PxlPose pose = Pc.getPose(i);
 				if (pose.title.IndexOf("_") != 0)
 				{
 					int count = this.APose.Count;
-					uint num2 = 8U;
-					int num3 = 0;
-					while ((long)num3 < (long)((ulong)num2))
+					uint num = 8U;
+					int num2 = 0;
+					while ((long)num2 < (long)((ulong)num))
 					{
-						if (pose.isValidAim(num3) && !pose.isFlipped(num3))
+						if (pose.isValidAim(num2) && !pose.isFlipped(num2))
 						{
-							this.initPxEmot(pose.getSequence(num3));
+							this.initPxEmot(pose.getSequence(num2));
 						}
-						num3++;
+						num2++;
 					}
 					int count2 = this.APose.Count;
 					for (int j = count + 1; j < count2; j++)
@@ -255,44 +204,55 @@ namespace evt
 										{
 											if (!(cmd == "shift_x"))
 											{
-												if (cmd == "auto_replace")
+												if (!(cmd == "shift_x_onright"))
 												{
-													this.addReplaceTerm(pose, csvReader._1, csvReader._2, csvReader.slice_join(3, " ", ""));
+													if (cmd == "auto_replace")
+													{
+														this.addReplaceTerm(pose, csvReader._1, csvReader._2, csvReader.slice_join(3, " ", ""));
+													}
+												}
+												else
+												{
+													float num3 = csvReader._N1;
+													for (int k = count; k < count2; k++)
+													{
+														this.APose[k].shift_x_onright = num3;
+													}
 												}
 											}
 											else
 											{
-												float num4 = csvReader._N1;
-												for (int k = count; k < count2; k++)
+												float num3 = csvReader._N1;
+												for (int l = count; l < count2; l++)
 												{
-													this.APose[k].shift_x = num4;
+													this.APose[l].shift_x = num3;
 												}
 											}
 										}
 										else
 										{
-											float num4 = csvReader._N1;
-											for (int l = count; l < count2; l++)
+											float num3 = csvReader._N1;
+											for (int m = count; m < count2; m++)
 											{
-												this.APose[l].shift_y = num4;
+												this.APose[m].shift_y = num3;
 											}
 										}
 									}
 									else
 									{
-										float num4 = csvReader._N1;
-										for (int m = count; m < count2; m++)
+										float num3 = csvReader._N1;
+										for (int n = count; n < count2; n++)
 										{
-											this.APose[m].shift_y += num4;
+											this.APose[n].shift_y += num3;
 										}
 									}
 								}
 								else
 								{
-									float num4 = csvReader._N1 / 100f;
-									for (int n = count; n < count2; n++)
+									float num3 = csvReader._N1 / 100f;
+									for (int num4 = count; num4 < count2; num4++)
 									{
-										this.APose[n].draw_scale = num4;
+										this.APose[num4].draw_scale = num3;
 									}
 								}
 							}
@@ -559,20 +519,6 @@ namespace evt
 			return this.APose;
 		}
 
-		public EvEmotVisibility get_CurPose()
-		{
-			return this.CurPose;
-		}
-
-		public EvEmotVisibility get_NextPose(bool avoid_empty = false)
-		{
-			if (this.NextPose == null && avoid_empty)
-			{
-				return this.CurPose;
-			}
-			return this.NextPose;
-		}
-
 		public EvEmotVisibility getPoseByName(string s)
 		{
 			for (int i = this.APose.Count - 1; i >= 0; i--)
@@ -615,18 +561,17 @@ namespace evt
 			return flag;
 		}
 
-		internal static void loadPerson(string _LT, ref EvPerson.EvPxlsLoader[] APxls_ta, ref EvPerson.EvPxlsLoader[] APxlsLoader_ta)
+		internal static void loadPerson(string _LT, ref EvPerson.EvPxlsLoader[] APxls_ta)
 		{
 			if (EvPerson.BufMtr == null)
 			{
 				EvPerson.BufMtr = MTRX.newMtr(MTRX.ShaderGDT);
 				EvPerson.BufMtr.EnableKeyword("NO_PIXELSNAP");
 			}
-			EvPerson.OPerson = new NDic<EvPerson>("_WHOLE_PERSON", 0);
+			EvPerson.OPerson = new NDic<EvPerson>("_WHOLE_PERSON", 0, 0);
 			CsvReader csvReader = new CsvReader(_LT, CsvReader.RegSpace, true);
 			EvPerson evPerson = null;
 			List<EvPerson.EvPxlsLoader> list = new List<EvPerson.EvPxlsLoader>();
-			List<EvPerson.EvPxlsLoader> list2 = new List<EvPerson.EvPxlsLoader>();
 			while (csvReader.read())
 			{
 				string cmd = csvReader.cmd;
@@ -647,15 +592,28 @@ namespace evt
 					}
 					else
 					{
-						if (csvReader.cmd == "%PXL_PERSON" && evPerson == null)
+						if (csvReader.cmd == "%PXL_PERSON")
 						{
-							csvReader.tError("%PXL_PERSON は Person 定義後に指定する");
+							if (evPerson == null)
+							{
+								csvReader.tError("%PXL_PERSON は Person 定義後に指定する");
+								continue;
+							}
+							if (evPerson.Loader != null)
+							{
+								csvReader.tError("%PXL_PERSON の Loader 定義は1度だけ実行する");
+								continue;
+							}
+						}
+						bool flag = csvReader.Nm(2, 0f) != 0f;
+						EvPerson.EvPxlsLoader evPxlsLoader = new EvPerson.EvPxlsLoader((csvReader.cmd == "%PXL") ? "" : evPerson.key, csvReader._1, !flag);
+						list.Add(evPxlsLoader);
+						evPxlsLoader.preparePxlChar(!flag || !evPxlsLoader.is_person, false);
+						if (csvReader.cmd == "%PXL_PERSON")
+						{
+							evPerson.Loader = evPxlsLoader;
 							continue;
 						}
-						EvPerson.EvPxlsLoader evPxlsLoader = new EvPerson.EvPxlsLoader((csvReader.cmd == "%PXL") ? "" : evPerson.key, csvReader._1);
-						list.Add(evPxlsLoader);
-						bool flag = csvReader.Nm(2, 0f) != 0f;
-						evPxlsLoader.preparePxlChar(!flag || !evPxlsLoader.is_person, flag, list2);
 						continue;
 					}
 				}
@@ -678,7 +636,6 @@ namespace evt
 			}
 			EvPerson.OPerson.scriptFinalize();
 			APxls_ta = list.ToArray();
-			APxlsLoader_ta = list2.ToArray();
 		}
 
 		public void addTemporaryTerm(string check_expression, string repl, string term)
@@ -751,6 +708,11 @@ namespace evt
 			}
 		}
 
+		public bool loaderIs(EvPerson.EvPxlsLoader _Loader)
+		{
+			return this.Loader == _Loader;
+		}
+
 		public static byte[] getPngBytesS(RenderTexture Tx)
 		{
 			Texture2D texture2D = new Texture2D(Tx.width, Tx.height, TextureFormat.ARGB32, false);
@@ -758,7 +720,7 @@ namespace evt
 			texture2D.ReadPixels(new Rect(0f, 0f, (float)Tx.width, (float)Tx.height), 0, 0);
 			texture2D.Apply();
 			byte[] array = texture2D.EncodeToPNG();
-			Object.Destroy(texture2D);
+			global::UnityEngine.Object.Destroy(texture2D);
 			return array;
 		}
 
@@ -796,21 +758,13 @@ namespace evt
 
 		private readonly List<EvEmotVisibility> APose;
 
-		private EvEmotVisibility CurPose;
-
 		private List<EvPerson.EmotReplaceTerm> ATerm;
-
-		private string cur_emotion;
 
 		private static Material BufMtr;
 
 		private Material DrawerMtr;
 
-		private EvEmotVisibility NextPose;
-
-		private string next_emotion;
-
-		private EvPerson.LOAD load_image;
+		private EvPerson.EvPxlsLoader Loader;
 
 		public readonly byte index;
 
@@ -969,18 +923,40 @@ namespace evt
 
 		public class EvPxlsLoader
 		{
-			public EvPxlsLoader(string _person_key, string _pxl_name)
+			public EvPxlsLoader(string _person_key, string _pxl_name, bool _is_static)
 			{
 				this.person_key = _person_key;
 				this.pxl_name = _pxl_name;
+				this.ticket_loading_value = (_is_static ? EvPerson.EvPxlsLoader.TLD._STATIC : ((EvPerson.EvPxlsLoader.TLD)0));
 				this.pxl_ipath = "EvImg/" + this.pxl_name + ".pxls.bytes.texture_0";
 			}
 
-			public PxlCharacter preparePxlChar(bool pc_load_flag, bool after_release, List<EvPerson.EvPxlsLoader> APxlsLoaderFirst = null)
+			public EvPxlsLoader(string _person_key, PxlCharacter _Pc)
+			{
+				this.person_key = _person_key;
+				this.Pc = _Pc;
+				this.pxl_name = this.Pc.title;
+				this.ticket_loading_value = EvPerson.EvPxlsLoader.TLD._STATIC;
+				this.pxl_ipath = "EvImg/" + this.pxl_name + ".pxls.bytes.texture_0";
+			}
+
+			public bool is_static
+			{
+				get
+				{
+					return (this.ticket_loading_value & EvPerson.EvPxlsLoader.TLD._STATIC) > (EvPerson.EvPxlsLoader.TLD)0;
+				}
+			}
+
+			public void setStaticFlagForDebugger()
+			{
+				this.ticket_loading_value |= EvPerson.EvPxlsLoader.TLD._STATIC;
+			}
+
+			public PxlCharacter preparePxlChar(bool pc_load_flag, bool image_load_flag)
 			{
 				string text = X.basename(this.pxl_name);
 				this.Pc = PxlsLoader.getPxlCharacter(text);
-				this.is_static = !after_release;
 				if (this.Pc == null && pc_load_flag)
 				{
 					using (MTI mti = new MTI("EvImg/" + this.pxl_name + ".pxls", "_"))
@@ -990,47 +966,42 @@ namespace evt
 						{
 							X.de("不明な pxl パス: EvImg/" + this.pxl_name, null);
 						}
-						if (APxlsLoaderFirst != null)
-						{
-							APxlsLoaderFirst.Add(this);
-						}
 					}
 				}
-				if (this.Pc != null)
+				if (this.Pc != null && (this.ticket_loading_value & EvPerson.EvPxlsLoader.TLD._LOADING_BITS) < EvPerson.EvPxlsLoader.TLD._LOADING_BITS)
 				{
 					this.Pc.no_load_external_texture_on_first = true;
+					bool flag = !this.Pc.isLoadCompleted();
+					bool flag2 = false;
+					if (!this.image_loaded && image_load_flag && MTI.LoadContainerOneImage(this.pxl_ipath, null, null).addLoadKey("EV", true))
+					{
+						flag2 = true;
+					}
+					if (flag || flag2)
+					{
+						EvPerson.EvPxlsLoader.TLD tld = (image_load_flag ? EvPerson.EvPxlsLoader.TLD._LOADING_BITS : EvPerson.EvPxlsLoader.TLD.DATA);
+						if ((this.ticket_loading_value & EvPerson.EvPxlsLoader.TLD._LOADING_BITS) < tld)
+						{
+							this.ticket_loading_value |= tld;
+							EV.initLoadTicket("PXL", flag2 ? "DI" : "D", EvPerson.EvPxlsLoader.FD_LoadPxl, this, 0);
+						}
+					}
 				}
 				return this.Pc;
 			}
 
-			public bool preparePxlImage(bool only_read_started = false)
+			public void releasePxlImage()
 			{
 				if (this.image_loaded)
 				{
-					return false;
-				}
-				MTIOneImage mtioneImage = MTI.LoadContainerOneImage(this.pxl_ipath, null, null);
-				if (only_read_started && !mtioneImage.hasLoadKey("EV"))
-				{
-					return false;
-				}
-				if (mtioneImage.addLoadKey("EV", true) || !mtioneImage.isAsyncLoadFinished())
-				{
-					return true;
-				}
-				this.image_loaded = true;
-				this.Pc.ReplaceExternalPng(new Texture[] { mtioneImage.Image }, true);
-				MTRX.assignMI(this.Pc, mtioneImage.MI);
-				return false;
-			}
-
-			public void releasePxlImage()
-			{
-				this.image_loaded = false;
-				MTI.ReleaseContainer("EvImg/" + this.pxl_name + ".pxls.bytes.texture_0", "EV");
-				if (this.Pc != null)
-				{
-					this.Pc.releaseLoadedExternalTexture(false, null);
+					this.image_loaded = false;
+					MTI.ReleaseContainer(this.pxl_ipath, "EV");
+					if (this.Pc != null)
+					{
+						this.Pc.releaseLoadedExternalTexture(false, null);
+					}
+					LoadTicketManager.destructTarget(this);
+					this.ticket_loading_value &= ~(EvPerson.EvPxlsLoader.TLD.DATA | EvPerson.EvPxlsLoader.TLD.IMG);
 				}
 			}
 
@@ -1048,22 +1019,55 @@ namespace evt
 
 			public readonly string pxl_ipath;
 
-			public bool is_static;
+			private EvPerson.EvPxlsLoader.TLD ticket_loading_value;
 
 			public PxlCharacter Pc;
 
 			public bool image_loaded;
-		}
 
-		internal enum LOAD : byte
-		{
-			OFFLINE,
-			LOADED,
-			LOADED_IMAGE_PREPARED = 3,
-			_BIT_LOAD = 1,
-			_BIT_IMAGE_PREPARED,
-			STATIC = 8,
-			STATIC_LOADED
+			private const string TLOAD_NAME_PXL = "PXL";
+
+			private const string TLOAD_NAME2_PXL_DATAONLY = "D";
+
+			private const string TLOAD_NAME2_PXL_DATA_AND_IMG = "DI";
+
+			private static LoadTicketManager.FnLoadProgress FD_LoadPxl = delegate(LoadTicketManager.LoadTicket Tk)
+			{
+				EvPerson.EvPxlsLoader evPxlsLoader = Tk.Target as EvPerson.EvPxlsLoader;
+				if (!evPxlsLoader.Pc.isLoadCompleted())
+				{
+					return true;
+				}
+				if (Tk.name2 == "DI" && !evPxlsLoader.image_loaded)
+				{
+					MTIOneImage mtioneImage = MTI.LoadContainerOneImage(evPxlsLoader.pxl_ipath, null, null);
+					if (mtioneImage.addLoadKey("EV", true) || !mtioneImage.isAsyncLoadFinished())
+					{
+						return true;
+					}
+					evPxlsLoader.image_loaded = true;
+					evPxlsLoader.Pc.ReplaceExternalPng(new Texture[] { mtioneImage.Image }, true);
+					MTRX.assignMI(evPxlsLoader.Pc, mtioneImage.MI);
+					if (evPxlsLoader.is_person)
+					{
+						EvPerson person = EvPerson.getPerson(evPxlsLoader.person_key, null);
+						if (person != null && !person.emot_prepared)
+						{
+							person.initPxEmot(evPxlsLoader.Pc);
+						}
+					}
+				}
+				return false;
+			};
+
+			[Flags]
+			private enum TLD : byte
+			{
+				DATA = 1,
+				IMG = 2,
+				_LOADING_BITS = 3,
+				_STATIC = 4
+			}
 		}
 	}
 }

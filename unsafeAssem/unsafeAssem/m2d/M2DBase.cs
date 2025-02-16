@@ -10,7 +10,7 @@ using XX;
 
 namespace m2d
 {
-	public class M2DBase : IEventListener, IEventWaitListener, IM2DebugTarget, IHkdsFollowableContainer, IEfPInteractale
+	public class M2DBase : IEventWaitListener, IM2DebugTarget, IHkdsFollowableContainer, IEfPInteractale
 	{
 		public M2ImageAtlas.AtlasRect RectWhite
 		{
@@ -46,7 +46,7 @@ namespace m2d
 			}
 			this.DGN = new DungeonContainer(this);
 			this.OPxlLayer = new BDic<string, PxlLayer>();
-			this.OM2d = new NDic<Map2d>("M2DBase", 0);
+			this.OM2d = new NDic<Map2d>("M2DBase", 0, 0);
 			this.Snd = new M2SoundPlayer(this);
 			this.MDMGCon = new M2MapDamageContainer();
 			M2MoveTicket.initS();
@@ -83,18 +83,19 @@ namespace m2d
 			{
 				M2DBase.Instance = this;
 			}
+			if (this.InitLoader == null)
+			{
+				this.InitLoader = new M2DInitializeLoader(this, this.Pauser);
+			}
 		}
 
-		public virtual void initGameObject(GameObject _GobBase, float cam_w, float cam_h, bool execute_load_finalize = true)
+		public virtual void initGameObject(GameObject _GobBase, float cam_w, float cam_h)
 		{
 			this.GobBase = _GobBase;
 			M2DropObjectReader.initDroScript();
 			this.Cam = new M2Camera(this);
 			this.Cam.setWH(cam_w, cam_h, false, false);
-			if (execute_load_finalize)
-			{
-				this.LoadAfterWhenMapScene();
-			}
+			this.TxKD = IN.CreateGob(null, "M2D-TxKD").AddComponent<TxKeyDesc>();
 		}
 
 		protected virtual void destructMaps()
@@ -145,8 +146,11 @@ namespace m2d
 			catch
 			{
 			}
-			TX.removeListenerEval(this);
-			EV.remListener(this);
+			if (this.EvtListener != null)
+			{
+				this.EvtListener.destruct();
+				this.EvtListener = null;
+			}
 			EV.remWaitListener("M2D_LOADING");
 			if (execute_destruct_maps)
 			{
@@ -181,6 +185,17 @@ namespace m2d
 			}
 			try
 			{
+				if (this.TxKD != null)
+				{
+					this.TxKD.destruct();
+					IN.DestroyE(this.TxKD.gameObject);
+				}
+			}
+			catch
+			{
+			}
+			try
+			{
 				M2MobGenerator.destructMOBG();
 			}
 			catch
@@ -200,96 +215,22 @@ namespace m2d
 			return this.Snd == null;
 		}
 
-		public bool loadBasicMaterialProgress(int cnt = -1)
-		{
-			while (cnt < 0 || --cnt >= 0)
-			{
-				if (this.pstate == M2DBase.PREPARE.NO_LOAD)
-				{
-					string text = NKT.readStreamingText("m2d/__m2d_list.dat", false);
-					this.LoadMapList(text);
-					M2DBase.MtiShader.addLoadKey("M2D", true);
-					cnt = X.Mn(cnt, 0);
-					this.pstate = M2DBase.PREPARE.PREPARE_CHIPS;
-					Bench.mark("loadM2D - LoadChipList", false, false);
-				}
-				else if (this.pstate == M2DBase.PREPARE.PREPARE_CHIPS)
-				{
-					PxlsLoader.loadSpeed = X.Mn(64f, PxlsLoader.loadSpeed);
-					this.IMGS.Atlas.initCspAtlas(M2DBase.Achip_pxl_key[0]);
-					if (this.fnYSortFunction == null)
-					{
-						this.fnYSortFunction = new fnMapItemYSortFunction(this.fnYSortFunctionDefault);
-					}
-					IN.AssignPauseable(this.Pauser);
-					this.IMGS.prepareChipsScript();
-					this.pstate = M2DBase.PREPARE.PREPARE_CHIPS_READING;
-				}
-				else if (this.pstate == M2DBase.PREPARE.PREPARE_CHIPS_READING)
-				{
-					if (!this.IMGS.progressChipsScriptRead((cnt < 0) ? (-1) : (cnt + 1)))
-					{
-						this.pstate = M2DBase.PREPARE.PREPARE_CHIPS_COMP;
-					}
-					else
-					{
-						cnt = X.Mn(cnt, 0);
-					}
-				}
-				else if (this.pstate == M2DBase.PREPARE.PREPARE_CHIPS_COMP)
-				{
-					this.pstate = M2DBase.PREPARE.LOAD_EV;
-					Bench.mark("loadM2D - LoadMapList", false, false);
-				}
-				else if (this.pstate == M2DBase.PREPARE.LOAD_EV)
-				{
-					if (!EV.material_prepared || !PxlsLoader.isLoadCompletedAll() || !M2DBase.MtiShader.isAsyncLoadFinished())
-					{
-						return true;
-					}
-					M2DBase.MtiShader.LoadAllShader();
-					this.pstate = M2DBase.PREPARE.LOAD_AFTER;
-				}
-				else
-				{
-					if (this.pstate == M2DBase.PREPARE.LOAD_AFTER)
-					{
-						Bench.mark("loadM2D - LoadAfter", false, false);
-						this.LoadAfter();
-						Bench.mark(null, false, false);
-						this.pstate = M2DBase.PREPARE.INIT_FIRST_EVENT;
-						this.transferring_game_stopping = true;
-						break;
-					}
-					break;
-				}
-			}
-			if (this.pstate == M2DBase.PREPARE.INIT_FIRST_EVENT && this.GobBase != null)
-			{
-				this.initEvent();
-				if (EV.Log != null)
-				{
-					EV.Log.initPerson();
-				}
-				if (!this.event_eval_inited)
-				{
-					this.event_eval_inited = true;
-					this.createListenerEval(0);
-					EV.addListener(this);
-					EV.addHkdsFollowableListener(this);
-				}
-				this.pstate = M2DBase.PREPARE.COMPLETE;
-			}
-			return this.pstate < M2DBase.PREPARE.INIT_FIRST_EVENT;
-		}
-
-		protected virtual void initEvent()
+		public virtual void initEvent()
 		{
 			EV.initEvent(null, null, this.TutoBox = new GameObject("Ev-Tutorial").AddComponent<TutorialBox>());
 		}
 
 		public virtual void stackFirstEvent()
 		{
+			if (EV.Log != null)
+			{
+				EV.Log.initPerson();
+			}
+			if (this.EvtListener == null)
+			{
+				this.EvtListener = new M2DEventListener(this);
+			}
+			EV.addHkdsFollowableListener(this);
 			if (this.EvLsn == null && EV.initDebugger(false))
 			{
 				this.EvLsn = new M2EvDebugListener(this);
@@ -308,20 +249,6 @@ namespace m2d
 		public virtual int EvtCacheRead(EvReader ER, string cmd, CsvReader rER)
 		{
 			return 0;
-		}
-
-		private void LoadMapList(string lt_text)
-		{
-			CsvReader csvReader = new CsvReader(lt_text, CsvReader.RegSpace, true);
-			while (csvReader.read())
-			{
-				string text = X.basename_noext(csvReader.cmd);
-				if (!(text == ""))
-				{
-					this.OM2d[text] = new Map2d(this, text, false);
-				}
-			}
-			this.OM2d.scriptFinalize();
 		}
 
 		public CsvReader readMapBody(Map2d M)
@@ -352,13 +279,27 @@ namespace m2d
 			return NKT.readStreamingText("m2d/" + key + ".cmd", true);
 		}
 
-		protected virtual void LoadAfter()
+		public virtual void initGameObjectAfter()
 		{
+			this.loadBasicMaterialProgress(-1);
+			this.addValotAddition(this.TxKD);
 		}
 
-		protected virtual void LoadAfterWhenMapScene()
+		public bool loadBasicMaterialProgress(int cnt)
 		{
-			this.loadBasicMaterialProgress(0);
+			if (this.InitLoader != null)
+			{
+				if (this.InitLoader.loadBasicMaterialProgress(cnt))
+				{
+					return true;
+				}
+				this.InitLoader = null;
+			}
+			return false;
+		}
+
+		public virtual void LoadAfter()
+		{
 		}
 
 		public virtual bool loadAdditionalMaterialForChip(M2ChipImage I)
@@ -379,7 +320,7 @@ namespace m2d
 				}
 				else
 				{
-					this.loadMaterialPxl(array[0], array[1], true, true);
+					this.loadMaterialPxl(array[0], array[1], true, true, false);
 					flag = true;
 				}
 			}
@@ -434,13 +375,13 @@ namespace m2d
 			}
 		}
 
-		public bool loadMaterialPxl(string title, string text_asset_path, bool autoFlipX = true, bool load_external = true)
+		public bool loadMaterialPxl(string title, string text_asset_path, bool autoFlipX = true, bool load_external = true, bool load_external_async = false)
 		{
 			PxlCharacter pxlCharacter;
-			return this.loadMaterialPxl(title, text_asset_path, out pxlCharacter, autoFlipX, load_external);
+			return this.loadMaterialPxl(title, text_asset_path, out pxlCharacter, autoFlipX, load_external, load_external_async);
 		}
 
-		public bool loadMaterialPxl(string title, string text_asset_path, out PxlCharacter PcOut, bool autoFlipX = true, bool load_external = true)
+		public bool loadMaterialPxl(string title, string text_asset_path, out PxlCharacter PcOut, bool autoFlipX = true, bool load_external = true, bool load_external_async = false)
 		{
 			bool flag = false;
 			if (!this.hasLMtr(M2DBase.LM_TYPE.PXL, title))
@@ -450,7 +391,12 @@ namespace m2d
 					text_asset_path = title;
 				}
 				this.Amaterial_loaded.Add(new M2DBase.LMtr(M2DBase.LM_TYPE.PXL, title));
-				PcOut = MTRX.loadMtiPxc(title, text_asset_path, "M2D", autoFlipX, load_external);
+				MTIOneImage mtioneImage;
+				PcOut = MTRX.loadMtiPxc(out mtioneImage, title, text_asset_path, "M2D", autoFlipX, load_external, load_external_async);
+				if (load_external_async && load_external)
+				{
+					LoadTicketManager.Instance.AddTicketInner(PcOut, mtioneImage, 0);
+				}
 				flag = true;
 			}
 			else
@@ -538,9 +484,14 @@ namespace m2d
 			M2DBase.material_flush_flag |= M2DBase.FLUSH._ALL;
 		}
 
-		public virtual void setFlushOtherMatFlag()
+		public void setFlushOtherMatFlag()
 		{
 			M2DBase.material_flush_flag |= M2DBase.FLUSH.MATERIAL;
+		}
+
+		public void setFlushMapFlag()
+		{
+			M2DBase.material_flush_flag |= M2DBase.FLUSH.MAP;
 		}
 
 		public void setGfTempFlushFlagOnMapChange(bool f)
@@ -581,6 +532,7 @@ namespace m2d
 								pxlCharacter.releaseLoadedExternalTexture(false, null);
 								MTI.ReleaseContainer(pxlCharacter.external_png_header + ".bytes.texture_0", "M2D");
 								MTRX.releaseMI(pxlCharacter, true);
+								PxlsLoader.disposeCharacter(pxlCharacter.title, true);
 							}
 						}
 						else if (lmtr.type == M2DBase.LM_TYPE.SND)
@@ -691,6 +643,17 @@ namespace m2d
 		{
 		}
 
+		public void addMapFlushFlagToLoader()
+		{
+			if (this.ALoader != null)
+			{
+				for (int i = this.ALoader.Count - 1; i >= 0; i--)
+				{
+					this.ALoader[i].flushing = true;
+				}
+			}
+		}
+
 		public bool isMaterialLoading(bool no_consider_loader = false)
 		{
 			return (!no_consider_loader && (this.ALoader != null || this.IMGS.Atlas.isLoading())) || !SND.loaded;
@@ -758,7 +721,7 @@ namespace m2d
 			this.ALoader.Add(m2MapMaterialLoader2);
 		}
 
-		protected virtual bool initMapBgm(Map2d NextMap = null, bool replace_bgm = false)
+		public virtual bool initMapBgm(Map2d NextMap = null, bool replace_bgm = false)
 		{
 			if (NextMap == null)
 			{
@@ -770,6 +733,16 @@ namespace m2d
 			}
 			Dungeon dgn = this.DGN.getDgn(NextMap);
 			return this.initMapBgm(dgn, replace_bgm);
+		}
+
+		public void autoBgmReplace(bool flag)
+		{
+			if (flag)
+			{
+				this.bgm_replaced |= 64;
+				return;
+			}
+			this.bgm_replaced = (byte)((int)this.bgm_replaced & -65);
 		}
 
 		protected bool initMapBgm(IBgmManageArea Mng, bool replace_bgm = false)
@@ -840,19 +813,20 @@ namespace m2d
 		public bool popStockedForSubMap(M2SubMap Sm)
 		{
 			Map2d targetMap = Sm.getTargetMap();
-			if (targetMap.mode == MAPMODE.SUBMAP && targetMap.gameObject != null && targetMap.gameObject.transform.parent == this.GobBase.transform)
+			if (targetMap.mode != MAPMODE.SUBMAP || !(targetMap.gameObject != null) || !(targetMap.gameObject.transform.parent == this.GobBase.transform))
 			{
-				targetMap.gameObject.transform.SetParent(Sm.getBaseMap().gameObject.transform, false);
-				targetMap.gameObject.SetActive(true);
-				if (Sm.needReentry(targetMap.SubMapData))
-				{
-					targetMap.need_reentry_flag = true;
-				}
-				targetMap.SubMapData = Sm;
-				targetMap.initEffect(Sm);
-				return true;
+				return false;
 			}
-			return false;
+			if (Sm.needReentry(targetMap.SubMapData))
+			{
+				targetMap.close(false, true);
+				return false;
+			}
+			targetMap.gameObject.transform.SetParent(Sm.getBaseMap().gameObject.transform, false);
+			targetMap.gameObject.SetActive(true);
+			targetMap.SubMapData = Sm;
+			targetMap.initEffect(Sm);
+			return true;
 		}
 
 		public virtual void releaseUnstabilizeDrawer(Map2d Mp)
@@ -962,7 +936,6 @@ namespace m2d
 				}
 				this.curMap = null;
 			}
-			this.Snd.clear();
 			if (newM == null)
 			{
 				this.Omazinai();
@@ -976,8 +949,10 @@ namespace m2d
 				M2MobGenerator.ClearTextureS();
 				this.pre_drawn_totalframe = 0;
 				this.ev_mobtype = "";
+				this.FlgWarpEventNotInjectable.Rem("MAP");
 				return null;
 			}
+			this.Snd.clear();
 			if (newM.opened)
 			{
 				newM.close();
@@ -997,7 +972,12 @@ namespace m2d
 			string[] array = newM.Meta.Get("mobtype");
 			if (array != null && array.Length != 0)
 			{
-				this.ev_mobtype = array[0];
+				this.ev_mobtype = ((array[0] == "''") ? "" : array[0]);
+			}
+			array = newM.Meta.Get("warp_not_injectable");
+			if (array != null && array.Length != 0)
+			{
+				this.FlgWarpEventNotInjectable.Add("MAP");
 			}
 			this.pre_map_active = false;
 			if (flag)
@@ -1051,7 +1031,7 @@ namespace m2d
 			}
 		}
 
-		protected virtual void fineDgnHalfBgm(bool flag = true)
+		public virtual void fineDgnHalfBgm(bool flag = true)
 		{
 			bool flag2 = false;
 			if (this.curMap != null && this.curMap.Dgn != null)
@@ -1141,7 +1121,7 @@ namespace m2d
 			}
 		}
 
-		private bool fnYSortFunctionDefault(M2DrawItem Im, M2DrawItem Mv)
+		public static bool fnYSortFunctionDefault(M2DrawItem Im, M2DrawItem Mv)
 		{
 			return Im.y > Mv.y;
 		}
@@ -1214,6 +1194,7 @@ namespace m2d
 				}
 				this.ui_shift_x_ = value;
 				this.Cam.fineBaseShiftPixel(-this.ui_shift_x_, 0f, false);
+				this.TxKD.ui_shift_x = this.ui_shift_x;
 			}
 		}
 
@@ -1316,7 +1297,7 @@ namespace m2d
 			return this.Pauser;
 		}
 
-		public BDic<string, Map2d> getMapObject()
+		public NDic<Map2d> getMapObject()
 		{
 			return this.OM2d;
 		}
@@ -1439,7 +1420,7 @@ namespace m2d
 			bool flag = false;
 			if (this.ALoader == null)
 			{
-				return this.isMaterialLoading(true) || this.IMGS.Atlas.prepareAtlasProgress(350) || global::XX.Logger.scene_changing;
+				return this.isMaterialLoading(true) || this.IMGS.Atlas.prepareAtlasProgress(900) || global::XX.Logger.scene_changing;
 			}
 			if ((M2DBase.material_flush_flag & M2DBase.FLUSH._LOCK_ASYNC_LOAD) == M2DBase.FLUSH._LOCK_ASYNC_LOAD && (M2DBase.material_flush_flag & M2DBase.FLUSH._LOCK_ASYNC_ALREADY) == (M2DBase.FLUSH)0)
 			{
@@ -1494,7 +1475,7 @@ namespace m2d
 						this.changeMap(null);
 						flag = true;
 					}
-					return flag || EV.isLoading(false) || this.loadMapAsyncFinalize(map2d);
+					return flag || EV.isLoading() || this.loadMapAsyncFinalize(map2d);
 				}
 				return true;
 			}
@@ -1512,7 +1493,7 @@ namespace m2d
 				this.checkFlush(true);
 			}
 			bool flag;
-			if (this.IMGS.Atlas.prepareAtlasProgress(out flag, 350) || flag)
+			if (this.IMGS.Atlas.prepareAtlasProgress(out flag, 900) || flag)
 			{
 				this.transferring_game_stopping = true;
 				return true;
@@ -1526,7 +1507,19 @@ namespace m2d
 			return global::XX.Logger.scene_changing;
 		}
 
-		public virtual bool transferring_game_stopping
+		public virtual M2DBase.MAP_TRANSFER transfer_mode
+		{
+			get
+			{
+				return this.transfer_mode_;
+			}
+			set
+			{
+				this.transfer_mode_ = value;
+			}
+		}
+
+		public bool transferring_game_stopping
 		{
 			get
 			{
@@ -1585,439 +1578,6 @@ namespace m2d
 			return this.curMap.Dgn.getWithLightTextureMaterial(MI, null, -1);
 		}
 
-		public virtual TxEvalListenerContainer createListenerEval(int cap_fn = 0)
-		{
-			TxEvalListenerContainer txEvalListenerContainer = TX.createListenerEval(this, cap_fn + 10, true);
-			txEvalListenerContainer.Add("Exist_mover", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (this.curMap != null)
-				{
-					TX.InputE((float)((this.curMap.getMoverByName(X.Get<string>(Aargs, 0), false) != null) ? 1 : 0));
-				}
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("map_x", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (this.curMap != null)
-				{
-					Vector2 pos = this.curMap.getPos(X.Get<string>(Aargs, 0), 0f, 0f, null);
-					TX.InputE((pos.x != -1000f) ? pos.x : 0f);
-				}
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("map_y", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (this.curMap != null)
-				{
-					Vector2 pos2 = this.curMap.getPos(X.Get<string>(Aargs, 0), 0f, 0f, null);
-					TX.InputE((pos2.x != -1000f) ? pos2.y : 0f);
-				}
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("lp_foc_x", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (this.curMap == null || Aargs.Count == 0)
-				{
-					return;
-				}
-				M2LabelPoint m2LabelPoint = null;
-				if (Aargs.Count >= 2)
-				{
-					M2MapLayer layer = this.curMap.getLayer(Aargs[0]);
-					if (layer == null)
-					{
-						X.de("レイヤーが不明:" + Aargs[0], null);
-					}
-					else
-					{
-						m2LabelPoint = layer.LP.Get(Aargs[1], true, false);
-					}
-				}
-				else
-				{
-					m2LabelPoint = this.curMap.getLabelPoint(Aargs[0]);
-				}
-				TX.InputE((m2LabelPoint != null) ? m2LabelPoint.mapfocx : (M2DBase.Instance.Cam.x * this.curMap.rCLEN));
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("lp_foc_y", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (this.curMap == null || Aargs.Count == 0)
-				{
-					return;
-				}
-				M2LabelPoint m2LabelPoint2 = null;
-				if (Aargs.Count >= 2)
-				{
-					M2MapLayer layer2 = this.curMap.getLayer(Aargs[0]);
-					if (layer2 == null)
-					{
-						X.de("レイヤーが不明:" + Aargs[0], null);
-					}
-					else
-					{
-						m2LabelPoint2 = layer2.LP.Get(Aargs[1], true, false);
-					}
-				}
-				else
-				{
-					m2LabelPoint2 = this.curMap.getLabelPoint(Aargs[0]);
-				}
-				TX.InputE((m2LabelPoint2 != null) ? m2LabelPoint2.mapfocy : (M2DBase.Instance.Cam.y * this.curMap.rCLEN));
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("cam_x", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				TX.InputE(M2DBase.Instance.Cam.x * this.curMap.rCLEN);
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("cam_y", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				TX.InputE(M2DBase.Instance.Cam.y * this.curMap.rCLEN);
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("m2d_current_x", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (M2EventCommand.EvMV == null)
-				{
-					X.de("不明なM2D操作対象", null);
-					return;
-				}
-				TX.InputE(M2EventCommand.EvMV.x);
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("m2d_current_y", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (M2EventCommand.EvMV == null)
-				{
-					X.de("不明なM2D操作対象", null);
-					return;
-				}
-				TX.InputE(M2EventCommand.EvMV.y);
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("m2d_current_sizex", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (M2EventCommand.EvMV == null)
-				{
-					X.de("不明なM2D操作対象", null);
-					return;
-				}
-				TX.InputE(M2EventCommand.EvMV.sizex);
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("m2d_current_sizey", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (M2EventCommand.EvMV == null)
-				{
-					X.de("不明なM2D操作対象", null);
-					return;
-				}
-				TX.InputE(M2EventCommand.EvMV.sizey);
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("m2d_has_foot", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (M2EventCommand.EvMV == null)
-				{
-					X.de("不明なM2D操作対象", null);
-					return;
-				}
-				TX.InputE((float)(M2EventCommand.EvMV.hasFoot() ? 1 : 0));
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("m2d_walkable_mpf", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				if (this.curMap == null)
-				{
-					return;
-				}
-				if (M2EventCommand.EvMV == null)
-				{
-					X.de("不明なM2D操作対象", null);
-					return;
-				}
-				M2Phys physic = M2EventCommand.EvMV.getPhysic();
-				if (physic == null || !physic.hasFoot())
-				{
-					TX.InputE(0f);
-					return;
-				}
-				M2Mover evMV = M2EventCommand.EvMV;
-				M2BlockColliderContainer.BCCLine footBCC = physic.getFootManager().get_FootBCC();
-				if (footBCC == null)
-				{
-					TX.InputE(0f);
-					return;
-				}
-				float num = 1f;
-				if (Aargs.Count > 0)
-				{
-					num = X.Nm(Aargs[0], num, false);
-				}
-				float num2;
-				float num3;
-				M2BlockColliderContainer.BCCLine bccline;
-				M2BlockColliderContainer.BCCLine bccline2;
-				footBCC.getLinearWalkableArea(0f, out num2, out num3, out bccline, out bccline2, num);
-				float num4 = X.Abs(num2 - evMV.x);
-				float num5 = X.Abs(num3 - evMV.x);
-				if (num4 < num && num5 < num)
-				{
-					TX.InputE(0f);
-					return;
-				}
-				if (num4 < num)
-				{
-					TX.InputE(1f);
-					return;
-				}
-				if (num5 < num)
-				{
-					TX.InputE(-1f);
-					return;
-				}
-				TX.InputE(evMV.mpf_is_right);
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("CLEN", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				TX.InputE(this.CLEN);
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("warp_not_injectable", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				TX.InputE((float)(this.FlgWarpEventNotInjectable.isActive() ? 1 : 0));
-			}, Array.Empty<string>());
-			txEvalListenerContainer.Add("blood_restrict", delegate(TxEvalListenerContainer O, List<string> Aargs)
-			{
-				TX.InputE(1f - (float)M2DBase.blood_weaken / 100f);
-			}, Array.Empty<string>());
-			return txEvalListenerContainer;
-		}
-
-		public virtual bool EvtRead(EvReader ER, StringHolder rER, int skipping = 0)
-		{
-			string cmd = rER.cmd;
-			if (cmd != null)
-			{
-				uint num = <PrivateImplementationDetails>.ComputeStringHash(cmd);
-				if (num <= 1286108617U)
-				{
-					if (num <= 735139189U)
-					{
-						if (num != 177837449U)
-						{
-							if (num != 226500968U)
-							{
-								if (num != 735139189U)
-								{
-									goto IL_0482;
-								}
-								if (!(cmd == "DEF_CURMAP"))
-								{
-									goto IL_0482;
-								}
-								if (TX.valid(rER._1) && this.curMap != null)
-								{
-									ER.VarCon.define(rER._1, this.curMap.key, true);
-								}
-								return true;
-							}
-							else
-							{
-								if (!(cmd == "STOP_DGN_HALF_BGM"))
-								{
-									goto IL_0482;
-								}
-								this.fineDgnHalfBgm(false);
-								return true;
-							}
-						}
-						else if (!(cmd == "DEFEAT_EVENT2"))
-						{
-							goto IL_0482;
-						}
-					}
-					else if (num <= 1002657295U)
-					{
-						if (num != 997752879U)
-						{
-							if (num != 1002657295U)
-							{
-								goto IL_0482;
-							}
-							if (!(cmd == "#AUTO_BGM_REPLACE"))
-							{
-								goto IL_0482;
-							}
-							if (rER.Nm(1, 0f) != 0f)
-							{
-								this.bgm_replaced |= 64;
-							}
-							else
-							{
-								this.bgm_replaced = (byte)((int)this.bgm_replaced & -65);
-							}
-							return true;
-						}
-						else
-						{
-							if (!(cmd == "VALOTIZE"))
-							{
-								goto IL_0482;
-							}
-							if (rER.Nm(1, 1f) != 0f)
-							{
-								this.FlagValotStabilize.Rem("EV");
-							}
-							else
-							{
-								this.FlagValotStabilize.Add("EV");
-							}
-							return true;
-						}
-					}
-					else if (num != 1025204630U)
-					{
-						if (num != 1286108617U)
-						{
-							goto IL_0482;
-						}
-						if (!(cmd == "ITEM_DEACTIVATE"))
-						{
-							goto IL_0482;
-						}
-						this.curMap.evItemActivate(rER._1, -1);
-						return true;
-					}
-					else
-					{
-						if (!(cmd == "INIT_MAP_MATERIAL"))
-						{
-							goto IL_0482;
-						}
-						Map2d map2d = this.Get(rER._1, false);
-						if (map2d == null)
-						{
-							return rER.tError("Map2d が不明: " + rER._1);
-						}
-						this.initMapMaterialASync(map2d, rER.Int(2, 1), true);
-						return true;
-					}
-				}
-				else if (num <= 2123024112U)
-				{
-					if (num != 1460610478U)
-					{
-						if (num != 1656570214U)
-						{
-							if (num != 2123024112U)
-							{
-								goto IL_0482;
-							}
-							if (!(cmd == "ADD_MAPFLUSH_FLAG"))
-							{
-								goto IL_0482;
-							}
-							M2DBase.material_flush_flag |= M2DBase.FLUSH.MATERIAL | M2DBase.FLUSH.MAP;
-							if (this.ALoader != null)
-							{
-								for (int i = this.ALoader.Count - 1; i >= 0; i--)
-								{
-									this.ALoader[i].flushing = true;
-								}
-							}
-							return true;
-						}
-						else
-						{
-							if (!(cmd == "ITEM_ACTIVATE"))
-							{
-								goto IL_0482;
-							}
-							this.curMap.evItemActivate(rER._1, 1);
-							return true;
-						}
-					}
-					else
-					{
-						if (!(cmd == "HIDDEN_WHOLE_SCREEN"))
-						{
-							goto IL_0482;
-						}
-						if (rER.Nm(1, 1f) != 0f)
-						{
-							this.FlgHideWholeScreen.Add("EV");
-						}
-						else
-						{
-							this.FlgHideWholeScreen.Rem("EV");
-						}
-						return true;
-					}
-				}
-				else if (num <= 2793803244U)
-				{
-					if (num != 2443818774U)
-					{
-						if (num != 2793803244U)
-						{
-							goto IL_0482;
-						}
-						if (!(cmd == "SEND_EVENT_CORRUPTION"))
-						{
-							goto IL_0482;
-						}
-						M2EventContainer eventContainer = this.curMap.getEventContainer();
-						if (eventContainer == null)
-						{
-							return rER.tError("EVC is empty");
-						}
-						if (eventContainer.stackSpecialCommand(rER._1, null, true))
-						{
-							EV.moduleInitAfter(ER, null, false);
-						}
-						return true;
-					}
-					else
-					{
-						if (!(cmd == "START_DGN_HALF_BGM"))
-						{
-							goto IL_0482;
-						}
-						this.fineDgnHalfBgm(true);
-						return true;
-					}
-				}
-				else if (num != 3006393793U)
-				{
-					if (num != 3714866345U)
-					{
-						goto IL_0482;
-					}
-					if (!(cmd == "DEF_MOBTYPE"))
-					{
-						goto IL_0482;
-					}
-					if (TX.valid(rER._1))
-					{
-						ER.VarCon.define(rER._1, this.ev_mobtype ?? "", true);
-					}
-					return true;
-				}
-				else if (!(cmd == "DEFEAT_EVENT"))
-				{
-					goto IL_0482;
-				}
-				if (this.isGameOverActive())
-				{
-					if (rER.cmd == "DEFEAT_EVENT")
-					{
-						ER.seek_set(ER.getLength());
-					}
-					return true;
-				}
-				if (rER.cmd == "DEFEAT_EVENT2")
-				{
-					EV.moduleInit(ER, rER._1, rER.slice(2, -1000), false);
-				}
-				else
-				{
-					EV.changeEvent(rER._1, 0, rER.slice(2, -1000));
-				}
-				return true;
-			}
-			IL_0482:
-			return this.curMap != null && this.curMap.evReadMap(ER, rER, skipping);
-		}
-
 		public virtual bool isGameOverActive()
 		{
 			return this.curMap == null || this.curMap.Pr == null || !this.curMap.Pr.is_alive;
@@ -2055,7 +1615,7 @@ namespace m2d
 		{
 			if (is_end)
 			{
-				this.Cam.do_not_consider_decline_area = false;
+				this.Cam.do_not_consider_decline_area = 0;
 				this.flushGF();
 				this.valot_stabilize_ev_on_end = true;
 				this.FlgRenderAfter.Rem("EV");
@@ -2063,11 +1623,6 @@ namespace m2d
 				this.fineDgnHalfBgm(true);
 			}
 			return this.curMap == null || this.curMap.evCloseMap(is_end);
-		}
-
-		public bool EvtMoveCheck()
-		{
-			return this.curMap == null || EV.isStoppingGame() || this.curMap.evMoveCheck();
 		}
 
 		public virtual IHkdsFollowable FindHkdsFollowableObject(string key)
@@ -2248,6 +1803,11 @@ namespace m2d
 		public string getSoundKey()
 		{
 			return "";
+		}
+
+		public static MTI getShaderContainer()
+		{
+			return M2DBase.MtiShader;
 		}
 
 		public static Shader getShd(string shader_name)
@@ -2538,8 +2098,6 @@ namespace m2d
 
 		public bool chips_noconsider_draw_sort;
 
-		public bool event_eval_inited;
-
 		public fnMapItemYSortFunction fnYSortFunction;
 
 		public SORT<M2Puts> SorterChip;
@@ -2569,6 +2127,8 @@ namespace m2d
 		public readonly Flagger FlgWarpEventNotInjectable;
 
 		public readonly Flagger FlgHideWholeScreen;
+
+		public TxKeyDesc TxKD;
 
 		private int pre_drawn_totalframe;
 
@@ -2604,11 +2164,13 @@ namespace m2d
 
 		public IN.FnWindowSizeChanged FD_WindowSizeChanged;
 
+		protected M2DEventListener EvtListener;
+
 		public string ev_mobtype;
 
-		public M2DBase.MAP_TRANSFER transfer_mode;
+		private M2DBase.MAP_TRANSFER transfer_mode_;
 
-		private M2DBase.PREPARE pstate;
+		protected M2DInitializeLoader InitLoader;
 
 		public enum LM_TYPE
 		{
@@ -2640,21 +2202,10 @@ namespace m2d
 			CHANGE_AREA = 8,
 			RELOAD_AREA_MATERIAL = 16,
 			_ALL = 31,
+			_FLUSH = 3,
 			GF_TEMP_CLEAR = 32,
 			_LOCK_ASYNC_ALREADY = 64,
 			_LOCK_ASYNC_LOAD = 7
-		}
-
-		private enum PREPARE
-		{
-			NO_LOAD,
-			PREPARE_CHIPS,
-			PREPARE_CHIPS_READING,
-			PREPARE_CHIPS_COMP,
-			LOAD_EV,
-			LOAD_AFTER,
-			INIT_FIRST_EVENT,
-			COMPLETE
 		}
 
 		public enum MAP_TRANSFER

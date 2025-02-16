@@ -231,6 +231,10 @@ namespace nel
 			return true;
 		}
 
+		public void rewriteFootType(M2BlockColliderContainer.BCCLine Bcc, IMapDamageListener Fd, ref string s)
+		{
+		}
+
 		public bool run(float fcnt)
 		{
 			if (!this.box_checked)

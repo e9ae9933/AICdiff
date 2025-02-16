@@ -15,6 +15,7 @@ namespace evt
 			this.GobMdManpu = IN.CreateGob(this.MMRD.gameObject, "-manpu");
 			this.MdManpu = MeshDrawer.prepareMeshRenderer(this.GobMdManpu, MTRX.MIicon.getMtr(BLEND.NORMAL, -1), 0f, -1, null, true, false);
 			this.ValotManpu = this.GobMdManpu.GetComponent<ValotileRenderer>();
+			this.PoolTalker = new ClsPool<TalkDrawer>(() => new TalkDrawer(""), 4);
 			this.ADrawer = new EvDrawer[16];
 			this.ATalker = new TalkDrawer[6];
 			this.SWin = new EvSmallWin(this, "%W0", EvDrawerContainer.LAYER.WINDOW);
@@ -148,29 +149,26 @@ namespace evt
 				}
 				return null;
 			}
-			TalkDrawer talkDrawer = TalkDrawer.getTk(key, true);
-			if (talkDrawer == null)
+			TalkDrawer.TkDep tkDep;
+			if (!TalkDrawer.getDefinedPositionRaw(key, out tkDep))
 			{
 				X.de("不明な発話位置: " + key, null);
 				return null;
 			}
-			TalkDrawer talkDrawer2 = this.getTalker(person, false);
-			if (talkDrawer2 != null)
+			TalkDrawer talkDrawer = null;
+			TalkDrawer talker = this.getTalker(person, false);
+			if (talker != null)
 			{
-				if (talkDrawer2.isCompletelyHidden())
-				{
-					talkDrawer2.release();
-					talkDrawer2 = null;
-				}
-				else
-				{
-					talkDrawer2.animateDepertPosTo(talkDrawer);
-					talkDrawer = talkDrawer2;
-				}
+				talker.animateDepertPosTo(tkDep);
+				talkDrawer = talker;
 			}
-			if (talkDrawer2 == null)
+			if (talker == null)
 			{
-				if (talkDrawer.activatePerson(this, person, show_type) == null)
+				if (talkDrawer == null)
+				{
+					talkDrawer = this.getPooledTalkDrawer();
+				}
+				if (talkDrawer.activatePerson(this, tkDep, person, show_type) == null)
 				{
 					X.de("不明な発話者: " + person, null);
 					return null;
@@ -201,21 +199,34 @@ namespace evt
 			return talkDrawer;
 		}
 
+		public TalkDrawer getPooledTalkDrawer()
+		{
+			return this.PoolTalker.Pool();
+		}
+
+		public TalkDrawer releasePooledTalkDrawer(TalkDrawer Tk)
+		{
+			this.PoolTalker.Release(Tk);
+			return null;
+		}
+
 		public void fixObjectPositionTo(Transform Tr, string key)
 		{
 			if (TX.noe(key))
 			{
 				return;
 			}
-			EvDrawer evDrawer = TalkDrawer.getTk(key, true);
+			Vector4 vector;
+			if (TalkDrawer.getDefinedPosition(key, out vector))
+			{
+				IN.Pos2(Tr, vector.x * 0.015625f, vector.y * 0.015625f);
+				return;
+			}
+			EvDrawer evDrawer = this.Get(key, false, true);
 			if (evDrawer == null)
 			{
-				evDrawer = this.Get(key, false, true);
-				if (evDrawer == null)
-				{
-					X.de("不明な発話位置: " + key, null);
-					return;
-				}
+				X.de("不明な発話位置: " + key, null);
+				return;
 			}
 			IN.Pos2(Tr, evDrawer.dx_real * 0.015625f, evDrawer.dy_real * 0.015625f);
 		}
@@ -348,15 +359,12 @@ namespace evt
 				return 0;
 			}
 			EvPerson evPerson = ((text != "") ? EvPerson.getPerson(text, null) : ((num >= 1) ? EvPerson.getPerson(rER.getIndex(num), null) : null));
-			if (evPerson == null)
+			if (evPerson != null)
 			{
-				return EV.Pics.cacheReadFor(rER.getIndex(num2));
+				evPerson.cacheGraphics();
+				return 1;
 			}
-			if (evPerson.cacheGraphics(false))
-			{
-				return 2;
-			}
-			return 1;
+			return EV.Pics.cacheReadFor(rER.getIndex(num2));
 		}
 
 		public bool EvtRead(EvReader ER, StringHolder rER, int skipping = 0)
@@ -387,11 +395,11 @@ namespace evt
 							{
 								if (num2 != 527604789U)
 								{
-									goto IL_0807;
+									goto IL_0825;
 								}
 								if (!(text == "PIC_CLEAR_TERM_CACHE"))
 								{
-									goto IL_0807;
+									goto IL_0825;
 								}
 								EvPerson person = EvPerson.getPerson(rER._1, null);
 								if (person == null)
@@ -406,18 +414,18 @@ namespace evt
 							}
 							else if (!(text == "PIC_RIDE"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 						}
 						else if (num2 != 546097861U)
 						{
 							if (num2 != 563861782U)
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							if (!(text == "PIC_SILHOUETTE"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							if ((evDrawer = this.Get(rER._1, false, false)) == null)
 							{
@@ -425,7 +433,15 @@ namespace evt
 							}
 							if (evDrawer.setGrp(rER._2, rER._4U + text2 + "H_"))
 							{
-								evDrawer.initSilhouettePic(TalkDrawer.getTk(rER._3, true), true, false, (text2 + rER._4U).IndexOf("I") >= 0);
+								TalkDrawer.TkDep tkDep;
+								if (!TalkDrawer.getDefinedPositionRaw(rER._3, out tkDep))
+								{
+									rER.tError("不明なTkポジション: " + rER._3);
+								}
+								else
+								{
+									evDrawer.initSilhouettePic(tkDep, true, false, (text2 + rER._4U).IndexOf("I") >= 0);
+								}
 							}
 							return true;
 						}
@@ -433,7 +449,7 @@ namespace evt
 						{
 							if (!(text == "PIC_SWIN_PASTE"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							return true;
 						}
@@ -444,11 +460,11 @@ namespace evt
 						{
 							if (num2 != 791802728U)
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							if (!(text == "PIC_REM"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							this.removeDrawer(this.Get(rER._1, false, true), -1);
 							return true;
@@ -457,7 +473,7 @@ namespace evt
 						{
 							if (!(text == "PIC_MVA_WHOLE"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							this.applyMvaWhole(rER._1, rER._N2 * num, rER._3);
 							return true;
@@ -469,11 +485,11 @@ namespace evt
 						{
 							if (num2 != 1267446024U)
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							if (!(text == "PIC_HIDE_ALL"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							this.picHideWhole(rER._1, rER._B2 || rER._2 == "I");
 							return true;
@@ -482,7 +498,7 @@ namespace evt
 						{
 							if (!(text == "PIC_SWIN_SHADOW"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							return true;
 						}
@@ -491,7 +507,7 @@ namespace evt
 					{
 						if (!(text == "PIC_RECT"))
 						{
-							goto IL_0807;
+							goto IL_0825;
 						}
 						if ((evDrawer = this.Get(rER._1, false, false)) == null)
 						{
@@ -513,18 +529,18 @@ namespace evt
 						{
 							if (num2 != 1593742175U)
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							if (!(text == "PIC_SWAP"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 						}
 						else
 						{
 							if (!(text == "PIC_RADIATION"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							if ((evDrawer = this.Get(rER._1, false, false)) == null)
 							{
@@ -543,11 +559,11 @@ namespace evt
 						{
 							if (num2 != 2124021762U)
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							if (!(text == "PIC_B"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							if ((evDrawer = this.Get(rER._1, false, false)) == null)
 							{
@@ -564,7 +580,7 @@ namespace evt
 						{
 							if (!(text == "PIC_SWIN_G"))
 							{
-								goto IL_0807;
+								goto IL_0825;
 							}
 							if (this.Get("%W", false, false) == null)
 							{
@@ -578,7 +594,7 @@ namespace evt
 					{
 						if (!(text == "PIC_FILL"))
 						{
-							goto IL_0807;
+							goto IL_0825;
 						}
 						if ((evDrawer = this.Get(rER._1, false, false)) == null)
 						{
@@ -597,11 +613,11 @@ namespace evt
 					{
 						if (num2 != 2508601190U)
 						{
-							goto IL_0807;
+							goto IL_0825;
 						}
 						if (!(text == "PIC_FLASH"))
 						{
-							goto IL_0807;
+							goto IL_0825;
 						}
 						if ((evDrawer = this.Get(rER._1, false, false)) == null)
 						{
@@ -617,7 +633,7 @@ namespace evt
 					{
 						if (!(text == "PIC_SWIN"))
 						{
-							goto IL_0807;
+							goto IL_0825;
 						}
 						if (this.Get("%W", false, false) == null)
 						{
@@ -633,11 +649,11 @@ namespace evt
 					{
 						if (num2 != 3908569443U)
 						{
-							goto IL_0807;
+							goto IL_0825;
 						}
 						if (!(text == "PIC"))
 						{
-							goto IL_0807;
+							goto IL_0825;
 						}
 						if ((evDrawer = this.Get(rER._1, true, false)) == null)
 						{
@@ -650,7 +666,7 @@ namespace evt
 					{
 						if (!(text == "PIC_SWIN2"))
 						{
-							goto IL_0807;
+							goto IL_0825;
 						}
 						if (this.Get("%W", false, false) == null)
 						{
@@ -664,7 +680,7 @@ namespace evt
 				{
 					if (!(text == "PIC_FINE_ALL"))
 					{
-						goto IL_0807;
+						goto IL_0825;
 					}
 					this.fine();
 					return true;
@@ -672,7 +688,7 @@ namespace evt
 				this.swapDrawer(rER._1, rER._2, text == "PIC_RIDE");
 				return true;
 			}
-			IL_0807:
+			IL_0825:
 			if (text == "PIC_HIDE" && rER._1 == "")
 			{
 				this.deactivateDrawer(false);
@@ -700,7 +716,7 @@ namespace evt
 								{
 									return false;
 								}
-								evDrawer.prepareFader(rER._2, -1, TFKEY.SD2);
+								evDrawer.prepareFader(rER._2, -1, TFKEY.SD2, skipping > 0);
 								return true;
 							}
 							else if (!(text == "PIC_MVA"))
@@ -727,7 +743,7 @@ namespace evt
 							{
 								return false;
 							}
-							goto IL_0BAC;
+							goto IL_0BCA;
 						}
 					}
 					else if (num2 <= 1280948729U)
@@ -742,7 +758,7 @@ namespace evt
 							{
 								return false;
 							}
-							evDrawer.setManpu(rER._2, rER._3, rER._4 + text2);
+							evDrawer.setManpu(rER._2, rER._3, rER._4 + text2, rER.Nm(5, -1f), rER.Nm(6, -1f));
 							return true;
 						}
 						else
@@ -778,7 +794,7 @@ namespace evt
 							{
 								return false;
 							}
-							goto IL_0BCB;
+							goto IL_0BE9;
 						}
 					}
 					else
@@ -815,7 +831,7 @@ namespace evt
 							{
 								return false;
 							}
-							goto IL_0C20;
+							goto IL_0C42;
 						}
 					}
 					else if (num2 != 3912267817U)
@@ -875,7 +891,7 @@ namespace evt
 						}
 						else
 						{
-							evDrawer.setManpu("_", rER._2, rER._3 + text2);
+							evDrawer.setManpu("_", rER._2, rER._3 + text2, rER.Nm(4, -1f), rER.Nm(5, -1f));
 						}
 						return true;
 					}
@@ -892,7 +908,7 @@ namespace evt
 						{
 							return false;
 						}
-						goto IL_0BAC;
+						goto IL_0BCA;
 					}
 					else
 					{
@@ -911,15 +927,15 @@ namespace evt
 					{
 						return false;
 					}
-					goto IL_0BCB;
+					goto IL_0BE9;
 				}
-				IL_0C20:
+				IL_0C42:
 				evDrawer.moveTo(rER._2, rER._3, (int)(X.Nm(rER._4, 0f, false) * num), rER._5);
 				return true;
-				IL_0BAC:
+				IL_0BCA:
 				evDrawer.fadein((int)(X.Nm(rER._2, 0f, false) * num), 0, true);
 				return true;
-				IL_0BCB:
+				IL_0BE9:
 				evDrawer.fadeout((int)(X.Nm(rER._2, 0f, false) * num));
 				return true;
 			}
@@ -1377,6 +1393,8 @@ namespace evt
 		public readonly int mmrd_first_count;
 
 		public MProperty MpbManpuFlip;
+
+		private readonly ClsPool<TalkDrawer> PoolTalker;
 
 		private static readonly Regex RegPosX = new Regex("^EVDRAWER_X\\[ *([\\&\\#\\%]?\\w+) *\\]");
 

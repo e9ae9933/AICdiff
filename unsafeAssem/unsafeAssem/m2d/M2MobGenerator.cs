@@ -24,7 +24,7 @@ namespace m2d
 
 		public bool ClearTextureOnFlush()
 		{
-			if (base.ClearTexture())
+			if (base.ClearTexture(true))
 			{
 				this.need_refine_fin_atlas = true;
 				this.CalcFinAtlas.Clear(512, 512);
@@ -48,7 +48,7 @@ namespace m2d
 			this.Mp = _Mp;
 			this.AMga.Clear();
 			this.ClearFinAtlas();
-			base.ClearTexture();
+			base.ClearTexture(true);
 		}
 
 		public void ClearFinAtlas()
@@ -62,12 +62,15 @@ namespace m2d
 			this.MIFin.Tx = this.CalcFinAtlas.Tx;
 		}
 
-		public void createSkltAtlas(Map2d Mp, MobSklt Sklt)
+		public SkltRenderTicket createSkltAtlas(Map2d Mp, MobSklt Sklt, string colvari_key)
 		{
-			if (base.createAtlas(Sklt))
+			SkltRenderTicket skltRenderTicket = base.getAtlasCreatedTicket(Sklt, colvari_key);
+			if (skltRenderTicket == null)
 			{
+				skltRenderTicket = base.createAtlas(Sklt, colvari_key);
 				M2MobGenerator.redrawMobgCharacter(Mp);
 			}
+			return skltRenderTicket;
 		}
 
 		public override void destruct()
@@ -107,7 +110,7 @@ namespace m2d
 			{
 				int num;
 				RenderTexture renderTexture;
-				Mga.FinAtlas = this.CalcFinAtlas.createRect((int)Mga.Sklt.Size.width * prepare_scale, (int)Mga.Sklt.Size.height * prepare_scale, out num, out renderTexture, true);
+				Mga.FinAtlas = this.CalcFinAtlas.createRect(Mga.sklt_atlas_w * prepare_scale, Mga.sklt_atlas_h * prepare_scale, out num, out renderTexture, true);
 				Mga.changed = true;
 				Mga.need_fine_finalize_mesh = true;
 				if (renderTexture != this.CalcFinAtlas.Tx)
@@ -142,7 +145,7 @@ namespace m2d
 				this.MyMd.clearSimple();
 				this.MyMd.Identity();
 				this.MyMd.Scale(64f * (float)prepare_scale, 64f * (float)prepare_scale, false).Translate((float)finAtlas.x + (float)finAtlas.width * 0.5f, (float)finAtlas.y + (float)finAtlas.height * 0.5f, false);
-				Mga.draw(this.MyMd, base.GetAtlasTexture(), Mga.Sklt.Size.x, Mga.Sklt.Size.y);
+				Mga.draw(this.MyMd, base.GetAtlasTexture(), Mga.GetRenderTicket(), Mga.Sklt.Size.x, Mga.Sklt.Size.y);
 				BLIT.RenderToGLImmediateSP(this.MyMd, this.MtrFinalize, -1);
 				GL.PopMatrix();
 				GL.Flush();
@@ -176,7 +179,7 @@ namespace m2d
 			{
 				return;
 			}
-			M2MobGenerator.Instance.ClearTexture();
+			M2MobGenerator.Instance.ClearTexture(false);
 			List<M2MobGAnimator> amga = M2MobGenerator.Instance.AMga;
 			for (int i = amga.Count - 1; i >= 0; i--)
 			{

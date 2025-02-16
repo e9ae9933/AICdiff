@@ -30,7 +30,7 @@ namespace XX
 			{
 				if (this.MI_ == null && this.SrcImg_ != null)
 				{
-					this.MI_ = MTRX.getMI(this.SrcImg_.pChar);
+					this.MI_ = MTRX.getMI(this.SrcImg_.pChar, false);
 				}
 				return this.MI_;
 			}

@@ -62,6 +62,20 @@ namespace nel
 			}
 		}
 
+		public WmDeperture GetDeperture(NelM2DBase M2D)
+		{
+			Map2d sinfoMp = this.SInfoMp;
+			if (this.SInfoMp != null)
+			{
+				WholeMapItem wholeFor = M2D.WM.GetWholeFor(sinfoMp, false);
+				if (wholeFor != null)
+				{
+					return new WmDeperture(wholeFor.text_key, sinfoMp.key);
+				}
+			}
+			return default(WmDeperture);
+		}
+
 		public bool valid
 		{
 			get

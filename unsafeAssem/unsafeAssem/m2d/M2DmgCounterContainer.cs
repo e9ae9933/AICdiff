@@ -151,27 +151,36 @@ namespace m2d
 			return true;
 		}
 
-		public Vector2 reposit(M2DmgCounterItem CI, float mapcx, float mapcy, bool set_ci_pos = false)
+		public Vector2 reposit(M2DmgCounterItem CI, float mapcx, float mapcy, float x_expand = 1f, bool set_ci_pos = false)
 		{
 			float num = mapcx;
 			float num2 = mapcy + CI.map_center_y_shift_checking;
 			float num3 = 1f;
 			bool flag = CI.Mv is M2MoverPr;
-			if (!(CI.Mv is M2MoverPr))
+			float num4 = 0.6f;
+			if (!flag)
 			{
 				num3 += 0f;
 			}
-			float num4 = (flag ? (X.XORSP() * 0.4f) : (X.Mn(CI.Mv.sizex, CI.Mv.sizey) * X.NIXP(0.6f, 0.8f))) * num3;
-			float num5 = X.XORSPS() * 3.1415927f;
-			float num6 = (flag ? 1.1f : 1.63f);
-			float num7 = (flag ? 0.65f : 1.33f);
-			num6 *= num3;
-			num7 *= num3;
+			else
+			{
+				num3 = X.NI(num3, this.Mp.M2D.Cam.getScale(false), 0.5f);
+				if ((CI.Mv as M2MoverPr).isGaraakiState())
+				{
+					num4 = 1.25f;
+				}
+			}
+			float num5 = (flag ? (X.XORSP() * 0.4f) : (X.Mn(CI.Mv.sizex, CI.Mv.sizey) * X.NIXP(0.6f, 0.8f))) * num3;
+			float num6 = X.XORSPS() * 3.1415927f;
+			float num7 = (flag ? 1.1f : 1.63f);
+			float num8 = (flag ? num4 : 1.33f);
+			num7 *= num3 * x_expand;
+			num8 *= num3;
 			int count_players = this.Mp.count_players;
 			for (int i = 0; i < 30; i++)
 			{
-				mapcx = num + X.Cos(num5) * num4;
-				mapcy = num2 - X.Sin(num5) * num4;
+				mapcx = num + X.Cos(num6) * num5 * x_expand;
+				mapcy = num2 - X.Sin(num6) * num5;
 				if (mapcy > CI.Mv.mbottom)
 				{
 					mapcy = CI.Mv.mbottom - (mapcy - CI.Mv.mbottom);
@@ -179,7 +188,7 @@ namespace m2d
 				bool flag2 = false;
 				for (int j = count_players - 1; j >= 0; j--)
 				{
-					if (this.Mp.getPr(j).isCovering(mapcx - num6, mapcx + num6, mapcy - num7, mapcy + num7, 0f))
+					if (this.Mp.getPr(j).isCovering(mapcx - num7, mapcx + num7, mapcy - num8, mapcy + num8, 0f))
 					{
 						flag2 = true;
 						break;
@@ -205,9 +214,9 @@ namespace m2d
 				}
 				if (flag || i % 4 == 3)
 				{
-					num4 += X.NIXP(0.2f, 0.4f) * num3;
+					num5 += X.NIXP(0.2f, 0.4f) * num3;
 				}
-				num5 += X.NIXP(0.3f, 0.8f) * 3.1415927f;
+				num6 += X.NIXP(0.3f, 0.8f) * 3.1415927f;
 			}
 			if (set_ci_pos)
 			{
@@ -301,6 +310,11 @@ namespace m2d
 			}
 		}
 
+		public override string ToString()
+		{
+			return "<DmgCounter>";
+		}
+
 		private M2DrawBinder Ed;
 
 		public readonly Map2d Mp;
@@ -370,7 +384,7 @@ namespace m2d
 				T.mp = this.mp;
 				T.hpa = this.hpa;
 				T.mpa = this.mpa;
-				Vector2 damageCounterShiftMapPos = this.Mv.getDamageCounterShiftMapPos();
+				Vector3 damageCounterShiftMapPos = this.Mv.getDamageCounterShiftMapPos();
 				float num = this.Mv.drawx_map + damageCounterShiftMapPos.x;
 				float num2 = this.Mv.drawy_map + damageCounterShiftMapPos.y;
 				float num3;
@@ -391,7 +405,7 @@ namespace m2d
 					num5 = X.Mx(this.Mv.sizey * 0.7f, 1.5f);
 					num4 = ((drawy_map < num2) ? X.Mx(num4, num2 - num5) : X.Mn(num4, num2 + num5));
 				}
-				T.Con.reposit(T, num3, num4, true);
+				T.Con.reposit(T, num3, num4, damageCounterShiftMapPos.z, true);
 				return T.FineMv();
 			}
 

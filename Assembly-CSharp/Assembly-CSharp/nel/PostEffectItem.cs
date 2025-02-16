@@ -281,6 +281,7 @@ namespace nel
 			int num = i / 2;
 			uint ran = X.GETRAN2(num * 13, num + 7);
 			float num2 = (float)IN.totalframe;
+			Vector2 vector = PostEffect.IT.PosMainMoverShift * 0.015625f;
 			float num3 = 0.3f + 0.1f * X.SINI(num2 + X.RAN(ran, 1353) * 420f, 400f + 90f * X.RAN(ran, 1221) + 110f * X.RAN(ran, 2667)) * (float)X.MPF(num % 2 == 1);
 			float num4 = X.Sin((200f * X.RAN(ran, 2066) + 270f * X.SINI(num2 + X.RAN(ran, 1892) * 300f, 380f + 60f * X.RAN(ran, 663)) + 70f * X.SINI(num2 + X.RAN(ran, 1965) * 220f, 270f + 70f * X.RAN(ran, 663))) / 360f * 6.2831855f);
 			num4 = num4 * num4 * (float)X.MPF(num4 > 0f);
@@ -292,8 +293,8 @@ namespace nel
 			{
 				num4 *= 0.7f * Mtr.alpha;
 			}
-			posx *= 1f + 0.1f * num4;
-			posy *= 1f + 0.07f * num4;
+			posx = (posx - vector.x) * (1f + 0.1f * num4) + vector.x;
+			posy = (posy - vector.y) * (1f + 0.07f * num4) + vector.y;
 			return new Vector2(posx, posy);
 		}
 
@@ -330,6 +331,60 @@ namespace nel
 			}
 			posx *= 1f + 0.1f * num4;
 			posy *= 1f + 0.07f * num4;
+			return new Vector2(posx, posy);
+		}
+
+		public static bool drawScreen_stoneover(MeshDrawer Md, PostEffect.PEMaterial Mtr, M2Camera Cam)
+		{
+			Md.Col = Md.ColGrd.Set(uint.MaxValue).C;
+			Md.ColGrd.mulA(0f);
+			Vector2 posMainMoverShift = PostEffect.IT.PosMainMoverShift;
+			int vertexMax = Md.getVertexMax();
+			float num = X.ZSIN(Mtr.alpha);
+			float num2 = 1.2f;
+			float num3 = 1.4f;
+			Md.initForImgAndTexture(MTRX.MIicon);
+			Md.allocUv2(68, false);
+			Md.uvRect(-IN.wh * 1.5f * 0.015625f, -IN.hh * 1.5f * 0.015625f, IN.w * 1.5f * 0.015625f, IN.h * 1.5f * 0.015625f, MTRX.IconWhite, true, false);
+			Md.InnerPoly(0f, 0f, Mtr.w * num2, Mtr.h * num3, posMainMoverShift.x, posMainMoverShift.y, Mtr.wh * X.NI(num2, 0.65f, Mtr.alpha), Mtr.hh * X.NI(num3, 0.74f, Mtr.alpha), Mtr.wh * X.NI(num2, 0.2f, num), Mtr.hh * X.NI(num3, 0.25f, num), 32, 0f, false, false, 0f, 1f);
+			int num4 = vertexMax + 4;
+			Mtr.shuffleVertPosition(num4, new PostEffect.PEMaterial.FnShufflePos(PostEffectItem.fnShuffleVertStone32));
+			int vertexMax2 = Md.getVertexMax();
+			Color32[] colorArray = Md.getColorArray();
+			float num5 = X.NIL(0.6f, 1f, Mtr.alpha, 0.4f);
+			for (int i = vertexMax; i < vertexMax2; i++)
+			{
+				float num6 = (float)colorArray[i].a * 0.003921569f;
+				colorArray[i] = Md.Col;
+				Md.Uv2(X.NI(0f, num5 * ((i < num4) ? 1f : 0.75f), 1f - X.ZPOW(1f - num6)), 1f, false);
+			}
+			return true;
+		}
+
+		private static Vector2 fnShuffleVertStone32(PostEffect.PEMaterial Mtr, int i, float posx, float posy, float texel_x, float texel_y, Vector2 PreUv)
+		{
+			uint ran = X.GETRAN2(i * 13, i + 7);
+			Vector2 vector = PostEffect.IT.PosMainMoverShift * 0.015625f;
+			float num = 0.1f + 0.5f * X.SINI(X.RAN(ran, 400), 400f);
+			float num2 = X.RAN(ran, 958) * 6.2831855f;
+			float num3 = X.RAN(ran, 8448) * 6.2831855f;
+			float num4 = X.NI(20, 35, X.RAN(ran, 1320)) * 0.015625f;
+			float num5 = X.Sin(num2);
+			num5 = num5 * num5 * (float)X.MPF(num5 > 0f);
+			float num6 = 0.95f + 0.05f * Mtr.alpha;
+			if (i % 2 == 0)
+			{
+				num4 *= 0.77f;
+				num5 = (num5 + 1f) * 0.5f * num * num6;
+			}
+			else
+			{
+				num5 = (num5 + 1f) * num * num6 * ((i % 2 == 1) ? 3.5f : 2.1f);
+			}
+			posx = (posx - vector.x) * (1f + 0.1f * num5) + vector.x;
+			posy = (posy - vector.y) * (1f + 0.07f * num5) + vector.y;
+			posx += X.Cos(num3) * num4;
+			posy += X.Sin(num3) * num4;
 			return new Vector2(posx, posy);
 		}
 
@@ -633,5 +688,7 @@ namespace nel
 		private static PostEffect.PEMaterial.FnShufflePos FD_fnShuffleUv = new PostEffect.PEMaterial.FnShufflePos(PostEffectItem.fnShuffleUv);
 
 		private static PostEffect.PEMaterial.FnShufflePos FD_fnShuffleVert24 = new PostEffect.PEMaterial.FnShufflePos(PostEffectItem.fnShuffleVert24);
+
+		private static PostEffect.PEMaterial.FnShufflePos FD_fnShuffleStone32 = new PostEffect.PEMaterial.FnShufflePos(PostEffectItem.fnShuffleVertStone32);
 	}
 }

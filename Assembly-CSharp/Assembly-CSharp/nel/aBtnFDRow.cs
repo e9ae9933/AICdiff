@@ -3,7 +3,7 @@ using XX;
 
 namespace nel
 {
-	public class aBtnFDRow : aBtnNel
+	public class aBtnFDRow : aBtnNel, UiFieldGuide.IFieldGuideOpenable
 	{
 		public override ButtonSkin makeButtonSkin(string key)
 		{
@@ -24,7 +24,7 @@ namespace nel
 
 		public aBtnFDRow setItem(UiFieldGuide _FDCon, NelM2DBase _M2D, UiFieldGuide.FDR Fdr)
 		{
-			this.RowSkin.setItem(_FDCon, _M2D, Fdr);
+			this.RowSkin.setItem(_FDCon, _M2D, Fdr, null);
 			return this;
 		}
 

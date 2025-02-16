@@ -33,12 +33,12 @@ namespace nel
 			{
 				this.fineWH();
 			}
-			return global::XX.X.BTW((float)this.crop, (float)x, (float)(this.Mp.clms - this.crop)) && global::XX.X.BTW((float)this.crop, (float)y, (float)(this.Mp.rows - this.crop));
+			return X.BTW((float)this.crop, (float)x, (float)(this.Mp.clms - this.crop)) && X.BTW((float)this.crop, (float)y, (float)(this.Mp.rows - this.crop));
 		}
 
 		public void fineWH()
 		{
-			int num = global::XX.X.Mx(0, this.Mp.crop - 1);
+			int num = X.Mx(0, this.Mp.crop - 1);
 			int num2 = this.Mp.clms - num * 2;
 			int num3 = this.Mp.rows - num * 2;
 			bool flag = false;
@@ -227,7 +227,7 @@ namespace nel
 								goto IL_0218;
 							}
 							ptr4->aim_check = MistManager.AimCk.BEHIND_HAS_ROOM;
-							M2WaterWatcher m2WaterWatcher = global::XX.X.Get<MistManager.MISTTYPE, M2WaterWatcher>(this.OWMng, this.AGen[(int)id].K.type);
+							M2WaterWatcher m2WaterWatcher = X.Get<MistManager.MISTTYPE, M2WaterWatcher>(this.OWMng, this.AGen[(int)id].K.type);
 							if (m2WaterWatcher != null)
 							{
 								m2WaterWatcher.assignOrGenerateChip(j, i, this.AGen[(int)id].BaseChip);
@@ -253,8 +253,8 @@ namespace nel
 			{
 				this.fineWH();
 			}
-			mapx = global::XX.X.MMX(this.crop, mapx, this.Mp.clms - this.crop);
-			mapy = global::XX.X.MMX(this.crop, mapy, this.Mp.rows - this.crop);
+			mapx = X.MMX(this.crop, mapx, this.Mp.clms - this.crop);
+			mapy = X.MMX(this.crop, mapy, this.Mp.rows - this.crop);
 			byte b = 0;
 			MistManager.MistGenerator mistGenerator = null;
 			if (mistGenerator == null)
@@ -274,7 +274,7 @@ namespace nel
 			{
 				if (this.gen_id_max >= 64)
 				{
-					global::XX.X.dl("霧オブジェクトが多い", null, false, true);
+					X.dl("霧オブジェクトが多い", null, false, true);
 					return -1;
 				}
 				b = this.gen_id_max;
@@ -296,8 +296,8 @@ namespace nel
 
 		public MistManager.MistGenerator addMistGeneratorChip(MistManager.MistKind K, int amount, int mapx, int mapy, M2Chip Cp, int static_clip_top = -1)
 		{
-			mapx = global::XX.X.MMX(this.crop, mapx, this.Mp.clms - this.crop - 1);
-			mapy = global::XX.X.MMX(this.crop, mapy, this.Mp.rows - this.crop - 1);
+			mapx = X.MMX(this.crop, mapx, this.Mp.clms - this.crop - 1);
+			mapy = X.MMX(this.crop, mapy, this.Mp.rows - this.crop - 1);
 			MistManager.MistGenerator mistGenerator = null;
 			int num = 0;
 			for (int i = 0; i < (int)this.gen_id_max; i++)
@@ -341,7 +341,7 @@ namespace nel
 			{
 				this.setStaticWater(K, mapx, mapy, mapy - static_clip_top);
 				this.water_static_bits |= 1UL << (num & 31);
-				this.static_id_max = global::XX.X.Mx(num, this.static_id_max);
+				this.static_id_max = X.Mx(num, this.static_id_max);
 			}
 			return mistGenerator;
 		}
@@ -355,8 +355,8 @@ namespace nel
 			{
 				Gen.infinity = true;
 			}
-			int num = ((amount < 0) ? 255 : global::XX.X.Mn(amount, 255));
-			Gen.amount = ((!Gen.infinity) ? (Gen.amount + amount - num) : global::XX.X.Mn(65535, Gen.amount + ((amount < 0) ? 255 : amount)));
+			int num = ((amount < 0) ? 255 : X.Mn(amount, 255));
+			Gen.amount = ((!Gen.infinity) ? (Gen.amount + amount - num) : X.Mn(65535, Gen.amount + ((amount < 0) ? 255 : amount)));
 			Gen.useable_count += K.calcApplyCell(0.6f) - 1;
 			if (mapx >= 0)
 			{
@@ -368,7 +368,7 @@ namespace nel
 			}
 			if (Gen.K.isWater())
 			{
-				M2WaterWatcher m2WaterWatcher = global::XX.X.Get<MistManager.MISTTYPE, M2WaterWatcher>(this.OWMng, K.type);
+				M2WaterWatcher m2WaterWatcher = X.Get<MistManager.MISTTYPE, M2WaterWatcher>(this.OWMng, K.type);
 				if (m2WaterWatcher == null)
 				{
 					this.OWMng[K.type] = new M2WaterWatcher(this, K, _id);
@@ -419,7 +419,7 @@ namespace nel
 			}
 			if (this.use_config_bits != 0UL)
 			{
-				global::XX.X.de("重複して assignWholeFillMist が呼ばれている", null);
+				X.de("重複して assignWholeFillMist が呼ばれている", null);
 			}
 			byte b = this.gen_id_max;
 			this.gen_id_max = b + 1;
@@ -433,7 +433,7 @@ namespace nel
 			{
 				this.AGen.Add(mistGenerator = new MistManager.MistGenerator());
 			}
-			this.static_id_max = global::XX.X.Mx(this.static_id_max, (int)b2);
+			this.static_id_max = X.Mx(this.static_id_max, (int)b2);
 			mistGenerator.infinity = true;
 			this.assignMistGenerator(mistGenerator, K, b2, -1, -1, -1, true);
 			this.mistmanager_whole |= 1U << (int)b2;
@@ -464,7 +464,7 @@ namespace nel
 				MistManager.MistStaticArea mistStaticArea = this.AWaterStatic[i];
 				if (mistStaticArea.K.type == t)
 				{
-					num = ((num < 0) ? mistStaticArea.reachable_y : global::XX.X.Mn(num, mistStaticArea.reachable_y));
+					num = ((num < 0) ? mistStaticArea.reachable_y : X.Mn(num, mistStaticArea.reachable_y));
 				}
 			}
 			return num;
@@ -492,11 +492,11 @@ namespace nel
 
 		private unsafe void fineWaterSlicer()
 		{
-			this.fine_water_slicer = false;
 			if (this.AWaterSlicer == null || this.AWaterStatic == null)
 			{
 				return;
 			}
+			this.fine_water_slicer = false;
 			int count = this.AWaterSlicer.Count;
 			for (int i = this.AWaterStatic.Count - 1; i >= 0; i--)
 			{
@@ -523,14 +523,14 @@ namespace nel
 							M2LpWaterSlicer m2LpWaterSlicer = this.AWaterSlicer[k];
 							if (m2LpWaterSlicer.activated)
 							{
-								mistStaticArea.reachable_y = global::XX.X.Mx(mistStaticArea.reachable_y, m2LpWaterSlicer.mapy);
+								mistStaticArea.reachable_y = X.Mx(mistStaticArea.reachable_y, m2LpWaterSlicer.mapy);
 							}
 						}
 						if (mistStaticArea.reachable_y != reachable_y)
 						{
 							mistStaticArea.K.max_behind_influence -= mistStaticArea.reachable_y - reachable_y;
-							int num2 = global::XX.X.MMX(this.crop, global::XX.X.Mn(mistStaticArea.reachable_y, reachable_y), this.Mp.rows - this.crop);
-							int num3 = global::XX.X.MMX(this.crop, global::XX.X.Mx(mistStaticArea.reachable_y, reachable_y), this.Mp.rows - this.crop);
+							int num2 = X.MMX(this.crop, X.Mn(mistStaticArea.reachable_y, reachable_y), this.Mp.rows - this.crop);
+							int num3 = X.MMX(this.crop, X.Mx(mistStaticArea.reachable_y, reachable_y), this.Mp.rows - this.crop);
 							this.reconsider_flag = 1;
 							this.RcReconsider.Expand((float)mistStaticArea.x, (float)num2, (float)mistStaticArea.w, (float)(num3 - num2), false);
 							bool flag = mistStaticArea.reachable_y < reachable_y;
@@ -541,7 +541,7 @@ namespace nel
 							{
 								MistManager.MistPD* ptr2 = ptr;
 								int right = mistStaticArea.right;
-								int num4 = global::XX.X.Mn(num3 + 1, this.Mp.rows - this.crop);
+								int num4 = X.Mn(num3 + 1, this.Mp.rows - this.crop);
 								for (int l = num2; l < num4; l++)
 								{
 									MistManager.MistPD* ptr3 = this.getPtr(ptr2, mistStaticArea.x, l);
@@ -562,7 +562,7 @@ namespace nel
 											{
 												*ptr3 = new MistManager.MistPD((byte)num, 255);
 											}
-											ptr3->level255 = global::XX.X.Mn(ptr3->level255, 255);
+											ptr3->level255 = X.Mn(ptr3->level255, 255);
 											if (l == mistStaticArea.reachable_y)
 											{
 												ptr3->fineRoomFlagStatic();
@@ -631,29 +631,29 @@ namespace nel
 			return Ptr0 + (_y - this.crop) * this.AAPd.GetLength(1) + (_x - this.crop);
 		}
 
-		public void attachWindDirectional(int cenx, int ceny, int w, int h, global::XX.AIM a, int time, int shift_x = 0, int shift_y = 0)
+		public void attachWindDirectional(int cenx, int ceny, int w, int h, AIM a, int time, int shift_x = 0, int shift_y = 0)
 		{
-			if (a == global::XX.AIM.L)
+			if (a == AIM.L)
 			{
 				cenx -= w - 1;
 			}
-			if (a == global::XX.AIM.T)
+			if (a == AIM.T)
 			{
 				ceny -= h - 1;
 			}
-			this.attachWind(cenx + global::XX.CAim._XD(a, 1) * shift_x, ceny + global::XX.CAim._YD(a, 1) * shift_y, w, h, a, time);
+			this.attachWind(cenx + CAim._XD(a, 1) * shift_x, ceny + CAim._YD(a, 1) * shift_y, w, h, a, time);
 		}
 
-		public unsafe void attachWind(int sx, int sy, int w, int h, global::XX.AIM a, int time)
+		public unsafe void attachWind(int sx, int sy, int w, int h, AIM a, int time)
 		{
 			if (this.AAPd == null || (this.appear_gen_bits & ~((this.water_mng_bits | (ulong)this.mistmanager_whole) != 0UL)) == 0UL || !this.Rc.isCoveringXy((float)sx, (float)sy, (float)(sx + w), (float)(sy + h), -1f, -1000f))
 			{
 				return;
 			}
-			int num = global::XX.X.Mn(sx + w, (int)this.Rc.right - 1);
-			int num2 = global::XX.X.Mn(sy + h, (int)this.Rc.bottom - 1);
-			sx = global::XX.X.Mx(sx, (int)this.Rc.x + 1);
-			sy = global::XX.X.Mx(sy, (int)this.Rc.y + 1);
+			int num = X.Mn(sx + w, (int)this.Rc.right - 1);
+			int num2 = X.Mn(sy + h, (int)this.Rc.bottom - 1);
+			sx = X.Mx(sx, (int)this.Rc.x + 1);
+			sy = X.Mx(sy, (int)this.Rc.y + 1);
 			time /= 5;
 			fixed (MistManager.MistPD* ptr = &this.AAPd[0, 0])
 			{
@@ -665,19 +665,19 @@ namespace nel
 					int num3;
 					switch (a)
 					{
-					case global::XX.AIM.L:
+					case AIM.L:
 						ptr4 = ptr3 - 1;
 						num3 = -1;
 						break;
-					case global::XX.AIM.T:
+					case AIM.T:
 						ptr4 = ptr3 - this.AAPd.GetLength(1);
 						num3 = -1;
 						break;
-					case global::XX.AIM.R:
+					case AIM.R:
 						ptr4 = ptr3 + 1;
 						num3 = 1;
 						break;
-					case global::XX.AIM.B:
+					case AIM.B:
 						ptr4 = ptr3 + this.AAPd.GetLength(1);
 						num3 = 1;
 						break;
@@ -702,7 +702,7 @@ namespace nel
 									{
 										num4 = 0f;
 									}
-									else if (level >= mistGenerator3.K.influence_threshold255 || ((a == global::XX.AIM.R || a == global::XX.AIM.L) ? ptr3->wind_x : ptr3->wind_y) > 255 - time)
+									else if (level >= mistGenerator3.K.influence_threshold255 || ((a == AIM.R || a == AIM.L) ? ptr3->wind_x : ptr3->wind_y) > 255 - time)
 									{
 										ptr5 = ptr4;
 										mistGenerator2 = mistGenerator3;
@@ -714,16 +714,16 @@ namespace nel
 									bool flag = false;
 									switch (a)
 									{
-									case global::XX.AIM.L:
-									case global::XX.AIM.R:
+									case AIM.L:
+									case AIM.R:
 									{
 										int num5;
 										flag = (num5 = ptr5->wind_x) == 0;
 										ptr5->wind_x = num5 + (int)(num4 * (float)time) * num3;
 										break;
 									}
-									case global::XX.AIM.T:
-									case global::XX.AIM.B:
+									case AIM.T:
+									case AIM.B:
 									{
 										int num5;
 										flag = (num5 = ptr5->wind_y) == 0;
@@ -751,10 +751,10 @@ namespace nel
 			{
 				return;
 			}
-			int num = global::XX.X.Mn(sx + w, (int)this.Rc.right - 1);
-			int num2 = global::XX.X.Mn(sy + h, (int)this.Rc.bottom - 1);
-			sx = global::XX.X.Mx(sx, (int)this.Rc.x + 1);
-			sy = global::XX.X.Mx(sy, (int)this.Rc.y + 1);
+			int num = X.Mn(sx + w, (int)this.Rc.right - 1);
+			int num2 = X.Mn(sy + h, (int)this.Rc.bottom - 1);
+			sx = X.Mx(sx, (int)this.Rc.x + 1);
+			sy = X.Mx(sy, (int)this.Rc.y + 1);
 			fixed (MistManager.MistPD* ptr = &this.AAPd[0, 0])
 			{
 				MistManager.MistPD* ptr2 = ptr;
@@ -787,8 +787,8 @@ namespace nel
 			int num = r / 2;
 			this.removeMistArea(cx - num + 1, cy - num, r - 2, r);
 			this.removeMistArea(cx - num, cy - num + 1, r, r - 2);
-			this.attachWind(cx - num - 4, cy - num - 1, num + 4, r + 2, global::XX.AIM.L, 40);
-			this.attachWind(cx, cy - num - 1, num + 4, r + 2, global::XX.AIM.R, 40);
+			this.attachWind(cx - num - 4, cy - num - 1, num + 4, r + 2, AIM.L, 40);
+			this.attachWind(cx, cy - num - 1, num + 4, r + 2, AIM.R, 40);
 		}
 
 		public void run()
@@ -799,7 +799,7 @@ namespace nel
 				this.draw_intv = b;
 				if (b == 0)
 				{
-					this.drawWater((int)(this.draw_intv = ((global::XX.X.AF == 4) ? 4 : 3)));
+					this.drawWater((int)(this.draw_intv = ((X.AF == 4) ? 4 : 3)));
 				}
 			}
 			this.Rvfirst_progress.Update(1f);
@@ -860,9 +860,9 @@ namespace nel
 				this.MdWater = this.Mp.getWaterDrawer();
 				this.water_mesh_v = this.MdWater.getVertexMax();
 				this.water_mesh_t = this.MdWater.getTriMax();
-				if (global::XX.X.D_EF)
+				if (X.D_EF)
 				{
-					this.drawWater(global::XX.X.AF_EF);
+					this.drawWater(X.AF_EF);
 				}
 			}
 		}
@@ -902,10 +902,10 @@ namespace nel
 				byte b = this.gen_id_max;
 			}
 			this.appear_gen_bits = (ulong)this.mistmanager_whole;
-			int num = (int)global::XX.X.Mn(this.Rc.x + this.Rc.w, (float)(this.Mp.clms - this.crop));
-			int num2 = (int)global::XX.X.Mn(this.Rc.y + this.Rc.h, (float)(this.Mp.rows - this.crop));
-			int num3 = (int)global::XX.X.Mx(this.Rc.x, (float)this.crop);
-			int num4 = (int)global::XX.X.Mx(this.Rc.y, (float)this.crop);
+			int num = (int)X.Mn(this.Rc.x + this.Rc.w, (float)(this.Mp.clms - this.crop));
+			int num2 = (int)X.Mn(this.Rc.y + this.Rc.h, (float)(this.Mp.rows - this.crop));
+			int num3 = (int)X.Mx(this.Rc.x, (float)this.crop);
+			int num4 = (int)X.Mx(this.Rc.y, (float)this.crop);
 			fixed (MistManager.MistPD* ptr = &this.AAPd[0, 0])
 			{
 				MistManager.MistPD* ptr2 = ptr;
@@ -936,7 +936,7 @@ namespace nel
 								int num5 = ((ptr5->step <= 1) ? 255 : ((255 + ptr5->level255) / 2));
 								if (ptr5->level255 < num5)
 								{
-									int num6 = global::XX.X.Mn(mistGenerator.amount, num5 - ptr5->level255);
+									int num6 = X.Mn(mistGenerator.amount, num5 - ptr5->level255);
 									if (!mistGenerator.infinity)
 									{
 										mistGenerator.amount -= num6;
@@ -1009,7 +1009,7 @@ namespace nel
 				}
 				return false;
 			}
-			global::XX.X.rectMultiply(this.Rc.Set(this.RcBuf.x - 1f, this.RcBuf.y - 1f, this.RcBuf.width + 2f, this.RcBuf.height + 2f), (float)this.crop, (float)this.crop, (float)(this.Mp.clms - this.crop * 2), (float)(this.Mp.rows - this.crop * 2));
+			X.rectMultiply(this.Rc.Set(this.RcBuf.x - 1f, this.RcBuf.y - 1f, this.RcBuf.width + 2f, this.RcBuf.height + 2f), (float)this.crop, (float)this.crop, (float)(this.Mp.clms - this.crop * 2), (float)(this.Mp.rows - this.crop * 2));
 			return true;
 		}
 
@@ -1033,7 +1033,7 @@ namespace nel
 			{
 				this.RcBufS.Set((float)sx, (float)sy, (float)(maxx - sx), (float)(maxy - sy));
 				this.ExpandWaterStaticArea(this.RcBufS);
-				global::XX.X.rectMultiply(this.RcBufS, (float)this.crop, (float)this.crop, (float)(this.Mp.clms - this.crop * 2), (float)(this.Mp.rows - this.crop * 2));
+				X.rectMultiply(this.RcBufS, (float)this.crop, (float)this.crop, (float)(this.Mp.clms - this.crop * 2), (float)(this.Mp.rows - this.crop * 2));
 				sx = (int)this.RcBufS.x;
 				sy = (int)this.RcBufS.y;
 				maxx = (int)this.RcBufS.right;
@@ -1112,7 +1112,7 @@ namespace nel
 				MistManager.MistPD* ptr2 = ptr;
 				int count_movers = this.Mp.count_movers;
 				DRect waterExistRect = this.getWaterExistRect(true);
-				int num = ((this.mistmanager_whole != 0U) ? global::XX.X.beki_cnt(this.mistmanager_whole) : 0);
+				int num = ((this.mistmanager_whole != 0U) ? X.beki_cnt(this.mistmanager_whole) : 0);
 				for (int i = 0; i < count_movers; i++)
 				{
 					M2Mover mv = this.Mp.getMv(i);
@@ -1126,7 +1126,7 @@ namespace nel
 						int num4 = 0;
 						int num5 = 0;
 						bool flag = false;
-						if (nelM2Attacker.canApplyMistDamage() && global::XX.X.BTW((float)this.crop, num2, (float)(this.Mp.clms - this.crop)) && global::XX.X.BTW((float)this.crop, num3, (float)(this.Mp.rows - this.crop)) && waterExistRect.isin(num2, num3, 0f))
+						if (nelM2Attacker.canApplyMistDamage() && X.BTW((float)this.crop, num2, (float)(this.Mp.clms - this.crop)) && X.BTW((float)this.crop, num3, (float)(this.Mp.rows - this.crop)) && waterExistRect.isin(num2, num3, 0f))
 						{
 							MistManager.MistPD mistPD = *this.getPtr(ptr2, (int)num2, (int)num3);
 							if (mistPD.level255 > 0)
@@ -1161,7 +1161,7 @@ namespace nel
 							else
 							{
 								int num6 = (int)(mv.mbottom - 0.125f);
-								if (global::XX.X.BTW((float)this.crop, (float)num6, (float)(this.Mp.rows - this.crop)) && waterExistRect.isin(num2, (float)num6, 0f))
+								if (X.BTW((float)this.crop, (float)num6, (float)(this.Mp.rows - this.crop)) && waterExistRect.isin(num2, (float)num6, 0f))
 								{
 									MistManager.MistPD mistPD2 = *this.getPtr(ptr2, (int)num2, num6);
 									if (mistPD2.level255 > 0)
@@ -1184,17 +1184,17 @@ namespace nel
 		private MistManager.MistDamageApply applyDamageDaInit(NelM2Attacker Mv, MistManager.MistKind AtkMist, int id, int level255)
 		{
 			MistManager.MistDamageApply da = this.getDA(AtkMist, Mv, id);
-			da.timeout = global::XX.X.Mx(da.timeout, 30 + ((da.timeout >= 30) ? 5 : 0));
-			da.delay = global::XX.X.VALWALK(global::XX.X.Abs(da.delay), 0, 5);
+			da.timeout = X.Mx(da.timeout, 30 + ((da.timeout >= 30) ? 5 : 0));
+			da.delay = X.VALWALK(X.Abs(da.delay), 0, 5);
 			if (da.crt <= CREATION.HIDE_RUNNING)
 			{
 				da.crt = CREATION.ACTIVATE;
 			}
-			bool flag = AtkMist.applyDamageDefault(AtkMist, Mv, (float)(level255 * global::XX.X.MPF(da.delay == 0)));
+			bool flag = AtkMist.applyDamageDefault(AtkMist, Mv, (float)(level255 * X.MPF(da.delay == 0)));
 			da.delay = ((flag && AtkMist.damage_cooltime >= 0) ? AtkMist.damage_cooltime : ((da.delay <= 0) ? 1 : da.delay));
 			if (flag)
 			{
-				da.dmg_count += global::XX.X.MPF(da.dmg_count >= 0);
+				da.dmg_count += X.MPF(da.dmg_count >= 0);
 			}
 			return da;
 		}
@@ -1255,7 +1255,7 @@ namespace nel
 					{
 						if (mistDamageApply.timeout < 30)
 						{
-							mistDamageApply.delay = global::XX.X.VALWALK(global::XX.X.Abs(mistDamageApply.delay), 0, 5);
+							mistDamageApply.delay = X.VALWALK(X.Abs(mistDamageApply.delay), 0, 5);
 							if (mistDamageApply.crt >= CREATION.RUNNING)
 							{
 								mistDamageApply.crt = CREATION.DEACTIVATE;
@@ -1315,7 +1315,7 @@ namespace nel
 			}
 			if (alloc_reduce_from_amount)
 			{
-				int num2 = global::XX.X.Mn(G.amount, red);
+				int num2 = X.Mn(G.amount, red);
 				if (!G.infinity)
 				{
 					G.amount -= num2;
@@ -1323,7 +1323,7 @@ namespace nel
 				num += num2;
 				red -= num2;
 			}
-			red = global::XX.X.Mn(P->level255, red);
+			red = X.Mn(P->level255, red);
 			P->level255 = P->level255 - red;
 			if (P->level255 <= 0)
 			{
@@ -1358,7 +1358,7 @@ namespace nel
 						Pd->reduce_lock = (int)this.Mp.floort + 10;
 						if ((float)P->reduce_lock > this.Mp.floort)
 						{
-							Pd->reduce_lock = global::XX.X.Mx(Pd->reduce_lock, P->reduce_lock + ((int)this.Mp.floort - P->reduce_lock_assigned));
+							Pd->reduce_lock = X.Mx(Pd->reduce_lock, P->reduce_lock + ((int)this.Mp.floort - P->reduce_lock_assigned));
 						}
 						if (G.useable_count > 0)
 						{
@@ -1447,7 +1447,7 @@ namespace nel
 							}
 							if (ptr2 != null && num5 >= num4)
 							{
-								int num7 = global::XX.X.Mn(num6, num5 - num4);
+								int num7 = X.Mn(num6, num5 - num4);
 								if (G.amount >= num7 && (ptr3->useable_step || ptr2->useable_step || ptr3->step < G.K.max_influence))
 								{
 									if (!G.infinity)
@@ -1469,8 +1469,8 @@ namespace nel
 									{
 										int num8 = (Pd->level255 + P->level255) / 2;
 										int num9 = num6 * ((P->useable_step && Pd->useable_step) ? 5 : 1);
-										P->levelAdd(global::XX.X.VALWALK(P->level255, num8, num9) - P->level255);
-										Pd->levelAdd(global::XX.X.VALWALK(Pd->level255, num8, num9) - Pd->level255);
+										P->levelAdd(X.VALWALK(P->level255, num8, num9) - P->level255);
+										Pd->levelAdd(X.VALWALK(Pd->level255, num8, num9) - Pd->level255);
 									}
 								}
 							}
@@ -1511,17 +1511,17 @@ namespace nel
 							{
 								if (ptr != P)
 								{
-									int num11 = global::XX.X.Mn(global::XX.X.Mn(global::XX.X.Abs(G.K.tb_shift), Pd->level_transable), 255 - (P->isWaterStatic() ? 0 : P->level255));
+									int num11 = X.Mn(X.Mn(X.Abs(G.K.tb_shift), Pd->level_transable), 255 - (P->isWaterStatic() ? 0 : P->level255));
 									this.Reduce(Pd, G, dx, dy, num11, false);
-									P->reduce_lock = global::XX.X.Mx(Pd->reduce_lock, P->reduce_lock);
+									P->reduce_lock = X.Mx(Pd->reduce_lock, P->reduce_lock);
 									P->levelAdd(num11);
 								}
 							}
 							else if (ptr != Pd)
 							{
-								int num12 = global::XX.X.Mn(global::XX.X.Mn(global::XX.X.Abs(G.K.tb_shift), P->level255), 255 - (Pd->isWaterStatic() ? 0 : Pd->level255));
+								int num12 = X.Mn(X.Mn(X.Abs(G.K.tb_shift), P->level255), 255 - (Pd->isWaterStatic() ? 0 : Pd->level255));
 								this.Reduce(P, G, sx, sy, num12, false);
-								Pd->reduce_lock = global::XX.X.Mx(Pd->reduce_lock, P->reduce_lock);
+								Pd->reduce_lock = X.Mx(Pd->reduce_lock, P->reduce_lock);
 								Pd->levelAdd(num12);
 							}
 						}
@@ -1534,7 +1534,7 @@ namespace nel
 								if ((ptr7->aim_check & MistManager.AimCk.ALLOW_GO_BEHIND) != MistManager.AimCk.NONE && ptr6->canStand(this.Mp, ptr7, sx, (sy < dy) ? dy : sy, sx, (sy < dy) ? sy : dy))
 								{
 									ptr7->aim_check &= (MistManager.AimCk)(-8388609);
-									ptr6->setStepBehind(global::XX.X.Mx((int)(ptr7->step_behind + 1), (int)ptr6->step_behind), G.K, false);
+									ptr6->setStepBehind(X.Mx((int)(ptr7->step_behind + 1), (int)ptr6->step_behind), G.K, false);
 									if (G.K.max_behind_influence < 0 || (int)ptr6->step_behind <= G.K.max_behind_influence)
 									{
 										ptr6->aim_check |= MistManager.AimCk.ALLOW_GO_INFLUENCE;
@@ -1543,7 +1543,7 @@ namespace nel
 							}
 							if (sy == dy && P->aimGoesST() == Pd->aimGoesST())
 							{
-								int num13 = (int)global::XX.X.Mn(P->step_behind, Pd->step_behind);
+								int num13 = (int)X.Mn(P->step_behind, Pd->step_behind);
 								P->setStepBehind(num13, G.K, false);
 								Pd->setStepBehind(num13, G.K, false);
 							}
@@ -1595,7 +1595,7 @@ namespace nel
 							{
 								if ((ptr8->wind_y = wind_y - 1) == 0 && mistGenerator2.K.Msd != null)
 								{
-									mistGenerator2.K.Msd.fineWind(this.Mp, sx, global::XX.X.Mn(sy, dy), ptr8->wind);
+									mistGenerator2.K.Msd.fineWind(this.Mp, sx, X.Mn(sy, dy), ptr8->wind);
 								}
 								num14 += 30;
 							}
@@ -1603,7 +1603,7 @@ namespace nel
 							{
 								if ((ptr9->wind_y = wind_y2 + 1) == 0 && mistGenerator3.K.Msd != null)
 								{
-									mistGenerator3.K.Msd.fineWind(this.Mp, sx, global::XX.X.Mx(sy, dy), ptr9->wind);
+									mistGenerator3.K.Msd.fineWind(this.Mp, sx, X.Mx(sy, dy), ptr9->wind);
 								}
 								num14 -= 30;
 							}
@@ -1639,7 +1639,7 @@ namespace nel
 							{
 								if ((ptr10->wind_x = wind_x - 1) == 0 && mistGenerator4.K.Msd != null)
 								{
-									mistGenerator4.K.Msd.fineWind(this.Mp, global::XX.X.Mn(sx, dx), sy, ptr10->wind);
+									mistGenerator4.K.Msd.fineWind(this.Mp, X.Mn(sx, dx), sy, ptr10->wind);
 								}
 								num15 += 30;
 							}
@@ -1647,7 +1647,7 @@ namespace nel
 							{
 								if ((ptr11->wind_x = wind_x2 + 1) == 0 && mistGenerator5.K.Msd != null)
 								{
-									mistGenerator5.K.Msd.fineWind(this.Mp, global::XX.X.Mx(sx, dx), sy, ptr11->wind);
+									mistGenerator5.K.Msd.fineWind(this.Mp, X.Mx(sx, dx), sy, ptr11->wind);
 								}
 								num15 -= 30;
 							}
@@ -1729,10 +1729,10 @@ namespace nel
 				for (int k = this.AWaterStatic.Count - 1; k >= 0; k--)
 				{
 					MistManager.MistStaticArea mistStaticArea = this.AWaterStatic[k];
-					int num2 = global::XX.X.Mx(mistStaticArea.x, _l0);
-					int num3 = global::XX.X.Mn(mistStaticArea.right, _r0);
-					int num4 = global::XX.X.Mx(mistStaticArea.reachable_y, _t0);
-					int num5 = global::XX.X.Mn(mistStaticArea.bottom, _b0);
+					int num2 = X.Mx(mistStaticArea.x, _l0);
+					int num3 = X.Mn(mistStaticArea.right, _r0);
+					int num4 = X.Mx(mistStaticArea.reachable_y, _t0);
+					int num5 = X.Mn(mistStaticArea.bottom, _b0);
 					if (num2 < num3 && num4 < num5)
 					{
 						for (int l = num4; l < num5; l++)
@@ -1747,10 +1747,10 @@ namespace nel
 			}
 			if (!this.Rc.isEmpty())
 			{
-				int num6 = global::XX.X.Mx(this.crop, _t0);
-				int num7 = global::XX.X.Mx(this.crop, _l0);
-				int num8 = global::XX.X.Mn(this.Mp.clms - this.crop, _r0);
-				int num9 = global::XX.X.Mn(this.Mp.rows - this.crop, _b0);
+				int num6 = X.Mx(this.crop, _t0);
+				int num7 = X.Mx(this.crop, _l0);
+				int num8 = X.Mn(this.Mp.clms - this.crop, _r0);
+				int num9 = X.Mn(this.Mp.rows - this.crop, _b0);
 				if (num6 < num9 && num7 < num8 && this.Rc.isCoveringXy((float)num7, (float)num6, (float)num8, (float)num9, 1f, -1000f))
 				{
 					fixed (MistManager.MistPD* ptr = &this.AAPd[0, 0])
@@ -1817,10 +1817,10 @@ namespace nel
 			fixed (MistManager.MistPD* ptr = &this.AAPd[0, 0])
 			{
 				MistManager.MistPD* ptr2 = ptr;
-				int num = (int)global::XX.X.Mn(this.Rc.x + this.Rc.w, (float)(this.Mp.clms - this.crop));
-				int num2 = (int)global::XX.X.Mn(this.Rc.y + this.Rc.h, (float)(this.Mp.rows - this.crop));
-				int num3 = (int)global::XX.X.Mx(this.Rc.x, (float)this.crop);
-				for (int i = (int)global::XX.X.Mx(this.Rc.y, (float)this.crop); i < num2; i++)
+				int num = (int)X.Mn(this.Rc.x + this.Rc.w, (float)(this.Mp.clms - this.crop));
+				int num2 = (int)X.Mn(this.Rc.y + this.Rc.h, (float)(this.Mp.rows - this.crop));
+				int num3 = (int)X.Mx(this.Rc.x, (float)this.crop);
+				for (int i = (int)X.Mx(this.Rc.y, (float)this.crop); i < num2; i++)
 				{
 					MistManager.MistPD* ptr3 = this.getPtr(ptr2, num3, i);
 					for (int j = num3; j < num; j++)
@@ -1988,7 +1988,7 @@ namespace nel
 					{
 						return null;
 					}
-					if (1f - global::XX.X.frac(y) > wldraw.drawlevel)
+					if (1f - X.frac(y) > wldraw.drawlevel)
 					{
 						return null;
 					}
@@ -2002,15 +2002,15 @@ namespace nel
 			ulong num = 0UL;
 			for (int i = 0; i < 4; i++)
 			{
-				int num2 = _x + global::XX.CAim._XD(i, 1);
-				int num3 = _y - global::XX.CAim._YD(i, 1);
+				int num2 = _x + CAim._XD(i, 1);
+				int num3 = _y - CAim._YD(i, 1);
 				if (this.Rc.isin((float)num2, (float)num3, 0f))
 				{
 					MistManager.MistPD* ptr = this.getPtr(Ptr0, num2, num3);
 					if (ptr->level255 != 0)
 					{
 						MistManager.MistKind k = this.AGen[(int)ptr->id].K;
-						if ((K == null || (ptr->level255 > 0 && k != K)) && ptr->cutSpecificAim(k, global::XX.CAim.get_opposite((global::XX.AIM)i), cut_fromdata))
+						if ((K == null || (ptr->level255 > 0 && k != K)) && ptr->cutSpecificAim(k, CAim.get_opposite((AIM)i), cut_fromdata))
 						{
 							num |= 1UL << (int)ptr->id;
 						}
@@ -2027,32 +2027,51 @@ namespace nel
 
 		public unsafe string checkWaterFootSound(float x, float y, ref string snd_type)
 		{
-			if (this.water_mng_bits == 0UL)
+			if (this.water_mng_bits == 0UL || this.OWMng == null)
 			{
 				return snd_type;
 			}
-			fixed (MistManager.MistPD* ptr = &this.AAPd[0, 0])
+			string text;
+			try
 			{
-				MistManager.MistPD* ptr2 = ptr;
-				int num = (int)x;
-				int num2 = (int)(y - 0.125f);
-				MistManager.MistPD mistPD = *this.getPtr(ptr2, num, num2);
-				if (mistPD.level255 == 0 || (this.water_mng_bits & (1UL << (int)mistPD.id)) == 0UL)
+				try
 				{
-					return snd_type;
+					fixed (MistManager.MistPD* ptr = &this.AAPd[0, 0])
+					{
+						MistManager.MistPD* ptr2 = ptr;
+						int num = (int)x;
+						int num2 = (int)(y - 0.125f);
+						MistManager.MistPD mistPD = *this.getPtr(ptr2, num, num2);
+						if (mistPD.level255 == 0 || (this.water_mng_bits & (1UL << (int)mistPD.id)) == 0UL)
+						{
+							text = snd_type;
+						}
+						else
+						{
+							bool flag;
+							if (num2 > this.crop)
+							{
+								MistManager.MistPD mistPD2 = *this.getPtr(ptr2, num, num2 - 1);
+								flag = mistPD.id != mistPD2.id || mistPD2.level255 == 0;
+							}
+							else
+							{
+								flag = true;
+							}
+							text = this.OWMng[this.AGen[(int)mistPD.id].K.type].checkWaterFootSound(x, y, num, num2, ref snd_type, flag);
+						}
+					}
 				}
-				bool flag;
-				if (num2 > this.crop)
+				finally
 				{
-					MistManager.MistPD mistPD2 = *this.getPtr(ptr2, num, num2 - 1);
-					flag = mistPD.id != mistPD2.id || mistPD2.level255 == 0;
+					MistManager.MistPD* ptr = null;
 				}
-				else
-				{
-					flag = true;
-				}
-				return this.OWMng[this.AGen[(int)mistPD.id].K.type].checkWaterFootSound(x, y, num, num2, ref snd_type, flag);
 			}
+			catch
+			{
+				text = snd_type;
+			}
+			return text;
 		}
 
 		public M2DropObject addWaterPuddleEffect(M2Mover Mv, int gen_id)
@@ -2061,7 +2080,7 @@ namespace nel
 			{
 				this.FD_drawWaterReleaseOne = new M2DropObject.FnDropObjectDraw(this.drawWaterReleaseOne);
 			}
-			M2DropObject m2DropObject = this.Mp.DropCon.Add(this.FD_drawWaterReleaseOne, Mv.x + (global::XX.X.XORSP() - 0.5f) * 2f * 0.85f * Mv.sizex, Mv.y + global::XX.X.XORSP() * 0.85f * Mv.sizey, 0f, global::XX.X.XORSP() * 0.06f, 0f, (float)gen_id);
+			M2DropObject m2DropObject = this.Mp.DropCon.Add(this.FD_drawWaterReleaseOne, Mv.x + (X.XORSP() - 0.5f) * 2f * 0.85f * Mv.sizex, Mv.y + X.XORSP() * 0.85f * Mv.sizey, 0f, X.XORSP() * 0.06f, 0f, (float)gen_id);
 			m2DropObject.type = DROP_TYPE.WATER_BOUNCE;
 			m2DropObject.gravity_scale = 0.125f;
 			m2DropObject.bounce_y_reduce = 0f;
@@ -2070,7 +2089,7 @@ namespace nel
 
 		private bool drawWaterReleaseOne(M2DropObject Dro, EffectItem Ef, M2DrawBinder Ed)
 		{
-			if (this.AGen == null || !global::XX.X.BTW(0f, (float)((int)Dro.time), (float)this.AGen.Count))
+			if (this.AGen == null || !X.BTW(0f, (float)((int)Dro.time), (float)this.AGen.Count))
 			{
 				return false;
 			}
@@ -2082,9 +2101,9 @@ namespace nel
 				{
 					return false;
 				}
-				uint ran = global::XX.X.GETRAN2(Dro.index * 27, Dro.index % 9);
-				Ef.y += global::XX.X.NI(0.125f, 0.25f, global::XX.X.RAN(ran, 1634));
-				return EffectItemNel.draw_rainfoot_puddle(Ef, MTRX.cola.White().blend(mistGenerator.K.color0, global::XX.X.RAN(ran, 998)).C, BLEND.ADD, (float)((global::XX.X.RAN(ran, 1716) < 0.3f) ? 1 : 2), Dro.af_ground, Ef.f0, Dro.index, true);
+				uint ran = X.GETRAN2(Dro.index * 27, Dro.index % 9);
+				Ef.y += X.NI(0.125f, 0.25f, X.RAN(ran, 1634));
+				return EffectItemNel.draw_rainfoot_puddle(Ef, MTRX.cola.White().blend(mistGenerator.K.color0, X.RAN(ran, 998)).C, BLEND.ADD, (float)((X.RAN(ran, 1716) < 0.3f) ? 1 : 2), Dro.af_ground, Ef.f0, Dro.index, true);
 			}
 			else
 			{
@@ -2092,10 +2111,10 @@ namespace nel
 				{
 					return false;
 				}
-				uint ran2 = global::XX.X.GETRAN2(Dro.index * 27, Dro.index % 9);
+				uint ran2 = X.GETRAN2(Dro.index * 27, Dro.index % 9);
 				MeshDrawer mesh = Ef.GetMesh("", uint.MaxValue, BLEND.ADD, false);
-				mesh.Col = mesh.ColGrd.Set(C32.c2d(mistGenerator.K.color0)).blend(MTRX.ColWhite, global::XX.X.RAN(ran2, 2395)).C;
-				float num = global::XX.X.NI(1, 4, global::XX.X.ZPOW(Dro.af, 24f));
+				mesh.Col = mesh.ColGrd.Set(C32.c2d(mistGenerator.K.color0)).blend(MTRX.ColWhite, X.RAN(ran2, 2395)).C;
+				float num = X.NI(1, 4, X.ZPOW(Dro.af, 24f));
 				mesh.RectBL(-2f, -num, 2f, num, false);
 				return true;
 			}
@@ -2113,7 +2132,7 @@ namespace nel
 
 		public unsafe bool isFire(int x, int y)
 		{
-			if (!this.isActive() || this.AGen == null || !global::XX.X.BTW((float)this.crop, (float)x, (float)(this.Mp.clms - this.crop)) || !global::XX.X.BTW((float)this.crop, (float)y, (float)(this.Mp.rows - this.crop)))
+			if (!this.isActive() || this.AGen == null || !X.BTW((float)this.crop, (float)x, (float)(this.Mp.clms - this.crop)) || !X.BTW((float)this.crop, (float)y, (float)(this.Mp.rows - this.crop)))
 			{
 				return false;
 			}
@@ -2141,7 +2160,7 @@ namespace nel
 			{
 				this.ExpandWaterStaticArea(this.RcBufS);
 			}
-			global::XX.X.rectMultiply(this.RcBufS, (float)this.crop, (float)this.crop, (float)(this.Mp.clms - this.crop * 2), (float)(this.Mp.rows - this.crop * 2));
+			X.rectMultiply(this.RcBufS, (float)this.crop, (float)this.crop, (float)(this.Mp.clms - this.crop * 2), (float)(this.Mp.rows - this.crop * 2));
 			return this.RcBufS;
 		}
 
@@ -2161,7 +2180,7 @@ namespace nel
 
 		public M2WaterWatcher getWaterManager(MistManager.MISTTYPE p)
 		{
-			return global::XX.X.Get<MistManager.MISTTYPE, M2WaterWatcher>(this.OWMng, p);
+			return X.Get<MistManager.MISTTYPE, M2WaterWatcher>(this.OWMng, p);
 		}
 
 		private void drawWater(int fcnt)
@@ -2176,7 +2195,7 @@ namespace nel
 			{
 				keyValuePair.Value.drawWater(this.MdWater, fcnt);
 			}
-			this.Mp.addUpdateMesh(1024, false);
+			this.Mp.addUpdateMesh(2048, false);
 			this.MdWater.chooseSubMesh(0, false, false);
 		}
 
@@ -2213,7 +2232,7 @@ namespace nel
 				}
 				else
 				{
-					this.SurfaceDraw.drawt = global::XX.X.VALWALK(this.SurfaceDraw.drawt, drawt, surface_raise_pixel);
+					this.SurfaceDraw.drawt = X.VALWALK(this.SurfaceDraw.drawt, drawt, surface_raise_pixel);
 				}
 				this.SurfaceDraw.alpha = surface_alpha;
 			}
@@ -2237,10 +2256,10 @@ namespace nel
 		{
 			float w = this.Mp.M2D.Cam.get_w();
 			float h = this.Mp.M2D.Cam.get_h();
-			int num = global::XX.X.Mx(this.crop, (int)this.Mp.M2D.Cam.lt_mapx);
-			int num2 = global::XX.X.Mx(this.crop, (int)this.Mp.M2D.Cam.lt_mapy);
-			int num3 = global::XX.X.Mn(this.Mp.clms - this.crop - 1, global::XX.X.IntC(this.Mp.M2D.Cam.lt_mapx + w / this.Mp.CLEN) + 1);
-			int num4 = global::XX.X.Mn(this.Mp.rows - this.crop - 1, global::XX.X.IntC(this.Mp.M2D.Cam.lt_mapy + h / this.Mp.CLEN) + 1);
+			int num = X.Mx(this.crop, (int)this.Mp.M2D.Cam.lt_mapx);
+			int num2 = X.Mx(this.crop, (int)this.Mp.M2D.Cam.lt_mapy);
+			int num3 = X.Mn(this.Mp.clms - this.crop - 1, X.IntC(this.Mp.M2D.Cam.lt_mapx + w / this.Mp.CLEN) + 1);
+			int num4 = X.Mn(this.Mp.rows - this.crop - 1, X.IntC(this.Mp.M2D.Cam.lt_mapy + h / this.Mp.CLEN) + 1);
 			float num5 = this.Mp.map2meshx((float)num);
 			float num6 = this.Mp.map2meshy((float)num2);
 			Md.Col = MTRX.ColWhite;
@@ -2268,11 +2287,11 @@ namespace nel
 							{
 								num9 /= 256f;
 								int id = (int)ptr3->id;
-								if (global::XX.X.BTW(0f, (float)id, (float)this.gen_id_max))
+								if (X.BTW(0f, (float)id, (float)this.gen_id_max))
 								{
 									MistManager.MistKind k = this.AGen[(int)ptr3->id].K;
 									flag2 = k.max_behind_influence >= 0;
-									Md.Col = Md.ColGrd.Set(ptr3->useable_step ? k.color0 : k.color1).setA1(global::XX.X.NI(0.05f, 0.25f, num9) * ((ptr3->level255 >= k.apply_level255) ? 2.5f : 1f)).C;
+									Md.Col = Md.ColGrd.Set(ptr3->useable_step ? k.color0 : k.color1).setA1(X.NI(0.05f, 0.25f, num9) * ((ptr3->level255 >= k.apply_level255) ? 2.5f : 1f)).C;
 									MdC.Col = Md.ColGrd.Set(4287943935U).blend(4290700799U, num9).C;
 									Md.RectBL(num8 + 1f, num6 - clen, clen - 1f, clen - 1f, false);
 									if (flag && k.mist_aim != MistManager.MISTAIM.NO_AIM)
@@ -2287,7 +2306,7 @@ namespace nel
 												bool flag5 = (aim_check & (MistManager.AimCk)(65536 << l)) > MistManager.AimCk.NONE;
 												if (flag3)
 												{
-													Md.Rotate(-global::XX.CAim.get_agR((global::XX.AIM)k.mist_aim, 0f), false);
+													Md.Rotate(-CAim.get_agR((AIM)k.mist_aim, 0f), false);
 													if (l == 1)
 													{
 														Md.Rotate(-1.5707964f, false);
@@ -2422,14 +2441,14 @@ namespace nel
 			this.readBinaryFrom(byteArray);
 		}
 
-		public unsafe void readBinaryFrom(ByteArray Ba)
+		public unsafe void readBinaryFrom(ByteReader Ba)
 		{
 			this.clearWithoutGenerator();
 			this.Rc.Set((float)Ba.readUShort(), (float)Ba.readUShort(), (float)Ba.readUShort(), (float)Ba.readUShort());
-			int num = (int)global::XX.X.Mn(this.Rc.x + this.Rc.w, (float)(this.Mp.clms - this.crop));
-			int num2 = (int)global::XX.X.Mn(this.Rc.y + this.Rc.h, (float)(this.Mp.rows - this.crop));
-			int num3 = (int)global::XX.X.Mx(this.Rc.x, (float)this.crop);
-			int num4 = (int)global::XX.X.Mx(this.Rc.y, (float)this.crop);
+			int num = (int)X.Mn(this.Rc.x + this.Rc.w, (float)(this.Mp.clms - this.crop));
+			int num2 = (int)X.Mn(this.Rc.y + this.Rc.h, (float)(this.Mp.rows - this.crop));
+			int num3 = (int)X.Mx(this.Rc.x, (float)this.crop);
+			int num4 = (int)X.Mx(this.Rc.y, (float)this.crop);
 			this.reconsider_flag = 1;
 			this.RcReconsider.Expand(this.Rc.x, this.Rc.y, this.Rc.width, this.Rc.height, false);
 			fixed (MistManager.MistPD* ptr = &this.AAPd[0, 0])
@@ -2454,10 +2473,10 @@ namespace nel
 			Ba.writeUShort((ushort)this.Rc.y);
 			Ba.writeUShort((ushort)this.Rc.width);
 			Ba.writeUShort((ushort)this.Rc.height);
-			int num = (int)global::XX.X.Mn(this.Rc.x + this.Rc.w, (float)(this.Mp.clms - this.crop));
-			int num2 = (int)global::XX.X.Mn(this.Rc.y + this.Rc.h, (float)(this.Mp.rows - this.crop));
-			int num3 = (int)global::XX.X.Mx(this.Rc.x, (float)this.crop);
-			int num4 = (int)global::XX.X.Mx(this.Rc.y, (float)this.crop);
+			int num = (int)X.Mn(this.Rc.x + this.Rc.w, (float)(this.Mp.clms - this.crop));
+			int num2 = (int)X.Mn(this.Rc.y + this.Rc.h, (float)(this.Mp.rows - this.crop));
+			int num3 = (int)X.Mx(this.Rc.x, (float)this.crop);
+			int num4 = (int)X.Mx(this.Rc.y, (float)this.crop);
 			fixed (MistManager.MistPD* ptr = &this.AAPd[0, 0])
 			{
 				MistManager.MistPD* ptr2 = ptr;
@@ -2731,7 +2750,7 @@ namespace nel
 				this.reduce255 = Src.reduce255;
 				this.mist_aim = Src.mist_aim;
 				this.fnApply = Src.fnApply;
-				this.AAtk = ((Src.AAtk != null) ? global::XX.X.concat<MistAttackInfo>(Src.AAtk, null, -1, -1) : null);
+				this.AAtk = ((Src.AAtk != null) ? X.concat<MistAttackInfo>(Src.AAtk, null, -1, -1) : null);
 				return this;
 			}
 
@@ -2797,7 +2816,7 @@ namespace nel
 				}
 				if ((num == -1 || num == 1) && this.AAtk != null)
 				{
-					Atk.applyGasDamage(this.AAtk[global::XX.X.xors(this.AAtk.Length)]);
+					Atk.applyGasDamage(K, this.AAtk[X.xors(this.AAtk.Length)]);
 				}
 				return num > 0;
 			}
@@ -2815,13 +2834,13 @@ namespace nel
 					int num2;
 					if (sx == dx && (num2 = P->wind_y) != 0)
 					{
-						num += -50 * global::XX.X.MPF(sy < dy == 0 < num2);
+						num += -50 * X.MPF(sy < dy == 0 < num2);
 					}
 					if (sy == dy && (num2 = P->wind_x) != 0)
 					{
-						num += -50 * global::XX.X.MPF(sx < dx == 0 < num2);
+						num += -50 * X.MPF(sx < dx == 0 < num2);
 					}
-					num = global::XX.X.MMX(1, num, 254);
+					num = X.MMX(1, num, 254);
 				}
 				if (P->level_transable <= num)
 				{
@@ -2841,7 +2860,7 @@ namespace nel
 					{
 						return false;
 					}
-					int num3 = global::XX.CAim.get_dif_tetra((global::XX.AIM)this.mist_aim, global::XX.CAim.get_aim_tetra(sx, -sy, dx, -dy));
+					int num3 = CAim.get_dif_tetra((AIM)this.mist_aim, CAim.get_aim_tetra(sx, -sy, dx, -dy));
 					if (num3 != 0)
 					{
 						if (num3 == 4)
@@ -3123,7 +3142,7 @@ namespace nel
 				}
 			}
 
-			public void readBinaryFrom(ByteArray Ba)
+			public void readBinaryFrom(ByteReader Ba)
 			{
 				this.level255 = Ba.readInt();
 				if (this.level255 > 0)
@@ -3156,7 +3175,7 @@ namespace nel
 				}
 				set
 				{
-					this.wind = (this.wind & 255) | (global::XX.X.MMX(0, value + 127, 255) << 8);
+					this.wind = (this.wind & 255) | (X.MMX(0, value + 127, 255) << 8);
 				}
 			}
 
@@ -3168,7 +3187,7 @@ namespace nel
 				}
 				set
 				{
-					this.wind = (this.wind & 65280) | global::XX.X.MMX(0, value + 127, 255);
+					this.wind = (this.wind & 65280) | X.MMX(0, value + 127, 255);
 				}
 			}
 
@@ -3215,7 +3234,7 @@ namespace nel
 
 			public void levelAdd(int l)
 			{
-				l = global::XX.X.Mn(255 - this.level255, l);
+				l = X.Mn(255 - this.level255, l);
 				this.level255 += l;
 				if (l > 0)
 				{
@@ -3230,9 +3249,9 @@ namespace nel
 					MistManager.MistPD.transfer(Dest, Src, -val);
 					return;
 				}
-				val = global::XX.X.Mn(Src->level255, val);
+				val = X.Mn(Src->level255, val);
 				Src->levelAdd(-val);
-				val = global::XX.X.Mn(255 - Dest->level255, val);
+				val = X.Mn(255 - Dest->level255, val);
 				Dest->levelAdd(val);
 			}
 
@@ -3268,11 +3287,11 @@ namespace nel
 				}
 			}
 
-			public global::XX.AIM aim
+			public AIM aim
 			{
 				get
 				{
-					return global::XX.CAim.get_aim2(0f, 0f, (float)(((this.angle_var & 18) == 18) ? (-1) : (((this.angle_var & 20) == 20) ? 1 : 0)), (float)(((this.angle_var & 160) == 160) ? 1 : (((this.angle_var & 192) == 192) ? (-1) : 0)), false);
+					return CAim.get_aim2(0f, 0f, (float)(((this.angle_var & 18) == 18) ? (-1) : (((this.angle_var & 20) == 20) ? 1 : 0)), (float)(((this.angle_var & 160) == 160) ? 1 : (((this.angle_var & 192) == 192) ? (-1) : 0)), false);
 				}
 			}
 
@@ -3283,7 +3302,7 @@ namespace nel
 					this.aim_check &= (MistManager.AimCk)28672;
 					this.level255 = 255;
 					this.useable_step = true;
-					this.step_behind_ = (byte)global::XX.X.MMX(0, K.max_behind_influence - behind_step_room, 255);
+					this.step_behind_ = (byte)X.MMX(0, K.max_behind_influence - behind_step_room, 255);
 					this.fineRoomFlag(K);
 					this.aimTouch(0, 0);
 					this.aimTouch(2, 1);
@@ -3325,7 +3344,7 @@ namespace nel
 				{
 					return -4;
 				}
-				int num = global::XX.CAim.get_dif_tetra((global::XX.AIM)K.mist_aim, global::XX.CAim.get_aim_tetra(sx, -sy, dx, -dy));
+				int num = CAim.get_dif_tetra((AIM)K.mist_aim, CAim.get_aim_tetra(sx, -sy, dx, -dy));
 				if (ResetMist != null)
 				{
 					switch (num)
@@ -3404,13 +3423,13 @@ namespace nel
 				return aim_dif;
 			}
 
-			public bool cutSpecificAim(MistManager.MistKind K, global::XX.AIM a, bool cut_fromdata)
+			public bool cutSpecificAim(MistManager.MistKind K, AIM a, bool cut_fromdata)
 			{
 				if (K.mist_aim == MistManager.MISTAIM.NO_AIM)
 				{
 					return false;
 				}
-				int num = global::XX.CAim.get_dif_tetra((global::XX.AIM)K.mist_aim, a);
+				int num = CAim.get_dif_tetra((AIM)K.mist_aim, a);
 				MistManager.AimCk aimCk = this.aim_check;
 				switch (num)
 				{
@@ -3448,7 +3467,7 @@ namespace nel
 				{
 					return false;
 				}
-				switch (global::XX.CAim.get_dif_tetra((global::XX.AIM)K.mist_aim, global::XX.CAim.get_aim_tetra(sx, -sy, dx, -dy)))
+				switch (CAim.get_dif_tetra((AIM)K.mist_aim, CAim.get_aim_tetra(sx, -sy, dx, -dy)))
 				{
 				case -2:
 					return (this.aim_check & MistManager.AimCk.CHECK_L) > MistManager.AimCk.NONE;

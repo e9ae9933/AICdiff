@@ -70,12 +70,12 @@ namespace nel
 				Mg.sx += num * (float)num2;
 				if (Mg.phase == 1 && gswMem.CurBCC == null)
 				{
-					mp.BCC.isFallable(Mg.sx, Mg.sy - Mg.sz * 0.375f, Mg.dz * ((Mg.t > 20f) ? 0.5f : 1f), Mg.sz * 0.5f, out gswMem.CurBCC, true, true, -1f);
+					mp.BCC.isFallable(Mg.sx, Mg.sy - Mg.sz * 0.375f, Mg.dz * ((Mg.t > 20f) ? 0.5f : 1f), Mg.sz * 0.5f, out gswMem.CurBCC, true, true, -1f, null);
 					if (gswMem.CurBCC == null)
 					{
 						for (int i = mp.count_carryable_bcc - 1; i >= 0; i--)
 						{
-							mp.getCarryableBCCByIndex(i).isFallable(Mg.sx, Mg.sy - Mg.sz * 0.375f, Mg.dz, Mg.sz * 0.5f, out gswMem.CurBCC, true, true, -1f);
+							mp.getCarryableBCCByIndex(i).isFallable(Mg.sx, Mg.sy - Mg.sz * 0.375f, Mg.dz, Mg.sz * 0.5f, out gswMem.CurBCC, true, true, -1f, null);
 							if (gswMem.CurBCC != null)
 							{
 								break;
@@ -91,7 +91,7 @@ namespace nel
 						gswMem.fineAngle();
 					}
 				}
-				if (Mg.phase == 1)
+				if (Mg.phase == 1 && gswMem.CurBCC != null)
 				{
 					if (num2 > 0 && Mg.sx >= gswMem.CurBCC.right)
 					{
@@ -134,7 +134,7 @@ namespace nel
 				}
 				Mg.sy += num * Mg.dy * (float)num2;
 				Mg.Ray.RadiusM(Mg.dz * 0.5f).PosMap((Mg.phase == 2) ? (Mg.dx - (float)num2 * Mg.dz * 0.5f) : (Mg.sx - (float)num2 * Mg.dz * 0.5f), Mg.sy - Mg.dz * 0.5f);
-				if ((Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0.BurstDir((float)num2), HITTYPE.NONE) & (HITTYPE)4259840) != HITTYPE.NONE)
+				if ((Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0.BurstDir((float)num2), HITTYPE.NONE) & (HITTYPE.KILLED | HITTYPE.REFLECT_BROKEN)) != HITTYPE.NONE)
 				{
 					Mg.kill(0.125f);
 					Mg.explodeS();

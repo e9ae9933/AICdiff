@@ -41,7 +41,7 @@ namespace evt
 				EvPerson.EvPxlsLoader loaderForPxl = EV.getLoaderForPxl(_Img.PF.pChar);
 				if (loaderForPxl != null)
 				{
-					loaderForPxl.preparePxlImage(false);
+					loaderForPxl.preparePxlChar(true, true);
 					return loaderForPxl;
 				}
 			}
@@ -142,9 +142,9 @@ namespace evt
 						{
 							X.de("EvImgContainer:initPx :: 不明な人物 " + person_key, null);
 						}
-						else
+						else if (!person.loaderIs(APxls[i]))
 						{
-							person.initPxEmot(pc, true);
+							X.de("EvImgContainer:initPx :: ローダーが接続されていません " + person_key, null);
 						}
 					}
 					else

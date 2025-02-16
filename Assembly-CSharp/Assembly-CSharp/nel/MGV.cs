@@ -14,7 +14,7 @@ namespace nel
 			MGV.Afatal_seen = new List<string>(1);
 		}
 
-		public static ByteArray loadSdFile()
+		public static void loadSdFile()
 		{
 			MGV.clear();
 			if (MGV.temp_kisekae_max < 0)
@@ -27,17 +27,16 @@ namespace nel
 				}
 				MGV.temp_kisekae_max = num2 - 1;
 			}
-			ByteArray byteArray = NKT.readSdBinary("whole.data", true);
-			if (byteArray != null)
+			ByteReader byteReader = NKT.readSdBinary("whole.data", true);
+			if (byteReader != null)
 			{
-				MGV.readBinary(byteArray, true);
+				MGV.readBinary(byteReader, true);
 			}
-			return byteArray;
 		}
 
 		public static string kisekaeBinaryPath(int c)
 		{
-			return Path.Combine(Application.streamingAssetsPath, "noel_kisekae" + global::XX.X.spr0(c, 2, '0') + ".pxls.bytes");
+			return Path.Combine(Application.streamingAssetsPath, "noel_kisekae" + X.spr0(c, 2, '0') + ".pxls.bytes");
 		}
 
 		public static ByteArray saveSdFile(ByteArray Ba = null)
@@ -76,18 +75,18 @@ namespace nel
 				{
 					Ba.writePascalString(MGV.Afatal_seen[i], "utf-8");
 				}
-				Ba.writeBool(global::XX.X.v_sync);
+				Ba.writeBool(X.v_sync);
 				Ba.writeBool(MGV.pad_checked);
-				CFG.writeBinarySp(Ba);
+				CFGSP.writeBinarySp(Ba);
 			}
 			catch (Exception ex)
 			{
-				global::XX.X.de(ex.ToString(), null);
+				X.de(ex.ToString(), null);
 			}
 			return Ba;
 		}
 
-		private static ByteArray readBinary(ByteArray Ba, bool apply_language = true)
+		private static ByteReader readBinary(ByteReader Ba, bool apply_language = true)
 		{
 			try
 			{
@@ -101,7 +100,7 @@ namespace nel
 					MGV.pad_checked = true;
 				}
 				MGV.last_saved = (byte)Ba.readByte();
-				MGV.temp_kisekae = global::XX.X.MMX(0, Ba.readByte(), MGV.temp_kisekae_max);
+				MGV.temp_kisekae = X.MMX(0, Ba.readByte(), MGV.temp_kisekae_max);
 				if (num >= 11)
 				{
 					int num2 = Ba.readByte();
@@ -111,7 +110,7 @@ namespace nel
 					}
 					if (num >= 12)
 					{
-						global::XX.X.v_sync = Ba.readBoolean();
+						X.v_sync = Ba.readBoolean();
 						if (num >= 13)
 						{
 							MGV.pad_checked = Ba.readBoolean();
@@ -119,7 +118,7 @@ namespace nel
 					}
 					if (num >= 14)
 					{
-						CFG.readBinarySp(Ba);
+						CFGSP.readBinarySp(Ba);
 					}
 				}
 			}
@@ -127,13 +126,13 @@ namespace nel
 			{
 				if (ex.Message != "ERROR_EOF")
 				{
-					global::XX.X.de(ex.ToString(), null);
+					X.de(ex.ToString(), null);
 				}
 			}
 			if (!MGV.read_first)
 			{
 				MGV.read_first = true;
-				IN.enable_vsync = global::XX.X.v_sync;
+				IN.enable_vsync = X.v_sync;
 			}
 			return Ba;
 		}

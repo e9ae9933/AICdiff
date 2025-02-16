@@ -143,12 +143,12 @@ namespace m2d
 
 		public bool isContainingMover(M2Mover Mv, float _extend_px = 0f)
 		{
-			return global::XX.X.isContaining(this.x, base.right, Mv.mleft * base.CLEN, Mv.mright * base.CLEN, _extend_px) && global::XX.X.isContaining(base.y, base.bottom, Mv.mtop * base.CLEN, Mv.mbottom * base.CLEN, _extend_px);
+			return X.isContaining(this.x, base.right, Mv.mleft * base.CLEN, Mv.mright * base.CLEN, _extend_px) && X.isContaining(base.y, base.bottom, Mv.mtop * base.CLEN, Mv.mbottom * base.CLEN, _extend_px);
 		}
 
 		public bool isCoveringMover(M2Mover Mv, float _extend_px = 0f)
 		{
-			return global::XX.X.isCovering(this.x, base.right, Mv.mleft * base.CLEN, Mv.mright * base.CLEN, _extend_px) && global::XX.X.isCovering(base.y, base.bottom, Mv.mtop * base.CLEN, Mv.mbottom * base.CLEN, _extend_px);
+			return X.isCovering(this.x, base.right, Mv.mleft * base.CLEN, Mv.mright * base.CLEN, _extend_px) && X.isCovering(base.y, base.bottom, Mv.mtop * base.CLEN, Mv.mbottom * base.CLEN, _extend_px);
 		}
 
 		public static M2LabelPoint readBytesContentLp(ByteArray Ba, M2MapLayer Lay, bool key_replace = false, int shift_drawx = 0, int shift_drawy = 0)

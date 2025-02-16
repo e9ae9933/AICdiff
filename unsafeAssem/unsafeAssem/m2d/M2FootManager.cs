@@ -93,6 +93,10 @@ namespace m2d
 			{
 				this.searchLadder();
 			}
+			if (this.hasFoot())
+			{
+				this.need_recheck_foottype = true;
+			}
 		}
 
 		public M2BlockColliderContainer.BCCLine searchLadder()
@@ -264,6 +268,7 @@ namespace m2d
 		public void remFootListener(IBCCFootListener Lsn)
 		{
 			this.ABccFoot.Remove(Lsn);
+			this.need_recheck_foottype = true;
 		}
 
 		public void initJump(bool recheck_foot = false, bool no_footstamp_snd = false, bool remain_foot_margin = false)
@@ -318,24 +323,28 @@ namespace m2d
 			this.t_footstamp = X.Mn(-lock_t, this.t_footstamp);
 		}
 
-		private void fineFootStampType()
+		public void fineFootStampType()
 		{
 			this.recheckCache();
-			float x = this.Mv.x;
-			float sizex = this.Mv.sizex;
-			int bcc_xd = this.bcc_xd;
-			float y = this.Mv.y;
-			float sizey = this.Mv.sizey;
-			int bcc_yd = this.bcc_yd;
+			if (this.need_recheck_bcc_foot_ >= 6)
+			{
+				this.BccFootCheck();
+			}
 			if (this.CurBCC != null && (this.need_recheck_foottype || !this.CurBCC.is_map_bcc))
 			{
+				float x = this.Mv.x;
+				float sizex = this.Mv.sizex;
+				int bcc_xd = this.bcc_xd;
+				float y = this.Mv.y;
+				float sizey = this.Mv.sizey;
+				int bcc_yd = this.bcc_yd;
 				this.need_recheck_foottype = false;
+				string text = this.foottype;
 				if (CCON.isWater(this.Mp.getConfig((int)this.Phy.tstacked_x, (int)(this.Phy.tstacked_y + this.Mv.sizey - 0.1f))))
 				{
 					this.foottype = "water";
-					return;
 				}
-				if (this.footstamp_type == FOOTSTAMP.NONE || this.footstamp_type == FOOTSTAMP.SHOES || this.footstamp_type == FOOTSTAMP.BAREFOOT)
+				else if (this.footstamp_type == FOOTSTAMP.NONE || this.footstamp_type == FOOTSTAMP.SHOES || this.footstamp_type == FOOTSTAMP.BAREFOOT)
 				{
 					M2BlockColliderContainer.BCCPos footStampChip = this.CurBCC.getFootStampChip((int)this.pivot, this.Phy.tstacked_x, this.Phy.tstacked_y, this.Mv.sizex, this.Mv.sizey);
 					if (footStampChip.valid)
@@ -344,13 +353,22 @@ namespace m2d
 						if (TX.noe(this.foottype))
 						{
 							this.foottype = this.Mp.Dgn.foot_type;
-							return;
 						}
 					}
 				}
 				else
 				{
 					this.foottype = "ground";
+				}
+				if (this.foottype == "ice" && text != "ice" && text != null)
+				{
+					this.Phy.setWalkXSpeed(this.Phy.walk_xspeed * 0.5f, false, false);
+					this.Phy.addOnIce();
+				}
+				int count = this.ABccFoot.Count;
+				for (int i = 0; i < count; i++)
+				{
+					this.ABccFoot[i].rewriteFootType(this.CurBCC, this, ref this.foottype);
 				}
 			}
 		}
@@ -384,65 +402,126 @@ namespace m2d
 				}
 			}
 			string text2 = null;
-			FOOTSTAMP footstamp = this.footstamp_type;
-			if (footstamp != FOOTSTAMP.BIG)
+			switch (this.footstamp_type)
 			{
-				if (footstamp == FOOTSTAMP.OVERDRIVE)
+			case FOOTSTAMP.BIG:
+				if (this.foottype == "water")
 				{
-					if (!(this.foottype == "water"))
+					text2 = "dive_to_water";
+				}
+				else
+				{
+					if (this.stamp_state == FOOTRES.FOOTED)
 					{
 						this.Mp.PtcSTsetVar("sizex", (double)(this.sizex * this.Mp.CLENB)).PtcSTsetVar("bx", (double)num).PtcSTsetVar("by", (double)num2)
 							.PtcSTsetVar("bagR", (double)this.bcc_agR)
-							.PtcST("enemy_ground_bump", null, PTCThread.StFollow.NO_FOLLOW);
+							.PtcST("enemy_ground_bump_s", null, PTCThread.StFollow.NO_FOLLOW);
 						return;
 					}
-					text2 = "dive_to_water";
+					this.Mp.PtcSTsetVar("bx", (double)num).PtcSTsetVar("by", (double)num2).PtcST("enemy_footsound_big_walk", null, PTCThread.StFollow.NO_FOLLOW);
+					return;
 				}
-			}
-			else if (this.foottype == "water")
-			{
-				text2 = "dive_to_water";
-			}
-			else
-			{
-				if (this.stamp_state == FOOTRES.FOOTED)
+				break;
+			case FOOTSTAMP.OVERDRIVE:
+				if (!(this.foottype == "water"))
 				{
 					this.Mp.PtcSTsetVar("sizex", (double)(this.sizex * this.Mp.CLENB)).PtcSTsetVar("bx", (double)num).PtcSTsetVar("by", (double)num2)
 						.PtcSTsetVar("bagR", (double)this.bcc_agR)
-						.PtcST("enemy_ground_bump_s", null, PTCThread.StFollow.NO_FOLLOW);
+						.PtcST("enemy_ground_bump", null, PTCThread.StFollow.NO_FOLLOW);
 					return;
 				}
-				this.Mp.PtcSTsetVar("bx", (double)num).PtcSTsetVar("by", (double)num2).PtcST("enemy_footsound_big_walk", null, PTCThread.StFollow.NO_FOLLOW);
-				return;
+				text2 = "dive_to_water";
+				break;
+			case FOOTSTAMP.HEEL:
+				if (this.foottype == "metal" || this.foottype == "normal" || this.foottype == "ground")
+				{
+					text2 = "foot_heel";
+				}
+				break;
 			}
 			string text3 = this.foottype;
-			if (text3 != null && !(text3 == "leafground"))
+			if (text3 != null)
 			{
-				if (!(text3 == "leaf"))
+				uint num5 = <PrivateImplementationDetails>.ComputeStringHash(text3);
+				if (num5 <= 1219850847U)
 				{
-					if (!(text3 == "woodbridge"))
+					if (num5 != 265927825U)
 					{
-						if (!(text3 == "void"))
+						if (num5 != 642305365U)
 						{
-							if (text3 == "glass")
+							if (num5 == 1219850847U)
 							{
-								if (this.footstamp_type == FOOTSTAMP.BAREFOOT)
+								if (text3 == "void")
 								{
-									text2 = (text = "foot_bare");
+									text = null;
 								}
 							}
 						}
-						else
+						else if (text3 == "leaf")
 						{
-							text = null;
+							this.Mp.PtcN("foot_leaf", num, num2, 0f, (int)(5U + X.xors() % 4U), 0);
 						}
+					}
+					else if (text3 == "web")
+					{
+						this.Mp.PtcSTsetVar("cx", (double)num).PtcSTsetVar("cy", (double)(num2 + 0.15f)).PtcST("foot_web", this.Mv as IEfPInteractale, PTCThread.StFollow.NO_FOLLOW);
+						text = null;
 					}
 				}
 				else
 				{
-					this.Mp.PtcN("foot_leaf", num, num2, 0f, (int)(5U + X.xors() % 4U), 0);
+					if (num5 <= 1927346304U)
+					{
+						if (num5 != 1640418574U)
+						{
+							if (num5 != 1927346304U)
+							{
+								goto IL_0419;
+							}
+							if (!(text3 == "ice"))
+							{
+								goto IL_0419;
+							}
+						}
+						else
+						{
+							if (!(text3 == "leafground"))
+							{
+								goto IL_0419;
+							}
+							goto IL_0419;
+						}
+					}
+					else if (num5 != 3522460157U)
+					{
+						if (num5 != 4060326187U)
+						{
+							goto IL_0419;
+						}
+						if (!(text3 == "glass"))
+						{
+							goto IL_0419;
+						}
+					}
+					else
+					{
+						if (!(text3 == "woodbridge"))
+						{
+							goto IL_0419;
+						}
+						goto IL_0419;
+					}
+					if (this.footstamp_type == FOOTSTAMP.BAREFOOT)
+					{
+						text2 = (text = "foot_bare");
+					}
+					else
+					{
+						text = "glass";
+					}
 				}
 			}
+			IL_0419:
 			if (TX.valid(text))
 			{
 				if (text2 == null)
@@ -478,6 +557,14 @@ namespace m2d
 			}
 			if (this.t_foot >= 0f)
 			{
+				if (this.need_recheck_foottype)
+				{
+					this.fineFootStampType();
+				}
+				if (this.foottype == "ice")
+				{
+					this.Phy.addOnIce();
+				}
 				if (!this.no_change_shift_pixel)
 				{
 					if (this.shift_pixel_x != 0f)
@@ -503,17 +590,17 @@ namespace m2d
 			if (this.need_recheck_bcc_foot_ <= -6)
 			{
 				this.need_recheck_bcc_foot_ = 0;
-				M2FootManager.BccFootRunDL(this, this.CurBCC, this.ABccFoot, this.footable_bits_);
+				this.need_recheck_foottype = M2FootManager.BccFootRunDL(this, this.CurBCC, this.ABccFoot, this.footable_bits_) || this.need_recheck_foottype;
 			}
 		}
 
 		private void BccFootCheck()
 		{
 			this.need_recheck_bcc_foot_ = 0;
-			M2FootManager.BccFootCheckDL(this, this.CurBCC, this.ABccFoot, this.footable_bits_);
+			this.need_recheck_foottype = M2FootManager.BccFootCheckDL(this, this.CurBCC, this.ABccFoot, this.footable_bits_) || this.need_recheck_foottype;
 		}
 
-		public static void BccFootCheckDL(IMapDamageListener Lsn, M2BlockColliderContainer.BCCLine CurBCC, List<IBCCFootListener> ABccFoot, uint footable_bits)
+		public static bool BccFootCheckDL(IMapDamageListener Lsn, M2BlockColliderContainer.BCCLine CurBCC, List<IBCCFootListener> ABccFoot, uint footable_bits)
 		{
 			M2FootManager.ABccFootBuffer.Clear();
 			M2FootManager.ABccFootBuffer.AddRange(ABccFoot);
@@ -541,7 +628,7 @@ namespace m2d
 								{
 									if (!ibccfootListener.footedInit(CurBCC, Lsn))
 									{
-										goto IL_00F0;
+										goto IL_00F2;
 									}
 								}
 								else
@@ -551,44 +638,49 @@ namespace m2d
 								ABccFoot.Add(ibccfootListener);
 							}
 						}
-						IL_00F0:;
+						IL_00F2:;
 					}
 				}
 			}
+			bool flag = M2FootManager.ABccFootBuffer.Count > 0;
 			for (int j = M2FootManager.ABccFootBuffer.Count - 1; j >= 0; j--)
 			{
 				M2FootManager.ABccFootBuffer[j].footedQuit(Lsn, false);
 			}
 			M2FootManager.ABccFootBuffer.Clear();
+			return flag;
 		}
 
-		public static void BccFootRunDL(IMapDamageListener Lsn, M2BlockColliderContainer.BCCLine CurBCC, List<IBCCFootListener> ABccFoot, uint footable_bits)
+		public static bool BccFootRunDL(IMapDamageListener Lsn, M2BlockColliderContainer.BCCLine CurBCC, List<IBCCFootListener> ABccFoot, uint footable_bits)
 		{
 			if (ABccFoot.Count == 0)
 			{
-				return;
+				return false;
 			}
 			DRect mapBounds = Lsn.getMapBounds(M2BlockColliderContainer.BufRc);
 			float left = mapBounds.left;
 			float right = mapBounds.right;
 			float top = mapBounds.top;
 			float bottom = mapBounds.bottom;
+			bool flag = false;
 			for (int i = ABccFoot.Count - 1; i >= 0; i--)
 			{
 				IBCCFootListener ibccfootListener = ABccFoot[i];
 				bool footableAimBits = ibccfootListener.getFootableAimBits() != 0U;
-				bool flag = false;
+				bool flag2 = false;
 				if (((footableAimBits ? 1U : 0U) & footable_bits) != 0U)
 				{
 					DRect mapBounds2 = ibccfootListener.getMapBounds(M2BlockColliderContainer.BufRc);
-					flag = mapBounds2 != null && mapBounds2.active && mapBounds2.isCoveringXy(left, top, right, bottom, 0.0625f, -1000f);
+					flag2 = mapBounds2 != null && mapBounds2.active && mapBounds2.isCoveringXy(left, top, right, bottom, 0.0625f, -1000f);
 				}
-				if (!flag)
+				if (!flag2)
 				{
 					ibccfootListener.footedQuit(Lsn, false);
 					ABccFoot.RemoveAt(i);
+					flag = true;
 				}
 			}
+			return flag;
 		}
 
 		public void runPostAttakable(M2Attackable MvA)
@@ -723,6 +815,44 @@ namespace m2d
 			return vx < -0.01f;
 		}
 
+		public void CliffStopCrop(ref float force_velocity_x)
+		{
+			if (force_velocity_x == 0f)
+			{
+				return;
+			}
+			M2BlockColliderContainer.BCCLine footBCC = this.get_FootBCC();
+			if (footBCC != null && !footBCC.isWall())
+			{
+				M2BlockColliderContainer.BCCLine bccline = ((force_velocity_x < 0f) ? footBCC.SideL : footBCC.SideR);
+				if (bccline == null || !bccline.isUseableDir(this))
+				{
+					float num = force_velocity_x;
+					float num2;
+					float num3;
+					footBCC.BCC.getBaseShift(out num2, out num3);
+					if (force_velocity_x < 0f)
+					{
+						force_velocity_x = X.Mx(force_velocity_x, footBCC.x - num2 - this.mleft);
+					}
+					else
+					{
+						force_velocity_x = X.Mn(force_velocity_x, footBCC.right - num2 - this.mright);
+					}
+					if (force_velocity_x != num)
+					{
+						bool is_lift = footBCC.is_lift;
+						M2BlockColliderContainer.BCCLine bccline2;
+						footBCC.BCC.isFallable((float)X.MPF(num > 0f) * (this.Mv.sizex + 0.35f) + this.Mv.x, this.Mv.mbottom, 0.001f, 0.25f, out bccline2, is_lift, !is_lift, -1f, null);
+						if (bccline2 != null && bccline2 != footBCC)
+						{
+							force_velocity_x = num;
+						}
+					}
+				}
+			}
+		}
+
 		public void lockFootFix(int _time)
 		{
 			this.t_lock_foot_fix = X.Mx(this.t_lock_foot_fix, (float)_time);
@@ -744,6 +874,14 @@ namespace m2d
 				return this.CurBCC.BCC.findBcc(Fn);
 			}
 			return null;
+		}
+
+		public void holdFallingFootMargin()
+		{
+			if (this.t_foot < 0f && this.t_foot > -7f)
+			{
+				this.t_foot = -1f;
+			}
 		}
 
 		public DRect getMapBounds(DRect Buf)
@@ -839,6 +977,22 @@ namespace m2d
 					return CAim.get_agR(this.CurBCC.aim, 0f);
 				}
 				return -1.5707964f;
+			}
+		}
+
+		public bool is_on_web
+		{
+			get
+			{
+				return this.hasFoot() && this.foottype == "web";
+			}
+		}
+
+		public void addOnIce()
+		{
+			if (this.hasFoot())
+			{
+				this.Phy.addOnIce();
 			}
 		}
 
@@ -1097,7 +1251,7 @@ namespace m2d
 
 		public bool need_recheck_current_pos = true;
 
-		public int need_recheck_bcc_foot_;
+		private int need_recheck_bcc_foot_;
 
 		private const int FT_CHECK = 6;
 
@@ -1128,5 +1282,9 @@ namespace m2d
 		public bool recheck_side;
 
 		private static HashP HashFoot = new HashP(8);
+
+		public const string FOOTTYPE_ICE = "ice";
+
+		public const string FOOTTYPE_WEB = "web";
 	}
 }

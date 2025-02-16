@@ -34,29 +34,33 @@ namespace nel
 
 		public string getLocalizedName(int appear_grade_icon = 0, int appear_count = 2, bool grade_s = false)
 		{
-			return NelItemEntry.getLocalizedNameS(this.Data, this.count, (int)this.grade, appear_grade_icon, appear_count, grade_s);
+			string text;
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				this.getLocalizedName(stb, appear_grade_icon, appear_count, grade_s);
+				text = stb.ToString();
+			}
+			return text;
 		}
 
-		public static string getLocalizedNameS(NelItem Data, int count, int grade, int appear_grade_icon = 0, int appear_count = 2, bool grade_s = false)
+		public STB getLocalizedName(STB Stb, int appear_grade_icon = 0, int appear_count = 2, bool grade_s = false)
 		{
-			string text = Data.getLocalizedName(grade, null);
+			NelItemEntry.getLocalizedNameS(Stb, this.Data, this.count, (int)this.grade, appear_grade_icon, appear_count, grade_s);
+			return Stb;
+		}
+
+		public static STB getLocalizedNameS(STB Stb, NelItem Data, int count, int grade, int appear_grade_icon = 0, int appear_count = 2, bool grade_s = false)
+		{
+			Data.getLocalizedName(Stb, grade);
 			if (appear_grade_icon >= 0 && grade >= appear_grade_icon)
 			{
-				text = string.Concat(new string[]
-				{
-					text,
-					"<img mesh=\"nel_item_grade",
-					grade_s ? "_s" : "",
-					".",
-					(5 + grade).ToString(),
-					"\" width=\"38\" tx_color/>"
-				});
+				Stb.Add("<img mesh=\"nel_item_grade", grade_s ? "_s" : "", ".").Add(5 + grade).Add("\" width=\"38\" tx_color/>");
 			}
 			if (appear_count >= 0 && count >= appear_count)
 			{
-				text = text + "x" + count.ToString();
+				Stb.Add("x", count, "");
 			}
-			return text;
+			return Stb;
 		}
 
 		public static List<NelItemEntry> Clone(List<ItemStorage.IRow> AIR)

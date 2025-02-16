@@ -13,6 +13,7 @@ namespace nel
 			: base(_En.Mp)
 		{
 			this.En = _En;
+			EnemyAttr.initAnimator(_En, this);
 			this.AADancePos = new List<List<Vector3>>(7);
 			this.MdSubSquare = new MeshDrawer(null, 4, 6);
 			this.MdSubSquare.draw_gl_only = true;
@@ -146,7 +147,7 @@ namespace nel
 			return Md;
 		}
 
-		protected override bool FnEnRenderBaseInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected override bool FnEnRenderBaseInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			MdOut = null;
 			int num = draw_id;
@@ -166,7 +167,7 @@ namespace nel
 				draw_id -= 3;
 				return false;
 			}
-			return base.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref paste_mesh);
+			return base.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite);
 		}
 
 		protected override void redrawBodyMeshInner()

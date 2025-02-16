@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using Better;
 using evt;
 using m2d;
+using nel.smnp;
 using PixelLiner.PixelLinerLib;
-using UnityEngine;
 using XX;
 
 namespace nel
 {
-	public sealed class NightController : IValotileSetable, IEventWaitListener
+	public sealed class NightController : IEventWaitListener
 	{
 		public float dLevelToNightLevel(int _dlevel)
 		{
@@ -20,10 +20,10 @@ namespace nel
 			}
 			if (num < 9)
 			{
-				return 0.5f + 0.25f * global::XX.X.ZPOW((float)(num - 4), 5f);
+				return 0.5f + 0.25f * X.ZPOW((float)(num - 4), 5f);
 			}
 			num -= 9;
-			return 1f + global::XX.X.ZLINE((float)(num - 3), 4f) * 0.5f;
+			return 1f + X.ZLINE((float)(num - 3), 4f) * 0.5f;
 		}
 
 		public NightController(NelM2DBase _M2D)
@@ -31,47 +31,63 @@ namespace nel
 			this.M2D = _M2D;
 			this.OSmnData = new BDic<string, NightController.SummonerData>();
 			this.OSmnDataThisSession = new BDic<string, NightController.SummonerData>();
+			this.UiDg = new UiDangerousViewer(this.M2D, this);
 			this.AWeather = new WeatherItem[0];
 			this.ALockPuppetRevenge = new List<string>(4);
+			this.FlgTemporaryWeather = new Flagger(delegate(FlaggerT<string> _)
+			{
+				this.initTemporaryWeather(true);
+			}, delegate(FlaggerT<string> _)
+			{
+				this.initTemporaryWeather(false);
+			});
 			NightController.Xors.init(false, 0U, 0U, 0U, 0U);
 		}
 
 		public void destruct()
 		{
 			this.destructRemovingMist();
-			if (this.GobUi != null)
-			{
-				this.MdUi.destruct();
-				this.EF.destruct();
-			}
+			this.UiDg.destruct();
 		}
 
 		public void newGame()
 		{
-			this.deactivate(true);
+			this.UiDg.deactivate(true);
 			NightController.Xors.init(false, 0U, 0U, 0U, 0U);
 			this.clear();
 		}
 
 		public void clearWithoutNightLevel()
 		{
-			this.pre_dlevel = (this.dlevel = (this.dlevel_add = (this.dlevel_add_stock = 0)));
+			this.dlevel = (this.dlevel_add = (this.dlevel_add_stock = 0));
 			this.fade_add = 0f;
-			this.redraw_dgd_flag = false;
 			this.battle_count = 0;
-			this.reel_obtained = 0;
 			this.first_battle_dlevel = 0;
-			this.current_ui_obtainable = 0;
+			this.UiDg.clearWithoutNightLevel();
 			this.cur_weather_ = 0;
+			this.FlgTemporaryWeather.Clear();
+			this.temporary_weather_back = -1;
 			this.last_battle_lp_key = "";
 			foreach (KeyValuePair<string, NightController.SummonerData> keyValuePair in this.OSmnDataThisSession)
 			{
 				keyValuePair.Value.clearSession();
 			}
 			this.OSmnDataThisSession.Clear();
+			this.clearWeather();
+		}
+
+		public void clearWeather()
+		{
+			this.cur_weather_ = 0;
 			for (int i = this.AWeather.Length - 1; i >= 0; i--)
 			{
-				this.AWeather[i].destruct();
+				try
+				{
+					this.AWeather[i].destruct();
+				}
+				catch
+				{
+				}
 			}
 			this.AWeather = new WeatherItem[0];
 		}
@@ -93,7 +109,7 @@ namespace nel
 
 		public void initS(Map2d Mp)
 		{
-			this.deactivate(true);
+			this.UiDg.deactivate(true);
 			this.destructRemovingMist();
 			for (int i = this.AWeather.Length - 1; i >= 0; i--)
 			{
@@ -127,7 +143,7 @@ namespace nel
 
 		public NightController.SummonerData GetLpInfo(string key, EnemySummoner Reader, bool create_and_assigning = false)
 		{
-			NightController.SummonerData summonerData = global::XX.X.Get<string, NightController.SummonerData>(this.OSmnData, key);
+			NightController.SummonerData summonerData = X.Get<string, NightController.SummonerData>(this.OSmnData, key);
 			if (summonerData == null)
 			{
 				summonerData = new NightController.SummonerData(null, 0);
@@ -195,7 +211,7 @@ namespace nel
 
 		public bool isUiActive()
 		{
-			return this.t_actv >= 0 && this.state != NightController.UIST.OFFLINE;
+			return this.UiDg.isActive();
 		}
 
 		public bool EvtWait(bool is_first = false)
@@ -203,11 +219,31 @@ namespace nel
 			return is_first || this.isUiActive();
 		}
 
-		public int summoner_enemy_count_addition(EnemySummoner Smn)
+		private int cur_dlevel(EnemySummoner Smn, bool consider_questentry = true, float dla_ratio = 1f)
 		{
-			int num = this.dlevel + this.dlevel_add;
+			float num = (float)this.dlevel + (float)this.dlevel_add * dla_ratio;
+			if (consider_questentry && Smn != null && Smn.QEntry.valid)
+			{
+				num += (float)Smn.QEntry.add_dlevel;
+			}
+			return X.IntR(num);
+		}
+
+		private int cur_dlevel_nattr(EnemySummoner Smn, float dla_ratio = 1f)
+		{
+			bool flag = true;
+			if (Smn != null && Smn.QEntry.valid)
+			{
+				flag = Smn.QEntry.nattr == ENATTR.NORMAL;
+			}
+			return this.cur_dlevel(Smn, flag, dla_ratio);
+		}
+
+		public int summoner_enemy_count_addition(EnemySummoner Summoner)
+		{
+			int num = this.cur_dlevel(Summoner, true, 1f);
 			int num2 = num % 16;
-			int num3 = global::XX.X.Mn(5, num / 16);
+			int num3 = X.Mn(5, num / 16);
 			int num4;
 			if (!this.isNight())
 			{
@@ -217,21 +253,21 @@ namespace nel
 				}
 				else
 				{
-					num4 = global::XX.X.IntC((float)num3 * 1.77f) + ((num2 >= 4) ? 1 : 0);
+					num4 = X.IntC((float)num3 * 1.77f) + ((num2 >= 4) ? 1 : 0);
 				}
 			}
 			else
 			{
-				num4 = 2 + global::XX.X.IntC((float)num3 * 2.5f);
+				num4 = 2 + X.IntC((float)num3 * 2.5f);
 			}
-			return num4 / this.diff_divide(Smn);
+			return num4 / this.diff_divide(Summoner);
 		}
 
-		public int summoner_max_thunder_odable_appear(EnemySummoner Smn)
+		public int summoner_max_thunder_odable_appear(SummonerPlayer Smn)
 		{
-			int num = global::XX.X.Mn(10, this.dlevel / 16);
+			int num = X.Mn(10, this.cur_dlevel(Smn.Summoner, true, 0f) / 16);
 			int num2;
-			if (Smn.skill_difficulty_restrict == 0)
+			if (Smn.Summoner.skill_difficulty_restrict == 0)
 			{
 				num2 = ((num >= 3) ? 1 : 0);
 			}
@@ -243,26 +279,40 @@ namespace nel
 			{
 				num2--;
 			}
-			return global::XX.X.Mx(0, num2);
+			return X.Mx(0, num2);
 		}
 
-		public int summoner_enemy_countmax_addition(EnemySummoner Smn)
+		public int summoner_enemy_countmax_addition(SummonerPlayer Smn)
 		{
-			int num = this.dlevel + this.dlevel_add;
+			int num = this.cur_dlevel(Smn.Summoner, true, 1f);
 			int num2 = num % 16;
-			int num3 = global::XX.X.Mn(5, num / 16);
+			int num3 = X.Mn(5, num / 16);
 			if (!this.isNight())
 			{
-				return num3 * 2 / this.diff_divide(Smn) + ((num2 > 3) ? 1 : 0);
+				return num3 * 2 / this.diff_divide(Smn.Summoner) + ((num2 > 3) ? 1 : 0);
 			}
-			return (int)((float)num3 * 2.5f + 2f) / this.diff_divide(Smn);
+			return (int)((float)num3 * 2.5f + 2f) / this.diff_divide(Smn.Summoner);
 		}
 
-		public float summoner_delayonesecond_ratio(EnemySummoner Smn)
+		public int summoner_enemy_for_qentry_special_count_min(SummonerPlayer Smn, out float mp_min, out float mp_max)
 		{
-			int num = this.dlevel + this.dlevel_add;
+			float num = (float)(this.cur_dlevel(Smn.Summoner, true, 1f) + 7) / 16f;
+			if (!this.isNight())
+			{
+				mp_min = 0.3f;
+				mp_max = 0.55f;
+				return X.Mn(2 + (int)(num * 0.66f), 5);
+			}
+			mp_min = 0.08f;
+			mp_max = 0.12f;
+			return X.Mn(2 + (int)(num * 1.12f), 7);
+		}
+
+		public float summoner_delayonesecond_ratio(SummonerPlayer Smn)
+		{
+			int num = this.cur_dlevel(Smn.Summoner, true, 1f);
 			int num2 = num % 16;
-			int num3 = global::XX.X.Mn(10, num / 16);
+			int num3 = X.Mn(10, num / 16);
 			if (num3 >= 1)
 			{
 				return 0.9f;
@@ -290,45 +340,44 @@ namespace nel
 			return 1f;
 		}
 
-		public int diff_divide(EnemySummoner Smn)
+		public int diff_divide(EnemySummoner Summoner)
 		{
-			if (Smn.skill_difficulty_restrict != 0)
+			if (Summoner.skill_difficulty_restrict != 0)
 			{
 				return 1;
 			}
 			return 2;
 		}
 
-		public int summoner_max_addition(EnemySummoner Smn)
+		public int summoner_max_addition(SummonerPlayer Smn)
 		{
-			int num = this.dlevel + this.dlevel_add;
-			int num2 = num % 16;
-			int num3 = global::XX.X.Mn(10, num / 16);
-			int num4;
+			int num = this.cur_dlevel(Smn.Summoner, true, 1f);
+			int num2 = X.Mn(10, num / 16);
+			int num3;
 			if (!this.isNight())
 			{
-				num4 = global::XX.X.IntC((float)global::XX.X.Mx(0, num3 - 1) * 0.5f);
+				num3 = X.IntC((float)X.Mx(0, num2 - 1) * 0.5f);
 			}
 			else
 			{
-				num4 = num3 + 1;
+				num3 = num2 + 1;
 			}
 			for (int i = this.AWeather.Length - 1; i >= 0; i--)
 			{
-				num4 += this.AWeather[i].summoner_max_addition(Smn);
+				num3 += this.AWeather[i].summoner_max_addition();
 			}
-			num4 = (this.isNight() ? global::XX.X.Mx(num4, 0) : num4);
-			if (num4 < 0)
+			num3 = (this.isNight() ? X.Mx(num3, 0) : num3);
+			if (num3 < 0)
 			{
-				return num4;
+				return num3;
 			}
-			return num4 / this.diff_divide(Smn);
+			return num3 / this.diff_divide(Smn.Summoner);
 		}
 
-		public float summoner_mp_addition(EnemySummoner Smn)
+		public float summoner_mp_addition(SummonerPlayer Smn)
 		{
-			int num = this.dlevel + this.dlevel_add;
-			int num2 = global::XX.X.Mn(10, num / 16);
+			int num = this.cur_dlevel(Smn.Summoner, true, 1f);
+			int num2 = X.Mn(10, num / 16);
 			if (!this.isNight())
 			{
 				int num3 = num2;
@@ -336,9 +385,9 @@ namespace nel
 				{
 					if (num3 != 1)
 					{
-						return (float)num2 * 2.2f - 1f + global::XX.X.NI(0f, 2.2f, global::XX.X.ZLINE(global::XX.X.frac((float)num2), 0.6f));
+						return 2f + 0.75f * (float)(num2 - 2) + X.NI(0f, 0.45f, X.ZLINE(X.frac((float)num2), 0.7f));
 					}
-					return global::XX.X.NI(1f, 1.8f, global::XX.X.ZLINE(global::XX.X.frac((float)num2), 0.6f));
+					return X.NI(1f, 1.8f, X.ZLINE(X.frac((float)num2), 0.6f));
 				}
 				else
 				{
@@ -346,47 +395,167 @@ namespace nel
 					{
 						return 0f;
 					}
-					return 0.3f + global::XX.X.NI(0f, 0.6f, global::XX.X.ZLINE((float)num2 - 0.25f, 0.4f));
+					return 0.3f + X.NI(0f, 0.6f, X.ZLINE((float)num2 - 0.25f, 0.4f));
 				}
 			}
 			else
 			{
 				if (num2 == 0)
 				{
-					return global::XX.X.NI(0f, 0.125f, global::XX.X.ZLINE((float)num2 - 0.75f, 0.25f));
+					return X.NI(0f, 0.125f, X.ZLINE((float)num2 - 0.75f, 0.25f));
 				}
-				return 0.125f * (float)num2 + (float)((num2 >= 2) ? 2 : 0) + global::XX.X.NI(0f, 0.125f, global::XX.X.ZLINE(global::XX.X.frac((float)num2) - 0.6f, 0.4f));
+				return 0.125f * (float)num2 + (float)((num2 >= 2) ? 2 : 0) + X.NI(0f, 0.125f, X.ZLINE(X.frac((float)num2) - 0.6f, 0.4f));
 			}
 		}
 
-		public float summoner_drop_od_enemy_box_ratio(EnemySummoner Smn)
+		public float summoner_drop_od_enemy_box_ratio(SummonerPlayer Smn)
 		{
-			int num = this.dlevel + this.dlevel_add;
-			return global::XX.X.NIL(0.2f, 0.5f, (float)num, 80f);
+			int num = this.cur_dlevel(Smn.Summoner, true, 1f);
+			return X.NIL(0.2f, 0.5f, (float)num, 80f);
 		}
 
-		public int summoner_drop_od_enemy_box_max(EnemySummoner Smn)
+		public int summoner_drop_od_enemy_box_max(SummonerPlayer Smn)
 		{
-			return global::XX.X.Mn(global::XX.X.IntR((float)(this.dlevel + this.dlevel_add) / 16f), 3);
+			return X.Mn(X.IntR((float)this.cur_dlevel(Smn.Summoner, true, 1f) / 16f), 3);
+		}
+
+		public int summoner_attachable_nattr_max(SummonerPlayer Smn)
+		{
+			int num = this.cur_dlevel_nattr(Smn.Summoner, 1f);
+			bool flag = false;
+			if (!flag && num < 16)
+			{
+				return 0;
+			}
+			float num2 = (float)(num - 16) * 1.2f / 16f + 1f;
+			if (this.isNight())
+			{
+				num2 = (num2 - 3f) * 0.7f;
+			}
+			if ((float)num >= 80f)
+			{
+				num2 += (float)(this.isNight() ? 1 : 3);
+			}
+			return (int)X.Mx((float)(flag ? 1 : 0), num2);
+		}
+
+		public int summoner_attachable_nattr_kind_max(SummonerPlayer Smn)
+		{
+			int num = this.cur_dlevel_nattr(Smn.Summoner, 1f);
+			if (num >= 96)
+			{
+				return 3;
+			}
+			if ((float)num < 56f)
+			{
+				return 1;
+			}
+			return 2;
+		}
+
+		public bool summoner_nattr_attach(SummonerPlayer Smn, SmnEnemyKind K, float smn_xorsp, int nattr_lvl)
+		{
+			if (nattr_lvl == 255)
+			{
+				return false;
+			}
+			int num = this.cur_dlevel_nattr(Smn.Summoner, 1f);
+			if (!false && (nattr_lvl > num || NightController.XORSP() < 0.25f))
+			{
+				return false;
+			}
+			int num2 = this.summoner_attachable_nattr_kind_max(Smn);
+			ENATTR enattr = ~K.EnemyDesc.nattr_decline;
+			if ((K.nattr & ENATTR._MATTR) != ENATTR.NORMAL)
+			{
+				enattr &= ~(ENATTR.FIRE | ENATTR.ICE | ENATTR.THUNDER | ENATTR.SLIMY | ENATTR.ACME);
+			}
+			ENATTR enattr2 = EnemyAttr.attachKind(enattr, smn_xorsp, num2);
+			if (enattr2 > ENATTR.NORMAL)
+			{
+				K.nattr |= enattr2;
+				return true;
+			}
+			return false;
+		}
+
+		public void summoner_nattr_attach_after(SummonerPlayer Smn, SmnEnemyKind K)
+		{
+			K.nattr &= ~K.EnemyDesc.nattr_decline;
+			if ((K.nattr & ~(ENATTR._MAX_RANDOMIZE | ENATTR._FIXED)) == ENATTR.NORMAL)
+			{
+				return;
+			}
+			int num = this.cur_dlevel_nattr(Smn.Summoner, 1f);
+			int num2 = EnemyAttr.attrKindCount(K.nattr);
+			float num3 = X.NIL(0f, 1f, (float)(num - 16) - (float)(num2 - 1) * 8f, 48f);
+			K.mp_ratio_addable_max = num3;
+			if (num3 <= 0f)
+			{
+				K.mp_add_weight = 0f;
+				return;
+			}
+			if (this.isNight() ? (num <= 96) : ((float)num <= 54.4f))
+			{
+				K.mp_add_weight *= 0.3f;
+			}
+		}
+
+		public float summoner_nattr_atk_add_experience(NelEnemy En)
+		{
+			int num = this.cur_dlevel(En.Summoner.Summoner, true, 1f);
+			return X.NIL(0.8f, 2.5f, (float)(num - 16), 64f);
+		}
+
+		public float summoner_nattr_def_add_experience(NelEnemy En)
+		{
+			int num = this.cur_dlevel(En.Summoner.Summoner, true, 1f);
+			return X.NIL(1f, 2.5f, (float)(num - 16), 64f);
+		}
+
+		public void summoner_nattr_extend_mp(NelEnemy En, out int extend_maxhp, out int extend_maxmp)
+		{
+			extend_maxhp = 0;
+			extend_maxmp = 0;
+			if ((En.nattr & (ENATTR.ATK | ENATTR.DEF | ENATTR.MP_STABLE | ENATTR.FIRE | ENATTR.ICE | ENATTR.THUNDER | ENATTR.SLIMY | ENATTR.ACME)) != ENATTR.NORMAL)
+			{
+				this.cur_dlevel(En.Summoner.Summoner, true, 1f);
+				extend_maxmp = (int)X.NIL(60f, 180f, -16f, 64f);
+			}
+		}
+
+		public float summoner_drop_item_base_ratio(EnemySummoner Smn)
+		{
+			if (!Smn.dropable_special_item)
+			{
+				return 0f;
+			}
+			int reservedObtainableGrade = this.getReservedObtainableGrade(Smn, true, false);
+			float num = 1f;
+			int num2 = this.AWeather.Length;
+			for (int i = 0; i < num2; i++)
+			{
+				num *= this.AWeather[i].enemydrop_ratio;
+			}
+			if (reservedObtainableGrade < Smn.grade)
+			{
+				num = X.Mn(num, 1f) * 0.5f * X.Mx(0.01f, X.ZLINE((float)reservedObtainableGrade, (float)Smn.grade));
+			}
+			return num;
 		}
 
 		public void run(float fcnt)
 		{
 			if (this.fade_add != 0f)
 			{
-				this.night_level = global::XX.X.VALWALK(this.night_level, this.fade_deplevel, this.fade_add * fcnt);
+				this.night_level = X.VALWALK(this.night_level, this.fade_deplevel, this.fade_add * fcnt);
 				bool flag = false;
 				if (this.night_level == this.fade_deplevel)
 				{
 					this.fade_add = 0f;
 					flag = true;
 				}
-				this.pre_drawn = false;
 				this.fineLevel(flag);
-			}
-			if (this.state != NightController.UIST.OFFLINE)
-			{
-				this.runUi();
 			}
 		}
 
@@ -430,7 +599,7 @@ namespace nel
 			else
 			{
 				this.night_level = this.GetLevel(true);
-				this.fade_add = global::XX.X.Abs(dep_level - this.night_level) / (float)_fade_maxt;
+				this.fade_add = X.Abs(dep_level - this.night_level) / (float)_fade_maxt;
 			}
 			this.fineLevel(flag);
 		}
@@ -446,23 +615,24 @@ namespace nel
 			thunder_overdrive = num;
 		}
 
-		public int SummonerDefeated(EnemySummoner Smn, Map2d Mp, int ob_add = -1)
+		public int SummonerDefeated(EnemySummoner Smn, int ob_add = -1)
 		{
 			if (ob_add < 0)
 			{
-				ob_add = this.getReservedObtainableGrade(Smn, Mp, true, true);
+				ob_add = this.getReservedObtainableGrade(Smn, true, true);
 			}
 			foreach (KeyValuePair<string, NightController.SummonerData> keyValuePair in this.OSmnDataThisSession)
 			{
 				EnemySummoner smnCache = keyValuePair.Value.SmnCache;
 				if (smnCache != null)
 				{
-					smnCache.flush_memory(false, false);
+					smnCache.flush_memory(false, false, true);
 				}
 			}
 			if (ob_add > 0)
 			{
 				this.dlevel += ob_add;
+				this.M2D.GUILD.progressDangerousness(ob_add);
 			}
 			if (this.dlevel_add_stock > 0)
 			{
@@ -474,14 +644,9 @@ namespace nel
 			return ob_add;
 		}
 
-		public void fineMeterShowLevel()
-		{
-			this.pre_dlevel = global::XX.X.Mn(this.dlevel + this.dlevel_add, 192);
-		}
-
 		public void showNightLevelAdditionUI()
 		{
-			this.activate(NightController.UIST.DLEVEL_SHOW);
+			this.UiDg.activateDLevelShow();
 			this.changeTo(this.dLevelToNightLevel(this.dlevel), 260);
 		}
 
@@ -506,8 +671,13 @@ namespace nel
 			this.AWeather = list.ToArray();
 		}
 
-		public int getReservedObtainableGrade(EnemySummoner Smn, Map2d Mp, bool consider_restrict = true, bool consider_debug_lock_danger = false)
+		public int getReservedObtainableGrade(EnemySummoner Smn, bool consider_restrict = true, bool consider_debug_lock_danger = false)
 		{
+			M2LpSummon summonedArea = Smn.getSummonedArea();
+			if (summonedArea.is_sudden_puppetrevenge)
+			{
+				return 4;
+			}
 			if (Smn == null || (consider_debug_lock_danger && this.debug_lock_dangerousness && this.M2D.debug_listener_created) || this.M2D.isGameOverActive())
 			{
 				return 0;
@@ -516,7 +686,7 @@ namespace nel
 			{
 				return this.reserved_obtainable_grade;
 			}
-			return this.getObtainableGrade(Smn, Mp, false);
+			return this.getObtainableGrade(Smn, summonedArea.Mp, false);
 		}
 
 		public int getObtainableGrade(EnemySummoner Smn, Map2d Mp, bool consider_restrict = true)
@@ -540,7 +710,7 @@ namespace nel
 			{
 				return base_grade;
 			}
-			return global::XX.X.Mx(0, global::XX.X.Mn(base_grade, this.battle_count - Info.last_battle_index - ((this.getDayCount(true) >= 3 || this.first_battle_dlevel >= 16) ? 1 : 0)));
+			return X.Mx(0, X.Mn(base_grade, this.battle_count - Info.last_battle_index - ((this.getDayCount(true) >= 3 || this.first_battle_dlevel >= 16) ? 1 : 0)));
 		}
 
 		public bool alreadyCleardInThisSession(M2LpSummon Lp)
@@ -582,18 +752,18 @@ namespace nel
 			{
 				return true;
 			}
-			int num2 = global::XX.X.Mn(count, global::XX.X.IntC((float)num / (float)(grade + 1)));
+			int num2 = X.Mn(count, X.IntC((float)num / (float)(grade + 1)));
 			count -= num2;
-			this.dlevel_add = global::XX.X.Mn(this.dlevel_add + (grade + 1) * num2, 45);
+			this.dlevel_add = X.Mn(this.dlevel_add + (grade + 1) * num2, 45);
 			if (show_ui)
 			{
 				if (!this.isUiActive())
 				{
-					this.activate(NightController.UIST.DLEVEL_SHOW);
+					this.UiDg.activateDLevelShow();
 				}
 				else
 				{
-					this.fineCurrentUiObtainable();
+					this.UiDg.fineCurrentUiObtainable();
 				}
 			}
 			return true;
@@ -618,290 +788,14 @@ namespace nel
 
 		public void setAdditionalDangerLevelManual(int v)
 		{
-			this.dlevel_add = global::XX.X.Mn(v, 45);
-		}
-
-		private void changeState(NightController.UIST st)
-		{
-			this.state = st;
-			this.t_state = 0;
-			this.s_phase = 0;
-		}
-
-		private void tempActivation(bool flag)
-		{
-			if (this.state == NightController.UIST.OFFLINE)
-			{
-				return;
-			}
-			this.GobUi.SetActive(flag);
-		}
-
-		private void digestObtainableCount()
-		{
-			while (this.current_ui_obtainable > this.reel_obtained)
-			{
-				this.reel_obtained += 1;
-				this.M2D.IMNG.getReelManager().obtainProgress((int)this.reel_obtained);
-			}
-		}
-
-		public void deactivate(bool immediate = false)
-		{
-			if (this.t_actv >= 0)
-			{
-				this.digestObtainableCount();
-			}
-			if (immediate)
-			{
-				this.t_actv = -40;
-				if (this.state != NightController.UIST.OFFLINE)
-				{
-					this.state = NightController.UIST.OFFLINE;
-					this.redraw_dgd_flag = false;
-					this.fineMeterShowLevel();
-					this.M2D.remValotAddition(this);
-				}
-				if (this.GobUi != null)
-				{
-					this.GobUi.SetActive(false);
-				}
-				if (this.UiReel != null)
-				{
-					this.M2D.IMNG.getReelManager().destructGob();
-					this.UiReel = null;
-					return;
-				}
-			}
-			else if (this.t_actv >= 0)
-			{
-				this.t_actv = global::XX.X.Mn(-1, -40 + this.t_actv);
-				if (this.UiReel != null)
-				{
-					this.UiReel.deactivate();
-				}
-			}
-		}
-
-		public bool use_valotile
-		{
-			get
-			{
-				return this.EF != null && !this.EF.no_graphic_render;
-			}
-			set
-			{
-				if (this.EF == null)
-				{
-					return;
-				}
-				this.EF.no_graphic_render = (this.EF.draw_gl_only = !global::XX.X.DEBUGSTABILIZE_DRAW && value);
-				ValotileRenderer.RecheckUse(this.MdUi, this.GobUi.GetComponent<MeshRenderer>(), ref this.ValotUi, value);
-			}
-		}
-
-		public void repositGob(bool force = false)
-		{
-			if (!force && (this.state == NightController.UIST.OFFLINE || this.GobUi == null))
-			{
-				return;
-			}
-			float num = -3.875f;
-			IN.PosP(this.GobUi.transform, this.M2D.ui_shift_x, 0f, num);
-		}
-
-		public void activate(NightController.UIST st)
-		{
-			this.changeState(st);
-			this.t_actv = 0;
-			bool flag = true;
-			if (this.GobUi == null)
-			{
-				this.GobUi = new GameObject("NightCon");
-				this.MdUi = MeshDrawer.prepareMeshRenderer(this.GobUi, MTRX.MtrMeshNormal, 0f, -1, null, false, false);
-				this.Ma = new MdArranger(this.MdUi);
-				this.Dgd = new DangerGageDrawer(this.MdUi, this.GobUi.GetComponent<MeshRenderer>(), true);
-				this.GobUi.layer = IN.gui_layer;
-				this.EF = new PTCThreadRunnerOnce<EffectItemNel>(this.MdUi, this.GobUi, 16);
-				this.EF.initEffect("nightcon", IN.getGUICamera(), new Effect<EffectItemNel>.FnCreateEffectItem(EffectItemNel.fnCreateOneNel), EFCON_TYPE.UI);
-			}
-			else
-			{
-				flag = !this.GobUi.activeSelf;
-			}
-			if (flag)
-			{
-				this.MdUi.base_z = 0f;
-				this.GobUi.SetActive(true);
-				this.M2D.addValotAddition(this);
-				this.repositGob(true);
-			}
-			this.Dgd.auto_clear = false;
-			this.Dgd.appear_delay = ((this.pre_dlevel == 0) ? 0 : 256);
-			this.Dgd.val = this.pre_dlevel;
-			this.Dgd.already_show = this.pre_dlevel;
-			this.Dgd.daia_delay = 3;
-			if (this.UiReel != null)
-			{
-				this.M2D.IMNG.getReelManager().destructGob();
-				this.UiReel = null;
-			}
-			this.UiReel = this.M2D.IMNG.getReelManager().initUiState(ReelManager.MSTATE.NIGHTCON_ADDING, this.GobUi.transform, true);
-			this.fineCurrentUiObtainable();
-			this.UiReel.no_draw_hidescreen = true;
-		}
-
-		private void runUi()
-		{
-			this.redraw_dgd_flag = false;
-			if (this.t_actv >= 0)
-			{
-				int num = this.t_actv;
-				this.t_actv = num + 1;
-				if (num < 40)
-				{
-					this.redraw_dgd_flag = true;
-				}
-				if (this.state == NightController.UIST.DLEVEL_SHOW)
-				{
-					if (this.t_state >= 70 && this.pre_dlevel < this.dlevel + this.dlevel_add)
-					{
-						this.t_state = 50;
-						this.Dgd.val = this.pre_dlevel + 1;
-						this.Dgd.fixAppearTime(this.pre_dlevel, (float)this.t_actv);
-						DangerGageDrawer dgd = this.Dgd;
-						num = this.pre_dlevel;
-						this.pre_dlevel = num + 1;
-						Vector2 vector = dgd.getPos(num % 16) * 0.015625f * 2f;
-						vector.y += 0.65625f;
-						this.EF.PtcSTsetVar("cx", (double)vector.x).PtcSTsetVar("cy", (double)vector.y).PtcST("dangerlv_add", this.M2D.PlayerNoel, PTCThread.StFollow.NO_FOLLOW, null);
-						this.redraw_dgd_flag = true;
-					}
-					if (this.t_state >= 50 && this.t_state <= 80)
-					{
-						this.redraw_dgd_flag = true;
-					}
-					if (this.t_state >= 110 && this.s_phase < 1)
-					{
-						if (this.reel_obtained < this.current_ui_obtainable)
-						{
-							this.reel_obtained += 1;
-							this.t_state = 90;
-							this.M2D.IMNG.getReelManager().obtainProgress((int)this.reel_obtained);
-						}
-						else
-						{
-							this.s_phase = 2;
-						}
-					}
-					if (this.t_state > 150 && this.UiReel != null && this.s_phase < 2)
-					{
-						if (this.UiReel.ReelObtainAnimating())
-						{
-							this.t_state = 140;
-						}
-						else
-						{
-							this.s_phase = 2;
-						}
-					}
-					if (this.t_state >= 250)
-					{
-						this.deactivate(false);
-					}
-				}
-				else if (this.t_state >= 60)
-				{
-					this.deactivate(false);
-				}
-			}
-			else
-			{
-				int num = this.t_actv - 1;
-				this.t_actv = num;
-				if (num < -40)
-				{
-					this.deactivate(true);
-					return;
-				}
-				this.redraw_dgd_flag = true;
-			}
-			this.t_state++;
-			if (global::XX.X.D)
-			{
-				this.repositGob(false);
-				bool flag = false;
-				if (this.redraw_dgd_flag)
-				{
-					this.redrawUi((this.t_actv >= 0) ? global::XX.X.ZLINE((float)this.t_actv, 40f) : global::XX.X.ZLINE((float)(40 + this.t_actv), 40f));
-					flag = true;
-				}
-				else if (this.EF.Length > 0)
-				{
-					this.MdUi.chooseSubMesh(4, false, false);
-					this.Ma.revertVerAndTriIndexSaved(false);
-					flag = true;
-				}
-				if (flag || this.pre_drawn)
-				{
-					this.MdUi.chooseSubMesh(4, false, false);
-					this.EF.runDrawOrRedrawMesh(global::XX.X.D, (float)global::XX.X.AF, 1f);
-					this.MdUi.updateForMeshRenderer(true);
-					this.MdUi.base_z = 0f;
-					this.pre_drawn = flag;
-				}
-			}
-		}
-
-		private void redrawUi(float alpha)
-		{
-			this.redraw_dgd_flag = false;
-			float num = 0f;
-			float num2 = 42f;
-			float num3 = 1f;
-			float num4;
-			if (this.state == NightController.UIST.DLEVEL_SHOW)
-			{
-				num4 = alpha;
-				num3 = 2f;
-				num2 -= 180f * global::XX.X.ZPOW(1f - alpha);
-			}
-			else
-			{
-				num4 = 0f;
-			}
-			this.pre_drawn = false;
-			this.MdUi.clear(false, false);
-			this.MdUi.base_x = (this.MdUi.base_y = 0f);
-			this.MdUi.chooseSubMesh(0, false, true);
-			this.MdUi.Col = this.MdUi.ColGrd.Black().mulA(0.25f * alpha).C;
-			this.MdUi.Rect(0f, 0f, IN.w + 32f, IN.h + 32f, false);
-			this.MdUi.chooseSubMesh(4, false, false);
-			this.Ma.Set(true);
-			if (num4 >= 0f)
-			{
-				this.Dgd.Redraw(this.MdUi, (float)((this.t_actv >= 0) ? this.t_actv : 2048), true, num4);
-				this.MdUi.chooseSubMesh(4, false, false);
-				this.Ma.Set(false);
-				this.Ma.scaleAll(num3, num3, 0f, 0f, false);
-				this.Ma.translateAll(num, num2, false);
-				if (alpha != 1f)
-				{
-					this.Ma.mulAlpha(alpha);
-					return;
-				}
-			}
-			else
-			{
-				this.Ma.Set(false);
-			}
+			this.dlevel_add = X.Mn(v, 45);
 		}
 
 		public ByteArray writeBinaryTo(ByteArray Ba)
 		{
 			Ba.writeByte(8);
 			Ba.writeFloat(this.fade_deplevel);
-			Ba.writeUShort((ushort)this.pre_dlevel);
+			this.UiDg.writeBinaryTo(Ba);
 			Ba.writeUShort((ushort)this.dlevel);
 			int num = this.OSmnData.Count;
 			Ba.writeUShort((ushort)num);
@@ -912,7 +806,7 @@ namespace nel
 			}
 			Ba.writePascalString(this.last_battle_lp_key, "utf-8");
 			Ba.writePascalString(null, "utf-8");
-			Ba.writeByte((int)this.reel_obtained);
+			this.UiDg.writeBinaryTo2(Ba);
 			num = this.AWeather.Length;
 			Ba.writeUShort((ushort)num);
 			for (int i = 0; i < num; i++)
@@ -923,7 +817,7 @@ namespace nel
 			Ba.writeByte(this.first_battle_dlevel);
 			NightController.Xors.writeBinaryTo(Ba);
 			Ba.writeByte((int)this.lock_puppetrevenge);
-			num = global::XX.X.Mn(255, this.ALockPuppetRevenge.Count);
+			num = X.Mn(255, this.ALockPuppetRevenge.Count);
 			Ba.writeByte(num);
 			for (int j = 0; j < num; j++)
 			{
@@ -932,7 +826,7 @@ namespace nel
 			return Ba;
 		}
 
-		public ByteArray readBinaryFrom(ByteArray Ba)
+		public ByteReader readBinaryFrom(ByteReader Ba)
 		{
 			this.clear();
 			int num = Ba.readByte();
@@ -944,7 +838,7 @@ namespace nel
 			}
 			if (num >= 1)
 			{
-				this.pre_dlevel = (int)Ba.readUShort();
+				this.UiDg.readBinaryFrom(Ba, num);
 				this.dlevel = (int)Ba.readUShort();
 				int num2 = (int)Ba.readUShort();
 				if (num == 1)
@@ -963,12 +857,12 @@ namespace nel
 						if (summonerData.defeated_in_session)
 						{
 							this.OSmnDataThisSession[text] = summonerData;
-							this.battle_count = global::XX.X.Mx(summonerData.last_battle_index, this.battle_count);
+							this.battle_count = X.Mx(summonerData.last_battle_index, this.battle_count);
 						}
 					}
 					this.last_battle_lp_key = Ba.readPascalString("utf-8", false);
 					Ba.readPascalString("utf-8", false);
-					this.reel_obtained = (byte)Ba.readByte();
+					this.UiDg.readBinaryFrom2(Ba, num);
 				}
 				num2 = (int)Ba.readUShort();
 				this.AWeather = new WeatherItem[num2];
@@ -980,7 +874,7 @@ namespace nel
 					{
 						if (num < 4)
 						{
-							weatherItem.start_dlevel = global::XX.X.Mx(0, weatherItem.start_dlevel - this.dlevel_add);
+							weatherItem.start_dlevel = X.Mx(0, weatherItem.start_dlevel - this.dlevel_add);
 						}
 						this.AWeather[num3++] = weatherItem;
 						this.cur_weather_ |= 1 << (int)weatherItem.weather;
@@ -993,7 +887,7 @@ namespace nel
 				if (num >= 3)
 				{
 					this.dlevel_add = Ba.readByte();
-					this.dlevel_add = global::XX.X.Mn(this.dlevel_add, 45);
+					this.dlevel_add = X.Mn(this.dlevel_add, 45);
 					if (num >= 5)
 					{
 						this.first_battle_dlevel = Ba.readByte();
@@ -1013,7 +907,7 @@ namespace nel
 					}
 				}
 			}
-			this.deactivate(true);
+			this.UiDg.deactivate(true);
 			this.fineLevel(true);
 			return Ba;
 		}
@@ -1053,6 +947,72 @@ namespace nel
 		public bool hasWeather(WeatherItem.WEATHER w)
 		{
 			return (this.cur_weather_ & (1 << (int)w)) != 0;
+		}
+
+		public void initTemporaryWeather(string flag_key, int _weather)
+		{
+			if (_weather < 0)
+			{
+				this.FlgTemporaryWeather.Rem(flag_key);
+				return;
+			}
+			this.FlgTemporaryWeather.Add(flag_key);
+			if (_weather > 0)
+			{
+				for (int i = 0; i < 7; i++)
+				{
+					int num = 1 << i;
+					if ((_weather & num) != 0)
+					{
+						WeatherItem.WEATHER weather = (WeatherItem.WEATHER)i;
+						if (!this.hasWeather(weather))
+						{
+							this.applyWeatherDebug(weather.ToString());
+						}
+					}
+				}
+			}
+		}
+
+		private void initTemporaryWeather(bool flag)
+		{
+			if (!flag)
+			{
+				if (this.temporary_weather_back >= 0)
+				{
+					uint num = (uint)this.temporary_weather_back;
+					List<WeatherItem> list = new List<WeatherItem>(X.bit_count(num));
+					for (int i = 0; i < 7; i++)
+					{
+						WeatherItem.WEATHER weather = (WeatherItem.WEATHER)i;
+						if ((num & (1U << i)) != 0U)
+						{
+							WeatherItem weatherItem = this.getWeather(weather);
+							if (weatherItem == null)
+							{
+								weatherItem = new WeatherItem(weather, this.dlevel + this.dlevel_add).initS(null, false);
+								weatherItem.showLog();
+							}
+							list.Add(weatherItem);
+						}
+						else
+						{
+							WeatherItem weather2 = this.getWeather(weather);
+							if (weather2 != null)
+							{
+								weather2.destruct();
+							}
+						}
+					}
+					this.AWeather = list.ToArray();
+					this.cur_weather_ = (int)num;
+					return;
+				}
+			}
+			else
+			{
+				this.temporary_weather_back = (short)this.cur_weather_;
+			}
 		}
 
 		public bool applyWeatherDebug(string s)
@@ -1108,10 +1068,10 @@ namespace nel
 				{
 					WeatherItem weather2 = this.getWeather(weather);
 					int num;
-					if (weather2 != null && (num = global::XX.X.isinC<WeatherItem>(this.AWeather, weather2)) >= 0)
+					if (weather2 != null && (num = X.isinC<WeatherItem>(this.AWeather, weather2)) >= 0)
 					{
 						weather2.destruct();
-						global::XX.X.splice<WeatherItem>(ref this.AWeather, num, 1);
+						X.splice<WeatherItem>(ref this.AWeather, num, 1);
 						this.cur_weather_ &= ~(1 << (int)weather);
 						return true;
 					}
@@ -1120,16 +1080,19 @@ namespace nel
 			return false;
 		}
 
-		public bool applyDangerousFromEvent(int v, bool immediate, bool do_not_change_meter_cache = false)
+		public bool applyDangerousFromEvent(int v, bool immediate, bool do_not_change_meter_cache = false, bool no_set_nightlevel = false)
 		{
-			v = global::XX.X.Mx(0, v);
+			v = X.Mx(0, v);
 			this.dlevel = v;
 			if (!do_not_change_meter_cache)
 			{
-				this.fineMeterShowLevel();
+				this.UiDg.fineMeterShowLevel();
 			}
-			global::XX.X.dl("危険度を " + v.ToString() + " に設定", null, false, false);
-			this.changeTo(this.dLevelToNightLevel(this.dlevel), immediate ? 0 : 260);
+			X.dl("危険度を " + v.ToString() + " に設定", null, false, false);
+			if (!no_set_nightlevel)
+			{
+				this.changeTo(this.dLevelToNightLevel(this.dlevel), immediate ? 0 : 260);
+			}
 			return true;
 		}
 
@@ -1150,6 +1113,19 @@ namespace nel
 		public float PlayerChantSpeed()
 		{
 			return (float)(((this.cur_weather_ & 2) != 0) ? 2 : 1);
+		}
+
+		public float PlayerLockonRadius()
+		{
+			if ((this.cur_weather_ & 32) != 0)
+			{
+				return 0.5f;
+			}
+			if ((this.cur_weather_ & 8) == 0)
+			{
+				return 1f;
+			}
+			return 0.75f;
 		}
 
 		public float ManaWeedRatio()
@@ -1236,9 +1212,9 @@ namespace nel
 			}
 			if ((this.cur_weather_ & 16) != 0)
 			{
-				v = global::XX.X.Scr(v, 0.5f);
+				v = X.Scr(v, 0.5f);
 			}
-			return global::XX.X.Mn(v, 0.96f);
+			return X.Mn(v, 0.96f);
 		}
 
 		public float applySerRatio(bool is_en)
@@ -1282,11 +1258,11 @@ namespace nel
 			float num;
 			if (this.hasMistWeather())
 			{
-				num = global::XX.X.NIL(0.4f, 0.75f, (float)this.getDayCount(false), 4f);
+				num = X.NIL(0.4f, 0.75f, (float)this.getDayCount(false), 4f);
 			}
 			else
 			{
-				num = global::XX.X.NIL(0.2f, 0.375f, (float)this.getDayCount(false), 4f);
+				num = X.NIL(0.2f, 0.375f, (float)this.getDayCount(false), 4f);
 			}
 			return (float)NInfo.sudden_level / 255f > 1f - num;
 		}
@@ -1388,7 +1364,7 @@ namespace nel
 
 		public int getNoelJuiceQuality(float dlevel_multiple = 1.35f)
 		{
-			return global::XX.X.Mn(4, (int)((float)this.dlevel * dlevel_multiple / 16f));
+			return X.Mn(4, (int)((float)this.dlevel * dlevel_multiple / 16f));
 		}
 
 		public bool isLockPuppetRevenge(string map_key)
@@ -1407,7 +1383,7 @@ namespace nel
 			{
 				if (text == "")
 				{
-					if (this.lock_puppetrevenge == 0 || NightController.XORSP() < global::XX.X.Mn(0.07f + (float)(this.lock_puppetrevenge - 1) * 0.18f, 0.5f))
+					if (this.lock_puppetrevenge == 0 || NightController.XORSP() < X.Mn(0.07f + (float)(this.lock_puppetrevenge - 1) * 0.18f, 0.5f))
 					{
 						this.ALockPuppetRevenge[0] = map_key;
 						flag = false;
@@ -1481,12 +1457,12 @@ namespace nel
 
 		public static float NIXP(float v, float v2)
 		{
-			return global::XX.X.NI(v, v2, NightController.XORSP());
+			return X.NI(v, v2, NightController.XORSP());
 		}
 
 		public static float XORSP()
 		{
-			return NightController.Xors.getP();
+			return NightController.Xors.XORSP();
 		}
 
 		public static float XORSPS()
@@ -1545,6 +1521,16 @@ namespace nel
 			}
 		}
 
+		public int getDefeatedCount(string summoner_key)
+		{
+			NightController.SummonerData summonerData;
+			if (this.OSmnData.TryGetValue(summoner_key, out summonerData))
+			{
+				return summonerData.defeat_count;
+			}
+			return 0;
+		}
+
 		public bool isLastBattled(M2LpSummon Lp)
 		{
 			return this.last_battle_lp_key == Lp.cleared_sf_key;
@@ -1552,12 +1538,16 @@ namespace nel
 
 		public float getDangerLevel()
 		{
-			return global::XX.X.Mn(10f, (float)(this.dlevel + this.dlevel_add) / 16f);
+			return X.Mn(10f, (float)(this.dlevel + this.dlevel_add) / 16f);
 		}
 
-		public int getDangerMeterVal(bool real = false)
+		public int getDangerMeterVal(bool real = false, bool raw = false)
 		{
-			return global::XX.X.Mn(this.dlevel + (real ? 0 : this.dlevel_add), 160);
+			if (raw)
+			{
+				return this.dlevel + (real ? 0 : this.dlevel_add);
+			}
+			return X.Mn(this.dlevel + (real ? 0 : this.dlevel_add), 160);
 		}
 
 		public int getDangerAddedVal()
@@ -1582,22 +1572,18 @@ namespace nel
 			{
 				return num;
 			}
-			return global::XX.X.Mn(num, 10);
+			return X.Mn(num, 10);
 		}
 
-		private void fineCurrentUiObtainable()
-		{
-			int num = global::XX.X.Mn(this.reelObtainableCount(false), this.battle_count) + global::XX.X.Mn(this.reelObtainableCount(true), 2 + this.battle_count);
-			this.current_ui_obtainable = (byte)global::XX.X.Mx(0, global::XX.X.Mn(255, num));
-		}
-
-		private int reelObtainableCount(bool calc_juice_add)
+		public int reelObtainableCount(bool calc_juice_add)
 		{
 			int num = (calc_juice_add ? (this.dlevel_add / 3) : this.dlevel);
 			return (num + 2 + ((3 < num && num < 8) ? 1 : 0)) / 5;
 		}
 
 		public readonly NelM2DBase M2D;
+
+		public readonly UiDangerousViewer UiDg;
 
 		private float fade_deplevel;
 
@@ -1617,8 +1603,6 @@ namespace nel
 
 		public const float DANGER_CALC_MAX = 5f;
 
-		private const float meter_def_shift_px_y = 42f;
-
 		public const int LEVEL_ONE_DAY = 16;
 
 		public const int LEVEL_EVENING = 9;
@@ -1633,33 +1617,13 @@ namespace nel
 
 		public static XorsMaker Xors = new XorsMaker(0U, true);
 
-		private const int T_FADE = 40;
-
-		private NightController.UIST state;
-
-		private int t_actv = -40;
-
-		private int t_state;
-
-		private DangerGageDrawer Dgd;
-
-		private bool redraw_dgd_flag;
-
-		private bool pre_drawn;
-
 		private int dlevel;
 
 		private int dlevel_add;
 
 		private int dlevel_add_stock;
 
-		private int pre_dlevel;
-
 		public int first_battle_dlevel;
-
-		private byte reel_obtained;
-
-		private PTCThreadRunnerOnce<EffectItemNel> EF;
 
 		public int reserved_obtainable_grade = -1;
 
@@ -1681,25 +1645,15 @@ namespace nel
 
 		public bool debug_lock_weather;
 
+		private Flagger FlgTemporaryWeather;
+
+		private short temporary_weather_back = -1;
+
 		private List<M2FillingMistDrawer> ARemovingMst;
-
-		private MeshDrawer MdUi;
-
-		private ValotileRenderer ValotUi;
-
-		private GameObject GobUi;
-
-		private UiReelManager UiReel;
-
-		private MdArranger Ma;
-
-		private int s_phase;
-
-		private byte current_ui_obtainable;
 
 		public sealed class SummonerData
 		{
-			public SummonerData(ByteArray Ba = null, int vers = 0)
+			public SummonerData(ByteReader Ba = null, int vers = 0)
 			{
 				if (Ba != null)
 				{
@@ -1762,7 +1716,7 @@ namespace nel
 				Ba.writeByte((int)this.night_calced);
 			}
 
-			public void readBinaryFrom(ByteArray Ba, int vers)
+			public void readBinaryFrom(ByteReader Ba, int vers)
 			{
 				int num = Ba.readByte();
 				this.defeated_in_session = (num & 1) != 0;
@@ -1799,13 +1753,6 @@ namespace nel
 			public byte night_calced;
 
 			public EnemySummoner SmnCache;
-		}
-
-		public enum UIST
-		{
-			OFFLINE = -1,
-			NONE,
-			DLEVEL_SHOW
 		}
 	}
 }

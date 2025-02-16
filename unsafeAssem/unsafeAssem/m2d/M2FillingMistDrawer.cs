@@ -88,7 +88,7 @@ namespace m2d
 			{
 				this.Gob = IN.CreateGob(this.Mp.M2D.Cam.getGameObject(), "-Mist");
 				this.Gob.layer = (this.assign_to_final_render ? this.Mp.M2D.Cam.getFinalRenderedLayer() : this.Mp.M2D.Cam.getFinalSourceRenderedLayer());
-				this.Md = MeshDrawer.prepareMeshRenderer(this.Gob, MTRX.getMI(this.Sq.pChar).getMtr(this.blend, -1), 0f, -1, null, true, true);
+				this.Md = MeshDrawer.prepareMeshRenderer(this.Gob, MTRX.getMI(this.Sq.pChar, false).getMtr(this.blend, -1), 0f, -1, null, true, true);
 				IN.setZ(this.Gob.transform, this.assign_to_final_render ? 35.5f : 118.5f);
 				this.Valot = this.Gob.GetComponent<ValotileRenderer>();
 				this.redraw();

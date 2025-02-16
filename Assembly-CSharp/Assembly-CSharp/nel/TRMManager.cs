@@ -21,7 +21,7 @@ namespace nel
 			CsvReader csvReader = new CsvReader(resource, CsvReader.RegSpace, false);
 			TRMManager.TRMItem trmitem = null;
 			ushort num = 0;
-			RecipeManager.Recipe recipe = RecipeManager.Get("aloma_water");
+			RCP.Recipe recipe = RCP.Get("aloma_water");
 			while (csvReader.read())
 			{
 				if (csvReader.cmd == "#ID")
@@ -30,7 +30,7 @@ namespace nel
 				}
 				else if (csvReader.cmd == "#RECIPE")
 				{
-					recipe = RecipeManager.Get(csvReader._1) ?? recipe;
+					recipe = RCP.Get(csvReader._1) ?? recipe;
 				}
 				else if (csvReader.cmd == "%POWER")
 				{
@@ -64,9 +64,9 @@ namespace nel
 						trmitem.RowItm = NelItem.CreateItemEntry(text3, new NelItem(text3, 0, 200, 1)
 						{
 							category = (NelItem.CATEG)2097153U,
-							FnGetName = new FnGetItemDetail(TRMManager.fnGetNameRecipe),
-							FnGetDesc = new FnGetItemDetail(TRMManager.fnGetDescRecipe),
-							FnGetDetail = new FnGetItemDetail(TRMManager.fnGetDetailRecipe),
+							FnGetName = TRMManager.fnGetNameRecipe,
+							FnGetDesc = TRMManager.fnGetDescRecipe,
+							FnGetDetail = TRMManager.fnGetDetailRecipe,
 							specific_icon_id = 42,
 							SpecificColor = C32.d2c(4294942310U)
 						}, (int)(62000 + trmitem.uid), false);
@@ -95,13 +95,13 @@ namespace nel
 									else
 									{
 										trmitem.reward_b = (ushort)csvReader.Int(1, 0);
-										trmitem.reward_b_max = (ushort)csvReader.Int(2, global::XX.X.IntC((float)trmitem.reward_b * 1.5f));
+										trmitem.reward_b_max = (ushort)csvReader.Int(2, X.IntC((float)trmitem.reward_b * 1.5f));
 									}
 								}
 								else
 								{
 									trmitem.reward_a = (ushort)csvReader.Int(1, 0);
-									trmitem.reward_a_max = (ushort)csvReader.Int(2, global::XX.X.IntC((float)trmitem.reward_a * 1.5f));
+									trmitem.reward_a_max = (ushort)csvReader.Int(2, X.IntC((float)trmitem.reward_a * 1.5f));
 								}
 							}
 							else
@@ -205,7 +205,7 @@ namespace nel
 			TRMManager.TRMItem trmitem;
 			if (!TRMManager.OTri.TryGetValue(key, out trmitem) && !no_error)
 			{
-				global::XX.X.de("不明な TRMItem: " + key, null);
+				X.de("不明な TRMItem: " + key, null);
 			}
 			return trmitem;
 		}
@@ -225,7 +225,7 @@ namespace nel
 			}
 			if (!no_error)
 			{
-				global::XX.X.de("不明な Quest Itm: " + Itm.key, null);
+				X.de("不明な Quest Itm: " + Itm.key, null);
 			}
 			return null;
 		}
@@ -245,7 +245,7 @@ namespace nel
 			}
 			if (!no_error)
 			{
-				global::XX.X.de("不明な Quest id: " + id.ToString(), null);
+				X.de("不明な Quest id: " + id.ToString(), null);
 			}
 			return null;
 		}
@@ -255,7 +255,7 @@ namespace nel
 			byte[] array;
 			if (!TRMManager.OAHerbPower.TryGetValue(key, out array) && !no_error)
 			{
-				global::XX.X.de("不明な herb item key: " + key, null);
+				X.de("不明な herb item key: " + key, null);
 			}
 			return array;
 		}
@@ -265,7 +265,7 @@ namespace nel
 			return TRMManager.OTri;
 		}
 
-		public static List<RecipeManager.RecipeDescription> listupDefinitionRecipe(ref List<RecipeManager.RecipeDescription> A, RecipeManager.Recipe TargetRecipe, bool only_useableItem = false)
+		public static List<RCP.RecipeDescription> listupDefinitionRecipe(ref List<RCP.RecipeDescription> A, RCP.Recipe TargetRecipe, bool only_useableItem = false)
 		{
 			foreach (KeyValuePair<string, TRMManager.TRMItem> keyValuePair in TRMManager.OTri)
 			{
@@ -274,9 +274,9 @@ namespace nel
 				{
 					if (A == null)
 					{
-						A = new List<RecipeManager.RecipeDescription>(1);
+						A = new List<RCP.RecipeDescription>(1);
 					}
-					A.Add(new RecipeManager.RecipeDescription(value.TRecipe, value.RowItm, (only_useableItem && !TRMManager.isTrmActive(value.RowItm, value)) ? "???" : value.getNameLocalized()));
+					A.Add(new RCP.RecipeDescription(value.TRecipe, value.RowItm, (only_useableItem && !TRMManager.isTrmActive(value.RowItm, value)) ? "???" : value.getNameLocalized()));
 				}
 			}
 			return A;
@@ -300,57 +300,7 @@ namespace nel
 			return flag;
 		}
 
-		public static string fnGetNameRecipe(NelItem Itm, int grade, string def)
-		{
-			TRMManager.TRMItem trmitem = TRMManager.Get(TX.slice(Itm.key, "TrmItem_".Length), true);
-			if (trmitem == null || !trmitem.is_active)
-			{
-				return "???";
-			}
-			return trmitem.getNameLocalized();
-		}
-
-		public static string fnGetDetailRecipe(NelItem Itm, int grade, string def)
-		{
-			TRMManager.TRMItem trmitem = TRMManager.Get(TX.slice(Itm.key, "TrmItem_".Length), true);
-			if (trmitem == null || !trmitem.is_active)
-			{
-				return "???";
-			}
-			string localizedRecommendedItem = trmitem.getLocalizedRecommendedItem();
-			return TX.GetA("TrmUi_recommend_aloma", localizedRecommendedItem);
-		}
-
-		public static string fnGetDescRecipe(NelItem Itm, int grade, string def)
-		{
-			TRMManager.TRMItem trmitem = TRMManager.Get(TX.slice(Itm.key, "TrmItem_".Length), true);
-			if (trmitem == null || !trmitem.is_active)
-			{
-				return TX.Get("TrmUi_selector_detail_notactive", "");
-			}
-			string text = trmitem.icon_watched_a;
-			string text2 = trmitem.icon_watched_b;
-			string text3 = trmitem.reward_string_a;
-			if (trmitem.watched_a)
-			{
-				text = "<font alpha=\"0.36\">" + text;
-				text3 = text3 + "</font> " + TX.Get("TrmUi_selector_already_watched", "");
-			}
-			string text4 = trmitem.reward_string_b;
-			if (trmitem.watched_b)
-			{
-				text2 = "<font alpha=\"0.36\">" + text2;
-				text4 = text4 + "</font> " + TX.Get("TrmUi_selector_already_watched", "");
-			}
-			string text5 = TX.GetA("TrmUi_selector_detail", text, text3, text2, text4, TX.Get("TrmUi_root_a", ""), TX.Get("TrmUi_root_b", ""));
-			if (trmitem.watched_all)
-			{
-				text5 = text5 + "\n\n" + TX.Get("TrmUi_unlocked_all", "");
-			}
-			return text5;
-		}
-
-		public static void readBinaryFrom(ByteArray Ba)
+		public static void readBinaryFrom(ByteReader Ba)
 		{
 			int num = Ba.readByte();
 			int num2 = Ba.readByte();
@@ -400,11 +350,11 @@ namespace nel
 
 		private static DateTime LoadDate;
 
-		public static bool need_fine;
+		public static bool need_fine = false;
 
-		public static bool need_recheck_has_newer;
+		public static bool need_recheck_has_newer = false;
 
-		private static byte has_newer;
+		private static byte has_newer = 0;
 
 		private const string default_recipe = "aloma_water";
 
@@ -412,9 +362,66 @@ namespace nel
 
 		public static TRMManager.TRMReward CurrentReward;
 
+		public static FnGetItemDetail fnGetNameRecipe = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			TRMManager.TRMItem trmitem = TRMManager.Get(TX.slice(Itm.key, "TrmItem_".Length), true);
+			if (trmitem == null || !trmitem.is_active)
+			{
+				Stb.Set("???");
+				return;
+			}
+			Stb.Set(trmitem.getNameLocalized());
+		};
+
+		public static FnGetItemDetail fnGetDetailRecipe = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			TRMManager.TRMItem trmitem2 = TRMManager.Get(TX.slice(Itm.key, "TrmItem_".Length), true);
+			if (trmitem2 == null || !trmitem2.is_active)
+			{
+				Stb.Set("???");
+				return;
+			}
+			string localizedRecommendedItem = trmitem2.getLocalizedRecommendedItem();
+			Stb.Clear().AddTxA("TrmUi_recommend_aloma", false).TxRpl(localizedRecommendedItem);
+		};
+
+		public static FnGetItemDetail fnGetDescRecipe = delegate(STB Stb, NelItem Itm, int grade)
+		{
+			TRMManager.TRMItem trmitem3 = TRMManager.Get(TX.slice(Itm.key, "TrmItem_".Length), true);
+			if (trmitem3 == null || !trmitem3.is_active)
+			{
+				Stb.Clear().AddTxA("TrmUi_selector_detail_notactive", false);
+				return;
+			}
+			string text = trmitem3.icon_watched_a;
+			string text2 = trmitem3.icon_watched_b;
+			string text3 = trmitem3.reward_string_a;
+			if (trmitem3.watched_a)
+			{
+				text = "<font alpha=\"0.36\">" + text;
+				text3 = text3 + "</font> " + TX.Get("TrmUi_selector_already_watched", "");
+			}
+			string text4 = trmitem3.reward_string_b;
+			if (trmitem3.watched_b)
+			{
+				text2 = "<font alpha=\"0.36\">" + text2;
+				text4 = text4 + "</font> " + TX.Get("TrmUi_selector_already_watched", "");
+			}
+			Stb.Clear().TxRpl("TrmUi_selector_detail").TxRpl(text)
+				.TxRpl(text3)
+				.TxRpl(text2)
+				.TxRpl(text4)
+				.TxRpl(TX.Get("TrmUi_root_a", ""))
+				.TxRpl(TX.Get("TrmUi_root_b", ""));
+			if (trmitem3.watched_all)
+			{
+				Stb.Add("\n\n", TX.Get("TrmUi_unlocked_all", ""));
+			}
+		};
+
 		public class TRMItem
 		{
-			public TRMItem(string _key, ushort _id, RecipeManager.Recipe _TRecipe)
+			public TRMItem(string _key, ushort _id, RCP.Recipe _TRecipe)
 			{
 				this.uid = _id;
 				this.key = _key;
@@ -467,7 +474,7 @@ namespace nel
 				TRMManager.CurrentReward = null;
 			}
 
-			public static void readBinaryFrom(ByteArray Ba, int vers, TRMManager.TRMItem Target)
+			public static void readBinaryFrom(ByteReader Ba, int vers, TRMManager.TRMItem Target)
 			{
 				byte b = (byte)(Ba.readByte() & 3);
 				if (Target != null)
@@ -488,7 +495,7 @@ namespace nel
 
 			public string getLocalizedRecommendedItem()
 			{
-				string text = this.RcmHerb.getLocalizedName(this.rcm_grade, null);
+				string text = this.RcmHerb.getLocalizedName(this.rcm_grade);
 				if (this.rcm_grade > 0)
 				{
 					text = string.Concat(new string[]
@@ -560,7 +567,7 @@ namespace nel
 
 			public ushort reward_b_max = 150;
 
-			public RecipeManager.Recipe TRecipe;
+			public RCP.Recipe TRecipe;
 
 			public NelItem RowItm;
 
@@ -599,7 +606,7 @@ namespace nel
 			{
 				get
 				{
-					return global::XX.X.spr0(this.base_reward, 5, ' ');
+					return X.spr0(this.base_reward, 5, ' ');
 				}
 			}
 
@@ -607,7 +614,7 @@ namespace nel
 			{
 				get
 				{
-					return global::XX.X.spr0(this.chip_reward, 5, ' ');
+					return X.spr0(this.chip_reward, 5, ' ');
 				}
 			}
 
@@ -615,7 +622,7 @@ namespace nel
 			{
 				get
 				{
-					return global::XX.X.spr0(this.total_reward, 5, ' ');
+					return X.spr0(this.total_reward, 5, ' ');
 				}
 			}
 

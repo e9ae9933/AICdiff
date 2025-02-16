@@ -42,7 +42,7 @@ namespace nel
 			{
 				if (!this.active && this.auto_deactive_gameobject)
 				{
-					Object.Destroy(this);
+					global::UnityEngine.Object.Destroy(this);
 				}
 				return false;
 			}

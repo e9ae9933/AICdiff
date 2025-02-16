@@ -57,6 +57,7 @@ namespace nel
 		public void assignAnotherShooter(NelChipThunderShooter _StAnother)
 		{
 			this.StAnother = _StAnother;
+			_StAnother.StAnotherO = this;
 			this.assignBoundsLp(this.StAnother.LpArea, this.StAnother.pre_connected, false);
 			if (this.Ext != null && !this.Ext.initted)
 			{
@@ -78,7 +79,9 @@ namespace nel
 				return;
 			}
 			this.t_effect_running = 0f;
-			this.Ext = new M2ExtenderChecker(base.unique_key, this.Mp, (AIM)this.aim, 0f, 0f, 0.2f);
+			M2ExtenderChecker m2ExtenderChecker = new M2ExtenderChecker(base.unique_key, this.Mp, (AIM)this.aim, 0f, 0f, 0.2f);
+			m2ExtenderChecker.ChipCheckingFn = (int mapx, int mapy, M2Pt Pt) => CCON.mistPassable(Pt.cfg, 2);
+			this.Ext = m2ExtenderChecker;
 			this.Ext.camera_clip = true;
 			this.Ext.ActiveCarryCM = this.AttachCM;
 			this.Ext.mist_passable = true;
@@ -124,6 +127,7 @@ namespace nel
 			base.closeAction(when_map_close, do_not_remove_drawer);
 			if (this.LpArea != null && this.StAnother == null && !this.pre_connected)
 			{
+				this.LpArea.closeAction(true);
 				this.Lay.LP.Rem(this.LpArea.key);
 				this.Lay.LP.reindex();
 			}
@@ -134,7 +138,7 @@ namespace nel
 			this.NearTicket = null;
 			this.LpArea = null;
 			this.pre_connected = false;
-			this.StAnother = null;
+			this.StAnother = (this.StAnotherO = null);
 			this.MDI = base.M2D.MDMGCon.Release(this.MDI);
 			this.Ray = base.NM2D.MGC.destructRay(this.Ray);
 			if (this.Ext != null)
@@ -185,7 +189,7 @@ namespace nel
 						{
 							return;
 						}
-						if (nelChipThunderShooter != null && nelChipThunderShooter.aim == (int)CAim.get_opposite((AIM)this.aim) && nelChipThunderShooter.StAnother == null)
+						if (nelChipThunderShooter != this.StAnotherO && nelChipThunderShooter != null && nelChipThunderShooter.aim == (int)CAim.get_opposite((AIM)this.aim) && nelChipThunderShooter.StAnother == null)
 						{
 							nelChipThunderShooter.assignAnotherShooter(this);
 							break;
@@ -331,7 +335,15 @@ namespace nel
 		{
 			get
 			{
-				return this.StAnother != null && this.StAnother.Ext.reachable_len == this.StAnother.Ext.reachable_max && (this.aim == 2 || this.aim == 3);
+				return this.StAnother != null && this.StAnother.Ext.reachable_len == this.StAnother.Ext.reachable_max;
+			}
+		}
+
+		public bool another_full_o
+		{
+			get
+			{
+				return this.StAnotherO != null && this.StAnotherO.Ext.reachable_len == this.StAnotherO.Ext.reachable_max;
 			}
 		}
 
@@ -501,9 +513,29 @@ namespace nel
 			bool flag = CAim._XD(this.aim, 1) != 0;
 			if (atk != null)
 			{
-				if (set_burst_vx && this.LpArea.hit_aim >= 0)
+				if (set_burst_vx)
 				{
-					atk.burst_vx = (float)CAim._XD(this.LpArea.hit_aim, 1) * X.Abs(atk.burst_vx);
+					if (this.LpArea.hit_aim >= 0)
+					{
+						atk.burst_vx = (float)CAim._XD(this.LpArea.hit_aim, 1) * X.Abs(atk.burst_vx);
+					}
+					else if (this.another_full_o && this.StAnotherO.Ext.reachable_len == this.Ext.reachable_len && flag)
+					{
+						bool flag2 = X.Abs(this.Ext.shot_sx - MvA.x) < X.Mx(2f, this.Ext.reachable_max * 0.33f);
+						bool flag3 = X.Abs(this.StAnotherO.Ext.shot_sx - MvA.x) < X.Mx(2f, this.StAnotherO.Ext.reachable_max * 0.33f);
+						if (flag2 != flag3)
+						{
+							atk.burst_vx = X.Abs(atk.burst_vx) * (float)CAim._XD(flag2 ? this.aim : this.StAnotherO.aim, 1) * (float)X.MPF(X.XORSP() < 0.8f);
+						}
+						else if (MvA.getPhysic() != null && MvA.getPhysic().walk_xspeed != 0f)
+						{
+							atk.burst_vx = X.Abs(atk.burst_vx) * (float)X.MPF(MvA.getPhysic().walk_xspeed > 0f) * (float)X.MPF(X.XORSP() < 0.7f);
+						}
+						else
+						{
+							atk.burst_vx = X.Abs(atk.burst_vx) * (float)X.MPF(X.XORSP() < 0.5f);
+						}
+					}
 				}
 				if (set_burst_vy && flag && MvA is M2MoverPr && MvA.is_alive)
 				{
@@ -636,6 +668,8 @@ namespace nel
 		private const float hit_radius = 0.2f;
 
 		private NelChipThunderShooter StAnother;
+
+		private NelChipThunderShooter StAnotherO;
 
 		protected M2ExtenderChecker Ext;
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using evt;
 using m2d;
 using PixelLiner;
@@ -36,6 +37,9 @@ namespace nel.mgm.mgm_ttr
 			{
 				NelTTRBase.Instance = null;
 				this.MI.remLoadKey("_");
+				IN.FlgUiUse.Rem("TTR");
+				CURS.Active.Rem("TTR");
+				CURS.Rem("NORMAL", "");
 				if (this.M2D != null)
 				{
 					this.M2D.FlgHideWholeScreen.Rem("TTR");
@@ -88,6 +92,9 @@ namespace nel.mgm.mgm_ttr
 				{
 					if (this.PcTtr.isLoadCompleted())
 					{
+						IN.FlgUiUse.Add("TTR");
+						CURS.Active.Add("TTR");
+						CURS.Set("NORMAL", "tl_cross");
 						this.stt = NelTTRBase.STATE.PLAYING;
 						this.GobPreCam = GameObject.Find("Main Camera");
 						if (this.GobPreCam != null)
@@ -101,10 +108,12 @@ namespace nel.mgm.mgm_ttr
 							this.M2D.hideAreaTitle(true);
 						}
 						this.GM = IN.CreateGob(null, "-TTRGM").AddComponent<TTRGameMain>();
-						this.MCam = Object.Instantiate<GameObject>(this.MI.Load<GameObject>("TTR Main Camera"), Vector3.zero, Quaternion.identity).GetComponent<Camera>();
-						TTRDice.Prefab = this.MI.Load<GameObject>("Dice6/Dice_d6_Plastic Glossy Pure write.prefab");
+						this.MCam = global::UnityEngine.Object.Instantiate<GameObject>(this.MI.Load<GameObject>("TTR Main Camera")).GetComponent<Camera>();
+						GameObject gameObject = this.MI.Load<GameObject>("Dice6/Dice_d6_Plastic Glossy Pure write.prefab");
 						this.GM.ReplaceAiScript = this.MI.Load<TextAsset>("DataTTR/ai.csv");
 						this.GM.ReplaceStageScript = this.MI.Load<TextAsset>("DataTTR/stage.csv");
+						GameObject gameObject2 = this.MI.Load<GameObject>("PrefabTTROnline");
+						this.GM.PreparePrefabs(gameObject, gameObject2);
 						this.GM.show_copyright = false;
 						this.GM.PadVib = NEL.Instance.Vib;
 						if (M2DBase.Instance != null)
@@ -113,6 +122,7 @@ namespace nel.mgm.mgm_ttr
 						}
 						this.GM.Aalloc_target = this.Aalloc_target;
 						this.GM.selectable = true;
+						this.GM.FD_FinishFight = new TTRResultWindow.FnFinishFight(this.fnFinishFight);
 						MTR.FontAad = new MFont(this.MI, "Font/Aadhunik.ttf", null);
 						MTRX.addFontStorageBundled(MTR.FontAad, new FontStorageAadhunik(MTR.FontAad, this.MI.Load<TextAsset>("Font/letterspace_aadhunik.txt")));
 						MTR.initTutoMaterial(this.PcTtr, true);
@@ -161,6 +171,23 @@ namespace nel.mgm.mgm_ttr
 			return true;
 		}
 
+		public void fnFinishFight(TTRRecord.TTRRecordEntry Entry, TTRPlayer PrWinner, TTRPlayer PrLoser)
+		{
+			if ((PrWinner.is_online_player || PrLoser.is_online_player || PrWinner.is_cpu || PrLoser.is_cpu) && PrWinner.is_manual != PrLoser.is_manual)
+			{
+				if (!PrWinner.is_online_player && !PrLoser.is_online_player)
+				{
+					GF.setB("TTR_ALLOC_ONLINE", true);
+				}
+				if (PrWinner.is_manual)
+				{
+					COOK.CurAchive.Add(ACHIVE.MENT.ttr_win, 1);
+					return;
+				}
+				COOK.CurAchive.Add(ACHIVE.MENT.ttr_lose, 1);
+			}
+		}
+
 		public bool EvtRead(EvReader ER, StringHolder rER, int skipping = 0)
 		{
 			if (rER.cmd != "MGM_4ASCEND")
@@ -178,7 +205,7 @@ namespace nel.mgm.mgm_ttr
 						EV.initWaitFn(this, 0);
 						if (rER.clength >= 2)
 						{
-							this.Aalloc_target = rER.slice(2, -1000);
+							this.Aalloc_target = new List<string>(rER.slice(2, -1000));
 						}
 					}
 					return true;
@@ -189,6 +216,14 @@ namespace nel.mgm.mgm_ttr
 					EV.stopGMain(true);
 					EV.StopGMainDrawFlag(true);
 					EV.initWaitFn(this, 0);
+					return true;
+				}
+				if (_ == "DEFINE_SCORE_EXISTS")
+				{
+					if (!GF.getB("TTR_ALLOC_ONLINE") && COOK.Mgm.PHldTTR.hasData() && TTRRecordContainer.hasAnyNpcBattleRecord(COOK.Mgm.PHldTTR))
+					{
+						GF.setB("TTR_ALLOC_ONLINE", true);
+					}
 					return true;
 				}
 			}
@@ -218,6 +253,8 @@ namespace nel.mgm.mgm_ttr
 
 		private static NelTTRBase Instance;
 
+		public const string gfb_name_alloc_online = "TTR_ALLOC_ONLINE";
+
 		public const string ev_cmd = "MGM_4ASCEND";
 
 		private string wait_key;
@@ -226,7 +263,7 @@ namespace nel.mgm.mgm_ttr
 
 		private readonly NelM2DBase M2D;
 
-		private string[] Aalloc_target;
+		private List<string> Aalloc_target;
 
 		private TTRGameMain GM;
 

@@ -364,7 +364,7 @@ namespace m2d
 				{
 					this.generation = this.Last.calcGeneration();
 				}
-				catch (Exception)
+				catch
 				{
 					this.generation = -1;
 					X.de("不明なgeneration", null);

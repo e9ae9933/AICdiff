@@ -7,12 +7,20 @@ namespace nel
 {
 	public class EnemyMeshDrawer : ITeColor, ITeScaler, IAnimListener
 	{
+		public bool is_front { get; protected set; }
+
 		public EnemyMeshDrawer(Map2d _Mp)
 		{
 			this.initS(_Mp);
 			this.TeScale = new Vector2(1f, 1f);
-			this.CMul = new C32(this.def_mul_color);
+			this.CMul = new C32(255f, 255f, 255f, 255f);
 			this.CAdd = new C32(0f, 0f, 0f, 0f);
+		}
+
+		public void copyColor(EnemyMeshDrawer Src)
+		{
+			this.add_color_eye_fade_out = Src.add_color_eye_fade_out;
+			this.base_color = Src.base_color;
 		}
 
 		public void initS(Map2d _Mp)
@@ -25,16 +33,16 @@ namespace nel
 			this.Md = new MeshDrawer(null, 4, 6);
 			NelM2DBase nelM2DBase = this.Mp.M2D as NelM2DBase;
 			this.MI = _MI;
-			bool flag;
 			if (this.is_evil)
 			{
-				this.MtrBase = this.MI.getMtr(out flag, MTR.ShaderEnemyDark, -1);
-				nelM2DBase.addEnemyDarkTexture(this.MtrBase);
+				this.MtrBase = this.createBaseMtr();
+				nelM2DBase.ENMTR.assign(this.MtrBase);
 			}
 			else
 			{
 				this.MtrBase = (M2DBase.Instance as NelM2DBase).getWithLightTextureMaterial(this.MI);
 			}
+			bool flag;
 			this.MtrAddBody = this.MI.getMtr(out flag, MTR.ShaderEnemyDarkWhiter, -1);
 			if (flag)
 			{
@@ -64,9 +72,42 @@ namespace nel
 			return this;
 		}
 
+		public Material createBaseMtr()
+		{
+			bool flag;
+			if (this.nattr_invisible)
+			{
+				Material mtr = this.MI.getMtr(out flag, MTR.ShaderTransparentParlin, -1);
+				RenderTexture renderTexture;
+				RenderTexture renderTexture2;
+				this.Mp.M2D.Cam.getTextureForUiBg(out renderTexture, out renderTexture2);
+				mtr.SetTexture("_BgTex", renderTexture);
+				mtr.SetTexture("_MoverTex", this.Mp.M2D.Cam.getMoverTexture());
+				return mtr;
+			}
+			if (this.white_parlin)
+			{
+				Material mtr2 = this.MI.getMtr(out flag, MTR.ShaderDarkWhiteParlin, -1);
+				if (flag && this.nattr_invisible)
+				{
+					mtr2.SetColor("_Color", MTRX.ColTrnsp);
+				}
+				return mtr2;
+			}
+			return this.MI.getMtr(out flag, MTR.ShaderEnemyDark, -1);
+		}
+
 		public void setBorderMaskEnable(bool flag)
 		{
 			this.Mp.Dgn.setBorderMask(ref this.MtrBase, this.MI, flag, null);
+		}
+
+		public virtual Color32 CurMulColor
+		{
+			get
+			{
+				return this.CMul.C;
+			}
 		}
 
 		public float draw_margin
@@ -90,6 +131,10 @@ namespace nel
 				{
 					this.RtkBuf.draw_margin = value;
 				}
+				if (this.RtkInvsBehind != null)
+				{
+					this.RtkInvsBehind.draw_margin = value;
+				}
 			}
 		}
 
@@ -110,6 +155,11 @@ namespace nel
 				}
 				this.RtkBuf = this.Mp.MovRenderer.assignDrawable(M2Mover.DRAW_ORDER.BUF_1, null, new M2RenderTicket.FnPrepareMd(this.FnEnRenderBuffer), null, Mv, PosLsn);
 				this.RtkBuf.draw_margin = this.draw_margin_;
+				if (this.nattr_invisible)
+				{
+					this.RtkInvsBehind = this.Mp.MovRenderer.assignDrawable(M2Mover.DRAW_ORDER.N_BACK0, null, new M2RenderTicket.FnPrepareMd(this.FnEnRenderBorderMain), null, Mv, PosLsn);
+					this.RtkInvsBehind.draw_margin = this.draw_margin_;
+				}
 			}
 			this.MtrForSimple = this.MI.getMtr(BLEND.NORMAL, -1);
 			this.MdEyeV = new MeshDrawer(null, 4, 6);
@@ -127,15 +177,25 @@ namespace nel
 				this.DbEye = this.Mp.setED("enemyeye", new M2DrawBinder.FnEffectBind(this.fnDrawEyeOnEffect), 0f);
 			}
 			this.Md.activate();
-			this.MdEyeV.activate("eye", MTRX.getMtr(BLEND.ADDZT, -1), false, MTRX.ColWhite, null);
-			this.MdEye.activate("eyev", this.MI.getMtr(BLEND.ADDZT, -1), false, MTRX.ColWhite, null);
+			Material material;
+			Material material2;
+			this.getEyeMaterial(out material, out material2);
+			this.MdEyeV.activate("eye", material, false, MTRX.ColWhite, null);
+			this.MdEye.activate("eyev", material2, false, MTRX.ColWhite, null);
 			this.MdAdd.activate("addef", this.MtrAddBody, false, MTRX.ColWhite, null);
+		}
+
+		public virtual void getEyeMaterial(out Material MtrEye, out Material MtrEyeV)
+		{
+			MtrEye = MTRX.getMtr(BLEND.ADDZT, -1);
+			MtrEyeV = this.MI.getMtr(BLEND.ADDZT, -1);
 		}
 
 		public virtual void destruct()
 		{
 			this.Rtk = this.Mp.MovRenderer.deassignDrawable(this.Rtk, -1);
 			this.RtkBuf = this.Mp.MovRenderer.deassignDrawable(this.RtkBuf, -1);
+			this.RtkInvsBehind = this.Mp.MovRenderer.deassignDrawable(this.RtkInvsBehind, -1);
 			this.DbEye = this.Mp.remED(this.DbEye);
 			if (this.Md != null)
 			{
@@ -295,7 +355,7 @@ namespace nel
 
 		private void EnRenderBaseBody(M2RenderTicket Tk, bool need_redraw)
 		{
-			uint ran = X.GETRAN2((int)(this.Mp.floort / 4f) + this.index, this.index % 8);
+			uint ran = X.GETRAN2((int)(this.Mp.floort * 0.25f) + this.index, this.index % 8);
 			this.recalcTransformMatrix();
 			this.BaseMatrix = this.getTransformMatrix(false);
 			if (this.scale_shuffle01 != 0f)
@@ -327,9 +387,10 @@ namespace nel
 
 		protected void BasicColorInit(MeshDrawer Md)
 		{
-			float num = (float)this.CAdd.a / 255f;
+			float num = (float)this.CAdd.a * 0.003921569f;
 			num = X.Scr(num, num);
-			Md.Col = Md.ColGrd.Set(4294905358U).multiply(this.CMul.C, false).blend(4294905358U, 1f - (float)this.CMul.a / 255f * 0.5f)
+			Color32 curMulColor = this.CurMulColor;
+			Md.Col = Md.ColGrd.Set(this.base_color).multiply(curMulColor, false).blend(this.base_color, 1f - (float)curMulColor.a / 255f)
 				.Scr(this.CAdd, num)
 				.mulA(this.alpha_)
 				.C;
@@ -348,12 +409,12 @@ namespace nel
 			return this.alpha_ == 0f;
 		}
 
-		protected bool FnEnRenderBuffer(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected bool FnEnRenderBuffer(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
-			return this.FnEnRenderBufferInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref paste_mesh);
+			return this.FnEnRenderBufferInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite);
 		}
 
-		protected virtual bool FnEnRenderBufferInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected virtual bool FnEnRenderBufferInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			MdOut = null;
 			if (draw_id != 0)
@@ -371,21 +432,26 @@ namespace nel
 			}
 			this.EnRenderBaseBody(Tk, need_redraw);
 			this.Md.setMaterial(this.MtrBuffer, false);
+			if (this.nattr_invisible)
+			{
+				color_one_overwrite = true;
+				this.Md.Col = C32.MulA(1711276032U, this.alpha);
+			}
 			MdOut = this.Md;
 			return true;
 		}
 
-		private bool FnEnRenderBase(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		private bool FnEnRenderBorderMain(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			if (this.noNeedDraw())
 			{
 				MdOut = null;
 				return false;
 			}
-			return this.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref paste_mesh);
+			return this.FnEnRenderBorderMainInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite);
 		}
 
-		protected virtual bool FnEnRenderBaseInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected bool FnEnRenderBorderMainInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			MdOut = null;
 			switch (draw_id)
@@ -394,15 +460,18 @@ namespace nel
 				return true;
 			case 1:
 			{
-				if (!this.is_evil)
+				if (!this.is_evil || this.alpha_ == 0f)
 				{
 					return true;
 				}
-				uint ran = X.GETRAN2((int)(this.Mp.floort / 4f) + this.index, this.index % 8);
+				uint ran = X.GETRAN2((int)(this.Mp.floort * 0.25f) + this.index, this.index % 8);
 				Vector3 transformScale = this.getTransformScale();
 				Tk.Matrix = Matrix4x4.Translate(new Vector3((-2f + 4f * X.RAN(ran, 2354)) * 0.015625f / transformScale.x, (-2f + 4f * X.RAN(ran, 2748)) * 0.015625f / transformScale.y, 0f)) * this.BaseMatrix * Matrix4x4.Scale(new Vector3(1f + 0.03f * X.RAN(ran, 2963), 1f + 0.03f * X.RAN(ran, 2504), 1f)) * Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, (-1f + X.RAN(ran, 1070) * 2f) * this.base_rotate_shuffle360));
 				this.Md.setMaterial(this.MtrBorder, false);
+				color_one_overwrite = true;
 				MdOut = this.Md;
+				this.setBorderColor(this.Md.ColGrd);
+				this.Md.Col = this.Md.ColGrd.Scr(this.CAdd, (float)this.CAdd.a * 0.003921569f * 0.6f).mulA(this.alpha_).C;
 				return true;
 			}
 			case 2:
@@ -416,6 +485,35 @@ namespace nel
 					this.Md.setMaterial(this.MtrBase, false);
 				}
 				MdOut = this.Md;
+				return true;
+			default:
+				return false;
+			}
+		}
+
+		private bool FnEnRenderBase(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
+		{
+			if (this.noNeedDraw())
+			{
+				MdOut = null;
+				return false;
+			}
+			return this.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite);
+		}
+
+		protected virtual bool FnEnRenderBaseInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
+		{
+			MdOut = null;
+			switch (draw_id)
+			{
+			case 0:
+				return true;
+			case 1:
+			case 2:
+				if (!this.nattr_invisible)
+				{
+					this.FnEnRenderBorderMainInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite);
+				}
 				return true;
 			case 3:
 				Tk.Matrix = Matrix4x4.identity;
@@ -437,13 +535,18 @@ namespace nel
 			}
 		}
 
+		protected virtual void setBorderColor(C32 C)
+		{
+			C.Set(this.border_color);
+		}
+
 		public TransEffecterItem setDmgBlink(MGATTR attr, float maxt = 0f, float factor = 1f, int _saf = 0)
 		{
 			if (this.TeCon == null)
 			{
 				return null;
 			}
-			return this.TeCon.setDmgBlinkEnemy(attr, maxt, X.Pow(factor * 0.8f, 2), factor, _saf);
+			return this.TeCon.setDmgBlinkEnemy(attr, maxt, factor, factor, _saf);
 		}
 
 		public TransEffecterItem setDmgBlinkFading(MGATTR attr, float maxt = 0f, float factor = 1f, int _saf = 0)
@@ -452,7 +555,7 @@ namespace nel
 			{
 				return null;
 			}
-			return this.TeCon.setDmgBlinkFading(attr, maxt, X.Pow(factor * 0.8f, 2), factor, _saf);
+			return this.TeCon.setDmgBlinkFading(attr, maxt, factor, factor, _saf);
 		}
 
 		public void setAbsorbBlink(AbsorbManager Absorb)
@@ -482,7 +585,7 @@ namespace nel
 		public void setColorTe(C32 Buf, C32 _CMul, C32 _CAdd)
 		{
 			this.need_fine = (this.need_fine_eye_mesh = true);
-			this.CMul.Set(this.def_mul_color).multiply(_CMul.C, true);
+			this.CMul.Set(_CMul.C);
 			this.CAdd.Set(0f, 0f, 0f, 0f).add(_CAdd.C, true, 1f);
 		}
 
@@ -491,9 +594,9 @@ namespace nel
 			return this.TeScale;
 		}
 
-		public C32 getTeMulColor()
+		public Color32 getTeMulColor()
 		{
-			return this.CMul;
+			return this.CurMulColor;
 		}
 
 		public void setScaleTe(Vector2 V)
@@ -592,11 +695,11 @@ namespace nel
 			}
 		}
 
-		public virtual bool is_evil
+		public bool enemy_dark
 		{
 			get
 			{
-				return true;
+				return this.is_evil && !this.white_parlin;
 			}
 		}
 
@@ -612,7 +715,7 @@ namespace nel
 		{
 			get
 			{
-				return 300f - (float)X.MPF(this.is_front) * 0.001f;
+				return 400f - (float)X.MPF(this.is_front) * 0.001f;
 			}
 		}
 
@@ -649,7 +752,7 @@ namespace nel
 					return;
 				}
 				this.order_front_ = value;
-				if (this.Rtk != null)
+				if (this.Rtk != null && this.is_front)
 				{
 					this.Rtk.order = this.current_order;
 				}
@@ -669,7 +772,7 @@ namespace nel
 					return;
 				}
 				this.order_back_ = value;
-				if (this.Rtk != null)
+				if (this.Rtk != null && !this.is_front)
 				{
 					this.Rtk.order = this.current_order;
 				}
@@ -702,21 +805,23 @@ namespace nel
 
 		protected MeshDrawer MdAdd;
 
-		protected C32 CMul;
+		protected readonly C32 CMul;
 
-		protected C32 CAdd;
+		protected readonly C32 CAdd;
 
 		protected Vector2 TeScale = Vector2.one;
 
-		public uint def_mul_color = 4293055186U;
+		public const uint base_color_default = 4293055186U;
+
+		public uint base_color = 4293055186U;
 
 		protected Vector3 AbsorbCenterPos;
-
-		protected bool is_front;
 
 		protected M2RenderTicket Rtk;
 
 		protected M2RenderTicket RtkBuf;
+
+		protected M2RenderTicket RtkInvsBehind;
 
 		protected Matrix4x4 BufShuffleMx = Matrix4x4.identity;
 
@@ -754,6 +859,10 @@ namespace nel
 
 		public uint add_color_eye_fade_out = 4294901760U;
 
+		public const uint border_color_default = 4294905358U;
+
+		public uint border_color = 4294905358U;
+
 		private M2Mover.DRAW_ORDER order_back_ = M2Mover.DRAW_ORDER.N_BACK1;
 
 		private M2Mover.DRAW_ORDER order_front_ = M2Mover.DRAW_ORDER.N_TOP1;
@@ -765,6 +874,12 @@ namespace nel
 		public const int DRENDER_DID_MAIN = 2;
 
 		public const int DRENDER_DID_EYEV = 3;
+
+		public bool is_evil;
+
+		public bool white_parlin;
+
+		public bool nattr_invisible;
 
 		private float draw_margin_ = 3f;
 

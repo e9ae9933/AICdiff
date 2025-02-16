@@ -25,14 +25,10 @@ namespace nel
 			base.setItem(_ItemMng, _Storage, _ItmRow);
 		}
 
-		protected override string getTitleString()
+		protected override STB getTitleString(STB Stb)
 		{
-			NelItem data = this.ItmRow.Data;
-			if (!this.Storage.grade_split)
-			{
-				return data.getLocalizedName(this.ItmRow.top_grade, base.Inventory);
-			}
-			return data.getLocalizedName((int)this.ItmRow.splitted_grade, base.Inventory);
+			this.ItmRow.Data.getLocalizedName(Stb, this.Storage.grade_split ? ((int)this.ItmRow.splitted_grade) : this.ItmRow.top_grade);
+			return Stb;
 		}
 
 		protected override void repositRightText()

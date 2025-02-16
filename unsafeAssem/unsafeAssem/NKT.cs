@@ -20,7 +20,7 @@ public static class NKT
 		}
 		catch (Exception ex)
 		{
-			global::XX.X.dl(ex.Message, null, false, false);
+			X.dl(ex.Message, null, false, false);
 			return false;
 		}
 		return true;
@@ -62,7 +62,7 @@ public static class NKT
 		{
 			if (!no_error)
 			{
-				global::XX.X.dl(ex.Message, null, true, false);
+				X.dl(ex.Message, null, true, false);
 			}
 		}
 		return text;
@@ -87,7 +87,7 @@ public static class NKT
 		{
 			if (!no_error)
 			{
-				global::XX.X.dl(ex.Message, null, true, false);
+				X.dl(ex.Message, null, true, false);
 			}
 		}
 		return text;
@@ -112,7 +112,7 @@ public static class NKT
 			long num = fileStream.Length - (long)start_pos;
 			if (read_len > 0)
 			{
-				num = global::XX.X.Mn(num, (long)read_len);
+				num = X.Mn(num, (long)read_len);
 			}
 			array = new byte[num];
 			int num2 = 0;
@@ -122,7 +122,7 @@ public static class NKT
 			}
 			while (num > 0L)
 			{
-				int num3 = fileStream.Read(array, num2, (int)global::XX.X.Mn(1024L, num));
+				int num3 = fileStream.Read(array, num2, (int)X.Mn(1024L, num));
 				num2 += num3;
 				num -= (long)num3;
 			}
@@ -137,7 +137,7 @@ public static class NKT
 			}
 			if (!no_error)
 			{
-				global::XX.X.dl(ex.Message, null, true, false);
+				X.dl(ex.Message, null, true, false);
 			}
 		}
 		return array;
@@ -174,7 +174,7 @@ public static class NKT
 			text = ex.Message;
 			if (!no_error)
 			{
-				global::XX.X.dl(ex.Message, null, true, false);
+				X.dl(ex.Message, null, true, false);
 			}
 		}
 		return text;
@@ -209,7 +209,7 @@ public static class NKT
 			}
 			if (!no_error)
 			{
-				global::XX.X.dl(ex.Message, null, true, false);
+				X.dl(ex.Message, null, true, false);
 			}
 		}
 	}
@@ -222,6 +222,17 @@ public static class NKT
 			return null;
 		}
 		return new ByteArray(array, false, false);
+	}
+
+	public static ByteReaderFS PopSdFileStream(string path, bool no_error = false)
+	{
+		Path.Combine(Application.persistentDataPath, path);
+		return new ByteReaderFS(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read), 0L, null, -1L, 1024, null);
+	}
+
+	public static ByteReaderFS PopSpecificFileStream(string path, int start_pos = 0, int read_len = 0, bool no_error = false, int buffer_one_len = 1024, byte[] Abuffer_prepared = null)
+	{
+		return new ByteReaderFS(new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read), (long)start_pos, null, (read_len <= 0) ? (-1L) : ((long)read_len), buffer_one_len, Abuffer_prepared);
 	}
 
 	public static void openInExplorer(string url)

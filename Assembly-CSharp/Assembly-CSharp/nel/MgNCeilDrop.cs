@@ -152,7 +152,7 @@ namespace nel
 					{
 						return Mg.kill(Mg.Ray.lenmp);
 					}
-					if ((hittype & (HITTYPE)12615716) != HITTYPE.NONE)
+					if ((hittype & (HITTYPE.WALL | HITTYPE.REFLECTED | HITTYPE.BREAK | HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED)) != HITTYPE.NONE)
 					{
 						Mg.PtcVar("sx", (double)Mg.sx).PtcVar("sy", (double)Mg.sy).PtcST("golem_shot_broken", PTCThread.StFollow.NO_FOLLOW, false);
 						return false;

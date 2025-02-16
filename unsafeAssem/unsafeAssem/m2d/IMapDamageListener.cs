@@ -16,5 +16,7 @@ namespace m2d
 		void applyVelocity(FOCTYPE type, float velocity_x, float velocity_y);
 
 		bool isCenterPr();
+
+		void addOnIce();
 	}
 }

@@ -61,10 +61,18 @@ namespace nel
 			base.destruct();
 		}
 
-		protected override bool getSentence(string person, string key, List<string> Adest)
+		protected override bool getSentence(string person, string key, List<string> Adest, string[] Ainj = null)
 		{
 			Adest.Clear();
-			return NelMSGResource.getContent(key, Adest, false, false);
+			if (!NelMSGResource.getContent(key, Adest, false, false, false))
+			{
+				return false;
+			}
+			if (Ainj != null)
+			{
+				NelMSGResource.replaceTxInjection(Adest, Ainj);
+			}
+			return true;
 		}
 
 		public Designer createContainer(Designer DsCon, float h = 0f, int stencil_ref = -1)
@@ -154,6 +162,7 @@ namespace nel
 				this.DsScb.Fine(true);
 				this.DsShower.Br();
 				this.DsShower.ReassignEvacuatedMemory(blist, null, false);
+				this.DsShower.rowRemakeCheck(false);
 				this.DsScb.scrolled_pixel_y = this.DsScb.moveable_y * 64f - num2;
 				this.DsScb.scrollBarDraggingPosReset();
 				blist.Dispose();
@@ -343,7 +352,7 @@ namespace nel
 				this.DsEvtCon.Clear();
 				this.DsEvtCon.init();
 				this.createContainer(this.DsEvtCon, 0f, 11);
-				this.DsScb.BView.Select(false);
+				this.DsScb.BView.Select(true);
 				SND.Ui.play("cursor_gear_reset", false);
 				this.runMesh(0f);
 				MeshDrawer meshDrawer = this.DsEvtCon.createTempMMRD(true).Make(MTRX.MtrMeshNormal);

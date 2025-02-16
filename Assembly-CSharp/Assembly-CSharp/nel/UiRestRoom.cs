@@ -266,7 +266,7 @@ namespace nel
 				}
 				if (this.SelectBtn != null)
 				{
-					this.SelectBtn.Select(false);
+					this.SelectBtn.Select(true);
 				}
 			}
 		}
@@ -321,6 +321,7 @@ namespace nel
 						UILog.Instance.AddAlertTX("Alert_no_need_lay_egg", UILogRow.TYPE.ALERT);
 						return true;
 					}
+					flag = false;
 				}
 				else if (B.isLocked())
 				{

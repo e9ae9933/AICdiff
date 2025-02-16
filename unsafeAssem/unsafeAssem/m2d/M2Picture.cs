@@ -89,9 +89,9 @@ namespace m2d
 			return X.BTW(-num, vector.x, num) && X.BTW(-num2, vector.y, num2);
 		}
 
-		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdL, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
+		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdLB, MeshDrawer MdLT, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
 		{
-			return base.entryChipMesh(MdB, MdG, MdT, MdL, MdTT, sx = this.Mp.pixel2meshx((float)this.drawx + sx + this.dwidth * 0.5f), sy = this.Mp.pixel2meshy((float)this.drawy + sy + this.dheight * 0.5f), _zm, _rotR - this.rotR);
+			return base.entryChipMesh(MdB, MdG, MdT, MdLB, MdLT, MdTT, sx = this.Mp.pixel2meshx((float)this.drawx + sx + this.dwidth * 0.5f), sy = this.Mp.pixel2meshy((float)this.drawy + sy + this.dheight * 0.5f), _zm, _rotR - this.rotR);
 		}
 
 		public override bool isWithin(float _x, float _y, int drawer_index, bool strict = false)
@@ -118,6 +118,12 @@ namespace m2d
 			{
 				return ((float)this.drawy + this.dheight * 0.5f) / base.CLEN;
 			}
+		}
+
+		public override void getFlippedRotation(out int rot, out bool flip)
+		{
+			flip = !this.flip;
+			rot = 180 - this.rotation;
 		}
 
 		public override List<M2Picture> MakePicture(M2MapLayer Lay, float x, float y, int opacity, int rotation, bool flip)

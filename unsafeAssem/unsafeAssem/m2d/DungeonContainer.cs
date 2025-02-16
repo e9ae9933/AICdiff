@@ -76,7 +76,7 @@ namespace m2d
 			if (key != null)
 			{
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(key);
-				if (num <= 2336649189U)
+				if (num <= 1341997391U)
 				{
 					if (num <= 424117420U)
 					{
@@ -88,7 +88,10 @@ namespace m2d
 								{
 									if (key == "city_in")
 									{
-										dungeon = new DungeonGraziaIn("city_in", this);
+										dungeon = new DungeonGraziaIn("city_in", this, "city_in")
+										{
+											nouse_chipw_in_house_sm = true
+										};
 									}
 								}
 							}
@@ -102,15 +105,15 @@ namespace m2d
 							dungeon = new DungeonHouse("house", this);
 						}
 					}
-					else if (num <= 1328097888U)
+					else if (num <= 1150290413U)
 					{
 						if (num != 497756744U)
 						{
-							if (num == 1328097888U)
+							if (num == 1150290413U)
 							{
-								if (key == "forest")
+								if (key == "school_in")
 								{
-									dungeon = new DungeonForest("forest", this);
+									dungeon = new DungeonGraziaIn("school_in", this, "school_in");
 								}
 							}
 						}
@@ -119,46 +122,56 @@ namespace m2d
 							dungeon = new DungeonHouseAtelier("house_in_atelier", this);
 						}
 					}
-					else if (num != 1341997391U)
+					else if (num != 1328097888U)
 					{
-						if (num == 2336649189U)
+						if (num == 1341997391U)
 						{
-							if (key == "sacred")
+							if (key == "_editor")
 							{
-								dungeon = new DungeonSacred("sacred", this);
+								dungeon = new Dungeon("_editor", this)
+								{
+									camera_len_min_threshold = 0.4f
+								};
 							}
 						}
 					}
-					else if (key == "_editor")
+					else if (key == "forest")
 					{
-						dungeon = new Dungeon("_editor", this)
-						{
-							camera_len_min_threshold = 0.4f
-						};
+						dungeon = new DungeonForest("forest", this);
 					}
 				}
 				else if (num <= 3106337420U)
 				{
-					if (num != 2459078144U)
+					if (num <= 2459078144U)
 					{
-						if (num != 2807445042U)
+						if (num != 2336649189U)
 						{
-							if (num == 3106337420U)
+							if (num == 2459078144U)
 							{
-								if (key == "sea")
+								if (key == "house_in_bright")
 								{
-									dungeon = new DungeonSea("sea", this);
+									dungeon = new DungeonHouseInBright("house_in_bright", this);
 								}
 							}
 						}
-						else if (key == "glacier")
+						else if (key == "sacred")
 						{
-							dungeon = new DungeonGlacier("glacier", this);
+							dungeon = new DungeonSacred("sacred", this);
 						}
 					}
-					else if (key == "house_in_bright")
+					else if (num != 2807445042U)
 					{
-						dungeon = new DungeonHouseInBright("house_in_bright", this);
+						if (num == 3106337420U)
+						{
+							if (key == "sea")
+							{
+								dungeon = new DungeonSea("sea", this);
+							}
+						}
+					}
+					else if (key == "glacier")
+					{
+						dungeon = new DungeonGlacier("glacier", this);
 					}
 				}
 				else if (num <= 3324309751U)

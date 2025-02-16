@@ -22,7 +22,7 @@ namespace nel
 				{
 					text += "R";
 				}
-				return text + "\n<font size=\"10\"> (24/09/15 early access version VIII)</font>";
+				return text + "\n<font size=\"10\"> (25/02/01 early access version IX)</font>";
 			}
 		}
 
@@ -46,7 +46,7 @@ namespace nel
 		{
 			if (NEL.loaded)
 			{
-				Object.Destroy(this);
+				global::UnityEngine.Object.Destroy(this);
 				return;
 			}
 			if (NEL.Instance != null && NEL.Instance != this)
@@ -348,38 +348,25 @@ namespace nel
 			if (cmd != null)
 			{
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(cmd);
-				if (num <= 2598037374U)
+				if (num <= 2345100994U)
 				{
-					StoreManager storeManager;
-					if (num <= 1443838714U)
+					if (num <= 985817265U)
 					{
-						if (num <= 529558681U)
+						if (num <= 460275000U)
 						{
-							if (num != 409441053U)
+							if (num != 272785799U)
 							{
-								if (num != 460275000U)
+								if (num != 409441053U)
 								{
-									if (num != 529558681U)
+									if (num != 460275000U)
 									{
-										goto IL_0899;
+										goto IL_096E;
 									}
-									if (!(cmd == "FATAL"))
-									{
-										goto IL_0899;
-									}
-									FatalShower fatalShower = new FatalShower(rER._1, rER.getB(2, false));
-									X.dli("fatal scene " + rER._1 + " start.", null);
-									fatalShower.autoinit_z_in_wait_fn = -4.15f;
-									EV.initWaitFn(fatalShower, 0);
-									return true;
-								}
-								else
-								{
 									if (!(cmd == "LUNCHSTORE"))
 									{
-										goto IL_0899;
+										goto IL_096E;
 									}
-									storeManager = StoreManager.Get(rER._1, true);
+									StoreManager storeManager = StoreManager.Get(rER._1, true);
 									if (storeManager == null)
 									{
 										return rER.tError("店IDが不明: " + rER._1);
@@ -390,65 +377,117 @@ namespace nel
 									EV.initWaitFn(uiLunchStore, 0);
 									return true;
 								}
+								else
+								{
+									if (!(cmd == "UIBOX_MONEY_ACTIVATE"))
+									{
+										goto IL_096E;
+									}
+									UiBoxDesignerFamilyEvent dsFamilyForEvent = NEL.getDsFamilyForEvent();
+									UiBoxDesigner uiBoxDesigner = dsFamilyForEvent.Get<UiBoxMoney>();
+									if (uiBoxDesigner == null)
+									{
+										uiBoxDesigner = dsFamilyForEvent.CreateT<UiBoxMoney>("Money", 0f, 0f, 30f, 30f, -1, 30f, UiBoxDesignerFamily.MASKTYPE.BOX);
+									}
+									uiBoxDesigner.activate();
+									return true;
+								}
 							}
 							else
 							{
-								if (!(cmd == "UIBOX_MONEY_ACTIVATE"))
+								if (!(cmd == "UI_GUILDQUEST"))
 								{
-									goto IL_0899;
+									goto IL_096E;
 								}
-								UiBoxDesignerFamilyEvent dsFamilyForEvent = NEL.getDsFamilyForEvent();
-								UiBoxDesigner uiBoxDesigner = dsFamilyForEvent.Get<UiBoxMoney>();
-								if (uiBoxDesigner == null)
+								if (M2DBase.Instance != null)
 								{
-									uiBoxDesigner = dsFamilyForEvent.CreateT<UiBoxMoney>("Money", 0f, 0f, 30f, 30f, -1, 30f, UiBoxDesignerFamily.MASKTYPE.BOX);
+									new UiGQManageBox(M2DBase.Instance as NelM2DBase, rER._1, rER._B2, null);
 								}
-								uiBoxDesigner.activate();
 								return true;
 							}
 						}
-						else if (num != 812547004U)
+						else if (num != 529558681U)
+						{
+							if (num != 812547004U)
+							{
+								if (num != 985817265U)
+								{
+									goto IL_096E;
+								}
+								if (!(cmd == "UI_GUILDQUEST_REFINE"))
+								{
+									goto IL_096E;
+								}
+								if (M2DBase.Instance != null)
+								{
+									(M2DBase.Instance as NelM2DBase).GUILD.need_fine_flag = true;
+									return true;
+								}
+								return true;
+							}
+							else if (!(cmd == "ALCHEMY"))
+							{
+								goto IL_096E;
+							}
+						}
+						else
+						{
+							if (!(cmd == "FATAL"))
+							{
+								goto IL_096E;
+							}
+							FatalShower fatalShower = new FatalShower(rER._1, rER.getB(2, false));
+							X.dli("fatal scene " + rER._1 + " start.", null);
+							fatalShower.autoinit_z_in_wait_fn = -4.15f;
+							EV.initWaitFn(fatalShower, 0);
+							return true;
+						}
+					}
+					else
+					{
+						if (num <= 1504606479U)
 						{
 							if (num != 1028107636U)
 							{
 								if (num != 1443838714U)
 								{
-									goto IL_0899;
+									if (num != 1504606479U)
+									{
+										goto IL_096E;
+									}
+									if (!(cmd == "ALCHEMY_COFFEEMAKER"))
+									{
+										goto IL_096E;
+									}
+									NEL.defaultEventAlchemyInitialize<UiAlchemyCoffeeMaker>(rER, false, -1);
+									return true;
 								}
-								if (!(cmd == "ALCHEMY_WORKBENCH"))
+								else
 								{
-									goto IL_0899;
+									if (!(cmd == "ALCHEMY_WORKBENCH"))
+									{
+										goto IL_096E;
+									}
+									NEL.defaultEventAlchemyInitialize<UiAlchemyWorkBench>(rER, false, -1);
+									return true;
 								}
-								NEL.defaultEventAlchemyInitialize<UiAlchemyWorkBench>(rER, false, -1);
-								return true;
 							}
 							else if (!(cmd == "ITEMSTORE_RELOAD_BASIC"))
 							{
-								goto IL_0899;
+								goto IL_096E;
 							}
 						}
-						else
-						{
-							if (!(cmd == "ALCHEMY"))
-							{
-								goto IL_0899;
-							}
-							goto IL_0410;
-						}
-					}
-					else if (num <= 1870688857U)
-					{
-						if (num != 1504606479U)
+						else if (num <= 1870688857U)
 						{
 							if (num != 1511554586U)
 							{
 								if (num != 1870688857U)
 								{
-									goto IL_0899;
+									goto IL_096E;
 								}
 								if (!(cmd == "ALCHEMY_RECIPE_BOOK"))
 								{
-									goto IL_0899;
+									goto IL_096E;
 								}
 								UiAlchemyRecipeBook uiAlchemyRecipeBook = new GameObject("RBK" + IN.totalframe.ToString()).AddComponent<UiAlchemyRecipeBook>();
 								if (TX.valid(rER._1))
@@ -474,40 +513,20 @@ namespace nel
 							{
 								if (!(cmd == "COOKING_TUTORIAL"))
 								{
-									goto IL_0899;
+									goto IL_096E;
 								}
-								goto IL_0410;
+								goto IL_0497;
 							}
 						}
-						else
+						else if (num != 2096655831U)
 						{
-							if (!(cmd == "ALCHEMY_COFFEEMAKER"))
+							if (num != 2345100994U)
 							{
-								goto IL_0899;
+								goto IL_096E;
 							}
-							NEL.defaultEventAlchemyInitialize<UiAlchemyCoffeeMaker>(rER, false, -1);
-							return true;
-						}
-					}
-					else if (num != 2096655831U)
-					{
-						if (num != 2345100994U)
-						{
-							if (num != 2598037374U)
-							{
-								goto IL_0899;
-							}
-							if (!(cmd == "UI_MGMTIMER_ADDSCORE"))
-							{
-								goto IL_0899;
-							}
-							goto IL_07CC;
-						}
-						else
-						{
 							if (!(cmd == "UIALBUM"))
 							{
-								goto IL_0899;
+								goto IL_096E;
 							}
 							GameObject gameObject = IN.CreateGobGUI(null, "ALBUM");
 							UiAlbum uiAlbum = gameObject.AddComponent<UiAlbum>();
@@ -518,143 +537,45 @@ namespace nel
 							}
 							return true;
 						}
-					}
-					else if (!(cmd == "ITEMSTORE"))
-					{
-						goto IL_0899;
-					}
-					storeManager = StoreManager.Get(rER._1, true);
-					if (storeManager == null)
-					{
-						return rER.tError("店IDが不明: " + rER._1);
-					}
-					if (rER.cmd == "ITEMSTORE_RELOAD_BASIC")
-					{
-						storeManager.need_reload_basic = true;
-						return true;
-					}
-					UiItemStore uiItemStore = storeManager.AddStoreComponent(new GameObject("ItemStore" + IN.totalframe.ToString()));
-					if (TX.valid(rER._2))
-					{
-						EV.fixObjectPositionTo(uiItemStore.transform, rER._2);
-					}
-					uiItemStore.InitManager(storeManager, NEL.prepareTemporaryInventory());
-					EV.initWaitFn(uiItemStore, 0);
-					return true;
-				}
-				else
-				{
-					if (num > 3660252937U)
-					{
-						if (num <= 4024793197U)
+						else if (!(cmd == "ITEMSTORE"))
 						{
-							if (num != 3665994684U)
-							{
-								if (num != 3802338263U)
-								{
-									if (num != 4024793197U)
-									{
-										goto IL_0899;
-									}
-									if (!(cmd == "ALCHEMY_TRM_TUTORIAL"))
-									{
-										goto IL_0899;
-									}
-								}
-								else
-								{
-									if (!(cmd == "COOKING"))
-									{
-										goto IL_0899;
-									}
-									goto IL_0410;
-								}
-							}
-							else
-							{
-								if (!(cmd == "PVIB"))
-								{
-									goto IL_0899;
-								}
-								for (int i = 1; i < rER.clength; i++)
-								{
-									NEL.PadVib(rER.getIndex(i), 1f);
-								}
-								return true;
-							}
+							goto IL_096E;
 						}
-						else if (num != 4063501937U)
+						StoreManager storeManager = StoreManager.Get(rER._1, true);
+						if (storeManager == null)
 						{
-							if (num != 4158024595U)
-							{
-								if (num != 4237227894U)
-								{
-									goto IL_0899;
-								}
-								if (!(cmd == "ALCHEMY_TRM"))
-								{
-									goto IL_0899;
-								}
-							}
-							else
-							{
-								if (!(cmd == "UI_MGMTIMER_DEACTIVATE"))
-								{
-									goto IL_0899;
-								}
-								UiMgmTimer timerUi = this.GetTimerUi();
-								if (timerUi != null)
-								{
-									timerUi.deactivate(false);
-									return true;
-								}
-								return true;
-							}
+							return rER.tError("店IDが不明: " + rER._1);
 						}
-						else
+						if (rER.cmd == "ITEMSTORE_RELOAD_BASIC")
 						{
-							if (!(cmd == "ALCHEMY_RECIPE_BOOK2"))
-							{
-								goto IL_0899;
-							}
-							UiFieldGuide uiFieldGuide = new GameObject("RBK" + IN.totalframe.ToString()).AddComponent<UiFieldGuide>();
-							if (TX.valid(rER._1))
-							{
-								EV.fixObjectPositionTo(uiFieldGuide.transform, rER._1);
-							}
-							EV.initWaitFn(uiFieldGuide, 0);
+							storeManager.need_reload_basic = true;
 							return true;
 						}
-						NEL.defaultEventAlchemyInitialize<UiAlchemyTRM>(rER, rER.cmd == "ALCHEMY_TRM_TUTORIAL", -1);
+						UiItemStore uiItemStore = storeManager.AddStoreComponent(new GameObject("ItemStore" + IN.totalframe.ToString()));
+						if (TX.valid(rER._2))
+						{
+							EV.fixObjectPositionTo(uiItemStore.transform, rER._2);
+						}
+						uiItemStore.InitManager(storeManager, NEL.prepareTemporaryInventory());
+						EV.initWaitFn(uiItemStore, 0);
 						return true;
 					}
-					if (num <= 3304894242U)
+				}
+				else if (num <= 3660252937U)
+				{
+					if (num <= 3003100174U)
 					{
-						if (num != 2728866695U)
+						if (num != 2598037374U)
 						{
-							if (num != 3003100174U)
+							if (num != 2728866695U)
 							{
-								if (num != 3304894242U)
+								if (num != 3003100174U)
 								{
-									goto IL_0899;
+									goto IL_096E;
 								}
-								if (!(cmd == "UIBOX_MONEY_DEACTIVATE"))
-								{
-									goto IL_0899;
-								}
-								UiBoxDesigner uiBoxDesigner2 = NEL.getDsFamilyForEvent().Get<UiBoxMoney>();
-								if (uiBoxDesigner2 != null)
-								{
-									uiBoxDesigner2.deactivate();
-									return true;
-								}
-								return true;
-							}
-							else
-							{
 								if (!(cmd == "LUNCHTIME"))
 								{
-									goto IL_0899;
+									goto IL_096E;
 								}
 								UiLunchTime uiLunchTime = IN.CreateGob(base.gameObject, "-Lunch").AddComponent<UiLunchTime>();
 								uiLunchTime.default_select_item_key = EV.getVariableContainer().Get("_final_cooked_item");
@@ -662,89 +583,197 @@ namespace nel
 								EV.initWaitFn(uiLunchTime, 0);
 								return true;
 							}
-						}
-						else
-						{
-							if (!(cmd == "UI_MGMTIMER_ADDSCORE_TX"))
+							else if (!(cmd == "UI_MGMTIMER_ADDSCORE_TX"))
 							{
-								goto IL_0899;
+								goto IL_096E;
 							}
-							goto IL_07CC;
 						}
+						else if (!(cmd == "UI_MGMTIMER_ADDSCORE"))
+						{
+							goto IL_096E;
+						}
+						UiMgmTimer timerUi = this.GetTimerUi();
+						if (timerUi != null)
+						{
+							timerUi.resetScoreEntry(rER._1, (float)rER.Int(3, 0), rER._2, (rER.cmd == "UI_MGMTIMER_ADDSCORE") ? UiMgmTimer.SCORE_TYPE.ICON_SUFFIX : UiMgmTimer.SCORE_TYPE.TEXT_SUFFIX);
+							return true;
+						}
+						return true;
 					}
-					else if (num != 3381585093U)
+					else if (num <= 3381585093U)
 					{
-						if (num != 3392875696U)
+						if (num != 3304894242U)
 						{
-							if (num != 3660252937U)
+							if (num != 3381585093U)
 							{
-								goto IL_0899;
+								goto IL_096E;
 							}
-							if (!(cmd == "UICOOKING"))
+							if (!(cmd == "NUMCOUNTER"))
 							{
-								goto IL_0899;
+								goto IL_096E;
 							}
-							if (NEL.UiAlchemyObject == null)
-							{
-								return rER.tError("UiAlchemyObject が存在しません。 COOKING_TUTORIAL を実行しておく必要があります");
-							}
-							NEL.UiAlchemyObject.EvtRead(rER);
+							EV.initWaitFn(new GameObject("UiDangerLevelInitBox").AddComponent<UiEvtNumCounter>().Init(rER.Int(1, 0), rER.Int(2, 0), rER.Int(3, 0), rER.Int(4, -1)), 0);
 							return true;
 						}
 						else
 						{
-							if (!(cmd == "UI_MGMTIMER_ACTIVATE"))
+							if (!(cmd == "UIBOX_MONEY_DEACTIVATE"))
 							{
-								goto IL_0899;
+								goto IL_096E;
 							}
-							UiMgmTimer uiMgmTimer = this.GetTimerUi();
-							if (uiMgmTimer != null)
+							UiBoxDesigner uiBoxDesigner2 = NEL.getDsFamilyForEvent().Get<UiBoxMoney>();
+							if (uiBoxDesigner2 != null)
 							{
-								uiMgmTimer.Gob.transform.SetParent(null);
-								IN.DestroyOne(uiMgmTimer.Gob);
-							}
-							uiMgmTimer = new UiMgmTimer(M2DBase.Instance as NelM2DBase, "MGM_TIMER", 0);
-							uiMgmTimer.transform.SetParent(EV.Instance.transform, false);
-							EV.addListener(uiMgmTimer);
-							uiMgmTimer.attach_effect = false;
-							uiMgmTimer.activate(rER.IntE(1, 0), rER.IntE(2, 0));
-							if (TX.valid(rER._3))
-							{
-								string text = rER._3;
-								bool flag = false;
-								if (TX.isStart(rER._3, '!'))
-								{
-									flag = true;
-									text = TX.slice(rER._3, 1);
-								}
-								uiMgmTimer.gotoEventLabelWhenFinished(text, flag);
+								uiBoxDesigner2.deactivate();
 								return true;
 							}
 							return true;
 						}
 					}
+					else if (num != 3392875696U)
+					{
+						if (num != 3660252937U)
+						{
+							goto IL_096E;
+						}
+						if (!(cmd == "UICOOKING"))
+						{
+							goto IL_096E;
+						}
+						if (NEL.UiAlchemyObject == null)
+						{
+							return rER.tError("UiAlchemyObject が存在しません。 COOKING_TUTORIAL を実行しておく必要があります");
+						}
+						NEL.UiAlchemyObject.EvtRead(rER);
+						return true;
+					}
 					else
 					{
-						if (!(cmd == "NUMCOUNTER"))
+						if (!(cmd == "UI_MGMTIMER_ACTIVATE"))
 						{
-							goto IL_0899;
+							goto IL_096E;
 						}
-						EV.initWaitFn(new GameObject("UiDangerLevelInitBox").AddComponent<UiEvtNumCounter>().Init(rER.Int(1, 0), rER.Int(2, 0), rER.Int(3, 0), rER.Int(4, -1)), 0);
+						UiMgmTimer uiMgmTimer = this.GetTimerUi();
+						if (uiMgmTimer != null)
+						{
+							uiMgmTimer.Gob.transform.SetParent(null);
+							IN.DestroyOne(uiMgmTimer.Gob);
+						}
+						uiMgmTimer = new UiMgmTimer(M2DBase.Instance as NelM2DBase, "MGM_TIMER", 0);
+						uiMgmTimer.transform.SetParent(EV.Instance.transform, false);
+						EV.addListener(uiMgmTimer);
+						uiMgmTimer.attach_effect = false;
+						uiMgmTimer.activate(rER.IntE(1, 0), rER.IntE(2, 0));
+						if (TX.valid(rER._3))
+						{
+							string text = rER._3;
+							bool flag = false;
+							if (TX.isStart(rER._3, '!'))
+							{
+								flag = true;
+								text = TX.slice(rER._3, 1);
+							}
+							uiMgmTimer.gotoEventLabelWhenFinished(text, flag);
+							return true;
+						}
 						return true;
 					}
 				}
-				IL_0410:
+				else
+				{
+					if (num > 3863891238U)
+					{
+						if (num <= 4063501937U)
+						{
+							if (num != 4024793197U)
+							{
+								if (num != 4063501937U)
+								{
+									goto IL_096E;
+								}
+								if (!(cmd == "ALCHEMY_RECIPE_BOOK2"))
+								{
+									goto IL_096E;
+								}
+								UiFieldGuide uiFieldGuide = new GameObject("RBK" + IN.totalframe.ToString()).AddComponent<UiFieldGuide>();
+								if (TX.valid(rER._1))
+								{
+									EV.fixObjectPositionTo(uiFieldGuide.transform, rER._1);
+								}
+								EV.initWaitFn(uiFieldGuide, 0);
+								return true;
+							}
+							else if (!(cmd == "ALCHEMY_TRM_TUTORIAL"))
+							{
+								goto IL_096E;
+							}
+						}
+						else if (num != 4158024595U)
+						{
+							if (num != 4237227894U)
+							{
+								goto IL_096E;
+							}
+							if (!(cmd == "ALCHEMY_TRM"))
+							{
+								goto IL_096E;
+							}
+						}
+						else
+						{
+							if (!(cmd == "UI_MGMTIMER_DEACTIVATE"))
+							{
+								goto IL_096E;
+							}
+							UiMgmTimer timerUi2 = this.GetTimerUi();
+							if (timerUi2 != null)
+							{
+								timerUi2.deactivate(false);
+								return true;
+							}
+							return true;
+						}
+						NEL.defaultEventAlchemyInitialize<UiAlchemyTRM>(rER, rER.cmd == "ALCHEMY_TRM_TUTORIAL", -1);
+						return true;
+					}
+					if (num != 3665994684U)
+					{
+						if (num != 3802338263U)
+						{
+							if (num != 3863891238U)
+							{
+								goto IL_096E;
+							}
+							if (!(cmd == "<LOAD_DWARF>"))
+							{
+								goto IL_096E;
+							}
+							NelDwarfCharManager.reloadScript();
+							return true;
+						}
+						else if (!(cmd == "COOKING"))
+						{
+							goto IL_096E;
+						}
+					}
+					else
+					{
+						if (!(cmd == "PVIB"))
+						{
+							goto IL_096E;
+						}
+						for (int i = 1; i < rER.clength; i++)
+						{
+							NEL.PadVib(rER.getIndex(i), 1f);
+						}
+						return true;
+					}
+				}
+				IL_0497:
 				NEL.defaultEventAlchemyInitialize<UiAlchemy>(rER, rER.cmd == "COOKING_TUTORIAL", (rER.cmd == "ALCHEMY") ? 1 : 0);
 				return true;
-				IL_07CC:
-				UiMgmTimer timerUi2 = this.GetTimerUi();
-				if (timerUi2 != null)
-				{
-					timerUi2.resetScoreEntry(rER._1, (float)rER.Int(3, 0), rER._2, (rER.cmd == "UI_MGMTIMER_ADDSCORE") ? UiMgmTimer.SCORE_TYPE.ICON_SUFFIX : UiMgmTimer.SCORE_TYPE.TEXT_SUFFIX);
-				}
-				return true;
 			}
-			IL_0899:
+			IL_096E:
 			return MgmScoreHolder.EvtRead(ER, rER, skipping);
 		}
 
@@ -857,14 +886,14 @@ namespace nel
 					itemStorage.Add(NelItem.GetById("mtr_lettuce", false), 4, i, true, true);
 				}
 				itemStorage.Add(NelItem.GetById("mtr_water0", false), 10, 2, true, true);
-				itemStorage.fnAddable = (NelItem _Itm) => !_Itm.is_precious && !_Itm.is_food;
+				itemStorage.fnAddable = (NelItem _Itm, bool ignore_area) => !_Itm.is_precious && !_Itm.is_food;
 				itemStorage = (NEL.TemporaryInventory[1] = new ItemStorage("Inventory_precious", 99).clearAllItems(99));
 				itemStorage.water_stockable = (itemStorage.infinit_stockable = true);
 				itemStorage.Add(NelItem.GetById("precious_noel_cloth", false), 1, 4, true, true);
 				itemStorage.Add(NelItem.GetById("precious_noel_shorts", false), 1, 4, true, true);
 				itemStorage.Add(NelItem.GetById("Recipe_bread", false), 1, 0, true, true);
 				itemStorage.Add(NelItem.GetById("Recipe_sandwich", false), 1, 0, true, true);
-				itemStorage.fnAddable = (NelItem _Itm) => _Itm.is_precious && !_Itm.is_food;
+				itemStorage.fnAddable = (NelItem _Itm, bool ignore_area) => _Itm.is_precious && !_Itm.is_food;
 			}
 			return NEL.TemporaryInventory;
 		}
@@ -925,64 +954,84 @@ namespace nel
 			if (cmd != null)
 			{
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(cmd);
-				if (num <= 2268747045U)
+				if (num <= 2345100994U)
 				{
-					if (num <= 1443838714U)
+					if (num <= 1504606479U)
 					{
 						if (num != 812547004U)
 						{
 							if (num != 1443838714U)
 							{
-								goto IL_01DD;
+								if (num != 1504606479U)
+								{
+									goto IL_020C;
+								}
+								if (!(cmd == "ALCHEMY_COFFEEMAKER"))
+								{
+									goto IL_020C;
+								}
 							}
-							if (!(cmd == "ALCHEMY_WORKBENCH"))
+							else if (!(cmd == "ALCHEMY_WORKBENCH"))
 							{
-								goto IL_01DD;
+								goto IL_020C;
 							}
 						}
 						else if (!(cmd == "ALCHEMY"))
 						{
-							goto IL_01DD;
+							goto IL_020C;
 						}
 					}
-					else if (num != 1504606479U)
+					else if (num != 1511554586U)
 					{
-						if (num != 1511554586U)
+						if (num != 2268747045U)
 						{
-							if (num != 2268747045U)
+							if (num != 2345100994U)
 							{
-								goto IL_01DD;
+								goto IL_020C;
 							}
+							if (!(cmd == "UIALBUM"))
+							{
+								goto IL_020C;
+							}
+							int num2;
+							UiAlbum.loadMaterial(out num2);
+							return num2;
+						}
+						else
+						{
 							if (!(cmd == "UI_RESTROOM_MENU"))
 							{
-								goto IL_01DD;
+								goto IL_020C;
 							}
 							EV.Pics.cacheReadFor("whole_general/arrow_r");
 							return 0;
 						}
-						else if (!(cmd == "COOKING_TUTORIAL"))
-						{
-							goto IL_01DD;
-						}
 					}
-					else if (!(cmd == "ALCHEMY_COFFEEMAKER"))
+					else if (!(cmd == "COOKING_TUTORIAL"))
 					{
-						goto IL_01DD;
+						goto IL_020C;
 					}
 				}
-				else if (num <= 3660252937U)
+				else if (num <= 3802338263U)
 				{
-					if (num != 2345100994U)
+					if (num != 2921794231U)
 					{
-						if (num != 2921794231U)
+						if (num != 3660252937U)
 						{
-							if (num != 3660252937U)
+							if (num != 3802338263U)
 							{
-								goto IL_01DD;
+								goto IL_020C;
 							}
+							if (!(cmd == "COOKING"))
+							{
+								goto IL_020C;
+							}
+						}
+						else
+						{
 							if (!(cmd == "UICOOKING"))
 							{
-								goto IL_01DD;
+								goto IL_020C;
 							}
 							if (rER.clength > 2 && rER._1 == "ARROW_IMG")
 							{
@@ -990,47 +1039,42 @@ namespace nel
 							}
 							return 0;
 						}
-						else
-						{
-							if (!(cmd == "PVV"))
-							{
-								goto IL_01DD;
-							}
-							return 0;
-						}
 					}
 					else
 					{
-						if (!(cmd == "UIALBUM"))
+						if (!(cmd == "PVV"))
 						{
-							goto IL_01DD;
+							goto IL_020C;
 						}
-						int num2;
-						UiAlbum.loadMaterial(out num2);
-						return num2;
+						return 0;
 					}
 				}
-				else if (num != 3802338263U)
+				else if (num != 3863891238U)
 				{
 					if (num != 4024793197U)
 					{
 						if (num != 4237227894U)
 						{
-							goto IL_01DD;
+							goto IL_020C;
 						}
 						if (!(cmd == "ALCHEMY_TRM"))
 						{
-							goto IL_01DD;
+							goto IL_020C;
 						}
 					}
 					else if (!(cmd == "ALCHEMY_TRM_TUTORIAL"))
 					{
-						goto IL_01DD;
+						goto IL_020C;
 					}
 				}
-				else if (!(cmd == "COOKING"))
+				else
 				{
-					goto IL_01DD;
+					if (!(cmd == "<LOAD_DWARF>"))
+					{
+						goto IL_020C;
+					}
+					NelDwarfCharManager.loadPxl(false);
+					return 0;
 				}
 				if (rER.clength > 1)
 				{
@@ -1038,7 +1082,7 @@ namespace nel
 				}
 				return 0;
 			}
-			IL_01DD:
+			IL_020C:
 			return MgmScoreHolder.EvtCacheRead(ER, cmd, rER);
 		}
 
@@ -1101,6 +1145,20 @@ namespace nel
 				Skin.hold_level = (float)t / (float)maxt;
 			}
 			return t >= maxt;
+		}
+
+		public static TextRendererRBKeyDesc CreateBottomRightText(string tx_name, float z)
+		{
+			TextRendererRBKeyDesc textRendererRBKeyDesc = new GameObject(tx_name).AddComponent<TextRendererRBKeyDesc>();
+			textRendererRBKeyDesc.gameObject.layer = IN.gui_layer;
+			textRendererRBKeyDesc.Col(4293190884U).BorderCol(4282004532U);
+			textRendererRBKeyDesc.html_mode = true;
+			IN.setZ(textRendererRBKeyDesc.transform, z);
+			if (M2DBase.Instance != null)
+			{
+				M2DBase.Instance.addValotAddition(textRendererRBKeyDesc);
+			}
+			return textRendererRBKeyDesc;
 		}
 
 		public static void CuteFrame(MeshDrawer Md, float x, float y, float w, float h, float title_wdt = -1000f)
@@ -1403,7 +1461,7 @@ namespace nel
 					flag = questMapInfo.tracking;
 					flag2 = flag2 || questMapInfo.semitransp;
 				}
-				NEL.drawQuestDepertPinAnim(Md, af, dx, dy, alpha * (flag2 ? 0.23f : 1f), scale, shadow_alpha_ratio, jumping_ratio, flag ? quest_tracking_scale : 0f);
+				NEL.drawQuestDepertPinAnim(Md, af, dx, dy, alpha * (flag2 ? 0.35f : 1f), scale, shadow_alpha_ratio, jumping_ratio, flag ? quest_tracking_scale : 0f);
 				return;
 			}
 			int count = ACol.Count;
@@ -1418,7 +1476,7 @@ namespace nel
 				questMapInfo2 = ACol[(num2 == 0) ? (count - 1) : (num2 - 1)];
 				Md.Col = questMapInfo2.C;
 				flag3 = force_semi_transp || questMapInfo2.semitransp;
-				NEL.drawQuestDepertPinAnimOne(Md, (float)num, dx, dy, alpha * (1f - num3) * (flag3 ? 0.23f : 1f), 1f, shadow_alpha_ratio, jumping_ratio, questMapInfo2.tracking ? quest_tracking_scale : 0f);
+				NEL.drawQuestDepertPinAnimOne(Md, (float)num, dx, dy, alpha * (1f - num3) * (flag3 ? 0.35f : 1f), 1f, shadow_alpha_ratio, jumping_ratio, questMapInfo2.tracking ? quest_tracking_scale : 0f);
 				questMapInfo2 = ACol[num2];
 				Md.Col = questMapInfo2.C;
 				flag3 = force_semi_transp || questMapInfo2.semitransp;
@@ -1430,7 +1488,7 @@ namespace nel
 				flag3 = force_semi_transp || questMapInfo2.semitransp;
 				Md.Col = questMapInfo2.C;
 			}
-			NEL.drawQuestDepertPinAnimOne(Md, (float)num, dx, dy, alpha * (flag3 ? 0.23f : 1f), 1f, shadow_alpha_ratio, jumping_ratio, questMapInfo2.tracking ? quest_tracking_scale : 0f);
+			NEL.drawQuestDepertPinAnimOne(Md, (float)num, dx, dy, alpha * (flag3 ? 0.35f : 1f), 1f, shadow_alpha_ratio, jumping_ratio, questMapInfo2.tracking ? quest_tracking_scale : 0f);
 		}
 
 		public static void BouncyPinZT(out float scalex, out float scaley, out float y_ratio, float x_ext = 0.45f, float y_ext = -0.6f)

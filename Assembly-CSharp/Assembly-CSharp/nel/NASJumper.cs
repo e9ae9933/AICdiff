@@ -91,7 +91,7 @@ namespace nel
 				}
 				if (this.ADepSrc.Count == 0)
 				{
-					M2BlockColliderContainer.BCCLine[] footableBcc = base.Summoner.getFootableBcc(AIM.B);
+					M2BlockColliderContainer.BCCLine[] footableBcc = base.Summoner.Summoner.getFootableBcc(AIM.B);
 					if (footableBcc.Length == 0)
 					{
 						return this.runWalkError(null);
@@ -251,7 +251,7 @@ namespace nel
 										}
 										if (!flag2)
 										{
-											goto IL_09C4;
+											goto IL_09C9;
 										}
 										float num12 = ((num7 < 0f) ? X.Mn(base.x - 0.0625f, this.RcWalk0.right - base.sizex - bccline3.BCC.base_shift_x) : X.Mx(base.x + 0.0625f, this.RcWalk0.x + base.sizex - bccline3.BCC.base_shift_x));
 										drect.Set(num12 - base.sizex, base.mbottom - base.sizey * 2f, base.sizex * 2f, base.sizey * 2f);
@@ -261,7 +261,7 @@ namespace nel
 										float num13 = ((num7 < 0f) ? (regInfo2.r + base.sizex + 0.25f) : (regInfo2.x - base.sizex - 0.25f));
 										if (!X.BTW(this.RcWalk0.x - bccline3.BCC.base_shift_x, num13, this.RcWalk0.right - bccline3.BCC.base_shift_x))
 										{
-											goto IL_09C4;
+											goto IL_09C9;
 										}
 										int num14 = (int)(num13 - base.sizex);
 										int num15 = X.IntC(num13 + base.sizex) - 1;
@@ -301,7 +301,7 @@ namespace nel
 										this.RectDepert = drect;
 									}
 								}
-								IL_09C4:;
+								IL_09C9:;
 							}
 							if (this.RectDepert == null)
 							{
@@ -352,7 +352,7 @@ namespace nel
 				{
 					bool footBCC2 = this.FootD.get_FootBCC() != null;
 					float mpf_is_right = base.mpf_is_right;
-					this.Phy.walk_xspeed = mpf_is_right * this.run_speed;
+					this.En.setWalkXSpeed(mpf_is_right * this.run_speed, true, false);
 					this.Prog(NASJumper.JPROG.RUN0);
 					if (footBCC2)
 					{
@@ -389,7 +389,7 @@ namespace nel
 				{
 					this.dep_decided = false;
 					Tk.AfterDelay(this.land_afterdelay);
-					this.Phy.walk_xspeed = 0f;
+					this.En.setWalkXSpeed(0f, true, false);
 					this.Prog(NASJumper.JPROG.FINISH);
 					return false;
 				}
@@ -399,11 +399,11 @@ namespace nel
 				{
 					this.En.jumpInit(X.absmax(num18 - base.x, 4.5f), 0f, X.NIXP(4f, 6f), false);
 					this.Prog(NASJumper.JPROG.JUMP_FINISH);
-					this.Phy.walk_xspeed = 0f;
+					this.En.setWalkXSpeed(0f, true, false);
 					this.dep_decided = false;
 					return false;
 				}
-				this.Phy.walk_xspeed = mpf_is_right2 * this.run_speed;
+				this.En.setWalkXSpeed(mpf_is_right2 * this.run_speed, true, false);
 			}
 			return true;
 		}
@@ -440,7 +440,7 @@ namespace nel
 				this.En.setSkipLift((int)(regInfo.y - 1.25f), true);
 				Tk.Progress(true);
 				t = 0f;
-				this.Phy.walk_xspeed = 0f;
+				this.En.setWalkXSpeed(0f, true, false);
 			}
 		}
 
@@ -450,26 +450,17 @@ namespace nel
 			if (walk_time >= 0f && walk_st == 1 && footBCC == null)
 			{
 				float num = this.ADep[0].posx - base.x;
-				walk_st = 0;
-				if (X.Abs(num) > 0.2f)
+				if (X.Abs(num) > 0.17f)
 				{
-					this.Phy.walk_xspeed = (float)X.MPF(num > 0f) * 0.12f;
+					this.En.setWalkXSpeed((float)X.MPF(num > 0f) * 0.12f, true, false);
 				}
-				else
-				{
-					this.Phy.walk_xspeed = 0f;
-				}
-			}
-			else
-			{
-				this.Phy.walk_xspeed = 0f;
 			}
 			this.Prog(NASJumper.JPROG.JUMPING);
 			if (footBCC != null && Tk.Progress(ref t, 25, true))
 			{
 				this.Prog(NASJumper.JPROG.LANDED);
 				walk_st = 0;
-				this.Phy.walk_xspeed = 0f;
+				this.En.setWalkXSpeed(0f, true, false);
 				if (this.ADep.Count == 0 || footBCC != this.ADep[0].getBcc())
 				{
 					Tk.AfterDelay(this.land_afterdelay);

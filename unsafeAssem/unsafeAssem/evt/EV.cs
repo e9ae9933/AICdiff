@@ -10,6 +10,23 @@ namespace evt
 {
 	public class EV : MonoBehaviour, ConfirmAnnouncer.IConfirmHolder
 	{
+		private static EV.ST state
+		{
+			get
+			{
+				return EV.state_;
+			}
+			set
+			{
+				if (EV.state == value)
+				{
+					return;
+				}
+				EV.state_ = value;
+				EV.t_msgf = 0f;
+			}
+		}
+
 		public static GameObject Gob
 		{
 			get
@@ -24,8 +41,9 @@ namespace evt
 			{
 				return;
 			}
+			LoadTicketManager.PrepareLoadManager();
 			EV.setWH((int)IN.w, (int)IN.h, (int)IN.w, (int)IN.h);
-			EvPerson.loadPerson(NKT.readStreamingText("evt/__vp_person.dat", false), ref EV.APxls, ref EV.APxlsLoaderFirst);
+			EvPerson.loadPerson(NKT.readStreamingText("evt/__vp_person.dat", false), ref EV.APxls);
 			TalkDrawer.loadTalkerPos(NKT.readStreamingText("evt/__vp_talker_pos.dat", false));
 			EV.Oevt_content = new BDic<string, string>();
 			if (EV.Pics == null)
@@ -46,30 +64,15 @@ namespace evt
 		{
 			get
 			{
+				if (EV.AStack != null)
+				{
+					return true;
+				}
 				if (EV.Pics == null)
 				{
 					EV.loadEV();
 				}
-				if (X.DEBUGNOEVENT || EV.APxlsLoaderFirst == null)
-				{
-					return true;
-				}
-				int num = EV.APxlsLoaderFirst.Length;
-				bool flag = true;
-				for (int i = 0; i < num; i++)
-				{
-					if (!EV.APxlsLoaderFirst[i].Pc.isLoadCompleted())
-					{
-						flag = false;
-						break;
-					}
-				}
-				if (flag)
-				{
-					EV.APxlsLoaderFirst = null;
-					return true;
-				}
-				return false;
+				return X.DEBUGNOEVENT || !EV.ticket_loading;
 			}
 		}
 
@@ -89,8 +92,12 @@ namespace evt
 			IN.Pos(gameObject, 0f, 0f, -3f);
 			EV.Instance = gameObject.AddComponent<EV>();
 			EV.MMRD = gameObject.AddComponent<MultiMeshRenderer>();
-			EV.MdLoad = MeshDrawer.prepareMeshRenderer(gameObject.gameObject, MTRX.MtrMeshNormal, -2.5f, -1, null, true, true);
-			EV.MrdLoad = gameObject.GetComponent<MeshRenderer>();
+			GameObject gameObject2 = IN.CreateGobGUI(gameObject.gameObject, "-MdLoad");
+			EV.MdLoad = MeshDrawer.prepareMeshRenderer(gameObject2, MTRX.MtrMeshNormal, -2.5f, -1, null, true, true);
+			EV.MrdLoad = gameObject2.GetComponent<MeshRenderer>();
+			EV.ValotLoad = gameObject2.GetComponent<ValotileRenderer>();
+			IN.setZAbs(gameObject2.transform, -9.25f);
+			EV.MrdLoad.gameObject.SetActive(!EV.do_not_draw_loading_circle);
 			if (EV.FnCreateConfirmer != null)
 			{
 				EV.Confirmer = EV.FnCreateConfirmer(gameObject);
@@ -105,6 +112,7 @@ namespace evt
 				EV.ALsn = new List<IEventListener>(4);
 			}
 			EV.OLsnWait = new BDic<string, IEventWaitListener>();
+			EV.addWaitListener("PXL_LOAD", new EvWaitPxlChars());
 			EV.state = EV.ST.NONE;
 			EV.no_first_run = false;
 			EV.curEv = (EV.nexEv = null);
@@ -199,7 +207,6 @@ namespace evt
 			EV.need_fine_confirmer = false;
 			EV.MsgCmd = null;
 			EV.MsgCon = null;
-			EV.ARecheckAfterCacheRead = null;
 			EV.no_reload = false;
 			EV.cache_loading = -2;
 			if (EV.MdLoad != null)
@@ -210,6 +217,7 @@ namespace evt
 			EV.MdLoad = null;
 			EV.valotile_overwrite_msg_ = false;
 			EV.MrdLoad = null;
+			EV.ValotLoad = null;
 			EV.AHkdsFollowCon = null;
 			EV.PoolERCache = null;
 			EV.VarConCache = null;
@@ -376,32 +384,25 @@ namespace evt
 			}
 			draw_flg = draw_flg && X.D;
 			EV.msg_active = EV.MsgCon.run(fcnt * (float)(((EV.skipping & 2) > 0) ? 5 : (((EV.skipping & 1) > 0) ? 2 : 1)), EV.skipping > 0);
-			if (!EV.active_load && EV.drawLoading(fcnt, EV.MdLoad, EV.MrdLoad))
+			if (!EV.active_load && EV.drawLoading(fcnt, EV.MdLoad))
 			{
 				EV.DC.run(fcnt, false);
 			}
+			else if (no_process)
+			{
+				EV.DC.run(fcnt, false);
+			}
+			else if (EV.curEv != null)
+			{
+				EV.evRun(fcnt);
+			}
 			else
 			{
-				if (EV.active_load)
+				if (EV.nexEv != null)
 				{
-					EV.isLoading(true);
+					EV.evStart();
 				}
-				if (no_process)
-				{
-					EV.DC.run(fcnt, false);
-				}
-				else if (EV.curEv != null)
-				{
-					EV.evRun(fcnt);
-				}
-				else
-				{
-					if (EV.nexEv != null)
-					{
-						EV.evStart();
-					}
-					EV.DC.run(fcnt, EV.nexEv == null);
-				}
+				EV.DC.run(fcnt, EV.nexEv == null);
 			}
 			if (EV.Log != null)
 			{
@@ -692,10 +693,8 @@ namespace evt
 				EV.clearGameValues();
 				EV.Confirmer.deactivate();
 				IN.clearPushDown(true);
-				if (X.DEBUGRELOADMTR)
-				{
-					EV.clearEventContent(null);
-				}
+				bool debugreloadmtr = X.DEBUGRELOADMTR;
+				EV.clearEventContent(null);
 				if (EV.debug != (EV.EVDEBUG)0)
 				{
 					EV.Dbg.evLineRelease();
@@ -792,7 +791,7 @@ namespace evt
 									flag = EV.cacheMaterial(evReader2, false) && flag;
 								}
 							}
-							else if (!EV.listenerCacheRead(ER, cmd, csvReader, ref EV.loading_img))
+							else if (!EV.listenerCacheRead(ER, cmd, csvReader))
 							{
 								BGM.EvtCacheRead(ER, cmd, csvReader);
 							}
@@ -813,7 +812,7 @@ namespace evt
 			{
 				EV.cache_loading = ((num >= 0) ? num : (ER.get_cur_line() + 1));
 			}
-			if (EV.isLoading(false))
+			if (EV.isLoading())
 			{
 				flag = false;
 				if (first && !EV.active_load)
@@ -822,18 +821,6 @@ namespace evt
 				}
 			}
 			return flag;
-		}
-
-		internal static void recheckPersonCacheReadAfter(EvPerson P)
-		{
-			if (EV.ARecheckAfterCacheRead == null)
-			{
-				EV.ARecheckAfterCacheRead = new List<EvPerson>(2);
-			}
-			if (EV.ARecheckAfterCacheRead.IndexOf(P) == -1)
-			{
-				EV.ARecheckAfterCacheRead.Add(P);
-			}
 		}
 
 		private static void evRun(float fcnt0)
@@ -893,7 +880,7 @@ namespace evt
 				}
 				if (EV.state == EV.ST.LOADING)
 				{
-					if (EV.isLoading(false))
+					if (EV.isLoading())
 					{
 						EV.active_load = false;
 						return;
@@ -903,78 +890,18 @@ namespace evt
 				}
 				if (EV.state == EV.ST.MESSAGE)
 				{
-					bool flag2 = !EV.MsgCon.isActive() || EV.msg_skip;
-					bool flag3 = EV.canEventHandle();
-					bool flag4 = true;
-					if (EV.Log != null)
+					if (EV.t_msgf < 0f)
 					{
-						flag4 = EV.Log.allow_msglog;
-						if (EV.Log.runInEvent(EV.MsgCon, EV.MsgCmd))
+						if (!EV.INisKetteiOn() || EV.skipping > 0)
 						{
-							flag3 = false;
-						}
-					}
-					if (EV.MsgCon.isHidingTemporary())
-					{
-						flag2 = false;
-					}
-					if (EV.MsgCon.checkHideVisibilityTemporary(flag4 && flag3, false))
-					{
-						SND.Ui.play(EV.MsgCon.isHidingTemporary() ? "tool_drag_init" : "tool_drag_quit", false);
-						flag2 = (flag3 = false);
-					}
-					if (!flag2)
-					{
-						float num4 = EV.MsgCon.getAppearTime();
-						bool flag5 = EV.MsgCon.isAllCharsShown();
-						if (!flag5 && flag3 && ((num4 > 1f && (EV.skipping != 0 || EV.INisKetteiPD() || (EV.deny_skip && EV.INisCancelPD()))) || (num4 > 22f && (IN.ketteiOn() || IN.isCheckO(0) || (EV.deny_skip && EV.INisCancelOn())))))
-						{
-							EV.MsgCon.showImmediate(false, false);
-							flag5 = true;
-							num4 = 7f;
-							if (EV.MsgDefault != null)
-							{
-								EV.MsgDefault.msgf = 7f;
-							}
-						}
-						EV.MsgCmd.run();
-						if ((num4 > 11f && EV.skipping >= 1) || (num4 > 2f && EV.skipping >= 2))
-						{
-							EV.MsgCon.showImmediate(false, false);
-							flag2 = flag3;
-						}
-						else if (num4 > 8f && (((flag5 ? EV.INisKetteiPD() : EV.INisKettei()) || (EV.deny_skip && EV.INisCancelPD())) && flag3))
-						{
-							if (!flag5)
-							{
-								EV.MsgCon.showImmediate(false, false);
-							}
-							else
-							{
-								flag2 = flag3;
-							}
-						}
-					}
-					if (flag2)
-					{
-						flag2 = (flag3 || !EV.MsgCon.isActive() || EV.msg_skip) && EV.state == EV.ST.MESSAGE;
-					}
-					if (flag2)
-					{
-						SND.Ui.play("talk_progress", false);
-						if (!EV.MsgCon.progressNextParagraph())
-						{
-							EV.msg_hide = true;
-							EV.state = EV.ST.GOING;
-							EV.need_fine_confirmer = true;
-							IN.clearSubmitPushDown(false);
-							num3++;
+							EV.t_msgf += num;
 						}
 					}
 					else
 					{
-						EV.msg_hide = false;
+						EV.t_msgf += num;
 					}
+					EV.progressMsg(ref num3);
 				}
 				else if (EV.state == EV.ST.MSGSKIP)
 				{
@@ -985,18 +912,18 @@ namespace evt
 				}
 				else if (EV.state == EV.ST.SELECT)
 				{
-					bool flag6 = true;
+					bool flag2 = true;
 					if (EV.Log != null)
 					{
 						bool allow_msglog = EV.Log.allow_msglog;
 						if (EV.Log.runInEvent(EV.MsgCon, EV.MsgCmd))
 						{
-							flag6 = false;
+							flag2 = false;
 						}
 					}
-					if (EV.Sel.can_handle != flag6)
+					if (EV.Sel.can_handle != flag2)
 					{
-						EV.Sel.set_handle(flag6);
+						EV.Sel.set_handle(flag2);
 					}
 					if (EV.Sel.result != "")
 					{
@@ -1027,7 +954,7 @@ namespace evt
 					}
 					else
 					{
-						if (EV.isLoading(false))
+						if (EV.isLoading())
 						{
 							EV.state = EV.ST.LOADING;
 							break;
@@ -1075,16 +1002,16 @@ namespace evt
 					EV.skipping &= -2;
 					if ((EV.Log == null || !EV.Log.runInEvent(null, null)) && EV.canEventHandle())
 					{
-						bool flag7 = EV.INisKetteiM3();
-						if (!flag7 && EV.wait_frame > 0f)
+						bool flag3 = EV.INisKetteiM3();
+						if (!flag3 && EV.wait_frame > 0f)
 						{
 							EV.wait_frame -= num * fcnt0;
 							if (EV.wait_frame <= 0f)
 							{
-								flag7 = true;
+								flag3 = true;
 							}
 						}
-						if (flag7)
+						if (flag3)
 						{
 							SND.Ui.play("talk_progress", false);
 							EV.wait_frame = 0f;
@@ -1100,16 +1027,16 @@ namespace evt
 				}
 				else if (EV.state == EV.ST.WAIT_FN)
 				{
-					bool flag8 = EV.waitFn == null || !EV.waitFn.EvtWait(false);
-					if (!flag8 && EV.wait_frame > 0f)
+					bool flag4 = EV.waitFn == null || !EV.waitFn.EvtWait(false);
+					if (!flag4 && EV.wait_frame > 0f)
 					{
 						EV.wait_frame -= num * fcnt0;
 						if (EV.wait_frame <= 0f)
 						{
-							flag8 = true;
+							flag4 = true;
 						}
 					}
-					if (flag8)
+					if (flag4)
 					{
 						EV.wait_frame = 0f;
 						EV.waitFn = null;
@@ -1119,16 +1046,16 @@ namespace evt
 				}
 				else if (EV.state == EV.ST.WAIT_MOVE)
 				{
-					bool flag9 = EV.listenerMoveCheck();
-					if (!flag9 && EV.wait_frame > 0f)
+					bool flag5 = EV.listenerMoveCheck();
+					if (!flag5 && EV.wait_frame > 0f)
 					{
 						EV.wait_frame -= num * fcnt0;
 						if (EV.wait_frame <= 0f)
 						{
-							flag9 = true;
+							flag5 = true;
 						}
 					}
-					if (flag9)
+					if (flag5)
 					{
 						EV.wait_frame = 0f;
 						EV.state = EV.ST.GOING;
@@ -1192,6 +1119,78 @@ namespace evt
 			{
 				EV.Dbg.evLineCanProgress(EV.curEv);
 			}
+		}
+
+		private static bool progressMsg(ref int repeatcnt)
+		{
+			bool flag = !EV.MsgCon.isActive() || EV.msg_skip;
+			bool flag2 = EV.canEventHandle();
+			bool flag3 = true;
+			if (EV.Log != null)
+			{
+				flag3 = EV.Log.allow_msglog;
+				if (EV.Log.runInEvent(EV.MsgCon, EV.MsgCmd))
+				{
+					flag2 = false;
+				}
+			}
+			if (EV.MsgCon.isHidingTemporary())
+			{
+				flag = false;
+			}
+			if (EV.MsgCon.checkHideVisibilityTemporary(flag3 && flag2, false))
+			{
+				SND.Ui.play(EV.MsgCon.isHidingTemporary() ? "tool_drag_init" : "tool_drag_quit", false);
+				flag = (flag2 = false);
+			}
+			if (!flag)
+			{
+				bool flag4 = EV.MsgCon.isAllCharsShown();
+				if (!flag4 && flag2 && ((EV.t_msgf > 1f && (EV.skipping != 0 || EV.INisKetteiPD(1) || (EV.deny_skip && EV.INisCancelPD()))) || (EV.t_msgf > 22f && (IN.ketteiOn() || IN.isCheckO(0) || (EV.deny_skip && EV.INisCancelOn())))))
+				{
+					EV.MsgCon.showImmediate(false, false);
+					flag4 = true;
+					EV.t_msgf = -1f;
+				}
+				EV.MsgCmd.run();
+				if ((EV.t_msgf > 11f && EV.skipping >= 1) || (EV.t_msgf > 2f && EV.skipping >= 2))
+				{
+					EV.MsgCon.showImmediate(false, false);
+					flag = flag2;
+				}
+				else if (EV.t_msgf > 8f && (((flag4 ? EV.INisKetteiPD(8) : EV.INisKettei()) || (EV.deny_skip && EV.INisCancelPD())) && flag2))
+				{
+					if (!flag4)
+					{
+						EV.MsgCon.showImmediate(false, false);
+					}
+					else
+					{
+						flag = flag2;
+					}
+				}
+			}
+			if (flag)
+			{
+				flag = (flag2 || !EV.MsgCon.isActive() || EV.msg_skip) && EV.state == EV.ST.MESSAGE;
+			}
+			if (!flag)
+			{
+				EV.msg_hide = false;
+				return false;
+			}
+			SND.Ui.play("talk_progress", false);
+			if (EV.MsgCon.progressNextParagraph())
+			{
+				EV.t_msgf = 0f;
+				return true;
+			}
+			EV.msg_hide = true;
+			EV.state = EV.ST.GOING;
+			EV.need_fine_confirmer = true;
+			IN.clearSubmitPushDown(false);
+			repeatcnt++;
+			return true;
 		}
 
 		public static bool forceWriteStateToGoing()
@@ -1288,11 +1287,11 @@ namespace evt
 										{
 											if (num2 != 191543696U)
 											{
-												goto IL_0FF2;
+												goto IL_0FF1;
 											}
 											if (!(text == "TUTO_CAP"))
 											{
-												goto IL_0FF2;
+												goto IL_0FF1;
 											}
 											if (EV.TutoBox == null)
 											{
@@ -1302,20 +1301,20 @@ namespace evt
 											if (pic == null || pic.PF == null)
 											{
 												rER.tError("不明なイメージ: " + rER._1);
-												goto IL_120C;
+												goto IL_120B;
 											}
 											EV.TutoBox.AddImage(pic.PF, rER.slice_join(2, " ", ""));
 											EV.TutoBox.remActiveFlag("EVENT");
-											goto IL_120C;
+											goto IL_120B;
 										}
 										else
 										{
 											if (!(text == "SELECTARRAY"))
 											{
-												goto IL_0FF2;
+												goto IL_0FF1;
 											}
 											EV.Sel.addRow(rER._1, rER._2, rER._3, rER.IntE(4, 0) != 0);
-											goto IL_120C;
+											goto IL_120B;
 										}
 									}
 									else if (num2 != 234477756U)
@@ -1324,32 +1323,32 @@ namespace evt
 										{
 											if (num2 != 365949939U)
 											{
-												goto IL_0FF2;
+												goto IL_0FF1;
 											}
 											if (!(text == "START_GDRAW"))
 											{
-												goto IL_0FF2;
+												goto IL_0FF1;
 											}
 											EV.stop_gdraw = false;
-											goto IL_120C;
+											goto IL_120B;
 										}
 										else
 										{
 											if (!(text == "STOP_LOG_RECORD_SELECTION"))
 											{
-												goto IL_0FF2;
+												goto IL_0FF1;
 											}
 											if (EV.Log != null)
 											{
 												EV.Log.record_selection = false;
-												goto IL_120C;
+												goto IL_120B;
 											}
-											goto IL_120C;
+											goto IL_120B;
 										}
 									}
 									else if (!(text == "TUTO_REMOVE_ALL"))
 									{
-										goto IL_0FF2;
+										goto IL_0FF1;
 									}
 								}
 								else if (num2 <= 867112766U)
@@ -1360,37 +1359,37 @@ namespace evt
 										{
 											if (num2 != 867112766U)
 											{
-												goto IL_0FF2;
+												goto IL_0FF1;
 											}
 											if (!(text == "TUTO_REM_ACTIVE_FLAG"))
 											{
-												goto IL_0FF2;
+												goto IL_0FF1;
 											}
 											EV.TutoBox.remActiveFlag("EVENT");
-											goto IL_120C;
+											goto IL_120B;
 										}
 										else
 										{
 											if (!(text == "<BREAK>"))
 											{
-												goto IL_0FF2;
+												goto IL_0FF1;
 											}
 											if ((EV.debug & EV.EVDEBUG.ALLOC_CONSOLE) != (EV.EVDEBUG)0)
 											{
 												EV.Dbg.initBreakPoint(ER);
 												return EV.state;
 											}
-											goto IL_120C;
+											goto IL_120B;
 										}
 									}
 									else
 									{
 										if (!(text == "STOP_GHANDLE"))
 										{
-											goto IL_0FF2;
+											goto IL_0FF1;
 										}
 										EV.handle_game = false;
-										goto IL_120C;
+										goto IL_120B;
 									}
 								}
 								else if (num2 != 901094556U)
@@ -1399,11 +1398,11 @@ namespace evt
 									{
 										if (num2 != 1201320931U)
 										{
-											goto IL_0FF2;
+											goto IL_0FF1;
 										}
 										if (!(text == "ALLOW_EVENTHANDLE"))
 										{
-											goto IL_0FF2;
+											goto IL_0FF1;
 										}
 										EV.MsgCon.setHandle(true);
 										EV.Sel.set_handle(true);
@@ -1411,20 +1410,20 @@ namespace evt
 										if (EV.isConfirmerState())
 										{
 											EV.need_fine_confirmer = true;
-											goto IL_120C;
+											goto IL_120B;
 										}
-										goto IL_120C;
+										goto IL_120B;
 									}
 									else if (!(text == "TUTO_REMOVE"))
 									{
-										goto IL_0FF2;
+										goto IL_0FF1;
 									}
 								}
 								else
 								{
 									if (!(text == "WAIT_MOVE"))
 									{
-										goto IL_0FF2;
+										goto IL_0FF1;
 									}
 									if (EV.ALsn.Count == 0)
 									{
@@ -1443,7 +1442,7 @@ namespace evt
 									return EV.state;
 								}
 								EV.TutoBox.RemText(text == "TUTO_REMOVE_ALL", false);
-								goto IL_120C;
+								goto IL_120B;
 							}
 							else if (num2 <= 1588480151U)
 							{
@@ -1457,20 +1456,20 @@ namespace evt
 											{
 												if (text == "WAIT_LOAD")
 												{
-													if (EV.isLoading(false) || EV.cache_loading > -2)
+													if (EV.isLoading() || EV.cache_loading > -2)
 													{
 														EV.active_load = false;
 														fcnt_main = 1f;
 														return EV.ST.LOADING;
 													}
-													goto IL_120C;
+													goto IL_120B;
 												}
 											}
 										}
 										else if (text == "TUTO_TEMP_FRONT")
 										{
 											IN.setZAbs(EV.TutoBox.getTransform(), -3.04f);
-											goto IL_120C;
+											goto IL_120B;
 										}
 									}
 									else if (text == "DENY_MSGLOG")
@@ -1478,9 +1477,9 @@ namespace evt
 										if (EV.Log != null)
 										{
 											EV.Log.allow_msglog = false;
-											goto IL_120C;
+											goto IL_120B;
 										}
-										goto IL_120C;
+										goto IL_120B;
 									}
 								}
 								else if (num2 != 1473569256U)
@@ -1493,7 +1492,7 @@ namespace evt
 											{
 												EV.MsgCon.hideMsg(rER._B1);
 												EV.msg_hide = false;
-												goto IL_120C;
+												goto IL_120B;
 											}
 										}
 									}
@@ -1502,7 +1501,7 @@ namespace evt
 										if (rER.clength == 1)
 										{
 											EV.alloc_evhandle_key = KEY.SIMKEY._EVHANDLE;
-											goto IL_120C;
+											goto IL_120B;
 										}
 										for (int i = 1; i < rER.clength; i++)
 										{
@@ -1512,13 +1511,13 @@ namespace evt
 												EV.alloc_evhandle_key |= simkey;
 											}
 										}
-										goto IL_120C;
+										goto IL_120B;
 									}
 								}
 								else if (text == "START_GMAIN")
 								{
 									EV.stop_game = false;
-									goto IL_120C;
+									goto IL_120B;
 								}
 							}
 							else if (num2 <= 1729229931U)
@@ -1532,7 +1531,7 @@ namespace evt
 											if (text == "EV_STACK_HOLD")
 											{
 												EV.ev_stack_stop = false;
-												goto IL_120C;
+												goto IL_120B;
 											}
 										}
 									}
@@ -1550,7 +1549,7 @@ namespace evt
 								else if (text == "SELECTARRAY_CLEAR")
 								{
 									EV.Sel.clear();
-									goto IL_120C;
+									goto IL_120B;
 								}
 							}
 							else if (num2 != 1803820898U)
@@ -1562,7 +1561,7 @@ namespace evt
 										if (text == "SELECT_RESULT_TO_LOG")
 										{
 											EV.Sel.addLastSelectionToLog();
-											goto IL_120C;
+											goto IL_120B;
 										}
 									}
 								}
@@ -1571,10 +1570,10 @@ namespace evt
 									if (EV.AStack.Count == 0)
 									{
 										rER.tError("スタックされているイベントがありません");
-										goto IL_120C;
+										goto IL_120B;
 									}
 									ER.VarCon.define(rER._1, EV.AStack[0].name, true);
-									goto IL_120C;
+									goto IL_120B;
 								}
 							}
 							else if (text == "ALLOW_MSGLOG")
@@ -1582,9 +1581,9 @@ namespace evt
 								if (EV.Log != null)
 								{
 									EV.Log.allow_msglog = true;
-									goto IL_120C;
+									goto IL_120B;
 								}
-								goto IL_120C;
+								goto IL_120B;
 							}
 						}
 						else if (num2 <= 2861077682U)
@@ -1601,7 +1600,7 @@ namespace evt
 											{
 												EV.deny_skip = false;
 												EV.Confirmer.default_content = "<key cancel/>/<key submit/>";
-												goto IL_120C;
+												goto IL_120B;
 											}
 										}
 									}
@@ -1623,10 +1622,10 @@ namespace evt
 												if (rER._1 == ".")
 												{
 													EV.Sel.considerRandomTalkFocus(true);
-													goto IL_120C;
+													goto IL_120B;
 												}
 												EV.Sel.initRandomTalkFocus(rER._1);
-												goto IL_120C;
+												goto IL_120B;
 											}
 										}
 									}
@@ -1639,9 +1638,9 @@ namespace evt
 										if (EV.isConfirmerState())
 										{
 											EV.need_fine_confirmer = true;
-											goto IL_120C;
+											goto IL_120B;
 										}
-										goto IL_120C;
+										goto IL_120B;
 									}
 								}
 								else if (text == "MSG_HOLD")
@@ -1656,7 +1655,7 @@ namespace evt
 										EV.MsgCon.hold();
 									}
 									EV.need_fine_confirmer = true;
-									goto IL_120C;
+									goto IL_120B;
 								}
 							}
 							else if (num2 <= 2590772403U)
@@ -1670,7 +1669,7 @@ namespace evt
 											if (text == "START_GHANDLE")
 											{
 												EV.handle_game = true;
-												goto IL_120C;
+												goto IL_120B;
 											}
 										}
 									}
@@ -1694,7 +1693,7 @@ namespace evt
 										string _ = rER._3;
 										EV.TutoBox.AddText(text2, num4, _);
 										EV.TutoBox.remActiveFlag("EVENT");
-										goto IL_120C;
+										goto IL_120B;
 									}
 								}
 								else if (text == "WAIT")
@@ -1720,14 +1719,14 @@ namespace evt
 													EV.alloc_evhandle_key &= ~simkey2;
 												}
 											}
-											goto IL_120C;
+											goto IL_120B;
 										}
 									}
 								}
 								else if (text == "SELECT_POS")
 								{
 									EV.Sel.setPos(rER._1);
-									goto IL_120C;
+									goto IL_120B;
 								}
 							}
 							else if (text == "SELECT_FOCUS")
@@ -1744,9 +1743,9 @@ namespace evt
 								if (rER._B2)
 								{
 									EV.Sel.setCheckMark(num5);
-									goto IL_120C;
+									goto IL_120B;
 								}
-								goto IL_120C;
+								goto IL_120B;
 							}
 						}
 						else if (num2 <= 3391144223U)
@@ -1762,7 +1761,7 @@ namespace evt
 											if (text == "STOP_GMAIN")
 											{
 												EV.stop_game = true;
-												goto IL_120C;
+												goto IL_120B;
 											}
 										}
 									}
@@ -1807,9 +1806,9 @@ namespace evt
 									if (EV.Log != null)
 									{
 										EV.Log.record_selection = true;
-										goto IL_120C;
+										goto IL_120B;
 									}
-									goto IL_120C;
+									goto IL_120B;
 								}
 							}
 							else if (num2 != 3126320842U)
@@ -1823,9 +1822,9 @@ namespace evt
 											if (EV.Log != null)
 											{
 												EV.Log.ExplodeBuffer();
-												goto IL_120C;
+												goto IL_120B;
 											}
-											goto IL_120C;
+											goto IL_120B;
 										}
 									}
 								}
@@ -1838,16 +1837,16 @@ namespace evt
 									if (rER.clength == 1)
 									{
 										EV.TutoBox.setPositionDefault();
-										goto IL_120C;
+										goto IL_120B;
 									}
 									EV.TutoBox.setPosition(rER._1U, rER._2U);
-									goto IL_120C;
+									goto IL_120B;
 								}
 							}
 							else if (text == "EV_STACK_STOP")
 							{
 								EV.ev_stack_stop = true;
-								goto IL_120C;
+								goto IL_120B;
 							}
 						}
 						else if (num2 <= 3952809996U)
@@ -1882,7 +1881,7 @@ namespace evt
 								EV.Confirmer.default_content = "<key submit/>";
 								EV.skipping = 0;
 								fcnt_main = 1f;
-								goto IL_120C;
+								goto IL_120B;
 							}
 						}
 						else if (num2 != 3964561753U)
@@ -1909,19 +1908,19 @@ namespace evt
 								if (num7 >= 0)
 								{
 									EV.AStack.RemoveRange(num7 + 1, EV.AStack.Count - (num7 + 1));
-									goto IL_120C;
+									goto IL_120B;
 								}
 								EV.AStack.RemoveRange(0, EV.AStack.Count);
-								goto IL_120C;
+								goto IL_120B;
 							}
 						}
 						else if (text == "STOP_GDRAW")
 						{
 							EV.stop_gdraw = true;
-							goto IL_120C;
+							goto IL_120B;
 						}
 					}
-					IL_0FF2:
+					IL_0FF1:
 					if (GF.readEvLineGf(ER, rER, EV.skipping))
 					{
 						return EV.state;
@@ -1976,7 +1975,7 @@ namespace evt
 					}
 				}
 			}
-			IL_120C:
+			IL_120B:
 			return EV.state;
 		}
 
@@ -2145,18 +2144,18 @@ namespace evt
 					return;
 				}
 				EV.t_load = (float)(value ? (-1000) : 0);
-				if (value)
+				if (value && EV.MrdLoad != null)
 				{
-					EV.MrdLoad.enabled = false;
+					EV.MrdLoad.gameObject.SetActive(false);
 				}
 			}
 		}
 
-		public static bool drawLoading(float fcnt, MeshDrawer _Md, MeshRenderer Mrd)
+		private static bool drawLoading(float fcnt, MeshDrawer _Md)
 		{
 			float num = 0f;
 			bool flag = false;
-			if (EV.isLoading(true))
+			if (EV.isLoading())
 			{
 				if (EV.t_load == -1000f)
 				{
@@ -2172,35 +2171,37 @@ namespace evt
 			}
 			else
 			{
-				if (EV.t_load == 0f)
+				if (EV.t_load == 0f || EV.t_load == -1f || EV.t_load == -1000f)
 				{
 					return false;
 				}
-				if (EV.t_load > 0f)
+				if (EV.t_load >= 0f || EV.t_load < -40f)
 				{
 					EV.t_load = -40f;
 				}
 				if (EV.t_load <= -1f)
 				{
-					EV.t_load += fcnt;
-					num = -EV.t_load / 40f;
+					EV.t_load = X.Mn(EV.t_load + fcnt, -1f);
+					num = X.ZLINE(-EV.t_load - 1f, 39f);
 				}
 			}
 			if (num != 0f)
 			{
 				if (X.D)
 				{
-					if (!EV.MrdLoad.enabled)
+					if (!EV.MrdLoad.gameObject.activeSelf)
 					{
-						EV.MrdLoad.enabled = true;
+						EV.MrdLoad.gameObject.SetActive(true);
 					}
 					int num2 = 70 / 2;
+					_Md.clear(false, false);
 					EV.drawLoadingCircleTo(_Md, num, (float)(EV.pw / 2 - num2 - 40), (float)(-(float)EV.ph / 2 + num2 + 40));
+					_Md.updateForMeshRenderer(false);
 				}
 			}
-			else if (EV.MrdLoad.enabled)
+			else if (EV.MrdLoad.gameObject.activeSelf)
 			{
-				EV.MrdLoad.enabled = false;
+				EV.MrdLoad.gameObject.SetActive(false);
 			}
 			return flag;
 		}
@@ -2365,7 +2366,7 @@ namespace evt
 			return false;
 		}
 
-		public static bool listenerCacheRead(EvReader ER, string cmd, CsvReader rER, ref bool loading_img)
+		public static bool listenerCacheRead(EvReader ER, string cmd, CsvReader rER)
 		{
 			string cmd2 = rER.cmd;
 			if (cmd2 != null && cmd2 == "SELECT")
@@ -2393,7 +2394,7 @@ namespace evt
 				{
 					if (num2 >= 2)
 					{
-						loading_img = true;
+						EV.initLoadTicket();
 					}
 					return true;
 				}
@@ -2455,35 +2456,24 @@ namespace evt
 		{
 			if (_name == null)
 			{
-				string[] array = null;
-				foreach (KeyValuePair<string, string> keyValuePair in EV.Oevt_content)
+				using (BList<string> blist = ListBuffer<string>.Pop(0))
 				{
-					if (keyValuePair.Key.IndexOf("%") != 0)
+					foreach (KeyValuePair<string, string> keyValuePair in EV.Oevt_content)
 					{
-						if (array == null)
+						if (keyValuePair.Key.IndexOf("%") != 0)
 						{
-							array = new string[] { keyValuePair.Key };
-						}
-						else
-						{
-							X.push<string>(ref array, keyValuePair.Key, -1);
+							blist.Add(keyValuePair.Key);
 						}
 					}
-				}
-				if (array != null)
-				{
-					int num = array.Length;
-					for (int i = 0; i < num; i++)
+					int count = blist.Count;
+					for (int i = 0; i < count; i++)
 					{
-						EV.clearEventContent(array[i]);
+						EV.clearEventContent(blist[i]);
 					}
 					return;
 				}
 			}
-			else
-			{
-				EV.Oevt_content.Remove(_name);
-			}
+			EV.Oevt_content.Remove(_name);
 		}
 
 		public static void createListenerTxEval(object EvInstance)
@@ -2512,22 +2502,7 @@ namespace evt
 				EvPerson.EvPxlsLoader evPxlsLoader = EV.APxls[i];
 				if (!evPxlsLoader.is_static)
 				{
-					if (!evPxlsLoader.is_person)
-					{
-						evPxlsLoader.releasePxlImage();
-					}
-					else
-					{
-						EvPerson person = EvPerson.getPerson(evPxlsLoader.person_key, null);
-						if (person == null)
-						{
-							evPxlsLoader.releasePxlImage();
-						}
-						else
-						{
-							person.releaseLoadedExternalTexture(null);
-						}
-					}
+					evPxlsLoader.releasePxlImage();
 				}
 			}
 			BGM.flushEventLoadedTiming();
@@ -2557,6 +2532,25 @@ namespace evt
 				}
 			}
 			return null;
+		}
+
+		public static void initLoadTicket(string name, string name2, LoadTicketManager.FnLoadProgress FD_Progress, object Target = null, int priority = 0)
+		{
+			EV.initLoadTicket();
+			LoadTicketManager.AddTicket(name, name2, FD_Progress, Target, priority);
+		}
+
+		private static void initLoadTicket()
+		{
+			if (!EV.ticket_loading)
+			{
+				EV.ticket_loading = true;
+				LoadTicketManager.AddTicket("LOADEV", "", delegate(LoadTicketManager.LoadTicket Tk)
+				{
+					EV.ticket_loading = false;
+					return false;
+				}, null, 255);
+			}
 		}
 
 		public static bool isConfirmerState()
@@ -2594,13 +2588,13 @@ namespace evt
 			Confirmer.BorderCol(MTRX.ColWhite);
 		}
 
-		private static bool INisKetteiPD()
+		private static bool INisKetteiPD(int alloc_pd = 1)
 		{
 			if (EV.debug != (EV.EVDEBUG)0 && EV.Dbg.isELActive())
 			{
-				return IN.isSubmitPD(1) || IN.isCheckPD(1) || EV.Dbg.isELKettei();
+				return IN.isSubmitPD(alloc_pd) || IN.isCheckPD(alloc_pd) || EV.Dbg.isELKettei();
 			}
-			return ((EV.alloc_evhandle_key & KEY.SIMKEY.SUBMIT) != (KEY.SIMKEY)0 && IN.ketteiPD()) || ((EV.alloc_evhandle_key & KEY.SIMKEY.CHECK) != (KEY.SIMKEY)0 && IN.isCheckPD(1));
+			return ((EV.alloc_evhandle_key & KEY.SIMKEY.SUBMIT) != (KEY.SIMKEY)0 && IN.ketteiPD(alloc_pd)) || ((EV.alloc_evhandle_key & KEY.SIMKEY.CHECK) != (KEY.SIMKEY)0 && IN.isCheckPD(alloc_pd));
 		}
 
 		public static bool INisKettei()
@@ -2662,32 +2656,37 @@ namespace evt
 		public static bool preLoadExternalImages()
 		{
 			int num = EV.APxls.Length;
-			bool flag = false;
 			for (int i = 0; i < num; i++)
 			{
 				EvPerson.EvPxlsLoader evPxlsLoader = EV.APxls[i];
-				if (!evPxlsLoader.is_static)
-				{
-					evPxlsLoader.preparePxlChar(true, false, null);
-				}
-				if (evPxlsLoader.preparePxlImage(false))
-				{
-					flag = (EV.loading_img = true);
-				}
+				evPxlsLoader.setStaticFlagForDebugger();
+				evPxlsLoader.preparePxlChar(true, true);
 			}
-			return flag;
+			return EV.ticket_loading;
 		}
 
 		public static bool preLoadExternalImagesAfter()
 		{
-			foreach (KeyValuePair<string, EvPerson> keyValuePair in EvPerson.getPersonDictionary())
+			return false;
+		}
+
+		public static void addExternalPxlsAfter(string person_key, PxlCharacter Pc)
+		{
+			int num = EV.APxls.Length;
+			EvPerson.EvPxlsLoader evPxlsLoader = null;
+			for (int i = 0; i < num; i++)
 			{
-				if (keyValuePair.Value.cacheGraphics(false))
+				if (EV.APxls[i].Pc == Pc)
 				{
-					return true;
+					evPxlsLoader = (EV.APxls[i] = new EvPerson.EvPxlsLoader(person_key, Pc));
+					break;
 				}
 			}
-			return false;
+			if (evPxlsLoader == null)
+			{
+				X.push<EvPerson.EvPxlsLoader>(ref EV.APxls, evPxlsLoader = new EvPerson.EvPxlsLoader(person_key, Pc), -1);
+			}
+			evPxlsLoader.preparePxlChar(true, true);
 		}
 
 		public static EvReader getStacked(string name)
@@ -2718,45 +2717,9 @@ namespace evt
 			return EV.DC.getTalkerDrawerList(out max);
 		}
 
-		public static bool isLoading(bool _check = false)
+		public static bool isLoading()
 		{
-			if (!_check)
-			{
-				return EV.loading_img;
-			}
-			if (Caching.ready)
-			{
-				EV.loading_img = false;
-				if (EV.ARecheckAfterCacheRead != null)
-				{
-					for (int i = EV.ARecheckAfterCacheRead.Count - 1; i >= 0; i--)
-					{
-						if (EV.ARecheckAfterCacheRead[i].cacheGraphics(true))
-						{
-							EV.loading_img = true;
-							break;
-						}
-					}
-					if (!EV.loading_img)
-					{
-						EV.ARecheckAfterCacheRead = null;
-					}
-				}
-				if (!EV.loading_img)
-				{
-					int num = EV.APxls.Length;
-					for (int j = 0; j < num; j++)
-					{
-						EvPerson.EvPxlsLoader evPxlsLoader = EV.APxls[j];
-						if (evPxlsLoader.Pc != null && evPxlsLoader.preparePxlImage(false))
-						{
-							EV.loading_img = true;
-							break;
-						}
-					}
-				}
-			}
-			return EV.loading_img;
+			return EV.ticket_loading;
 		}
 
 		public static bool canProgress()
@@ -2786,7 +2749,7 @@ namespace evt
 
 		public static bool isStoppingGame()
 		{
-			return EV.isLoading(false) || EV.stop_game || (EV.nexEv != null && EV.curEv == null);
+			return EV.isLoading() || EV.stop_game || (EV.nexEv != null && EV.curEv == null);
 		}
 
 		public static bool isStoppingGameDraw()
@@ -2796,12 +2759,12 @@ namespace evt
 
 		public static bool isStoppingEventHandle()
 		{
-			return (EV.alloc_evhandle_key & KEY.SIMKEY._EVHANDLE) == (KEY.SIMKEY)0 || EV.isLoading(false) || (EV.nexEv != null && EV.curEv == null);
+			return (EV.alloc_evhandle_key & KEY.SIMKEY._EVHANDLE) == (KEY.SIMKEY)0 || EV.isLoading() || (EV.nexEv != null && EV.curEv == null);
 		}
 
 		public static bool isStoppingGameHandle()
 		{
-			return (EV.debug != (EV.EVDEBUG)0 && EV.Dbg != null && EV.Dbg.isActive()) || EV.isLoading(false) || !EV.handle_game || EV.stop_game || (EV.nexEv != null && EV.curEv == null);
+			return (EV.debug != (EV.EVDEBUG)0 && EV.Dbg != null && EV.Dbg.isActive()) || EV.isLoading() || !EV.handle_game || EV.stop_game || (EV.nexEv != null && EV.curEv == null);
 		}
 
 		public static EvDebugger getDebugger()
@@ -2837,7 +2800,7 @@ namespace evt
 
 		public static bool isActive(bool no_consider_loading = false)
 		{
-			return (!no_consider_loading && EV.isLoading(false)) || EV.nexEv != null || EV.curEv != null;
+			return (!no_consider_loading && EV.isLoading()) || EV.nexEv != null || EV.curEv != null;
 		}
 
 		public static bool isActive(string key, bool check_only_front = false)
@@ -2861,6 +2824,11 @@ namespace evt
 		public static bool isWaiting(IEventWaitListener WFn)
 		{
 			return EV.state == EV.ST.WAIT_FN && EV.waitFn == WFn;
+		}
+
+		public static bool isSpecialWaitingState()
+		{
+			return EV.state == EV.ST.WAIT_FN;
 		}
 
 		public static bool canEventHandle()
@@ -2952,7 +2920,7 @@ namespace evt
 
 		private static bool handle_game = true;
 
-		private static EV.ST state = EV.ST.NONE;
+		private static EV.ST state_ = EV.ST.NONE;
 
 		private static float wait_frame = 0f;
 
@@ -2972,11 +2940,7 @@ namespace evt
 
 		private static ClsPool<CsvReader> PoolERCache;
 
-		private static EvPerson.EvPxlsLoader[] APxlsLoaderFirst;
-
 		private static EvPerson.EvPxlsLoader[] APxls;
-
-		private static List<EvPerson> ARecheckAfterCacheRead;
 
 		private static MSG MsgDefault;
 
@@ -3020,8 +2984,6 @@ namespace evt
 
 		private static float t_load = -1f;
 
-		internal static bool loading_img = false;
-
 		private static int cache_loading = -2;
 
 		private static bool no_reload = false;
@@ -3032,13 +2994,15 @@ namespace evt
 
 		private static bool msg_skip = false;
 
-		private static Object OCharAlias = null;
+		private static global::UnityEngine.Object OCharAlias = null;
 
 		public static EV Instance;
 
 		private static MultiMeshRenderer MMRD;
 
 		private static MeshDrawer MdLoad;
+
+		private static ValotileRenderer ValotLoad;
 
 		private static MeshRenderer MrdLoad;
 
@@ -3047,6 +3011,10 @@ namespace evt
 		public static bool msg_active;
 
 		public static bool need_fine_confirmer = false;
+
+		private static float t_msgf;
+
+		public static bool ticket_loading;
 
 		private static CsvVariableContainer VarCon;
 

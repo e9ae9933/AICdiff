@@ -109,6 +109,11 @@ namespace nel
 				}
 			}
 			base.initAction(normal_map);
+			if (!this.Meta.GetB("pre_on", !this.auto_assign_to_NM))
+			{
+				this.deactivate();
+				base.quitEnter(null);
+			}
 		}
 
 		public override void initEnter(M2Mover Mv)
@@ -222,6 +227,8 @@ namespace nel
 		private string aim;
 
 		private string jump_key;
+
+		private bool effect_active = true;
 
 		private M2EventItem Ev;
 

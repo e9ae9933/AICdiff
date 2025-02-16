@@ -43,7 +43,7 @@ namespace m2d
 				{
 					float num3 = this.draw_margin + this.AssignMover.sizex;
 					float num4 = this.draw_margin + this.AssignMover.sizey;
-					this.camera_in = Mp.M2D.Cam.isCoveringMp(num - num3, num2 - num4, num + num3, num2 + num4, 0f);
+					this.camera_in = Mp.isinCamera(num - num3, num2 - num4, num3 * 2f, num4 * 2f, 0f);
 				}
 				else
 				{
@@ -105,7 +105,14 @@ namespace m2d
 						DMtr.SetPass(0);
 					}
 					GL.LoadProjectionMatrix(JCon.CameraProjectionTransformed * this.Matrix);
-					BLIT.RenderToGLImmediate001(meshDrawer, draw_triangle_count, -1, false, true, null);
+					if (flag2)
+					{
+						BLIT.RenderToGLImmediate001(meshDrawer, meshDrawer.getVertexArray(), meshDrawer.getUvArray(), null, draw_triangle_count, -1, false, true, null);
+					}
+					else
+					{
+						BLIT.RenderToGLImmediate001(meshDrawer, draw_triangle_count, -1, false, true, null);
+					}
 				}
 			}
 			return flag;
@@ -147,6 +154,6 @@ namespace m2d
 
 		public bool camera_in;
 
-		public delegate bool FnPrepareMd(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool paste_mesh);
+		public delegate bool FnPrepareMd(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite);
 	}
 }

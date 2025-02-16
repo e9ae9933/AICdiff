@@ -2,13 +2,14 @@
 
 namespace m2d
 {
+	[Flags]
 	public enum HITTYPE
 	{
-		NONE,
-		PR,
-		EN,
-		PR_AND_EN,
-		WALL,
+		NONE = 0,
+		PR = 1,
+		EN = 2,
+		PR_AND_EN = 3,
+		WALL = 4,
 		OTHER = 8,
 		BERSERK_MYSELF = 16,
 		REFLECTED = 32,
@@ -32,6 +33,7 @@ namespace m2d
 		REFLECT_BROKEN = 4194304,
 		REFLECT_KILLED = 8388608,
 		TARGET_CHECKER = 16777216,
+		ONLY_FIRST_BREAKER = 33554432,
 		_TEMPORARY = 237312,
 		_TEMP_REFLECT = 12582944
 	}

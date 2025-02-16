@@ -128,15 +128,17 @@ namespace nel
 			string text2;
 			this.StProduct = Mng.CreateItemStorage(out text, out text2);
 			this.StProductFirst = new ItemStorage(this.StProduct.key, 99);
-			this.StProductFirst.readBinaryFrom(this.StProduct.writeBinaryTo(new ByteArray(0U)).SeekSet(), true, true, false, 9, false);
+			ByteArray byteArray = this.StProduct.writeBinaryTo(new ByteArray(0U));
+			byteArray.SeekSet();
+			this.StProductFirst.readBinaryFrom(byteArray, true, true, false, 9, false);
 			ItemStorage[] array;
 			if (_AInventory != null && _AInventory.Length != 0)
 			{
-				array = global::XX.X.concat<ItemStorage>(_AInventory, null, -1, -1);
+				array = X.concat<ItemStorage>(_AInventory, null, -1, -1);
 			}
 			else if (this.M2D != null)
 			{
-				array = global::XX.X.concat<ItemStorage>(this.M2D.IMNG.getInventoryArray(), null, -1, -1);
+				array = X.concat<ItemStorage>(this.M2D.IMNG.getInventoryArray(), null, -1, -1);
 			}
 			else
 			{
@@ -161,7 +163,7 @@ namespace nel
 			{
 				for (int j = 0; j < num; j++)
 				{
-					if ((num3 & (1 << j)) == 0 && array[j].isAddable(keyValuePair.Key))
+					if ((num3 & (1 << j)) == 0 && array[j].isAddable(keyValuePair.Key, false))
 					{
 						num3 |= 1 << j;
 					}
@@ -175,7 +177,7 @@ namespace nel
 			{
 				if ((num3 & (1 << k)) == 0)
 				{
-					global::XX.X.spliceEmpty<ItemStorage>(array, k, 1);
+					X.spliceEmpty<ItemStorage>(array, k, 1);
 					num--;
 				}
 			}
@@ -183,7 +185,7 @@ namespace nel
 			{
 				if (_AInventory != null && _AInventory.Length != 0)
 				{
-					array = global::XX.X.concat<ItemStorage>(_AInventory, null, -1, -1);
+					array = X.concat<ItemStorage>(_AInventory, null, -1, -1);
 				}
 				else if (this.M2D != null)
 				{
@@ -214,14 +216,16 @@ namespace nel
 					text3 = "house_inventory";
 					num4 = 1;
 				}
-				this.icon_max = global::XX.X.Mx(this.icon_max, num4 + 1);
+				this.icon_max = X.Mx(this.icon_max, num4 + 1);
 				list.Add(new UiItemStore.StTab(key, array[l], text3, num4));
 			}
 			this.AStInventory = list.ToArray();
 			this.AStFirstData = new ByteArray[this.AStInventory.Length];
 			for (int m = this.AStInventory.Length - 1; m >= 0; m--)
 			{
-				this.AStFirstData[m] = this.AStInventory[m].St.writeBinaryTo(new ByteArray(0U)).SeekSet();
+				ByteArray byteArray2 = this.AStInventory[m].St.writeBinaryTo(new ByteArray(0U));
+				byteArray2.SeekSet();
+				this.AStFirstData[m] = byteArray2;
 			}
 			this.ItemMng = new UiItemManageBoxSlider((this.M2D != null) ? this.M2D.IMNG : null, null)
 			{
@@ -267,13 +271,13 @@ namespace nel
 					}
 					fillImageBlock.TxCol = C32.d2c((num5 > 1f == (n == 0)) ? 4281403657U : 4279831637U);
 					fillImageBlock.Col = C32.d2c((num5 > 1f == (n == 0)) ? 4293296550U : 4287998963U);
-					fillImageBlock.widthPixel = (float)(global::XX.X.ENG_MODE ? 185 : 200);
-					fillImageBlock.heightPixel = (float)(global::XX.X.ENG_MODE ? 60 : 30);
+					fillImageBlock.widthPixel = (float)(X.ENG_MODE ? 185 : 200);
+					fillImageBlock.heightPixel = (float)(X.ENG_MODE ? 60 : 30);
 					fillImageBlock.size = 14f;
 					fillImageBlock.alignx = ALIGN.CENTER;
 					fillImageBlock.aligny = ALIGNY.MIDDLE;
 					fillImageBlock.FnDrawFIB = new FillImageBlock.FnDrawInFIB(this.FnDrawServiceFib);
-					fillImageBlock.StartFb(TX.GetA(text4, (global::XX.X.ENG_MODE ? "\n" : "") + ((int)global::XX.X.Abs(num5 * 100f - 100f)).ToString()), null, true);
+					fillImageBlock.StartFb(TX.GetA(text4, (X.ENG_MODE ? "\n" : "") + ((int)X.Abs(num5 * 100f - 100f)).ToString()), null, true);
 					IN.setZ(fillImageBlock.transform, -0.1f);
 					fillImageBlock.gameObject.SetActive(false);
 				}
@@ -318,6 +322,10 @@ namespace nel
 			{
 				if (state - UiItemStore.STATE.BUY <= 2)
 				{
+					if (this.RTabBar != null)
+					{
+						this.RTabBar.LrInput(false);
+					}
 					if (this.stt == UiItemStore.STATE.TOP)
 					{
 						this.BxR.Focusable(false, false, null);
@@ -378,19 +386,19 @@ namespace nel
 				BtnContainerRunner btnContainerRunner = this.BxC.Get("cmd_top", false) as BtnContainerRunner;
 				if (state == UiItemStore.STATE._NOUSE || state == UiItemStore.STATE.BUY)
 				{
-					btnContainerRunner.Get("&&cmd_buy").Select(false);
+					btnContainerRunner.Get("&&cmd_buy").Select(true);
 				}
 				else if (state == UiItemStore.STATE.SELL)
 				{
-					btnContainerRunner.Get("&&cmd_sell").Select(false);
+					btnContainerRunner.Get("&&cmd_sell").Select(true);
 				}
 				else if (state == UiItemStore.STATE.CHECK_CART)
 				{
-					btnContainerRunner.Get("&&cmd_cart").Select(false);
+					btnContainerRunner.Get("&&cmd_cart").Select(true);
 				}
 				else
 				{
-					btnContainerRunner.Get("&&cmd_checkout").Select(false);
+					btnContainerRunner.Get("&&cmd_checkout").Select(true);
 				}
 				btnContainerRunner.Get("&&cmd_cart").SetLocked(this.isCartEmpty(), true, false);
 				break;
@@ -598,11 +606,11 @@ namespace nel
 			if (num < 0)
 			{
 				aBtn.SetLocked(true, true, false);
-				btnContainer.Get("&&Cancel").Select(false);
+				btnContainer.Get("&&Cancel").Select(true);
 				return;
 			}
 			(aBtn.get_Skin() as ButtonSkinNelUi).hilighted = true;
-			aBtn.Select(false);
+			aBtn.Select(true);
 		}
 
 		private void initItemWindow()
@@ -649,7 +657,7 @@ namespace nel
 					num2++;
 				}
 				this.st_index = num % this.AStCur.Length;
-				this.RTabBar = ColumnRow.CreateT<aBtnNel>(this.BxR, "ctg_tab", "row_tab", this.st_index, this.getItemTabKeys(), new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnItemTabChanged), use_w, 0f, false, false).LrInput(false);
+				this.RTabBar = ColumnRow.CreateT<aBtnNel>(this.BxR, "ctg_tab", "row_tab", this.st_index, this.getItemTabKeys(), new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnItemTabChanged), use_w, 0f, false, false);
 			}
 			else
 			{
@@ -708,7 +716,7 @@ namespace nel
 			bool flag = base.runIRD(fcnt);
 			if (!flag && this.stt == UiItemStore.STATE._NOUSE)
 			{
-				Object.Destroy(base.gameObject);
+				global::UnityEngine.Object.Destroy(base.gameObject);
 				this.destructed = true;
 			}
 			else if (this.can_progress_main_store)
@@ -805,9 +813,9 @@ namespace nel
 								this.need_recheck_list_count_whole = false;
 							}
 						}
-						if (this.FbPrice == null)
+						if (this.RTabBar != null)
 						{
-							this.itemTabLRrun();
+							this.RTabBar.LrInput(!this.ItemMng.isUsingState());
 						}
 						if (!this.ItemMng.runEditItem())
 						{
@@ -870,7 +878,7 @@ namespace nel
 					this.fineFocusWindow();
 					if (this.Rbk_PreSelected != null)
 					{
-						this.Rbk_PreSelected.Select(false);
+						this.Rbk_PreSelected.Select(true);
 					}
 					IN.clearSubmitPushDown(true);
 				}
@@ -892,19 +900,6 @@ namespace nel
 			{
 				return this.RecipeBook == null || !this.RecipeBook.isActive();
 			}
-		}
-
-		private bool itemTabLRrun()
-		{
-			if (this.AStCur == null || this.AStCur.Length <= 1 || this.RTabBar == null || IN.isUiSortPD() || IN.isUiAddPD() || IN.isUiRemPD())
-			{
-				return true;
-			}
-			if (this.RTabBar.runLRInput(-2) && this.stt == UiItemStore.STATE.CHECK_CART)
-			{
-				this.fineUnderKD();
-			}
-			return true;
 		}
 
 		private bool fnItemTabChanged(BtnContainerRadio<aBtn> _B, int pre_value, int cur_value)
@@ -961,14 +956,14 @@ namespace nel
 				}
 				else
 				{
-					ItemStorage.ObtainInfo[] array = global::XX.X.Get<NelItem, ItemStorage.ObtainInfo[]>(this.OFirstData, Itm);
+					ItemStorage.ObtainInfo[] array = X.Get<NelItem, ItemStorage.ObtainInfo[]>(this.OFirstData, Itm);
 					num2 = -1000;
 					if (array != null)
 					{
 						int num3 = this.AStInventory.Length;
 						for (int i = 0; i < num3; i++)
 						{
-							if (this.AStInventory[i].St.isAddable(Itm))
+							if (this.AStInventory[i].St.isAddable(Itm, false))
 							{
 								num2 = array[i].getCount(grade);
 								break;
@@ -1013,7 +1008,7 @@ namespace nel
 			{
 				if (this.buying_mode)
 				{
-					def_string = def_string + " <font size=\"10\">/" + global::XX.X.spr0(this.StProductFirst.getCount(Itm, grade), 2, ' ') + "</font>";
+					def_string = def_string + " <font size=\"10\">/" + X.spr0(this.StProductFirst.getCount(Itm, grade), 2, ' ') + "</font>";
 				}
 			}
 			else if (desc_row == UiItemManageBox.DESC_ROW.TOPRIGHT_COUNTER && this.buying_mode)
@@ -1025,40 +1020,70 @@ namespace nel
 
 		private string getInventoryCountString(NelItem Itm, int grade)
 		{
-			int[] array = new int[this.icon_max];
-			string[] array2 = new string[this.icon_max];
-			int num = this.AStInventory.Length;
-			for (int i = 0; i < num; i++)
+			string text;
+			using (STB stb = TX.PopBld(null, 0))
 			{
-				UiItemStore.StTab stTab = this.AStInventory[i];
-				array[stTab.icon_id] += stTab.St.getCount(Itm, grade);
-				if (array2[stTab.icon_id] == null)
+				this.getInventoryCountString(stb, Itm, grade);
+				text = stb.ToString();
+			}
+			return text;
+		}
+
+		private STB getInventoryCountString(STB Stb, NelItem Itm, int grade)
+		{
+			using (BList<int> blist = ListBuffer<int>.Pop(this.icon_max))
+			{
+				using (BList<string> blist2 = ListBuffer<string>.Pop(this.icon_max))
 				{
-					array2[stTab.icon_id] = stTab.icon;
+					while (blist.Count < this.icon_max)
+					{
+						blist.Add(0);
+						blist2.Add(null);
+					}
+					int num = this.AStInventory.Length;
+					for (int i = 0; i < num; i++)
+					{
+						UiItemStore.StTab stTab = this.AStInventory[i];
+						BList<int> blist3 = blist;
+						int icon_id = stTab.icon_id;
+						blist3[icon_id] += stTab.St.getCount(Itm, grade);
+						if (blist2[stTab.icon_id] == null)
+						{
+							blist2[stTab.icon_id] = stTab.icon;
+						}
+					}
+					ItemStorage.ObtainInfo[] array = X.Get<NelItem, ItemStorage.ObtainInfo[]>(this.OFirstData, Itm);
+					using (STB stb = TX.PopBld(null, 0))
+					{
+						for (int j = 0; j < this.icon_max; j++)
+						{
+							int num2 = blist[j];
+							stb.Add("<img mesh=\"", blist2[j], "\" width=\"22\" height=\"24\" />x");
+							int length = stb.Length;
+							stb.Add(num2);
+							if (array != null)
+							{
+								ItemStorage.ObtainInfo obtainInfo = array[j];
+								int num3 = ((grade < 0) ? obtainInfo.total : obtainInfo.getCount(grade));
+								if (num2 > num3)
+								{
+									stb.Insert(length, "<font color=\"ff:#1335DF\">").Add("</font>");
+								}
+								else if (num2 < num3)
+								{
+									stb.Insert(length, "<font color=\"ff:#DE148D\">").Add("</font>");
+								}
+							}
+							if (j > 0)
+							{
+								stb.Add("/");
+							}
+						}
+						Stb.AddTxA("inventory_count", false).TxRpl(stb);
+					}
 				}
 			}
-			string[] array3 = new string[this.icon_max];
-			ItemStorage.ObtainInfo[] array4 = global::XX.X.Get<NelItem, ItemStorage.ObtainInfo[]>(this.OFirstData, Itm);
-			for (int j = 0; j < this.icon_max; j++)
-			{
-				int num2 = array[j];
-				string text = num2.ToString();
-				if (array4 != null)
-				{
-					ItemStorage.ObtainInfo obtainInfo = array4[j];
-					int num3 = ((grade < 0) ? obtainInfo.total : obtainInfo.getCount(grade));
-					if (num2 > num3)
-					{
-						text = "<font color=\"ff:#1335DF\">" + text + "</font>";
-					}
-					else if (num2 < num3)
-					{
-						text = "<font color=\"ff:#DE148D\">" + text + "</font>";
-					}
-				}
-				array3[j] = "<img mesh=\"" + array2[j] + "\" width=\"22\" height=\"24\" />x" + text;
-			}
-			return TX.GetA("inventory_count", TX.join<string>("/", array3, 0, -1));
+			return Stb;
 		}
 
 		private string getPriceIncreaseString(NelItem Itm, int grade)
@@ -1250,7 +1275,7 @@ namespace nel
 			this.fine_item_count = true;
 			this.FbUnderKD.text_content = "";
 			this.fnGradeFocusChange(itemData, itemInfo, this.ItemMng.get_grade_cursor());
-			aBtnMeterNel.Select(false);
+			aBtnMeterNel.Select(true);
 			return true;
 		}
 
@@ -1280,7 +1305,7 @@ namespace nel
 		{
 			if (Itm.is_water)
 			{
-				return TX.GetA("cannot_take_need_container_item", NelItem.Bottle.getLocalizedName(0, null));
+				return TX.GetA("cannot_take_need_container_item", NelItem.Bottle.getLocalizedName(0));
 			}
 			return TX.Get("cannot_take_need_enough_room", "");
 		}
@@ -1352,11 +1377,11 @@ namespace nel
 			if (this.buying_mode)
 			{
 				meter_v = count - count2;
-				meter_mn = global::XX.X.Mn(meter_v, 0);
+				meter_mn = X.Mn(meter_v, 0);
 				meter_max = meter_v + this.StProduct.getCount(Itm, grade);
 				if (!this.getInventoryInfinity(Itm))
 				{
-					meter_max = global::XX.X.Mn(meter_max, meter_v + this.getInventoryAddable(Itm));
+					meter_max = X.Mn(meter_max, meter_v + this.getInventoryAddable(Itm));
 				}
 			}
 			else
@@ -1367,8 +1392,8 @@ namespace nel
 					int count3 = this.OFirstData[Itm][this.st_index].getCount(grade);
 					num = this.getInventoryItemCount(Itm, grade);
 					int num2 = (meter_v = count3 - num);
-					meter_max = num2 + global::XX.X.Mn(this.AStInventory[this.st_index].St.getReduceable(Itm, grade), num);
-					meter_mn = global::XX.X.Mn(meter_v, 0);
+					meter_max = num2 + X.Mn(this.AStInventory[this.st_index].St.getReduceable(Itm, grade), num);
+					meter_mn = X.Mn(meter_v, 0);
 				}
 				else
 				{
@@ -1378,7 +1403,7 @@ namespace nel
 				}
 				if (this.cannotSell(Itm, Obt))
 				{
-					meter_max = global::XX.X.Mn(meter_v + count, meter_max);
+					meter_max = X.Mn(meter_v + count, meter_max);
 				}
 			}
 			return true;
@@ -1477,7 +1502,7 @@ namespace nel
 				int num = this.AStInventory.Length;
 				buttonSkinItemRow.use_exist_icon = this.icon_max;
 				uint num2 = 0U;
-				ItemStorage.ObtainInfo[] array = global::XX.X.Get<NelItem, ItemStorage.ObtainInfo[]>(this.OFirstData, itemData);
+				ItemStorage.ObtainInfo[] array = X.Get<NelItem, ItemStorage.ObtainInfo[]>(this.OFirstData, itemData);
 				int num3 = -1;
 				for (int i = 0; i < num; i++)
 				{
@@ -1539,7 +1564,7 @@ namespace nel
 					while (num3 < num2 && count > 0)
 					{
 						ItemStorage st = this.AStInventory[num3].St;
-						if (st.isAddable(Itm))
+						if (st.isAddable(Itm, false))
 						{
 							int num4 = st.Add(Itm, count, grade, true, false);
 							if (num4 > 0)
@@ -1549,7 +1574,7 @@ namespace nel
 								num++;
 								st.Add(Itm, num4, grade, true, true);
 								this.StProduct.Reduce(Itm, num4, grade, true);
-								int num5 = global::XX.X.Mn(this.StSell.getCount(Itm, grade), num4);
+								int num5 = X.Mn(this.StSell.getCount(Itm, grade), num4);
 								if (num5 > 0)
 								{
 									this.StSell.Reduce(Itm, num5, grade, true);
@@ -1583,7 +1608,7 @@ namespace nel
 						}
 						else
 						{
-							int num8 = global::XX.X.Mn(st2.getReduceable(Itm, grade), count);
+							int num8 = X.Mn(st2.getReduceable(Itm, grade), count);
 							if (num8 > 0)
 							{
 								this.fine_item_count = true;
@@ -1591,7 +1616,7 @@ namespace nel
 								num--;
 								st2.Reduce(Itm, num8, grade, true);
 								this.StProduct.Add(Itm, num8, grade, true, true);
-								int num9 = global::XX.X.Mn(this.StBuy.getCount(Itm, grade), num8);
+								int num9 = X.Mn(this.StBuy.getCount(Itm, grade), num8);
 								if (num9 > 0)
 								{
 									this.StBuy.Reduce(Itm, num9, grade, true);
@@ -1619,7 +1644,7 @@ namespace nel
 						ItemStorage st3 = this.AStInventory[num10].St;
 						int count2 = array[num10].getCount(grade);
 						int count3 = st3.getCount(Itm, grade);
-						int num11 = global::XX.X.Mn(st3.getReduceable(Itm, grade), global::XX.X.Mn(global::XX.X.Mn(global::XX.X.Mx(0, count3 - count2), count), this.StBuy.getCount(Itm, grade)));
+						int num11 = X.Mn(st3.getReduceable(Itm, grade), X.Mn(X.Mn(X.Mx(0, count3 - count2), count), this.StBuy.getCount(Itm, grade)));
 						if (num11 > 0)
 						{
 							this.fine_item_count = true;
@@ -1654,11 +1679,11 @@ namespace nel
 							}
 							else
 							{
-								int num14 = global::XX.X.Mn(this.StProduct.getCount(Itm, grade), count);
+								int num14 = X.Mn(this.StProduct.getCount(Itm, grade), count);
 								if (this.stt == UiItemStore.STATE.CHECK_CART)
 								{
 									int count4 = array[num13].getCount(grade);
-									num14 = global::XX.X.Mn(num14, global::XX.X.Mx(0, count4 - st4.getReduceable(Itm, grade)));
+									num14 = X.Mn(num14, X.Mx(0, count4 - st4.getReduceable(Itm, grade)));
 								}
 								if (num14 > 0)
 								{
@@ -1669,7 +1694,7 @@ namespace nel
 										num++;
 										count -= num15;
 										this.StProduct.Reduce(Itm, num15, grade, true);
-										int num16 = global::XX.X.Mn(this.StSell.getCount(Itm, grade), num15);
+										int num16 = X.Mn(this.StSell.getCount(Itm, grade), num15);
 										if (num16 > 0)
 										{
 											this.StSell.Reduce(Itm, num16, grade, true);
@@ -1733,7 +1758,7 @@ namespace nel
 				int num = selectedRow.getItemData().stock;
 				if (this.stt == UiItemStore.STATE.SELL && !this.ItemMng.Inventory.infinit_stockable)
 				{
-					num = global::XX.X.Mn(selectedRow.getItemRow().total, num);
+					num = X.Mn(selectedRow.getItemRow().total, num);
 				}
 				dir *= num;
 			}
@@ -1754,7 +1779,7 @@ namespace nel
 			}
 			if (!((dir < 0) ? (num3 <= num4) : (num3 >= num5)))
 			{
-				int num6 = global::XX.X.MMX(num4, num3 + dir, num5);
+				int num6 = X.MMX(num4, num3 + dir, num5);
 				this.fnMeterSlided(null, num6 - num3, num3, num6, selectedRow.getItemData(), num2);
 				this.ItemMng.fineCount(selectedRow.getItemData(), itemInfo, this.ItemMng.Inventory.auto_splice_zero_row);
 				this.ItemMng.fineItemStarsCount(false);
@@ -1772,19 +1797,25 @@ namespace nel
 			this.ItemMng.errorMessageToDesc(this.getErrorCmdAddindDesc(selectedRow.getItemData()));
 		}
 
-		private string fnCmdSliderDesc(string def)
+		private void fnCmdSliderDesc(STB Stb)
 		{
 			NelItem usingTarget = this.ItemMng.UsingTarget;
 			if (usingTarget == null)
 			{
-				return def;
+				return;
 			}
 			int grade_cursor = this.ItemMng.get_grade_cursor();
+			Stb.Clear();
 			if (this.buying_mode)
 			{
-				return TX.GetA("product_count", this.StProduct.getCount(usingTarget, grade_cursor).ToString()) + "<img mesh=\"arrow_nel_5\" width=\"32\" height=\"18\" />" + this.getInventoryCountString(usingTarget, grade_cursor);
+				Stb.AddTxA("product_count", false).TxRpl(this.StProduct.getCount(usingTarget, grade_cursor));
+				Stb.Add("<img mesh=\"arrow_nel_5\" width=\"32\" height=\"18\" />");
+				this.getInventoryCountString(Stb, usingTarget, grade_cursor);
+				return;
 			}
-			return this.getInventoryCountString(usingTarget, grade_cursor) + "<img mesh=\"arrow_nel_5\" width=\"32\" height=\"18\" />" + TX.GetA("selling_count", global::XX.X.Mx(0, this.StSell.getCount(usingTarget, grade_cursor)).ToString());
+			this.getInventoryCountString(Stb, usingTarget, grade_cursor);
+			Stb.Add("<img mesh=\"arrow_nel_5\" width=\"32\" height=\"18\" />");
+			Stb.AddTxA("selling_count", false).TxRpl(X.Mx(0, this.StSell.getCount(usingTarget, grade_cursor)));
 		}
 
 		public bool buying_mode
@@ -1907,7 +1938,7 @@ namespace nel
 					this.changeState(UiItemStore.STATE.BUY);
 				}
 			}
-			global::XX.X.dl(B.title, null, false, false);
+			X.dl(B.title, null, false, false);
 			return true;
 		}
 
@@ -2021,10 +2052,10 @@ namespace nel
 					return;
 				}
 			}
-			float num = global::XX.X.ZSIN(this.service_t, 30f);
-			float num2 = global::XX.X.NI(44f, -5.5f, num);
+			float num = X.ZSIN(this.service_t, 30f);
+			float num2 = X.NI(44f, -5.5f, num);
 			float num3 = this.out_w * 0.5f - 40f;
-			float num4 = this.out_h * 0.5f + global::XX.X.NI(180, global::XX.X.ENG_MODE ? (-10) : (-25), num);
+			float num4 = this.out_h * 0.5f + X.NI(180, X.ENG_MODE ? (-10) : (-25), num);
 			if (this.FbServiceBuy != null)
 			{
 				IN.PosP2(this.FbServiceBuy.transform, num3, num4);
@@ -2091,7 +2122,7 @@ namespace nel
 			{
 				CoinStorage.addCount(Res.money_addition, this.coin_type, true);
 			}
-			this.MngProduct.confirmCheckout(this.StBuy, this.StSell, Res);
+			this.MngProduct.confirmCheckout(this.M2D, this.StBuy, this.StSell, Res);
 			if (this.M2D != null && this.M2D.IMNG != null)
 			{
 				this.M2D.IMNG.confirmStoreCheckout(this.StBuy, this.StSell);

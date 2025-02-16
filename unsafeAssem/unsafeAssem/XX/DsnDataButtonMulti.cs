@@ -31,6 +31,10 @@ namespace XX
 
 		public int navi_loop;
 
+		public List<aBtn> APoolEvacuated;
+
+		public ScrollAppend SCA;
+
 		public FnBtnBindings fnClick;
 
 		public FnBtnBindings fnDown;

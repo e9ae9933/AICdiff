@@ -25,7 +25,8 @@ namespace nel
 			{
 				return;
 			}
-			SupplyManager.OSupLink = new BDic<string, SupplyManager.MapSupLink>();
+			SupplyManager.OOSupLink = new BDic<string, NDic<SupplyManager.MapSupLink>>();
+			NDic<SupplyManager.MapSupLink> ndic = null;
 			SupplyManager.OSmnLink = new BDic<string, SupplyManager.SmnSupLink>();
 			CsvReaderA csvReaderA = new CsvReaderA(resource, false);
 			bool flag = false;
@@ -42,7 +43,7 @@ namespace nel
 					list3.Clear();
 					for (int i = 1; i < csvReaderA.clength; i++)
 					{
-						ReelManager.ItemReelContainer ir = ReelManager.GetIR(csvReaderA.getIndex(i), false);
+						ReelManager.ItemReelContainer ir = ReelManager.GetIR(csvReaderA.getIndex(i), false, false);
 						if (ir != null)
 						{
 							list3.Add(ir);
@@ -59,6 +60,7 @@ namespace nel
 					}
 					smnSupLink = null;
 					flag = true;
+					ndic = null;
 				}
 				else if (csvReaderA.cmd == "##MAP")
 				{
@@ -68,6 +70,19 @@ namespace nel
 					}
 					mapSupLink = null;
 					flag = false;
+					ndic = null;
+					if (TX.valid(csvReaderA._1))
+					{
+						string _ = csvReaderA._1;
+						if (!SupplyManager.OOSupLink.TryGetValue(_, out ndic))
+						{
+							ndic = (SupplyManager.OOSupLink[_] = new NDic<SupplyManager.MapSupLink>("reel_supply_" + _, 0, 0));
+						}
+					}
+					else
+					{
+						csvReaderA.tError("##MAP には wholemap のtext_key が必要");
+					}
 				}
 				else if (flag)
 				{
@@ -95,6 +110,10 @@ namespace nel
 						{
 							smnSupLink.replace_secret_to_lower = csvReaderA.Nm(1, smnSupLink.replace_secret_to_lower);
 						}
+						else if (csvReaderA.cmd == "%NOT_APPEAR_FG")
+						{
+							smnSupLink.not_appear_fg = csvReaderA.Nm(1, 1f) != 0f;
+						}
 						else
 						{
 							if (csvReaderA.cmd == "%SECRET")
@@ -104,7 +123,7 @@ namespace nel
 							}
 							for (int j = num; j < csvReaderA.clength; j++)
 							{
-								ReelManager.ItemReelContainer ir2 = ReelManager.GetIR(csvReaderA.getIndex(j), true);
+								ReelManager.ItemReelContainer ir2 = ReelManager.GetIR(csvReaderA.getIndex(j), true, false);
 								if (ir2 == null)
 								{
 									csvReaderA.tError("不明なreel: " + csvReaderA.getIndex(j));
@@ -117,35 +136,38 @@ namespace nel
 						}
 					}
 				}
-				else if (csvReaderA.cmd == "/*" || csvReaderA.cmd == "/*___")
+				else if (ndic != null)
 				{
-					if (mapSupLink != null)
+					if (csvReaderA.cmd == "/*" || csvReaderA.cmd == "/*___")
 					{
-						mapSupLink.finalize(list);
-					}
-					string index2 = csvReaderA.getIndex((csvReaderA.cmd == "/*") ? 2 : 1);
-					mapSupLink = X.Get<string, SupplyManager.MapSupLink>(SupplyManager.OSupLink, index2);
-					if (mapSupLink != null)
-					{
-						csvReaderA.tError("SupplyManager: マップリール設定に重複: " + index2);
-					}
-					mapSupLink = (SupplyManager.OSupLink[index2] = new SupplyManager.MapSupLink());
-					list.Clear();
-				}
-				else
-				{
-					SupplyManager.LpSup lpSup = new SupplyManager.LpSup
-					{
-						Reel = ReelManager.GetIR(csvReaderA.cmd, true)
-					};
-					if (lpSup.Reel == null)
-					{
-						csvReaderA.tError("不明なreel: " + csvReaderA.cmd);
+						if (mapSupLink != null)
+						{
+							mapSupLink.finalize(list);
+						}
+						string index2 = csvReaderA.getIndex((csvReaderA.cmd == "/*") ? 2 : 1);
+						mapSupLink = X.Get<string, SupplyManager.MapSupLink>(ndic, index2);
+						if (mapSupLink != null)
+						{
+							csvReaderA.tError("SupplyManager: マップリール設定に重複: " + index2);
+						}
+						mapSupLink = (ndic[index2] = new SupplyManager.MapSupLink());
+						list.Clear();
 					}
 					else
 					{
-						lpSup.lp_key = ((csvReaderA.clength >= 2) ? csvReaderA._1 : null);
-						list.Add(lpSup);
+						SupplyManager.LpSup lpSup = new SupplyManager.LpSup
+						{
+							Reel = ReelManager.GetIR(csvReaderA.cmd, true, false)
+						};
+						if (lpSup.Reel == null)
+						{
+							csvReaderA.tError("不明なreel: " + csvReaderA.cmd);
+						}
+						else
+						{
+							lpSup.lp_key = ((csvReaderA.clength >= 2) ? csvReaderA._1 : null);
+							list.Add(lpSup);
+						}
 					}
 				}
 			}
@@ -156,6 +178,10 @@ namespace nel
 			if (mapSupLink != null)
 			{
 				mapSupLink.finalize(list);
+			}
+			foreach (KeyValuePair<string, NDic<SupplyManager.MapSupLink>> keyValuePair in SupplyManager.OOSupLink)
+			{
+				keyValuePair.Value.scriptFinalize();
 			}
 			SupplyManager.M2D = M2DBase.Instance as NelM2DBase;
 			if (SupplyManager.M2D != null && SupplyManager.M2D.curMap != null)
@@ -168,21 +194,29 @@ namespace nel
 		{
 			SupplyManager.M2D = M2DBase.Instance as NelM2DBase;
 			SupplyManager.initScript(false);
-			SupplyManager.NewSupLink = X.Get<string, SupplyManager.MapSupLink>(SupplyManager.OSupLink, NextMap.key);
-			if (SupplyManager.NewSupLink != null)
+			SupplyManager.NewSupLink = null;
+			NDic<SupplyManager.MapSupLink> ndic;
+			if (SupplyManager.M2D.WM.CurWM != null && SupplyManager.OOSupLink.TryGetValue(SupplyManager.M2D.WM.CurWM.text_key, out ndic))
 			{
-				SupplyManager.NewSupLink.initS();
+				SupplyManager.NewSupLink = X.Get<string, SupplyManager.MapSupLink>(ndic, NextMap.key);
+				if (SupplyManager.NewSupLink != null)
+				{
+					SupplyManager.NewSupLink.initS();
+				}
 			}
 		}
 
-		public static bool GetForSummoner(string smn_key, out ReelManager.ItemReelContainer[] AReelMain, out ReelManager.ItemReelContainer[] AReelSecret, out float _replace_secret_to_lower)
+		public static bool GetForSummoner(string smn_key, out ReelManager.ItemReelContainer[] AReelMain, out ReelManager.ItemReelContainer[] AReelSecret, out float _replace_secret_to_lower, bool no_error = false)
 		{
 			SupplyManager.initScript(false);
 			SupplyManager.SmnSupLink smnSupLink = X.Get<string, SupplyManager.SmnSupLink>(SupplyManager.OSmnLink, smn_key);
 			_replace_secret_to_lower = 0.75f;
 			if (smnSupLink == null)
 			{
-				X.de("SupplyManager:: EnemySummoner " + smn_key + " に対するreel情報がありません", null);
+				if (!no_error)
+				{
+					X.de("SupplyManager:: EnemySummoner " + smn_key + " に対するreel情報がありません", null);
+				}
 				AReelMain = null;
 				AReelSecret = SupplyManager.getSecretDefault(smn_key);
 				return false;
@@ -212,11 +246,15 @@ namespace nel
 		public static SupplyManager.SupplyDescription listupForIR(NelM2DBase M2D, WholeMapItem WMTarget, ReelManager.ItemReelContainer IR, SupplyManager.SupplyDescription A = default(SupplyManager.SupplyDescription), bool only_known = true)
 		{
 			A.IR = IR;
-			foreach (KeyValuePair<string, SupplyManager.MapSupLink> keyValuePair in SupplyManager.OSupLink)
+			NDic<SupplyManager.MapSupLink> ndic;
+			if (SupplyManager.OOSupLink.TryGetValue(WMTarget.text_key, out ndic))
 			{
-				if (keyValuePair.Value.isContains(IR))
+				foreach (KeyValuePair<string, SupplyManager.MapSupLink> keyValuePair in ndic)
 				{
-					A.AddPos(M2D, keyValuePair.Key, WMTarget);
+					if (keyValuePair.Value.isContains(IR))
+					{
+						A.AddPos(M2D, keyValuePair.Key, WMTarget);
+					}
 				}
 			}
 			if (IR.useableItem)
@@ -227,30 +265,37 @@ namespace nel
 					{
 						if (keyValuePair2.Value.isContains(IR))
 						{
-							blist.Add(".." + keyValuePair2.Key);
+							blist.Add(keyValuePair2.Key);
 						}
 					}
-					if (blist.Count > 0)
+					A = SupplyManager.AddSummoner(M2D, WMTarget, blist, A, true);
+				}
+			}
+			return A;
+		}
+
+		public static SupplyManager.SupplyDescription AddSummoner(NelM2DBase M2D, WholeMapItem WMTarget, string smn_key, SupplyManager.SupplyDescription A = default(SupplyManager.SupplyDescription), bool only_icon = true)
+		{
+			SupplyManager.SupplyDescription supplyDescription;
+			using (BList<string> blist = ListBuffer<string>.Pop(1))
+			{
+				blist.Add(smn_key);
+				supplyDescription = SupplyManager.AddSummoner(M2D, WMTarget, blist, A, only_icon);
+			}
+			return supplyDescription;
+		}
+
+		public static SupplyManager.SupplyDescription AddSummoner(NelM2DBase M2D, WholeMapItem WMTarget, List<string> Asmn_keys, SupplyManager.SupplyDescription A = default(SupplyManager.SupplyDescription), bool only_icon = true)
+		{
+			if (Asmn_keys.Count > 0)
+			{
+				EnemySummonerManager manager = EnemySummonerManager.GetManager(WMTarget.text_key);
+				if (manager != null)
+				{
+					for (int i = Asmn_keys.Count - 1; i >= 0; i--)
 					{
-						foreach (KeyValuePair<Map2d, List<WMIcon>> keyValuePair3 in WMTarget.getNoticedIconObject())
-						{
-							int count = keyValuePair3.Value.Count;
-							for (int i = 0; i < count; i++)
-							{
-								WMIcon wmicon = keyValuePair3.Value[i];
-								if (wmicon.type == WMIcon.TYPE.ENEMY)
-								{
-									for (int j = blist.Count - 1; j >= 0; j--)
-									{
-										if (TX.isEnd(wmicon.sf_key, blist[j]))
-										{
-											A.AddSmn(M2D, wmicon, WMTarget);
-											break;
-										}
-									}
-								}
-							}
-						}
+						string text = Asmn_keys[i];
+						A.AddSmn(M2D, text, WMTarget, manager);
 					}
 				}
 			}
@@ -262,7 +307,10 @@ namespace nel
 			BDic<string, FDSummonerInfo> bdic = new BDic<string, FDSummonerInfo>(SupplyManager.OSmnLink.Count);
 			foreach (KeyValuePair<string, SupplyManager.SmnSupLink> keyValuePair in SupplyManager.OSmnLink)
 			{
-				bdic[keyValuePair.Key] = new FDSummonerInfo(keyValuePair.Key, keyValuePair.Value);
+				if (!keyValuePair.Value.not_appear_fg)
+				{
+					bdic[keyValuePair.Key] = new FDSummonerInfo(keyValuePair.Key, keyValuePair.Value);
+				}
 			}
 			foreach (KeyValuePair<string, WholeMapItem> keyValuePair2 in M2D.WM.getWholeMapDescriptionObject())
 			{
@@ -272,7 +320,7 @@ namespace nel
 					for (int i = 0; i < count; i++)
 					{
 						WMIcon wmicon = keyValuePair3.Value[i];
-						if (wmicon.type == WMIcon.TYPE.ENEMY)
+						if (wmicon.type == WMIcon.TYPE.ENEMY && wmicon.sf_key != null)
 						{
 							int num = wmicon.sf_key.IndexOf("..");
 							if (num >= 0)
@@ -291,6 +339,79 @@ namespace nel
 			return bdic;
 		}
 
+		public static SupplyManager.ItemDescriptorForWholeMap createWholeMapDescriptor(NelM2DBase M2D, string wm_text_key)
+		{
+			BDic<string, EnemySummonerManager.SDescription> bdic = EnemySummonerManager.GetManager(wm_text_key).listupAll();
+			SupplyManager.ItemDescriptorForWholeMap itemDescriptorForWholeMap = new SupplyManager.ItemDescriptorForWholeMap
+			{
+				Asummoner = new List<string>(bdic.Count),
+				AAReel = new List<ReelManager.ItemReelContainer[]>(bdic.Count)
+			};
+			int num = 0;
+			foreach (KeyValuePair<string, EnemySummonerManager.SDescription> keyValuePair in bdic)
+			{
+				ReelManager.ItemReelContainer[] array;
+				ReelManager.ItemReelContainer[] array2;
+				float num2;
+				if (SupplyManager.GetForSummoner(keyValuePair.Key, out array, out array2, out num2, keyValuePair.Key.IndexOf("debug") >= 0))
+				{
+					itemDescriptorForWholeMap.Asummoner.Add(keyValuePair.Key);
+					itemDescriptorForWholeMap.AAReel.Add(array);
+					for (int i = array.Length - 1; i >= 0; i--)
+					{
+						num += array[i].Count;
+					}
+				}
+			}
+			NDic<SupplyManager.MapSupLink> ndic;
+			int num3;
+			if (SupplyManager.OOSupLink.TryGetValue(wm_text_key, out ndic))
+			{
+				foreach (KeyValuePair<string, SupplyManager.MapSupLink> keyValuePair2 in ndic)
+				{
+					num3 = keyValuePair2.Value.AReel.Length;
+					ReelManager.ItemReelContainer[] array3 = new ReelManager.ItemReelContainer[num3];
+					for (int j = 0; j < num3; j++)
+					{
+						ReelManager.ItemReelContainer itemReelContainer = (array3[j] = keyValuePair2.Value.AReel[j].Reel);
+						num += itemReelContainer.Count;
+					}
+					itemDescriptorForWholeMap.AAReel.Add(array3);
+				}
+			}
+			itemDescriptorForWholeMap.AAItem = new List<List<NelItemEntry>>(num);
+			num3 = itemDescriptorForWholeMap.AAReel.Count;
+			for (int k = 0; k < num3; k++)
+			{
+				ReelManager.ItemReelContainer[] array4 = itemDescriptorForWholeMap.AAReel[k];
+				for (int l = array4.Length - 1; l >= 0; l--)
+				{
+					ReelManager.ItemReelContainer itemReelContainer2 = array4[l];
+					for (int m = itemReelContainer2.Count - 1; m >= 0; m--)
+					{
+						NelItemEntry nelItemEntry = itemReelContainer2[m];
+						for (int n = itemDescriptorForWholeMap.AAItem.Count - 1; n >= 0; n--)
+						{
+							if (itemDescriptorForWholeMap.AAItem[n][0].Data == nelItemEntry.Data)
+							{
+								itemDescriptorForWholeMap.AAItem[n].Add(nelItemEntry);
+								nelItemEntry = null;
+								break;
+							}
+						}
+						if (nelItemEntry != null)
+						{
+							List<NelItemEntry> list = new List<NelItemEntry>(1);
+							list.Add(nelItemEntry);
+							itemDescriptorForWholeMap.AAItem.Add(list);
+						}
+					}
+				}
+			}
+			itemDescriptorForWholeMap.AAItem.Sort((List<NelItemEntry> A, List<NelItemEntry> B) => B.Count - A.Count);
+			return itemDescriptorForWholeMap;
+		}
+
 		public static NelM2DBase M2D;
 
 		private const string data_file = "Data/reel_supply";
@@ -299,7 +420,7 @@ namespace nel
 
 		private const float replace_secret_to_lower_default = 0.75f;
 
-		private static BDic<string, SupplyManager.MapSupLink> OSupLink;
+		private static BDic<string, NDic<SupplyManager.MapSupLink>> OOSupLink;
 
 		private static BDic<string, SupplyManager.SmnSupLink> OSmnLink;
 
@@ -312,6 +433,23 @@ namespace nel
 			public string lp_key;
 
 			public ReelManager.ItemReelContainer Reel;
+		}
+
+		public struct ItemDescriptorForWholeMap
+		{
+			public bool valid
+			{
+				get
+				{
+					return this.Asummoner != null;
+				}
+			}
+
+			public List<string> Asummoner;
+
+			public List<ReelManager.ItemReelContainer[]> AAReel;
+
+			public List<List<NelItemEntry>> AAItem;
 		}
 
 		public class SmnSupLink
@@ -343,6 +481,8 @@ namespace nel
 			public ReelManager.ItemReelContainer[] AReel;
 
 			public ReelManager.ItemReelContainer[] AReelSecret;
+
+			public bool not_appear_fg;
 
 			public float replace_secret_to_lower = 0.75f;
 		}
@@ -472,12 +612,45 @@ namespace nel
 					return this;
 				}
 				WholeMapItem.WMItem wmitem = null;
-				WholeMapItem.WMSpecialIcon wmspecialIcon = default(WholeMapItem.WMSpecialIcon);
+				WMSpecialIcon wmspecialIcon = default(WMSpecialIcon);
 				WMTarget.GetWMItem(map2d.key, ref wmitem, ref wmspecialIcon);
 				if (wmitem != null)
 				{
-					this.APosSmn.Add(new WMIconPosition(_Ico, wmitem, null));
+					this.APosSmn.Add(new WMIconPosition(_Ico, wmitem, default(WMIconHiddenDeperture)));
 				}
+				return this;
+			}
+
+			public SupplyManager.SupplyDescription AddSmn(NelM2DBase M2D, string smn_key, WholeMapItem WMTarget, EnemySummonerManager SMN = null)
+			{
+				if (SMN == null)
+				{
+					SMN = EnemySummonerManager.GetManager(WMTarget.text_key);
+					if (SMN == null)
+					{
+						return this;
+					}
+				}
+				WMIconPosition wmiconPosition;
+				if (!SMN.getWMPosition(M2D, smn_key, WMTarget, out wmiconPosition, true, false))
+				{
+					return this;
+				}
+				if (this.APosSmn == null)
+				{
+					this.APosSmn = new List<WMIconPosition>();
+				}
+				this.APosSmn.Add(wmiconPosition);
+				return this;
+			}
+
+			public SupplyManager.SupplyDescription AddSmn(WMIconPosition Pos)
+			{
+				if (this.APosSmn == null)
+				{
+					this.APosSmn = new List<WMIconPosition>();
+				}
+				this.APosSmn.Add(Pos);
 				return this;
 			}
 
@@ -506,6 +679,7 @@ namespace nel
 				{
 					this.OAPosSmn.Clear();
 				}
+				this.is_summoner_target = false;
 			}
 
 			public void Merge(SupplyManager.SupplyDescription Src)
@@ -556,6 +730,52 @@ namespace nel
 				}
 			}
 
+			public void Merge(ReelManager.ReelDecription RDesc, BDic<ReelManager.ItemReelContainer, SupplyManager.SupplyDescription> OIRDescBuffer, WholeMapItem _WM)
+			{
+				if (RDesc.AIR_useable != null)
+				{
+					int count = RDesc.AIR_useable.Count;
+					for (int i = 0; i < count; i++)
+					{
+						ReelManager.ItemReelContainer itemReelContainer = RDesc.AIR_useable[i];
+						if (itemReelContainer.GReelItem.obtain_count > 0 && !OIRDescBuffer.ContainsKey(itemReelContainer))
+						{
+							SupplyManager.SupplyDescription supplyDescription = (OIRDescBuffer[itemReelContainer] = SupplyManager.listupForIR(SupplyManager.M2D, _WM, itemReelContainer, default(SupplyManager.SupplyDescription), true));
+							this.Merge(supplyDescription);
+						}
+					}
+				}
+				if (RDesc.AIR_supplier != null)
+				{
+					int count2 = RDesc.AIR_supplier.Count;
+					for (int j = 0; j < count2; j++)
+					{
+						ReelManager.ItemReelContainer itemReelContainer2 = RDesc.AIR_supplier[j];
+						if (!OIRDescBuffer.ContainsKey(itemReelContainer2))
+						{
+							SupplyManager.SupplyDescription supplyDescription2 = (OIRDescBuffer[itemReelContainer2] = SupplyManager.listupForIR(SupplyManager.M2D, _WM, itemReelContainer2, default(SupplyManager.SupplyDescription), true));
+							this.Merge(supplyDescription2);
+						}
+					}
+				}
+			}
+
+			public void pickupFocusPosition(WholeMapItem Wmi, List<WmPosition> APos)
+			{
+				foreach (KeyValuePair<WmPosition, List<ReelManager.ItemReelContainer>> keyValuePair in this.OAPosSpl)
+				{
+					APos.Add(keyValuePair.Key);
+				}
+				foreach (KeyValuePair<WMIconPosition, List<ReelManager.ItemReelContainer>> keyValuePair2 in this.OAPosSmn)
+				{
+					WmPosition depertWmPos = keyValuePair2.Key.getDepertWmPos(Wmi);
+					if (depertWmPos.valid2)
+					{
+						APos.Add(depertWmPos);
+					}
+				}
+			}
+
 			public bool valid
 			{
 				get
@@ -567,6 +787,8 @@ namespace nel
 			public readonly BDic<WmPosition, List<ReelManager.ItemReelContainer>> OAPosSpl;
 
 			public readonly BDic<WMIconPosition, List<ReelManager.ItemReelContainer>> OAPosSmn;
+
+			public bool is_summoner_target;
 		}
 	}
 }

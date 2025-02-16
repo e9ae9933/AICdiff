@@ -1,6 +1,7 @@
 ﻿using System;
 using evt;
 using m2d;
+using nel.smnp;
 using UnityEngine;
 using XX;
 
@@ -312,7 +313,7 @@ namespace nel
 					if (this.Boss.isFaintCounterExecuting(false) && this.first_absorb)
 					{
 						this.first_absorb = false;
-						this.Summoner.getSummonedArea().parseType("0");
+						this.Summoner.Lp.parseType("0");
 					}
 					if (this.TargetS.anmtype != NelNBoss_Nusi.MA_CAGE.APPEAL)
 					{
@@ -417,7 +418,7 @@ namespace nel
 
 		private M2SndLoopItem SndLoop;
 
-		private EnemySummoner Summoner;
+		private SummonerPlayer Summoner;
 
 		private IxiaPVV104.STATE state;
 

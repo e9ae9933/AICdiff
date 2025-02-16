@@ -46,9 +46,9 @@ namespace nel
 			}
 		}
 
-		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdL, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
+		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdL, MeshDrawer MdLT, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
 		{
-			return base.entryChipMesh(MdB, MdB, MdB, MdT, MdTT, sx, sy, _zm, _rotR);
+			return base.entryChipMesh(MdB, MdB, MdB, MdT, MdTT, MdTT, sx, sy, _zm, _rotR);
 		}
 
 		private BonfireEffector Bonf;

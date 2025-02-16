@@ -105,6 +105,10 @@ namespace nel
 				return;
 			}
 			this.hideMsg(false);
+			for (int i = this.AMsg.Count - 1; i >= 0; i--)
+			{
+				this.AMsg[i].releaseReserved();
+			}
 			this.auto_msg_hide = false;
 			if (X.DEBUGRELOADMTR)
 			{
@@ -239,8 +243,20 @@ namespace nel
 			bool flag = false;
 			bool flag2 = false;
 			bool flag3 = false;
+			bool flag4 = false;
+			BList<string> blist = null;
 			if (TX.valid(_flags))
 			{
+				while (_flags.IndexOf('X') >= 0 && REG.match(_flags, NelMSGContainer.RegMsgTxInjection))
+				{
+					_flags = REG.leftContext + REG.rightContext;
+					string r = REG.R1;
+					if (blist == null)
+					{
+						blist = ListBuffer<string>.Pop(1);
+					}
+					blist.Add(r);
+				}
 				if (_flags.IndexOf('T') >= 0)
 				{
 					hkds_type = NelMSG.HKDSTYPE.THINK;
@@ -269,6 +285,10 @@ namespace nel
 				{
 					flag3 = true;
 				}
+				if (_flags.IndexOf('S') >= 0)
+				{
+					flag4 = true;
+				}
 			}
 			string text5 = null;
 			if (REG.match(msg_label, NelMSGContainer.RegEventNameReplaceKey))
@@ -287,11 +307,11 @@ namespace nel
 			}
 			else if (REG.match(text, NelMSGContainer.RegPersonKey))
 			{
-				string r;
-				text4 = (r = REG.R1);
-				text2 = r;
-				evPerson = EvPerson.getPerson(r, null);
-				text5 = NelMSGContainer.checkHereDocument(REG.R2, ev_name, r, Reader, false, null, false);
+				string r2;
+				text4 = (r2 = REG.R1);
+				text2 = r2;
+				evPerson = EvPerson.getPerson(r2, null);
+				text5 = NelMSGContainer.checkHereDocument(REG.R2, ev_name, r2, Reader, false, null, false);
 			}
 			if (TX.valid(_flags) && _flags.IndexOf('R') >= 0 && REG.match(_flags, NelMSGContainer.RegMsgFlagLabelReplace))
 			{
@@ -302,29 +322,82 @@ namespace nel
 			{
 				text5 = (this.last_resource_label = ev_name + " " + text);
 			}
-			NelMSG byDrawer = this.getByDrawer(text2, false, hkds_type, flag);
-			if (!byDrawer.isSame(text2, evPerson))
+			bool flag5;
+			bool flag6;
+			NelMSG nelMSG = this.makeMessageInner(out flag5, out flag6, ev_name, text2, hkds_type, text5, text3, _flags, flag, evPerson, fixpos_key, hkdsInfo, bd, text4, flag3, flag2, false, null);
+			if (blist != null)
 			{
-				byDrawer.initPerson(text2, evPerson);
+				if (flag6)
+				{
+					EV.Log.AddBufferInjection(blist.ToArray());
+				}
+				nelMSG.replaceTxInjection(blist);
+				ListBuffer<string>.Release(blist);
+			}
+			if (flag4)
+			{
+				int num = 0;
+				nelMSG.initNestShuffle(0, 30f);
+				for (;;)
+				{
+					string text7 = nelMSG.popReservedContent();
+					if (text7 == null)
+					{
+						break;
+					}
+					bool flag7;
+					NelMSG nelMSG2 = this.makeMessageInner(out flag7, out flag6, ev_name, null, hkds_type, text5, "%%NOUSE", _flags, flag, evPerson, fixpos_key, null, bd, text4, flag3, flag2, true, text7);
+					nelMSG2.readInfo(hkdsInfo);
+					nelMSG2.reservePersonForNest(text2, nelMSG);
+					nelMSG2.initNestShuffle(++num, 30f);
+					flag5 = flag5 || flag7;
+				}
+			}
+			if (!flag5)
+			{
+				return null;
+			}
+			return nelMSG;
+		}
+
+		private NelMSG makeMessageInner(out bool msg_created, out bool log_added, string ev_name, string hkds_id, NelMSG.HKDSTYPE hkds_type, string label, string backlog_key, string _flags, bool set_behind, EvPerson P, string fixpos_key, NelMSGContainer.HkdsInfo HkInfo, NelMSG.HKDS_BOUNDS bd, string log_person, bool always_focus, bool merge_flag, bool create_new = false, string replace_string = null)
+		{
+			NelMSG byDrawer = this.getByDrawer(hkds_id, false, hkds_type, set_behind, -1);
+			log_added = false;
+			if (hkds_id != null && !byDrawer.isSame(hkds_id, P))
+			{
+				byDrawer.initPerson(hkds_id, P);
 			}
 			if (fixpos_key != null)
 			{
 				byDrawer.initPositionFix(fixpos_key);
 			}
-			if (hkdsInfo != null)
+			if (HkInfo != null)
 			{
-				byDrawer.readInfo(hkdsInfo);
+				byDrawer.readInfo(HkInfo);
 			}
 			if (bd != NelMSG.HKDS_BOUNDS._OFFLINE)
 			{
 				byDrawer.setBoundsType(bd, false);
 			}
-			if (EV.Log != null && text4 != null && EV.isActive(false))
+			if (backlog_key != "%%NOUSE" && EV.Log != null && log_person != null && EV.isActive(false))
 			{
-				EV.Log.AddBuffer(text4, (text3 != null) ? (ev_name + " " + text3) : text5);
+				EV.Log.AddBuffer(log_person, (backlog_key != null) ? (ev_name + " " + backlog_key) : label);
+				log_added = true;
 			}
-			bool flag4 = byDrawer.makeMessage(text5, evPerson, hkds_type == NelMSG.HKDSTYPE._MAX, flag2);
-			if (flag3)
+			if (replace_string == null)
+			{
+				msg_created = byDrawer.makeMessage(label, P, hkds_type == NelMSG.HKDSTYPE._MAX, merge_flag);
+			}
+			else
+			{
+				using (BList<string> blist = ListBuffer<string>.Pop(0))
+				{
+					blist.Add(replace_string);
+					msg_created = byDrawer.makeMessage(blist, P, hkds_type == NelMSG.HKDSTYPE._MAX, merge_flag);
+				}
+			}
+			if (always_focus)
 			{
 				byDrawer.always_focus_color = true;
 				byDrawer.activateFront();
@@ -334,10 +407,6 @@ namespace nel
 			if (TX.valid(_flags) && _flags.IndexOf('P') >= 0 && REG.match(_flags, NelMSGContainer.RegMsgFlagAutoProgress))
 			{
 				byDrawer.maxt_auto_progress = X.Nm(REG.R1, -1f, false);
-			}
-			if (!flag4)
-			{
-				return null;
 			}
 			return byDrawer;
 		}
@@ -434,26 +503,33 @@ namespace nel
 			return text2;
 		}
 
-		private NelMSG getByDrawer(string hkds_id, bool no_make = true, NelMSG.HKDSTYPE type = NelMSG.HKDSTYPE._MAX, bool set_behind = false)
+		private NelMSG getByDrawer(string hkds_id, bool no_make = true, NelMSG.HKDSTYPE type = NelMSG.HKDSTYPE._MAX, bool set_behind = false, int find_for_nest = -1)
 		{
 			int num = this.AMsg.Count;
 			int num2 = -1;
 			NelMSG nelMSG;
-			for (int i = 0; i < num; i++)
+			if (hkds_id != null)
 			{
-				nelMSG = this.AMsg[i];
-				if (nelMSG.isActive() && nelMSG.isSame(hkds_id))
+				for (int i = 0; i < num; i++)
 				{
-					num2 = i;
-					break;
+					nelMSG = this.AMsg[i];
+					if (((find_for_nest >= 0) ? (!nelMSG.isActive() && nelMSG.hasReservedContent() && (int)nelMSG.nest_shuffle == find_for_nest + 1) : (nelMSG.isActive() && (hkds_id != null || !nelMSG.hasReservedContent()))) && nelMSG.isSame(hkds_id))
+					{
+						num2 = i;
+						break;
+					}
 				}
 			}
 			if (num2 == -1)
 			{
+				if (find_for_nest >= 0)
+				{
+					return null;
+				}
 				for (int j = 0; j < num; j++)
 				{
 					nelMSG = this.AMsg[j];
-					if (nelMSG.isCompletelyHidden())
+					if (nelMSG.isCompletelyHidden() && (hkds_id != null || !nelMSG.hasReservedContent()))
 					{
 						num2 = j;
 						break;
@@ -518,8 +594,11 @@ namespace nel
 					this.AMsg.Insert(num2, nelMSG);
 				}
 			}
-			this.fineActivateFront(true);
-			this.need_reposit_flag_ = true;
+			if (hkds_id != null)
+			{
+				this.fineActivateFront(true);
+				this.need_reposit_flag_ = true;
+			}
 			if (type != NelMSG.HKDSTYPE._MAX)
 			{
 				nelMSG.setHkdsType(type);
@@ -534,6 +613,10 @@ namespace nel
 			if (quit_temphide && this.t_temphd >= 0f)
 			{
 				this.t_temphd = -1f;
+				if (this.TxHidingKC != null)
+				{
+					this.TxHidingKC.gameObject.SetActive(false);
+				}
 				for (int i = this.AMsg.Count - 1; i >= 0; i--)
 				{
 					this.AMsg[i].gameObject.SetActive(true);
@@ -571,7 +654,7 @@ namespace nel
 			}
 			if (this.FrontMsg != null)
 			{
-				if (this.handle)
+				if (this.handle && !this.FrontMsg.has_nest_shuffle_buffer)
 				{
 					this.Confirmer.init(this.FrontMsg, this.FrontMsg.transform, true);
 					return;
@@ -649,6 +732,7 @@ namespace nel
 			int num7 = 0;
 			int num8 = 0;
 			int num9 = 0;
+			bool flag = false;
 			for (int i = 0; i < 2; i++)
 			{
 				int num10 = ((i == 0) ? count : num);
@@ -662,12 +746,22 @@ namespace nel
 						nelMSG = this.AMsg[j];
 						if (nelMSG.isActive())
 						{
-							if (nelMSG.DrawerPersonFollowing == null)
+							if (nelMSG.nest_shuffle > 0)
 							{
-								nelMSG.person_index = -1;
-								goto IL_00CD;
+								flag = true;
 							}
-							num9++;
+							else
+							{
+								if (nelMSG.DrawerPersonFollowing == null)
+								{
+									nelMSG.person_index = -1;
+									goto IL_00EF;
+								}
+								if (nelMSG.nest_shuffle <= 0)
+								{
+									num9++;
+								}
+							}
 						}
 					}
 					else
@@ -675,13 +769,13 @@ namespace nel
 						talkDrawer = talkerDrawerList[j];
 						if (talkDrawer != null && talkDrawer.isActive())
 						{
-							goto IL_00CD;
+							goto IL_00EF;
 						}
 					}
-					IL_0181:
+					IL_01A3:
 					j++;
 					continue;
-					IL_00CD:
+					IL_00EF:
 					float num11;
 					if (talkDrawer != null)
 					{
@@ -706,7 +800,7 @@ namespace nel
 					}
 					if (num11 == 0f)
 					{
-						goto IL_0181;
+						goto IL_01A3;
 					}
 					if (num11 < 0f)
 					{
@@ -716,9 +810,9 @@ namespace nel
 						if (num6 != 1)
 						{
 							X.Mn(num11, num2);
-							goto IL_0181;
+							goto IL_01A3;
 						}
-						goto IL_0181;
+						goto IL_01A3;
 					}
 					else
 					{
@@ -728,172 +822,227 @@ namespace nel
 							num7++;
 							num3 = X.Mn(num11, num3);
 							num4 = ((num7 == 1) ? num3 : X.Mx(num11, num4));
-							goto IL_0181;
+							goto IL_01A3;
 						}
-						goto IL_0181;
+						goto IL_01A3;
 					}
 				}
 			}
-			if (num9 == 0)
+			if (num9 != 0)
 			{
-				return;
-			}
-			float num13;
-			float num14;
-			switch (num5 & 5)
-			{
-			case 1:
-				num13 = 300f;
-				num14 = 0f;
-				goto IL_0206;
-			case 4:
-				num13 = 0f;
-				num14 = 300f;
-				goto IL_0206;
-			case 5:
-				num13 = 240f;
-				num14 = 240f;
-				goto IL_0206;
-			}
-			num13 = 40f;
-			num14 = 40f;
-			IL_0206:
-			num13 = X.Mx((float)(-(float)EV.pw) * 0.5f + num13, num2 + 80f);
-			num14 = X.Mn((float)EV.pw * 0.5f - num14, num3 - 80f);
-			float num15 = (float)EV.ph * 0.4f;
-			float num16 = (float)(-(float)EV.ph) * 0.3f;
-			int num17 = num5 & 10;
-			if (num17 != 2)
-			{
-				if (num17 != 8)
+				float num13;
+				float num14;
+				switch (num5 & 5)
 				{
-					if (num17 == 10)
+				case 1:
+					num13 = 300f;
+					num14 = 0f;
+					goto IL_022A;
+				case 4:
+					num13 = 0f;
+					num14 = 300f;
+					goto IL_022A;
+				case 5:
+					num13 = 240f;
+					num14 = 240f;
+					goto IL_022A;
+				}
+				num13 = 40f;
+				num14 = 40f;
+				IL_022A:
+				num13 = X.Mx((float)(-(float)EV.pw) * 0.5f + num13, num2 + 80f);
+				num14 = X.Mn((float)EV.pw * 0.5f - num14, num3 - 80f);
+				float num15 = (float)EV.ph * 0.4f;
+				float num16 = (float)(-(float)EV.ph) * 0.3f;
+				int num17 = num5 & 10;
+				if (num17 != 2)
+				{
+					if (num17 != 8)
 					{
-						num15 -= 160f;
-						num16 += 160f;
+						if (num17 == 10)
+						{
+							num15 -= 160f;
+							num16 += 160f;
+						}
+					}
+					else
+					{
+						num16 -= 220f;
 					}
 				}
 				else
 				{
-					num16 -= 220f;
+					num15 -= 220f;
 				}
-			}
-			else
-			{
-				num15 -= 220f;
-			}
-			int num18 = 0;
-			for (int k = 0; k < count; k++)
-			{
-				NelMSG nelMSG2 = this.AMsg[k];
-				if (nelMSG2.isActive() && nelMSG2.person_index >= 0)
+				int num18 = 0;
+				for (int k = 0; k < count; k++)
 				{
-					TalkDrawer drawerPersonFollowing = nelMSG2.DrawerPersonFollowing;
-					if (drawerPersonFollowing != null)
+					NelMSG nelMSG2 = this.AMsg[k];
+					if (nelMSG2.isActive() && nelMSG2.person_index >= 0 && nelMSG2.nest_shuffle <= 0)
 					{
-						float dx_real = drawerPersonFollowing.dx_real;
-						bool flag = false;
-						float num19;
-						float num20;
-						if (num9 == 1 || (dx_real == 0f && num6 == num7))
+						TalkDrawer drawerPersonFollowing = nelMSG2.DrawerPersonFollowing;
+						if (drawerPersonFollowing != null)
 						{
-							num19 = X.NI(num15, num16, 0.5f);
-							if (dx_real == 0f && num6 == num7)
+							float dx_real = drawerPersonFollowing.dx_real;
+							bool flag2 = false;
+							float num19;
+							float num20;
+							if (num9 == 1 || (dx_real == 0f && num6 == num7))
 							{
-								num20 = (float)EV.pw * 0.4f;
-							}
-							else
-							{
-								num20 = X.NI(num13, num14, 0.5f);
-							}
-						}
-						else
-						{
-							int num21;
-							if (num9 <= 2)
-							{
-								num20 = X.NI(num13, num14, 0.5f);
-								if (num8 >= 2)
+								num19 = X.NI(num15, num16, 0.5f);
+								if (dx_real == 0f && num6 == num7)
 								{
-									bool flag2 = (num2 + num3) * 0.5f < dx_real;
-									num20 += (float)(X.MPF(flag2) * 14);
-								}
-								num21 = nelMSG2.person_index;
-							}
-							else
-							{
-								bool flag3;
-								if (dx_real == 0f)
-								{
-									flag3 = num6 > num7;
-								}
-								else if (num6 == 0 || num7 == 0)
-								{
-									flag3 = (num2 + num3) * 0.5f < dx_real;
+									num20 = (float)EV.pw * 0.4f;
 								}
 								else
 								{
-									flag3 = dx_real > 0f;
+									num20 = X.NI(num13, num14, 0.5f);
 								}
-								num20 = ((!flag3) ? (num13 + nelMSG2.rect_w * 0.5f) : (num14 - nelMSG2.rect_h * 0.5f));
-								if (flag3)
+							}
+							else
+							{
+								int num21;
+								if (num9 <= 2)
 								{
-									if ((num18 & 3) == 3)
+									num20 = X.NI(num13, num14, 0.5f);
+									if (num8 >= 2)
 									{
-										num18 &= -4;
+										bool flag3 = (num2 + num3) * 0.5f < dx_real;
+										num20 += (float)(X.MPF(flag3) * 14);
 									}
-									if ((num18 & 3) == 0)
-									{
-										num21 = ((drawerPersonFollowing.dx_real > num3 + 20f && nelMSG2.dy_real > X.NI(num15, num16, 0.5f) - 40f) ? 0 : 1);
-									}
-									else
-									{
-										num21 = (((num18 & 3) == 1) ? 0 : 1);
-									}
-									num18 |= ((num21 == 0) ? 2 : 1);
+									num21 = nelMSG2.person_index;
 								}
 								else
 								{
-									if ((num18 & 12) == 12)
+									bool flag4;
+									if (dx_real == 0f)
 									{
-										num18 &= -13;
+										flag4 = num6 > num7;
 									}
-									if ((num18 & 12) == 0)
+									else if (num6 == 0 || num7 == 0)
 									{
-										num21 = ((drawerPersonFollowing.dx_real < num2 + 20f && nelMSG2.dy_real > X.NI(num15, num16, 0.5f) - 40f) ? 0 : 1);
+										flag4 = (num2 + num3) * 0.5f < dx_real;
 									}
 									else
 									{
-										num21 = (((num18 & 12) == 4) ? 0 : 1);
+										flag4 = dx_real > 0f;
 									}
-									num18 |= ((num21 == 0) ? 8 : 4);
+									num20 = ((!flag4) ? (num13 + nelMSG2.rect_w * 0.5f) : (num14 - nelMSG2.rect_h * 0.5f));
+									if (flag4)
+									{
+										if ((num18 & 3) == 3)
+										{
+											num18 &= -4;
+										}
+										if ((num18 & 3) == 0)
+										{
+											num21 = ((drawerPersonFollowing.dx_real > num3 + 20f && nelMSG2.dy_real > X.NI(num15, num16, 0.5f) - 40f) ? 0 : 1);
+										}
+										else
+										{
+											num21 = (((num18 & 3) == 1) ? 0 : 1);
+										}
+										num18 |= ((num21 == 0) ? 2 : 1);
+									}
+									else
+									{
+										if ((num18 & 12) == 12)
+										{
+											num18 &= -13;
+										}
+										if ((num18 & 12) == 0)
+										{
+											num21 = ((drawerPersonFollowing.dx_real < num2 + 20f && nelMSG2.dy_real > X.NI(num15, num16, 0.5f) - 40f) ? 0 : 1);
+										}
+										else
+										{
+											num21 = (((num18 & 12) == 4) ? 0 : 1);
+										}
+										num18 |= ((num21 == 0) ? 8 : 4);
+									}
+								}
+								num19 = X.NI(num15, num16, (0.5f + (float)num21) / 2f);
+								switch (nelMSG2.person_index % 6)
+								{
+								case 2:
+									num20 += 10f;
+									num19 += 15f;
+									break;
+								case 3:
+									num20 -= 8f;
+									num19 += 15f;
+									break;
+								case 4:
+									num20 -= 5f;
+									num19 -= 11f;
+									break;
+								case 5:
+									num20 += 8f;
+									num19 -= 11f;
+									break;
 								}
 							}
-							num19 = X.NI(num15, num16, (0.5f + (float)num21) / 2f);
-							switch (nelMSG2.person_index % 6)
-							{
-							case 2:
-								num20 += 10f;
-								num19 += 15f;
-								break;
-							case 3:
-								num20 -= 8f;
-								num19 += 15f;
-								break;
-							case 4:
-								num20 -= 5f;
-								num19 -= 11f;
-								break;
-							case 5:
-								num20 += 8f;
-								num19 -= 11f;
-								break;
-							}
+							nelMSG2.initPosition(num20, num19, flag2);
 						}
-						nelMSG2.initPosition(num20, num19, flag);
 					}
 				}
 			}
+			if (flag)
+			{
+				for (int l = 0; l < count; l++)
+				{
+					NelMSG nelMSG3 = this.AMsg[l];
+					if (nelMSG3.nest_shuffle == 0 && nelMSG3.isActive())
+					{
+						float dx_real2 = nelMSG3.dx_real;
+						float dy_real = nelMSG3.dy_real;
+						float num22 = (X.frac(dx_real2 * 113.7f + dy_real * 41.67f) + (float)l * 3.1415927f * 0.17f) * 6.2831855f;
+						for (int m = l + 1; m < count; m++)
+						{
+							NelMSG nelMSG4 = this.AMsg[m];
+							if (nelMSG4.isSamePerson(nelMSG3) && nelMSG4.isActive())
+							{
+								nelMSG4.initPosition(dx_real2 + 74f * X.Cos(num22), dy_real + 65f * X.Sin(num22), false);
+								num22 += 2.2399557f;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		public bool progressNestShuffle(NelMSG Src, string hkds_id, EvPerson P)
+		{
+			NelMSG byDrawer = this.getByDrawer(hkds_id, true, NelMSG.HKDSTYPE._MAX, false, (int)Src.nest_shuffle);
+			if (byDrawer != null)
+			{
+				byDrawer.container_TS = Src.container_TS;
+				byDrawer.initPerson(hkds_id, P);
+				this.fineFrontConfirmer();
+				this.need_reposit_flag = true;
+				return true;
+			}
+			Src.quitNestShuffle(Src == this.FrontMsg);
+			return false;
+		}
+
+		public bool progressgNestShuffleFinal(NelMSG Src, string hkds_id)
+		{
+			for (int i = this.AMsg.Count - 1; i >= 0; i--)
+			{
+				NelMSG nelMSG = this.AMsg[i];
+				if (nelMSG != Src && nelMSG.isSamePerson(Src))
+				{
+					if (nelMSG.nest_shuffle == 0)
+					{
+						Src.initPosition(nelMSG.dx_real, nelMSG.dy_real, false);
+					}
+					nelMSG.hideMsg(false);
+				}
+			}
+			this.need_reposit_flag = true;
+			Src.initNestShuffle(-1, -1f);
+			return false;
 		}
 
 		private void repositZ()
@@ -971,16 +1120,22 @@ namespace nel
 				{
 					this.need_person_reindex_flag = false;
 					this.AMsgBuf.Clear();
+					this.AMsg.Sort((NelMSG a, NelMSG b) => NelMSGContainer.fnSortPersonInitialize(a, b));
 					if (this.AMsgBuf.Capacity < count)
 					{
 						this.AMsgBuf.Capacity = count;
 					}
+					bool flag2 = false;
 					for (int j = 0; j < count; j++)
 					{
 						NelMSG nelMSG2 = this.AMsg[j];
 						if (nelMSG2.isActive())
 						{
-							if (nelMSG2.DrawerPersonFollowing != null)
+							if (nelMSG2.nest_shuffle > 0)
+							{
+								flag2 = true;
+							}
+							else if (nelMSG2.DrawerPersonFollowing != null)
 							{
 								this.AMsgBuf.Add(nelMSG2);
 								if (nelMSG2.person_index < 0)
@@ -999,6 +1154,25 @@ namespace nel
 					{
 						this.AMsgBuf[k].person_index = k;
 					}
+					if (flag2)
+					{
+						for (int l = 0; l < count; l++)
+						{
+							NelMSG nelMSG3 = this.AMsg[l];
+							if (nelMSG3.isActive() && nelMSG3.nest_shuffle > 0)
+							{
+								for (int m = 0; m < count; m++)
+								{
+									NelMSG nelMSG4 = this.AMsg[m];
+									if (m != l && nelMSG4.isActive() && nelMSG4.nest_shuffle <= 0 && nelMSG4.isSamePerson(nelMSG3))
+									{
+										nelMSG3.person_index = nelMSG4.person_index;
+										break;
+									}
+								}
+							}
+						}
+					}
 					this.AMsgBuf.Clear();
 					this.need_reposit_flag_ = true;
 				}
@@ -1012,6 +1186,39 @@ namespace nel
 				this.repositZ();
 			}
 			return flag;
+		}
+
+		private static int fnSortPersonInitialize(NelMSG Ma, NelMSG Mb)
+		{
+			bool flag = Ma.isActive();
+			bool flag2 = Mb.isActive();
+			if (flag != flag2)
+			{
+				if (!flag)
+				{
+					return 1;
+				}
+				return -1;
+			}
+			else
+			{
+				int num = (int)(Ma.nest_shuffle - Mb.nest_shuffle);
+				if (num != 0)
+				{
+					return num;
+				}
+				float shown_level = Ma.shown_level;
+				float shown_level2 = Mb.shown_level;
+				if (shown_level == shown_level2)
+				{
+					return NelMSGContainer.fnSortPersonIndex(Ma, Mb);
+				}
+				if (shown_level >= shown_level2)
+				{
+					return -1;
+				}
+				return 1;
+			}
 		}
 
 		private static int fnSortPersonIndex(NelMSG Ma, NelMSG Mb)
@@ -1072,10 +1279,43 @@ namespace nel
 			this.handle = f;
 		}
 
-		public void executeRestMsgCmd(NelMSG Obj)
+		public void executeRestMessage(NelMSG Obj)
 		{
-			if (this.msgcmd_run_flag == 1 && Obj.isFront())
+			this.executeRestMsgCmd(Obj, 0);
+			if (Obj.nest_shuffle >= 0)
 			{
+				for (int i = this.AMsg.Count - 1; i >= 0; i--)
+				{
+					NelMSG nelMSG = this.AMsg[i];
+					if (nelMSG.nest_shuffle > 0 && nelMSG.isSamePerson(Obj))
+					{
+						nelMSG.hideMsg(false);
+					}
+				}
+				this.need_reposit_flag = true;
+			}
+		}
+
+		public void executeRestMsgCmd(NelMSG Obj, int count)
+		{
+			if (Obj.isFront() && this.msgcmd_run_flag == 1)
+			{
+				if (count > 0)
+				{
+					EV.MsgCmd.executeProgress(count);
+					return;
+				}
+				if (count < 0 && Obj.nest_shuffle >= 0)
+				{
+					for (int i = this.AMsg.Count - 1; i >= 0; i--)
+					{
+						NelMSG nelMSG = this.AMsg[i];
+						if (nelMSG != Obj && nelMSG.nest_shuffle > Obj.nest_shuffle && nelMSG.isSamePerson(Obj))
+						{
+							return;
+						}
+					}
+				}
 				this.msgcmd_run_flag = 2;
 				EV.MsgCmd.executeAll();
 			}
@@ -1225,7 +1465,7 @@ namespace nel
 						text = REG.R1;
 						text2 = REG.R2;
 					}
-					NelMSGResource.getContent(text + " " + text2, Adest, false, no_error);
+					NelMSGResource.getContent(text + " " + text2, Adest, false, no_error, false);
 				}
 			}
 			return 0;
@@ -1309,6 +1549,10 @@ namespace nel
 
 		private const char MSGFLAG_REPLACE_LABEL = 'R';
 
+		private const char MSGFLAG_TX_INJECTION = 'X';
+
+		private const char MSGFLAG_SHUFFLE = 'S';
+
 		private List<NelMSG> AMsg;
 
 		private List<NelMSG> AMsgBuf;
@@ -1324,6 +1568,8 @@ namespace nel
 		private static Regex RegMsgFlagBookPos = new Regex("K\\[([\\w]+)\\]");
 
 		private static Regex RegMsgFlagLabelReplace = new Regex("R\\[([\\w]+)\\]");
+
+		private static Regex RegMsgTxInjection = new Regex("X\\[([\\&\\w]+)\\]");
 
 		private static Regex RegPersonKey = new Regex("^([a-zA-Z0-9]+)_(<<<\\w+)?");
 
@@ -1368,6 +1614,8 @@ namespace nel
 		private const float TEMPHD_MAXT = 200f;
 
 		private bool handle;
+
+		public short nest_shuffle;
 
 		private bool use_valotile_;
 

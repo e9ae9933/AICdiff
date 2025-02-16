@@ -82,7 +82,7 @@ namespace nel
 			this.need_fine_pos = true;
 		}
 
-		public void AddStack(QuestTracker.QuestProgress Prog, QuestTracker.INVISIBLE t, int phase)
+		public void AddStack(QuestTracker.QuestProgress Prog, QuestTracker.INVISIBLE t, int phase, uint _written_row_bits = 0U)
 		{
 			int count = this.ATrack.Count;
 			int i = 0;
@@ -107,7 +107,7 @@ namespace nel
 						{
 							trackTask.sphase = phase;
 						}
-						if (trackTask.TargetRow == null || trackTask.TargetRow.updateTask(trackTask))
+						if (trackTask.TargetRow == null || trackTask.TargetRow.updateTask(trackTask, _written_row_bits))
 						{
 							this.ATrack.RemoveAt(i);
 							this.ATrack.Add(trackTask);
@@ -121,7 +121,7 @@ namespace nel
 					i++;
 				}
 			}
-			this.ATrack.Add(new UiQuestTracker.TrackTask(t, Prog, phase));
+			this.ATrack.Add(new UiQuestTracker.TrackTask(t, Prog, phase, _written_row_bits));
 			if (this.t_trackread_lock == -1000)
 			{
 				this.t_trackread_lock = 4;
@@ -338,9 +338,10 @@ namespace nel
 			}
 		}
 
-		public QuestTracker.QuestDeperture getFrontDepert()
+		public QuestTracker.QuestDeperture getFrontDepert(out QuestTracker.QuestProgress Prog)
 		{
 			QuestTracker.QuestDeperture questDeperture = default(QuestTracker.QuestDeperture);
+			Prog = null;
 			for (int i = 0; i < this.LEN; i++)
 			{
 				UiQuestTrackerRow uiQuestTrackerRow = this.AItems[i];
@@ -349,6 +350,7 @@ namespace nel
 					QuestTracker.QuestDeperture currentDepert = uiQuestTrackerRow.Prog.CurrentDepert;
 					if (currentDepert.isActiveMap())
 					{
+						Prog = uiQuestTrackerRow.Prog;
 						return currentDepert;
 					}
 				}
@@ -360,8 +362,13 @@ namespace nel
 		{
 			get
 			{
-				return CFG.sp_uipic_lr == CFG.UIPIC_LR.R;
+				return CFGSP.uipic_lr == CFGSP.UIPIC_LR.R;
 			}
+		}
+
+		public override string ToString()
+		{
+			return "UiQuestTracker";
 		}
 
 		public readonly UIBase Base;
@@ -394,12 +401,13 @@ namespace nel
 
 		public struct TrackTask
 		{
-			public TrackTask(QuestTracker.INVISIBLE _type, QuestTracker.QuestProgress _Prog, int phase)
+			public TrackTask(QuestTracker.INVISIBLE _type, QuestTracker.QuestProgress _Prog, int phase, uint _written_row_bits = 0U)
 			{
 				this.type = _type;
 				this.Prog = _Prog;
 				this.dphase = phase;
 				this.sphase = phase;
+				this.written_row_bits = _written_row_bits;
 				if ((this.type == QuestTracker.INVISIBLE.UPDATE || this.type == QuestTracker.INVISIBLE.END) && this.sphase > 0)
 				{
 					this.sphase--;
@@ -422,6 +430,8 @@ namespace nel
 			public int sphase;
 
 			public int dphase;
+
+			public uint written_row_bits;
 
 			public UiQuestTrackerRow TargetRow;
 		}

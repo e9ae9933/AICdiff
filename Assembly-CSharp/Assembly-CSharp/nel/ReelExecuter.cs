@@ -8,14 +8,8 @@ namespace nel
 {
 	public class ReelExecuter : IEfPInteractale
 	{
-		public ReelExecuter(ReelManager _Con, ReelExecuter.ETYPE _etype)
+		public static void initReelExecuter()
 		{
-			this.Con = _Con;
-			this.etype = _etype;
-			if (this.etype > ReelExecuter.ETYPE.ITEMKIND)
-			{
-				this.IconPF = MTR.SqReelIcon.getFrame(this.etype - ReelExecuter.ETYPE.GRADE1);
-			}
 			if (ReelExecuter.PFFrm0L == null)
 			{
 				ReelExecuter.DrOutline = new ReelOutlineDrawer();
@@ -24,8 +18,14 @@ namespace nel
 				ReelExecuter.PFFrm0R = MTRX.getPF("reel_l1");
 				ReelExecuter.PFFrm1L = MTRX.getPF("reel_s0");
 				ReelExecuter.PFFrm1R = MTRX.getPF("reel_s1");
-				ReelExecuter.PtcCircle = new EfParticleOnce("reel_normal_circle", EFCON_TYPE.UI);
+				ReelExecuter.PtcCircle = new EfParticleOnce("reel_normal_circle", EFCON_TYPE.FIXED);
 			}
+		}
+
+		public ReelExecuter(ReelManager _Con, ReelExecuter.ETYPE _etype)
+		{
+			this.Con = _Con;
+			this.etype = _etype;
 		}
 
 		public void initUi(UiReelManager _Ui, int _index)
@@ -291,7 +291,7 @@ namespace nel
 		{
 			if (this.content_id_dec == -1)
 			{
-				this.fineReelContent(this.content_id + this.reel_speed * this.Ui.reel_speed * (float)fcnt);
+				this.fineReelContent(this.content_id + this.reel_speed * (float)fcnt);
 				return;
 			}
 			int num = this.Acontent.Length;
@@ -364,7 +364,7 @@ namespace nel
 			Md.chooseSubMesh(this.mid_frame, false, false);
 			Md.Col = Md.ColGrd.Gray().setA1(alpha).C;
 			this.drawFrame(Md, num4, num5, num3, (float)num2, alpha);
-			if (this.IconPF != null)
+			if (this.etype > ReelExecuter.ETYPE.ITEMKIND)
 			{
 				Md.chooseSubMesh(this.mid_icon, false, false);
 				if (tz_reel < 0.5f)
@@ -376,27 +376,51 @@ namespace nel
 			}
 		}
 
-		public void drawIcon(MeshDrawer Md, float x, float y, float wh, float scale, float tz_reel, float alpha = 1f)
+		public void drawIcon(MeshDrawer Md, float x, float y, float wh, float frm_scale, float tz_reel, float alpha = 1f)
 		{
+			ReelExecuter.drawIconS(Md, this.etype, x, y, wh, frm_scale, tz_reel, alpha);
+		}
+
+		public static PxlFrame getIconPF(ReelExecuter.ETYPE etype)
+		{
+			if (etype > ReelExecuter.ETYPE.ITEMKIND)
+			{
+				return MTR.SqReelIcon.getFrame(etype - ReelExecuter.ETYPE.GRADE1);
+			}
+			return null;
+		}
+
+		public static void drawIconS(MeshDrawer Md, ReelExecuter.ETYPE etype, float x, float y, float wh, float scale, float tz_reel, float alpha = 1f)
+		{
+			if (etype <= ReelExecuter.ETYPE.ITEMKIND)
+			{
+				return;
+			}
 			int num = X.IntR((0.5f + (float)X.ANMT(2, 8f) * 0.2f) * 255f);
+			PxlFrame iconPF = ReelExecuter.getIconPF(etype);
 			Md.Col = Md.ColGrd.Set((float)num, (float)num, (float)num, 255f).C;
 			if (tz_reel < 0.5f)
 			{
 				Md.Col = Md.ColGrd.setA1(alpha * (1f - tz_reel * 2f)).C;
-				Md.RotaPF(x, y, scale, scale, 0f, this.IconPF, false, false, false, uint.MaxValue, false, 0);
+				Md.RotaPF(x, y, scale, scale, 0f, iconPF, false, false, false, uint.MaxValue, false, 0);
 			}
 			if (tz_reel > 0.5f)
 			{
 				Md.Col = Md.ColGrd.setA1(alpha * (tz_reel * 2f - 1f)).C;
-				Md.RotaPF(-wh + x - 18f, y + 1f, scale, scale, 0f, this.IconPF, false, false, false, uint.MaxValue, false, 0);
+				Md.RotaPF(-wh + x - 18f, y + 1f, scale, scale, 0f, iconPF, false, false, false, uint.MaxValue, false, 0);
 			}
 		}
 
 		public void drawFrame(MeshDrawer Md, float x, float y, float wh, float frm_scale, float alpha = 1f)
 		{
+			ReelExecuter.drawFrameS(Md, this.etype, x, y, wh, frm_scale, alpha);
+		}
+
+		public static void drawFrameS(MeshDrawer Md, ReelExecuter.ETYPE etype, float x, float y, float wh, float frm_scale, float alpha = 1f)
+		{
 			PxlFrame pxlFrame;
 			PxlFrame pxlFrame2;
-			if (this.etype != ReelExecuter.ETYPE.ITEMKIND)
+			if (etype != ReelExecuter.ETYPE.ITEMKIND)
 			{
 				pxlFrame = ReelExecuter.PFFrm1L;
 				pxlFrame2 = ReelExecuter.PFFrm1R;
@@ -573,17 +597,21 @@ namespace nel
 				}
 				int count = _AMainItm.Count;
 				this.Acontent = new string[count];
-				for (int i = 0; i < count; i++)
+				using (STB stb = TX.PopBld(null, 0))
 				{
-					NelItemEntry nelItemEntry = _AMainItm[i];
-					this.Acontent[i] = this.row2content_text(nelItemEntry);
+					for (int i = 0; i < count; i++)
+					{
+						NelItemEntry nelItemEntry = _AMainItm[i];
+						this.row2content_text(nelItemEntry, stb.Clear());
+						this.Acontent[i] = stb.ToString();
+					}
 				}
 				this.af = 0;
 				this.t_state = 0;
 			}
 			else
 			{
-				this.Acontent = ReelManager.OAreel_content[(int)this.etype];
+				this.Acontent = ReelManager.OAreel_content[(int)this.etype].Aeffect;
 			}
 			this.content_id = (float)X.xors(this.Acontent.Length);
 			this.rotateInit();
@@ -661,6 +689,11 @@ namespace nel
 			this.fineTxPos(2, -1f + 0.25f * num8, 0.25f + 0.5f * num8);
 		}
 
+		public void fineSpeed(float reduce_level)
+		{
+			this.reel_speed = 0.11111111f * X.NI(1f, 0.35f, X.ZSINV(reduce_level));
+		}
+
 		private void fineTxPos(int _txid, float yp, float scale)
 		{
 			TextRenderer textRenderer = this.ATx[_txid];
@@ -704,16 +737,15 @@ namespace nel
 			return Stb;
 		}
 
-		private string row2content_text(NelItemEntry _Entry)
+		private void row2content_text(NelItemEntry _Entry, STB Stb)
 		{
-			string text;
-			using (STB stb = TX.PopBld(null, 0))
+			Stb.Add(_Entry.Data.getLocalizedName((int)_Entry.grade));
+			Stb.Add("<img mesh=\"nel_item_grade.", (int)_Entry.grade, "\" width=\"68\" tx_color /> <font size=\"24\">x").Add("", _Entry.count.ToString() + "</font>");
+			NelM2DBase nelM2DBase = M2DBase.Instance as NelM2DBase;
+			if (nelM2DBase != null && nelM2DBase.QUEST.isQuestTargetItem(_Entry.Data, -1))
 			{
-				stb.Add(_Entry.Data.getLocalizedName((int)_Entry.grade, null));
-				stb.Add("<img mesh=\"nel_item_grade.", (int)_Entry.grade, "\" width=\"68\" tx_color /> <font size=\"24\">x").Add("", _Entry.count.ToString() + "</font>");
-				text = stb.ToString();
+				Stb.Add("<img mesh=\"notice_exc\" color=\"ff:#ffffff\" />");
 			}
-			return text;
 		}
 
 		public ReelExecuter.EFFECT applyEffectToIK(ReelExecuter Reel)
@@ -776,7 +808,11 @@ namespace nel
 			this.IKRow.count = X.Mn(this.IKRow.count, 99);
 			if (flag)
 			{
-				this.ATx[1].text_content = (this.Acontent[this.content_id_dec % this.Acontent.Length] = this.row2content_text(this.IKRow));
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					this.row2content_text(this.IKRow, stb);
+					this.ATx[1].text_content = (this.Acontent[this.content_id_dec % this.Acontent.Length] = stb.ToString());
+				}
 			}
 			return (ReelExecuter.EFFECT)num;
 		}
@@ -907,11 +943,11 @@ namespace nel
 
 		protected int t_state;
 
+		public int rarerity;
+
 		private readonly ReelManager Con;
 
 		private UiReelManager Ui;
-
-		private PxlFrame IconPF;
 
 		private static PxlFrame PFFrm0L;
 
@@ -932,6 +968,8 @@ namespace nel
 		private string[] Acontent;
 
 		private float content_id;
+
+		private const float reel_speed_default = 0.11111111f;
 
 		private float reel_speed = 0.11111111f;
 

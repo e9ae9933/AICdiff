@@ -78,14 +78,14 @@ namespace nel
 			this.Spw.copyAnimationFrom(uipictureBodySpine.getViewer(), true);
 		}
 
-		private bool fnDrawACDefault(AnimateCutin Cti, Map2d Mp, MeshDrawer Md, MeshDrawer MdT, float t, ref bool update_meshdrawer)
+		private bool fnDrawACDefault(AnimateCutin Cti, Map2d Mp, MeshDrawer Md, MeshDrawer MdT, float t, float anim_t, ref bool update_meshdrawer)
 		{
 			UIPictureBodySpine uipictureBodySpine = this.Con.getBodyData() as UIPictureBodySpine;
 			if (uipictureBodySpine == null || this.Con.getCurrentFadeKey(true) != this.fader_key)
 			{
 				return false;
 			}
-			X.ZSIN(t, 25f);
+			X.ZSIN(anim_t, 25f);
 			float num = ((this.appear_dir_aim < 0) ? 0f : this.appear_len);
 			Cti.setBase(this.PosPx.x + num * (float)CAim._XD(this.appear_dir_aim, 1), this.PosPx.y + num * (float)CAim._YD(this.appear_dir_aim, 1), this.PosPx.z);
 			this.Spw.setTimePositionAll(uipictureBodySpine.getViewer());

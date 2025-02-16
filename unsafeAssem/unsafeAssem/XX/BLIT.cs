@@ -15,6 +15,7 @@ namespace XX
 			BLIT.MtrBufGDT = MTRX.newMtr(MTRX.ShaderGDT);
 			BLIT.MtrBufGDT.EnableKeyword("NO_PIXELSNAP");
 			BLIT.MtrBlur = MTRX.newMtr("Buffer/GaussianBlur");
+			BLIT.AColOnlyOne = new Color32[1];
 		}
 
 		public static RenderTexture PasteTo(RenderTexture Dest, Texture Src, float x, float y, float scale, float uvx = 0f, float uvy = 0f, float uvw = 1f, float uvh = 1f)
@@ -152,15 +153,23 @@ namespace XX
 			BLIT.RotaGraph(Dest, x, y, scaleX, scaleY, rotR, Src.texture, textureRect.x / (float)Src.texture.width, textureRect.y / (float)Src.texture.height, textureRect.width / (float)Src.texture.width, textureRect.height / (float)Src.texture.height);
 		}
 
-		public static void JustPaste(Texture Src, RenderTexture Dest)
+		public static void JustPaste(Texture Src, RenderTexture Dest, bool pop_matrix = false)
 		{
 			BLIT.MtrJustPaste.mainTexture = Src;
 			Graphics.SetRenderTarget(Dest);
 			BLIT.MtrJustPaste.SetPass(0);
+			if (pop_matrix)
+			{
+				GL.PushMatrix();
+			}
 			GL.LoadOrtho();
 			GL.Begin(4);
 			BLIT.JustPasteOrtho(0f, 0f, 1f, 1f);
 			GL.End();
+			if (pop_matrix)
+			{
+				GL.PopMatrix();
+			}
 		}
 
 		public static void JustPasteOrtho(float ver_l = 0f, float ver_b = 0f, float ver_r = 1f, float ver_t = 1f)
@@ -243,64 +252,6 @@ namespace XX
 			RenderTexture.active = null;
 			BLIT.nDispose(renderTexture);
 			return texture2D;
-		}
-
-		public static RenderTexture RenderWholeMesh(MeshDrawer Md, float cx, float cy, int w, int h, int tri_max = -1, bool rewrite_md_material = false, float scale = -1f, RenderTexture Dest = null, Material DrawMtr = null, float pixel_l = 0f, float pixel_r = -1f, float pixel_b = 0f, float pixel_t = -1f)
-		{
-			bool flag = false;
-			if (w < 0)
-			{
-				flag = true;
-				w = -w;
-				h = X.Abs(h);
-			}
-			int num = w / 2;
-			int num2 = h / 2;
-			if (pixel_r < 0f)
-			{
-				pixel_r = (float)w;
-			}
-			if (pixel_t < 0f)
-			{
-				pixel_t = (float)h;
-			}
-			if (scale < 0f)
-			{
-				scale = 64f;
-			}
-			bool flag2 = false;
-			cx += (pixel_r - pixel_l) / 2f;
-			cy += (pixel_t - pixel_b) / 2f;
-			RenderBuffer activeColorBuffer = Graphics.activeColorBuffer;
-			RenderBuffer activeDepthBuffer = Graphics.activeDepthBuffer;
-			if (!flag)
-			{
-				if (Dest == null)
-				{
-					Dest = new RenderTexture(w, h, 0, RenderTextureFormat.ARGB32);
-					flag2 = true;
-				}
-				Dest.filterMode = FilterMode.Point;
-				Graphics.SetRenderTarget(Dest);
-			}
-			if (flag2)
-			{
-				GL.Clear(false, true, Color.clear);
-			}
-			if (DrawMtr == null)
-			{
-				DrawMtr = BLIT.MtrBufGDT;
-				BLIT.MtrBufGDT.SetTexture("_MainTex", Md.getMaterial().GetTexture("_MainTex"));
-			}
-			DrawMtr.SetPass(0);
-			GL.LoadPixelMatrix(pixel_l, pixel_r, pixel_b, pixel_t);
-			GL.MultMatrix(Matrix4x4.Translate(new Vector3(cx, cy, 0f)) * Matrix4x4.Scale(new Vector3(scale, scale, 1f)));
-			BLIT.RenderToGLImmediate(Md, tri_max);
-			if (!flag)
-			{
-				Graphics.SetRenderTarget(activeColorBuffer, activeDepthBuffer);
-			}
-			return Dest;
 		}
 
 		public static void RenderToGLImmediate(MeshDrawer Md, int tri_max = -1)
@@ -423,7 +374,15 @@ namespace XX
 			}
 		}
 
-		public unsafe static void RenderToGLImmediate001(MeshDrawer Md, int tri_max = -1, int sub_mesh = -1, bool setpass = false, bool call_begin = true, MProperty Mpb = null)
+		public static void RenderToGLImmediate001(MeshDrawer Md, int tri_max = -1, int sub_mesh = -1, bool setpass = false, bool call_begin = true, MProperty Mpb = null)
+		{
+			Vector3[] vertexArray = Md.getVertexArray();
+			Vector2[] uvArray = Md.getUvArray();
+			Color32[] colorArray = Md.getColorArray();
+			BLIT.RenderToGLImmediate001(Md, vertexArray, uvArray, colorArray, tri_max, sub_mesh, setpass, call_begin, Mpb);
+		}
+
+		public unsafe static void RenderToGLImmediate001(MeshDrawer Md, Vector3[] AVer, Vector2[] AUv, Color32[] ACol, int tri_max = -1, int sub_mesh = -1, bool setpass = false, bool call_begin = true, MProperty Mpb = null)
 		{
 			Material material = null;
 			int[] array;
@@ -470,22 +429,26 @@ namespace XX
 					Md.getSubMeshMaterial(sub_mesh).SetPass(0);
 				}
 			}
-			Vector3[] vertexArray = Md.getVertexArray();
-			Vector2[] uvArray = Md.getUvArray();
-			Color32[] colorArray = Md.getColorArray();
+			bool flag = false;
+			if (ACol == null)
+			{
+				flag = true;
+				ACol = BLIT.AColOnlyOne;
+				ACol[0] = Md.Col;
+			}
 			int num2 = ((tri_max < 0) ? Md.draw_triangle_count : tri_max);
 			if (num2 > 0)
 			{
 				fixed (int* ptr = &array[0])
 				{
 					int* ptr2 = ptr;
-					fixed (Vector3* ptr3 = &vertexArray[0])
+					fixed (Vector3* ptr3 = &AVer[0])
 					{
 						Vector3* ptr4 = ptr3;
-						fixed (Vector2* ptr5 = &uvArray[0])
+						fixed (Vector2* ptr5 = &AUv[0])
 						{
 							Vector2* ptr6 = ptr5;
-							fixed (Color32* ptr7 = &colorArray[0])
+							fixed (Color32* ptr7 = &ACol[0])
 							{
 								Color32* ptr8 = ptr7;
 								int* ptr9 = ptr2;
@@ -497,11 +460,18 @@ namespace XX
 								{
 									GL.Begin(4);
 								}
+								if (flag)
+								{
+									GL.Color(*ptr8);
+								}
 								while (--num2 >= 0)
 								{
 									int num5 = *(ptr9++);
 									Vector3 vector = ptr4[num5];
-									GL.Color(ptr8[num5]);
+									if (!flag)
+									{
+										GL.Color(ptr8[num5]);
+									}
 									GL.TexCoord(ptr6[num5]);
 									if (num3 > num5)
 									{
@@ -527,6 +497,46 @@ namespace XX
 			if (Mpb != null)
 			{
 				Mpb.Pop(material);
+			}
+		}
+
+		public unsafe static void RenderToGLImmediateSimple(int[] Atri, Vector3[] AVer, Vector2[] AUv, Color32[] ACol, int ver_max, int tri_max, bool call_begin = true)
+		{
+			if (tri_max > 0)
+			{
+				fixed (int* ptr = &Atri[0])
+				{
+					int* ptr2 = ptr;
+					fixed (Vector3* ptr3 = &AVer[0])
+					{
+						Vector3* ptr4 = ptr3;
+						fixed (Vector2* ptr5 = &AUv[0])
+						{
+							Vector2* ptr6 = ptr5;
+							fixed (Color32* ptr7 = &ACol[0])
+							{
+								Color32* ptr8 = ptr7;
+								int* ptr9 = ptr2;
+								if (call_begin)
+								{
+									GL.Begin(4);
+								}
+								while (--tri_max >= 0)
+								{
+									int num = *(ptr9++);
+									Vector3 vector = ptr4[num];
+									GL.Color(ptr8[num]);
+									GL.TexCoord(ptr6[num]);
+									GL.Vertex3(vector.x, vector.y, vector.z);
+								}
+								if (call_begin)
+								{
+									GL.End();
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 
@@ -573,5 +583,7 @@ namespace XX
 		public static Material MtrSolidColor;
 
 		private static Material MtrNormalDrawRota;
+
+		private static Color32[] AColOnlyOne;
 	}
 }

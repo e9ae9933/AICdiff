@@ -9,6 +9,7 @@ namespace XX
 		DAIA,
 		RECT_HH = 50,
 		RECT_HH2,
+		RECT_HH2C,
 		RECT_VH = 100
 	}
 }

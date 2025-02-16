@@ -22,12 +22,12 @@ namespace nel
 			this.FD_Create = _FD_Create;
 			if (use_enemy_dir)
 			{
-				EnemyData.loadPxl(this.Mp.M2D as NelM2DBase, this.pxc_name);
+				NDAT.loadPxl(this.Mp.M2D as NelM2DBase, this.pxc_name, null, false);
 				this.pxc_name = "N_" + this.pxc_name;
 			}
 			else
 			{
-				this.Mp.M2D.loadMaterialPxl(this.pxc_name, "MapChars/" + this.pxc_name + ".pxls", true, true);
+				this.Mp.M2D.loadMaterialPxl(this.pxc_name, "MapChars/" + this.pxc_name + ".pxls", true, true, false);
 			}
 			return this;
 		}

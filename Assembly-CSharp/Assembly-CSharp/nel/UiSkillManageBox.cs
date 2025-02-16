@@ -17,14 +17,14 @@ namespace nel
 				UiSkillManageBox.ASelected = new PrSkill[5];
 				return;
 			}
-			global::XX.X.ALLN<PrSkill>(UiSkillManageBox.ASelected);
+			X.ALLN<PrSkill>(UiSkillManageBox.ASelected);
 		}
 
-		public static void readBinaryFrom(ByteArray Ba)
+		public static void readBinaryFrom(ByteReader Ba)
 		{
 			UiSkillManageBox.newGame();
 			int num = (int)Ba.readUByte();
-			UiSkillManageBox.current_tab = (SkillManager.SKILL_CTG)(1 << global::XX.X.MMX(0, num, 4));
+			UiSkillManageBox.current_tab = (SkillManager.SKILL_CTG)(1 << X.MMX(0, num, 4));
 			int num2 = (int)Ba.readUByte();
 			for (int i = 0; i < num2; i++)
 			{
@@ -42,7 +42,7 @@ namespace nel
 			{
 				UiSkillManageBox.newGame();
 			}
-			Ba.writeByte(global::XX.X.beki_cnt((uint)UiSkillManageBox.current_tab));
+			Ba.writeByte(X.beki_cnt((uint)UiSkillManageBox.current_tab));
 			int num = UiSkillManageBox.ASelected.Length;
 			Ba.writeByte(num);
 			for (int i = 0; i < num; i++)
@@ -100,7 +100,7 @@ namespace nel
 			{
 				if (this.FirstFocus_ == null && this.RTab != null)
 				{
-					int num = global::XX.X.MMX(0, global::XX.X.beki_cnt((uint)UiSkillManageBox.current_tab), 4);
+					int num = X.MMX(0, X.beki_cnt((uint)UiSkillManageBox.current_tab), 4);
 					return this.RTab.Get(num);
 				}
 				return this.FirstFocus_;
@@ -111,10 +111,12 @@ namespace nel
 		{
 			this.focused_time = 0f;
 			this.need_recheck_connection = false;
+			this.is_active_edit = true;
 		}
 
 		public void deactivateEdit()
 		{
+			this.is_active_edit = false;
 			if (this.need_recheck_connection)
 			{
 				this.need_recheck_connection = false;
@@ -134,9 +136,9 @@ namespace nel
 			float use_h = Ds.use_h;
 			Ds.item_margin_x_px = 0f;
 			Ds.item_margin_y_px = 0f;
-			int num = global::XX.X.MMX(0, global::XX.X.beki_cnt((uint)UiSkillManageBox.current_tab), 4);
+			int num = X.MMX(0, X.beki_cnt((uint)UiSkillManageBox.current_tab), 4);
 			Dictionary<string, PrSkill> skillDictionary = SkillManager.getSkillDictionary();
-			this.RTab = ColumnRow.CreateT<aBtnNel>(Ds, "ctg_tab", "row_tab", -1, UiSkillManageBox.getTabKeys(), new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnTabChanged), use_w, 0f, true, false).LrInput(false);
+			this.RTab = ColumnRow.CreateT<aBtnNel>(Ds, "ctg_tab", "row_tab", -1, UiSkillManageBox.getTabKeys(), new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnTabChanged), use_w, 0f, true, false);
 			Designer designer = (this.DListTab = Ds.Br().addTab("_tab_skill_rows", use_w, Ds.use_h - 4f, use_w, Ds.use_h - 4f, true));
 			designer.Smallest();
 			designer.bgcol = C32.MulA(4290689711U, 0.25f);
@@ -168,6 +170,11 @@ namespace nel
 			return this;
 		}
 
+		public void initAppear()
+		{
+			this.RTab.LrInput(true);
+		}
+
 		public void removeNewFlag()
 		{
 		}
@@ -183,7 +190,7 @@ namespace nel
 			DsDesc.addImg(new DsnDataImg
 			{
 				name = "thumbnail",
-				swidth = global::XX.X.Mx(120f, use_w * 0.22f),
+				swidth = X.Mx(120f, use_w * 0.22f),
 				sheight = use_h - 1f,
 				alignx = ALIGN.CENTER,
 				aligny = ALIGNY.MIDDLE,
@@ -236,23 +243,32 @@ namespace nel
 			{
 				return true;
 			}
-			this.DListTab.Clear();
-			this.DListTab.Smallest().init();
-			this.DList = this.DListTab.Br().addRadioT<aBtnNelRowSkill>(new DsnDataRadio
+			if (this.DList == null)
 			{
-				name = "skill_rows",
-				clms = 1,
-				margin_w = 0,
-				margin_h = 0,
-				navigated_to_click = true,
-				w = this.DListTab.use_w,
-				h = 38f,
-				fnGenerateKeys = new FnGenerateRemakeKeys(this.fnGenerateSkillKeys),
-				fnChanged = new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnSkillChanged)
-			});
+				this.DListTab.Clear();
+				this.DListTab.Smallest().init();
+				this.DList = this.DListTab.Br().addRadioT<aBtnNelRowSkill>(new DsnDataRadio
+				{
+					name = "skill_rows",
+					clms = 1,
+					margin_w = 0,
+					margin_h = 0,
+					navigated_to_click = true,
+					w = this.DListTab.use_w,
+					h = 38f,
+					fnGenerateKeys = new FnGenerateRemakeKeys(this.fnGenerateSkillKeys),
+					fnChanged = new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnSkillChanged),
+					APoolEvacuated = new List<aBtn>(10)
+				});
+			}
+			else
+			{
+				this.DList.RemakeT<aBtnNelRowSkill>(null, "");
+				this.DListTab.reboundCarrForBtnMulti(this.DList, true);
+			}
 			if (this.DList != null)
 			{
-				int num = global::XX.X.MMX(0, global::XX.X.beki_cnt((uint)UiSkillManageBox.current_tab), 4);
+				int num = X.MMX(0, X.beki_cnt((uint)UiSkillManageBox.current_tab), 4);
 				string text = ((UiSkillManageBox.ASelected[num] != null) ? UiSkillManageBox.ASelected[num].key : null);
 				if (this.DList.Length > 0)
 				{
@@ -292,8 +308,25 @@ namespace nel
 						_B.Get(j).setNaviB(null, false, true).setNaviT(null, false, true);
 					}
 				}
+				if (this.is_active_edit)
+				{
+					this.reselect();
+				}
 			}
 			return true;
+		}
+
+		public void reselect()
+		{
+			if (!EV.isStoppingEventHandle())
+			{
+				if (this.FirstFocus_ != null)
+				{
+					this.FirstFocus_.Select(true);
+					return;
+				}
+				this.RTab.Get(this.RTab.getValue()).Select(true);
+			}
 		}
 
 		public void fnGenerateSkillKeys(BtnContainerBasic BaCon, List<string> Adest)
@@ -305,7 +338,7 @@ namespace nel
 			foreach (KeyValuePair<string, PrSkill> keyValuePair in SkillManager.getSkillDictionary())
 			{
 				PrSkill value = keyValuePair.Value;
-				if ((value.visible || global::XX.X.DEBUGALLSKILL) && (value.category & UiSkillManageBox.current_tab) != (SkillManager.SKILL_CTG)0)
+				if ((value.visible || X.DEBUGALLSKILL) && (value.category & UiSkillManageBox.current_tab) != (SkillManager.SKILL_CTG)0)
 				{
 					Adest.Add(value.key);
 				}
@@ -318,7 +351,7 @@ namespace nel
 			{
 				return false;
 			}
-			int num = global::XX.X.MMX(0, global::XX.X.beki_cnt((uint)UiSkillManageBox.current_tab), 4);
+			int num = X.MMX(0, X.beki_cnt((uint)UiSkillManageBox.current_tab), 4);
 			aBtn button = _B.GetButton(cur_value);
 			if (button != null)
 			{
@@ -439,7 +472,7 @@ namespace nel
 				return false;
 			}
 			PrSkill curSel = this.CurSel;
-			if (curSel != null && !curSel.always_enable && (curSel.visible || global::XX.X.DEBUGALLSKILL))
+			if (curSel != null && !curSel.always_enable && (curSel.visible || X.DEBUGALLSKILL))
 			{
 				if (!this.canEnableCheckClick(curSel))
 				{
@@ -467,17 +500,6 @@ namespace nel
 			if (this.RTab == null)
 			{
 				return false;
-			}
-			if (handle && this.RTab.runLRInput(-2))
-			{
-				if (this.FirstFocus_ != null)
-				{
-					this.FirstFocus_.Select(false);
-				}
-				else
-				{
-					this.RTab.Get(this.RTab.getValue()).Select(false);
-				}
 			}
 			if (this.FirstFocus_ != null && this.FirstFocus_.Sk.new_icon)
 			{
@@ -534,5 +556,7 @@ namespace nel
 		private bool need_recheck_connection;
 
 		public bool need_fine_desc_enable;
+
+		private bool is_active_edit;
 	}
 }

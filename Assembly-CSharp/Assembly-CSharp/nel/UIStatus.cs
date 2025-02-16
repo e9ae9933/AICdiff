@@ -50,7 +50,7 @@ namespace nel
 			this.QuM = new Quaker(null);
 			this.C = new C32();
 			this.CIn = new C32();
-			this.Aser = new UIStatus.SerFrame[49];
+			this.Aser = new UIStatus.SerFrame[52];
 			this.Gob.SetActive(false);
 			this.init_flag = (this.redraw_gage = (this.redraw_gage_back = true));
 		}
@@ -766,7 +766,7 @@ namespace nel
 							this.drawn_gage_back = true;
 						}
 					}
-					if (this.Pr.hp_crack > 0)
+					if (this.Pr.DMG.hp_crack > 0)
 					{
 						this.draw_crack = true;
 					}
@@ -796,7 +796,7 @@ namespace nel
 						}
 						if (!this.draw_crack)
 						{
-							if (this.Pr.hp_crack > 0)
+							if (this.Pr.DMG.hp_crack > 0)
 							{
 								this.draw_crack = true;
 							}
@@ -1264,7 +1264,7 @@ namespace nel
 				this.gage_tz = num;
 				float num2 = 120f * num;
 				localPosition.x = 0f;
-				float num3 = (float)((CFG.sp_uipic_lr == CFG.UIPIC_LR.NONE) ? 0 : ((CFG.sp_uipic_lr == CFG.UIPIC_LR.R) ? (-1) : 1));
+				float num3 = (float)((CFGSP.uipic_lr == CFGSP.UIPIC_LR.NONE) ? 0 : ((CFGSP.uipic_lr == CFGSP.UIPIC_LR.R) ? (-1) : 1));
 				localPosition.x += (IN.wh - UIBase.gamewh) * (1f - this.Base.gamemenu_slide_z) * 0.015625f * num3;
 				if (!this.Base.event_center_uipic)
 				{
@@ -2294,7 +2294,7 @@ namespace nel
 
 		private bool drawHpCrack()
 		{
-			if (this.Pr.hp_crack <= 0)
+			if (this.Pr.DMG.hp_crack <= 0)
 			{
 				return false;
 			}
@@ -2305,7 +2305,7 @@ namespace nel
 			float num3 = num2 + 5f;
 			MeshDrawer meshDrawer = this.MdIconT.Identity();
 			int num4 = 0;
-			for (int i = 0; i < this.Pr.hp_crack; i++)
+			for (int i = 0; i < this.Pr.DMG.hp_crack; i++)
 			{
 				float num5;
 				float num6;
@@ -2324,7 +2324,7 @@ namespace nel
 				}
 				num5 += num;
 				int num8 = i % 3;
-				bool flag3 = i == this.Pr.hp_crack - 1;
+				bool flag3 = i == this.Pr.DMG.hp_crack - 1;
 				meshDrawer.Col = meshDrawer.ColGrd.Set(flag2 ? 4294901760U : uint.MaxValue).C;
 				for (int j = 0; j < num7; j++)
 				{

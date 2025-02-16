@@ -78,14 +78,15 @@ namespace nel.mgm.farm
 			}
 			this.Nai.ran_n = (uint)num;
 			this.mp = 0;
-			this.col_od_blink_color = 4285857747U;
-			this.Anm.add_color_eye_fade_out = 7667667U;
+			this.col_od_blink_color = MTRX.cola.Set(2868838473U).blend(2859270356U, this.Nai.RANn(3156)).rgba;
+			this.Anm.add_color_eye_fade_out = 5924013U;
 			this.Anm.base_rotate_shuffle360 = 0.06f;
 			this.Anm.eye_randomize_level = 0.15f;
 			this.Anm.od_blink_extend_level = 1f;
 			this.Anm.scale_shuffle01 = 0.002f;
-			this.Anm.eye_fade_type = EnemyAnimator.EYE_FADE_TYPE.ZPOWV;
-			this.Anm.def_mul_color = MTRX.cola.Set(2287984718U).blend(2294202504U, this.Nai.RANn(4388)).rgba;
+			this.Anm.eye_fade_type = EnemyAnimator.EYE_FADE_TYPE.ZSIN2;
+			this.Anm.base_color = MTRX.cola.Set(3428835406U).blend(3435053192U, this.Nai.RANn(4388)).rgba;
+			this.Anm.border_color = MTRX.cola.mulA(0.66f).rgba;
 			this.red_eye_blink = true;
 			this.sink_ratio = 9000f;
 			base.remF(NelEnemy.FLAG.CHECK_ENLARGE);
@@ -193,9 +194,13 @@ namespace nel.mgm.farm
 				return;
 			}
 			base.runPre();
-			if (this.Nai.AimPr != null && this.Nai.target_foot_slen < 3f && (this.Nai.AimPr.jump_starting || this.Nai.AimPr.isRunning()) && !this.Nai.HasF(NAI.FLAG.INJECTED, false) && !this.Nai.hasTypeLock(NAI.TYPE.BACKSTEP))
+			if (this.Nai.AimPr is PR && this.Nai.target_foot_slen < 3f)
 			{
-				this.Nai.AddF(NAI.FLAG.INJECTED, 440f);
+				PR pr = this.Nai.AimPr as PR;
+				if ((pr.jump_starting || pr.isRunning()) && !this.Nai.HasF(NAI.FLAG.INJECTED, false) && !this.Nai.hasTypeLock(NAI.TYPE.BACKSTEP))
+				{
+					this.Nai.AddF(NAI.FLAG.INJECTED, 440f);
+				}
 			}
 		}
 
@@ -644,7 +649,7 @@ namespace nel.mgm.farm
 				}
 				if (!this.can_hold_tackle && flag)
 				{
-					base.tackleInit(this.AtkTackleP, this.TkTackle);
+					base.tackleInit(this.AtkTackleP, this.TkTackle, MGHIT.AUTO);
 				}
 			}
 			if (Tk.prog == PROG.PROG0)
@@ -684,7 +689,7 @@ namespace nel.mgm.farm
 						this.walk_st = 0;
 						this.walk_time = 0f;
 						Tk.t = 0f;
-						base.tackleInit(this.AtkTackleP, this.TkTackle);
+						base.tackleInit(this.AtkTackleP, this.TkTackle, MGHIT.AUTO);
 						this.SpSetPose("attack_1", -1, null, false);
 						return true;
 					}
@@ -933,7 +938,7 @@ namespace nel.mgm.farm
 			this.walk_speed = 0f;
 			this.walk_time = 0f;
 			this.SpSetPose("absorb", -1, null, false);
-			Abm.target_pose = "absorbed_down";
+			Abm.target_pose = "absorbed_downb";
 			this.Phy.addFoc(FOCTYPE.SPECIAL_ATTACK, base.mpf_is_right * num, 0f, -2f, 0, 2, 25, -1, 0);
 			pr.getPhysic().addFoc(FOCTYPE.SPECIAL_ATTACK, base.mpf_is_right * num, 0f, -2f, 0, 2, 25, -1, 0);
 			Abm.release_from_publish_count = true;
@@ -1022,8 +1027,8 @@ namespace nel.mgm.farm
 					this.TeCon.setQuakeSinH(num5 * 0.7f, 52, num6, 0f, 0);
 				}
 				base.runAbsorb();
-				base.applyAbsorbDamageTo(pr, this.AtkAbsorb, num % 2 == 0, false, false, 1f, false, this.Absorb.uipicture_fade_key, true);
-				this.Anm.randomizeFrame();
+				base.applyAbsorbDamageTo(pr, this.AtkAbsorb, num % 2 == 0, false, false, 1f, false, this.Absorb.uipicture_fade_key, true, true);
+				this.Anm.randomizeFrame(0.5f, 0.5f);
 				pr.Ser.Add(SER.MILKY, 240, 99, false);
 				pr.EpCon.SituCon.addTempSituation("&&GM_ep_situation_farm", 1, false);
 				this.BelongTo.grab_atk_count++;
@@ -1237,6 +1242,13 @@ namespace nel.mgm.farm
 		public override float getMpDesireRatio(int add_mp)
 		{
 			return 0.95f;
+		}
+
+		public override float blend_white_to_od_blink_color_level(out uint _blend_col, C32 CBuf)
+		{
+			float add_color_white_blend_level = EnemyMeshDrawer.add_color_white_blend_level;
+			_blend_col = 16711680U;
+			return X.ZLINE(add_color_white_blend_level);
 		}
 
 		public float NIn(float _v1, float _v2, int _seed)

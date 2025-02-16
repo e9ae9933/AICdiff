@@ -26,17 +26,33 @@ namespace nel
 				this.MtrW.SetFloat("_StencilRef", (float)container_stencil_ref);
 				this.MtrW.SetFloat("_StencilComp", 3f);
 			}
+			this.MdIco.chooseSubMesh(2, false, false);
+			this.MdIco.setMaterial(MTRX.MIicon.getMtr(container_stencil_ref), false);
 			this.MdIco.chooseSubMesh(0, false, false);
 			this.MdIco.connectRendererToTriMulti(this.MMRD.GetMeshRenderer(this.MdIco));
 		}
 
 		public void initReel(ReelExecuter _Reel)
 		{
-			this.Reel = _Reel;
-			ReelExecuter.fineMaterialCol(this.MtrG, this.Reel.getEType());
-			ReelExecuter.fineMaterialCol(this.MtrW, this.Reel.getEType());
+			this.initReel(_Reel.getEType());
+		}
+
+		public void initReel(ReelExecuter.ETYPE _type)
+		{
+			this.reeltype = _type;
+			this.IR = null;
+			ReelExecuter.fineMaterialCol(this.MtrG, this.reeltype);
+			ReelExecuter.fineMaterialCol(this.MtrW, this.reeltype);
 			this.MdIco.chooseSubMesh(0, false, false);
-			this.row_left_px = 68;
+			this.row_left_px = (int)(this.clip_left * 1.75f);
+			this.setTitleText(this.B.title);
+		}
+
+		public void initIR(ReelManager.ItemReelContainer _IR)
+		{
+			this.reeltype = ReelExecuter.ETYPE._MAX;
+			this.IR = _IR;
+			this.row_left_px = (int)(this.clip_left * 1.66f);
 			this.setTitleText(this.B.title);
 		}
 
@@ -52,27 +68,52 @@ namespace nel
 
 		protected override void setTitleText(string str)
 		{
-			if (this.Reel == null || this.w * 64f < 100f)
+			if (this.w * 64f < 100f)
 			{
 				return;
 			}
-			base.setTitleText(TX.GetA("Reel_etype_prefix", TX.Get("Reel_etype_" + this.Reel.getEType().ToString(), "")));
+			if (this.reeltype != ReelExecuter.ETYPE._MAX)
+			{
+				base.setTitleText(TX.GetA("Reel_etype_prefix", TX.Get("Reel_etype_" + this.reeltype.ToString(), "")));
+			}
+			if (this.IR != null)
+			{
+				base.setTitleText(TX.ReplaceTX(this.IR.tx_key, false));
+			}
 		}
 
 		protected override void drawCheckedIcon(float sht_clk_pixel = 0f)
 		{
 		}
 
+		public float clip_left
+		{
+			get
+			{
+				return (float)((this.w * 64f < 210f) ? 10 : 28);
+			}
+		}
+
 		protected override void RowFineAfter(float w, float h)
 		{
-			if (this.Reel != null)
+			if (this.reeltype != ReelExecuter.ETYPE._MAX)
 			{
 				this.MdIco.chooseSubMesh(0, false, false);
 				float num = 12f;
-				float num2 = ((w < 100f) ? 0f : (-w * 0.5f + h * 0.5f + 20f));
-				this.Reel.drawFrame(this.MdIco, num2, 0f, num, 1f, this.alpha_);
+				float num2 = ((w < 100f) ? 0f : (-w * 0.5f + this.clip_left - 6f));
+				if (w >= 210f)
+				{
+					ReelExecuter.drawFrameS(this.MdIco, this.reeltype, num2, 0f, num, 1f, this.alpha_);
+				}
 				this.MdIco.chooseSubMesh(1, false, false);
-				this.Reel.drawIcon(this.MdIco, num2, 0f, num, 1f, 0f, this.alpha_);
+				ReelExecuter.drawIconS(this.MdIco, this.reeltype, num2, 0f, num, 1f, 0f, this.alpha_);
+				this.MdIco.chooseSubMesh(0, false, false);
+			}
+			if (this.IR != null)
+			{
+				float num3 = ((w < 100f) ? 0f : (-w * 0.5f + this.clip_left));
+				this.MdIco.chooseSubMesh(2, false, false);
+				this.IR.drawSmallIcon(this.MdIco, num3, 0f, this.alpha_, 1f, false);
 				this.MdIco.chooseSubMesh(0, false, false);
 			}
 			if (base.hilighted)
@@ -82,10 +123,12 @@ namespace nel
 			base.RowFineAfter(w, h);
 		}
 
-		private ReelExecuter Reel;
+		private ReelExecuter.ETYPE reeltype = ReelExecuter.ETYPE._MAX;
 
 		private Material MtrG;
 
 		private Material MtrW;
+
+		private ReelManager.ItemReelContainer IR;
 	}
 }

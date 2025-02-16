@@ -14,9 +14,16 @@ namespace nel
 			this.Mp = _Mp;
 			this.kind = ENEMYKIND.DEVIL;
 			float num = 9f;
-			ENEMYID id = this.id;
-			this.id = ENEMYID.PUPPY_0;
-			NOD.BasicData basicData = NOD.getBasicData("PUPPY_0");
+			NOD.BasicData basicData;
+			if (this.id == ENEMYID.PUPPY_EVENT_0)
+			{
+				basicData = NOD.getBasicData("PUPPY_EVENT_0");
+			}
+			else
+			{
+				this.id = ENEMYID.PUPPY_0;
+				basicData = NOD.getBasicData("PUPPY_0");
+			}
 			this.SizeW(40f, 90f, ALIGN.CENTER, ALIGNY.MIDDLE);
 			base.appear(_Mp, basicData);
 			if (NelNPuppy.OposeN2S == null)
@@ -59,6 +66,23 @@ namespace nel
 			this.Nai.fnSleepLogic = NAI.FD_SleepOnlyNearMana;
 			this.Nai.fnAwakeLogic = new NAI.FnNaiLogic(this.considerNormal);
 			this.Nai.suit_distance = -1f;
+			NelAttackInfoBase atkAbsorb = this.AtkAbsorb;
+			NelAttackInfoBase atkAbsorbDead = this.AtkAbsorbDead;
+			EpAtk epAtk = new EpAtk(9, "tentacle");
+			epAtk.vagina = 3;
+			epAtk.canal = 6;
+			epAtk.anal = 2;
+			epAtk.cli = 2;
+			EpAtk epAtk2 = epAtk;
+			atkAbsorbDead.EpDmg = epAtk;
+			atkAbsorb.EpDmg = epAtk2;
+			this.AtkAbsorbStab.EpDmg = new EpAtk(6, "tentacle_2")
+			{
+				vagina = 2,
+				anal = 4,
+				urethra = 2,
+				mouth = 2
+			};
 			this.FD_findNextLeader = new Func<AbsorbManager, bool>(this.findNextLeader);
 			this.FD_findNextLeaderDef = new Func<AbsorbManager, bool>(this.findNextLeaderDef);
 			this.exist_land_pose = (this.exist_fall_pose = true);
@@ -66,6 +90,12 @@ namespace nel
 			this.GClimb.addChangedFn(new NASGroundClimber.FnClimbEvent(this.fnChangedBcc));
 			this.GClimb.leave_allocate_time = 120;
 			this.absorb_weight = 1;
+			this.AtkSmallPunch.Prepare(this, true);
+			this.AtkAbsorb.Prepare(this, true);
+			this.AtkAbsorbDead.Prepare(this, true);
+			this.AtkAbsorbGrab.Prepare(this, false);
+			this.AtkAbsorbWip.Prepare(this, false);
+			this.AtkAbsorbStab.Prepare(this, false);
 		}
 
 		private NelNPuppy PLn(string n, string s)
@@ -85,7 +115,7 @@ namespace nel
 			this.Nai.addTypeLock(NAI.TYPE.PUNCH_2, num);
 		}
 
-		private bool considerNormal(NAI Nai)
+		protected virtual bool considerNormal(NAI Nai)
 		{
 			if (this.is_small)
 			{
@@ -138,7 +168,7 @@ namespace nel
 						}
 					}
 				}
-				if (Nai.fnAwakeBasicHead(Nai))
+				if (Nai.fnAwakeBasicHead(Nai, NAI.TYPE.GAZE))
 				{
 					return true;
 				}
@@ -209,7 +239,7 @@ namespace nel
 			{
 				return null;
 			}
-			if (!base.Useable(this.McsCapture, 1f, (float)this.maxmp * 0.08f + 5f))
+			if (!this.Useable(this.McsCapture, 1f, (float)this.maxmp * 0.08f + 5f))
 			{
 				return null;
 			}
@@ -355,6 +385,23 @@ namespace nel
 			return base.initDeathEffect();
 		}
 
+		protected void createWalkSnd()
+		{
+			if (!X.DEBUGNOSND)
+			{
+				this.SndLoopWalk = this.Mp.M2D.Snd.createInterval(this.snd_key, "tentacle_move", 90f, this, 0f, 128).TimeAbsolute(false);
+				this.SndLoopWalkF = this.Mp.M2D.Snd.createInterval(this.snd_key, "tentacle_foot", (float)(this.is_small ? 3 : 7), this, 0f, 128).TimeAbsolute(false);
+			}
+		}
+
+		public void deactivateWalkSnd()
+		{
+			if (this.SndLoopWalk != null)
+			{
+				this.SndLoopWalk.active = (this.SndLoopWalkF.active = false);
+			}
+		}
+
 		private bool runWalk(bool init_flag, NaTicket Tk, bool stop_near_dep = false, bool do_not_wall_dash = false)
 		{
 			if (init_flag)
@@ -370,11 +417,7 @@ namespace nel
 				this.SpSetPose("walk", -1, null, false);
 				this.FlgSmall.Add("ATK");
 				Tk.after_delay = (this.is_small ? 0f : (9f + this.Nai.RANtk(855) * 20f));
-				if (!X.DEBUGNOSND)
-				{
-					this.SndLoopWalk = this.Mp.M2D.Snd.createInterval(this.snd_key, "tentacle_move", 90f, this, 0f, 128).TimeAbsolute(false);
-					this.SndLoopWalkF = this.Mp.M2D.Snd.createInterval(this.snd_key, "tentacle_foot", (float)(this.is_small ? 3 : 7), this, 0f, 128).TimeAbsolute(false);
-				}
+				this.createWalkSnd();
 			}
 			float num = X.ZLINE(this.t + 1f, 18f);
 			if (this.walk_time >= 0f)
@@ -553,7 +596,7 @@ namespace nel
 				if (this.t >= 20f && Tk.prog == PROG.PROG4)
 				{
 					Tk.prog = PROG.PROG5;
-					base.tackleInit(this.AtkSmallPunch, 0.3f, 0f, this.is_small ? 0.25f : 0.4f, false, false);
+					base.tackleInit(this.AtkSmallPunch, 0.3f, 0f, this.is_small ? 0.25f : 0.4f, false, false, MGHIT.AUTO);
 					this.jumpInit(base.mpf_is_right * 1.4f, 0f, this.is_small ? 0.2f : 0.16f, false);
 					this.SpSetPose("atk_end", -1, null, false);
 				}
@@ -674,6 +717,7 @@ namespace nel
 						this.jumpInit(-base.mpf_is_right * 2.6f, 0f, X.NI(1.5f, 1.1f, this.enlarge_level - 1f), false);
 						Tk.prog = PROG.PROG2;
 						base.PtcST("puppy_attack_hit", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+						EnemyAttr.Splash(this, 0.66f);
 						this.SpSetPose("fall", -1, null, false);
 					}
 					else if (this.t >= 80f)
@@ -686,7 +730,7 @@ namespace nel
 					}
 					else if (this.Nai.target_len < 4.5f + this.sizex)
 					{
-						magicItem = base.tackleInit(this.AtkCapture, this.TkiCapture);
+						magicItem = base.tackleInit(this.AtkCapture, this.TkiCapture, MGHIT.AUTO);
 						base.PtcST("puppy_attack_tackle", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_T);
 						this.Phy.remFoc(FOCTYPE.WALK, true);
 						this.Phy.addFoc(FOCTYPE.WALK | FOCTYPE._CHECK_WALL, 0.26f * base.mpf_is_right, 0f, -1f, 0, 25, 20, -1, 0);
@@ -703,7 +747,7 @@ namespace nel
 						this.walk_st = 0;
 						this.skip_lift_mapy = 0;
 						this.Anm.rotationR = 0f;
-						base.MpConsume(this.McsCapture, magicItem, 1f, 1f);
+						this.MpConsume(this.McsCapture, magicItem, 1f, 1f);
 						base.killPtc("puppy_attack_1", false);
 						if (!base.hasFoot())
 						{
@@ -1026,8 +1070,8 @@ namespace nel
 				{
 					base.runAbsorb();
 				}
-				base.applyAbsorbDamageTo(pr, nelAttackInfo, true, false, flag, (this.walk_st >= 0) ? 1f : 0.7f, false, null, false);
-				this.Anm.randomizeFrame();
+				base.applyAbsorbDamageTo(pr, nelAttackInfo, true, false, flag, (this.walk_st >= 0) ? 1f : 0.7f, false, null, false, true);
+				this.Anm.randomizeFrame(0.5f, 0.5f);
 			}
 			return true;
 		}
@@ -1119,6 +1163,12 @@ namespace nel
 		{
 			if (!this.is_small)
 			{
+				if (Atk == null || EnemyAttr.applyHpDamageRatio(this, Atk) <= 0f)
+				{
+					val = 0;
+					mpdmg = 0;
+					return 0;
+				}
 				int num = X.Mx(0, val + (int)X.Mx(0f, (float)this.mp - (float)this.maxmp * 0.5f));
 				if (num > 0)
 				{
@@ -1145,20 +1195,29 @@ namespace nel
 
 		public override float applyHpDamageRatio(AttackInfo Atk)
 		{
-			if (!this.is_small)
+			if (this.is_small)
 			{
-				return 1f;
+				return base.applyHpDamageRatio(Atk);
 			}
-			return base.applyHpDamageRatio(Atk);
+			if (Atk != null)
+			{
+				return EnemyAttr.applyHpDamageRatio(this, Atk);
+			}
+			return 0f;
 		}
 
 		public override int getMpDamageValue(NelAttackInfo Atk, int val)
 		{
-			if (!this.is_small)
+			float num = (this.is_small ? 2f : 0.25f);
+			if (Atk != null)
 			{
-				return 1;
+				num *= EnemyAttr.applyHpDamageRatio(this, Atk);
+				if (num == 0f)
+				{
+					return 0;
+				}
 			}
-			return base.getMpDamageValue(Atk, val);
+			return X.IntC((float)base.getMpDamageValue(Atk, val) * num);
 		}
 
 		public override bool checkDamageStun(NelAttackInfo Atk, float level = 1f)
@@ -1166,7 +1225,7 @@ namespace nel
 			return this.is_small && base.checkDamageStun(Atk, 3f);
 		}
 
-		protected NelAttackInfo AtkSmallPunch = new NelAttackInfo
+		protected EnAttackInfo AtkSmallPunch = new EnAttackInfo
 		{
 			hpdmg0 = 4,
 			split_mpdmg = 5,
@@ -1191,67 +1250,48 @@ namespace nel
 
 		protected NOD.MpConsume McsCapture = NOD.getMpConsume("puppy_capture");
 
-		protected static EpAtk EpAbsorb = new EpAtk(9, "tentacle")
-		{
-			vagina = 3,
-			canal = 6,
-			anal = 2,
-			cli = 2
-		};
-
-		protected static EpAtk EpStab = new EpAtk(6, "tentacle_2")
-		{
-			vagina = 2,
-			anal = 4,
-			urethra = 2,
-			mouth = 2
-		};
-
-		protected NelAttackInfo AtkAbsorb = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorb = new EnAttackInfo
 		{
 			split_mpdmg = 1,
 			attr = MGATTR.ABSORB,
 			hit_ptcst_name = "player_absorbed_basic",
-			EpDmg = NelNPuppy.EpAbsorb,
 			Beto = BetoInfo.Absorbed
 		};
 
-		protected NelAttackInfo AtkAbsorbDead = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbDead = new EnAttackInfo
 		{
 			split_mpdmg = 2,
 			attr = MGATTR.ABSORB,
 			hit_ptcst_name = "player_absorbed_basic",
-			EpDmg = NelNPuppy.EpAbsorb,
 			Beto = BetoInfo.Absorbed
 		};
 
-		protected NelAttackInfo AtkAbsorbGrab = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbGrab = new EnAttackInfo(0.02f, 0.025f)
 		{
 			split_mpdmg = 1,
 			hpdmg0 = 4,
 			attr = MGATTR.GRAB,
 			Beto = BetoInfo.Grab,
 			huttobi_ratio = -1000f
-		}.Torn(0.02f, 0.025f);
+		};
 
-		protected NelAttackInfo AtkAbsorbWip = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbWip = new EnAttackInfo(0.04f, 0.08f)
 		{
 			split_mpdmg = 4,
 			hpdmg0 = 4,
 			attr = MGATTR.WIP,
 			Beto = BetoInfo.Blood,
 			huttobi_ratio = -1000f
-		}.Torn(0.04f, 0.08f);
+		};
 
-		protected NelAttackInfo AtkAbsorbStab = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbStab = new EnAttackInfo(0.02f, 0.09f)
 		{
 			split_mpdmg = 0,
 			hpdmg0 = 3,
 			attr = MGATTR.STAB,
 			Beto = BetoInfo.Blood,
-			huttobi_ratio = -1000f,
-			EpDmg = NelNPuppy.EpStab
-		}.Torn(0.02f, 0.09f);
+			huttobi_ratio = -1000f
+		};
 
 		private const float size_default_w = 40f;
 
@@ -1265,11 +1305,11 @@ namespace nel
 
 		private const float size_vsml_h = 28f;
 
-		private const float walk_speed = 0.23f;
+		protected const float walk_speed = 0.23f;
 
-		private const float walk_speed_big = 0.17f;
+		protected const float walk_speed_big = 0.17f;
 
-		private const float walk_speed_small = 0.21f;
+		protected const float walk_speed_small = 0.21f;
 
 		private const float tackle_speed = 0.26f;
 
@@ -1301,7 +1341,7 @@ namespace nel
 
 		private bool is_small;
 
-		private Flagger FlgSmall;
+		protected Flagger FlgSmall;
 
 		private float linearcheck_lock_t;
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using PixelLiner.PixelLinerLib;
 
@@ -6,7 +7,7 @@ namespace XX
 {
 	public class XorsMaker
 	{
-		private XorsMaker(bool use_save)
+		public XorsMaker(bool use_save)
 		{
 			this.Randseed = new uint[4];
 			this.randA = new uint[128];
@@ -39,6 +40,18 @@ namespace XX
 			if (this.RandseedFirst != null)
 			{
 				this.init(this.RandseedFirst, no_clear_randA);
+			}
+		}
+
+		public void updateFirst(int skip_first = 0)
+		{
+			if (this.RandseedFirst != null)
+			{
+				while (--skip_first >= 0)
+				{
+					this.get0();
+				}
+				this.init(false, this.Randseed[0], this.Randseed[1], this.Randseed[2], this.Randseed[3]);
 			}
 		}
 
@@ -90,7 +103,7 @@ namespace XX
 			}
 		}
 
-		public float getP()
+		public float XORSP()
 		{
 			this.Bytes.In = (this.get0() >> 9) | 1065353216U;
 			return this.Bytes.Out - 1f;
@@ -113,6 +126,37 @@ namespace XX
 		public uint get2O(uint seed1, uint seed2)
 		{
 			return (this.randA[(int)(seed1 & 127U)] / ((seed2 & 65535U) + 1U)) & 134217727U;
+		}
+
+		public int xors(int i)
+		{
+			if (i > 0)
+			{
+				return (int)(this.get0() % (uint)i);
+			}
+			return 0;
+		}
+
+		public int map(int l0, int l1 = 0, int l2 = 0, int l3 = 0, int l4 = 0)
+		{
+			int num = this.xors(l0 + l1 + l2 + l3 + l4);
+			if (num < l0)
+			{
+				return 0;
+			}
+			if (num < l0 + l1)
+			{
+				return 1;
+			}
+			if (num < l0 + l1 + l2)
+			{
+				return 2;
+			}
+			if (num < l0 + l1 + l2 + l3)
+			{
+				return 3;
+			}
+			return 4;
 		}
 
 		public uint comb_bits(int va, int vb)
@@ -140,23 +184,38 @@ namespace XX
 			return num;
 		}
 
-		public T[] shuffle<T>(T[] Av)
+		public void shuffle<T>(T[] A, int arraymax = -1)
 		{
-			int num = Av.Length;
-			int num2 = (num - 1) * 23;
-			for (int i = 0; i < num2; i++)
+			arraymax = ((arraymax < 0) ? A.Length : arraymax);
+			int num = (arraymax - 1) * 23;
+			for (int i = 0; i < num; i++)
 			{
-				int num3 = (int)((ulong)this.get0() % (ulong)((long)num));
-				int num4 = (int)((ulong)this.get0() % (ulong)((long)num));
-				if (num3 == num4)
-				{
-					num4 = num - 1 - num3;
-				}
-				T t = Av[num4];
-				Av[num4] = Av[num3];
-				Av[num3] = t;
+				int num2 = (int)((ulong)this.get0() % (ulong)((long)arraymax));
+				int num3 = (int)((ulong)this.get0() % (ulong)((long)arraymax));
+				int num4 = num2;
+				int num5 = num3;
+				T t = A[num3];
+				T t2 = A[num2];
+				A[num4] = t;
+				A[num5] = t2;
 			}
-			return Av;
+		}
+
+		public void shuffle<T>(List<T> A, int arraymax = -1)
+		{
+			arraymax = ((arraymax < 0) ? A.Count : arraymax);
+			int num = (arraymax - 1) * 23;
+			for (int i = 0; i < num; i++)
+			{
+				int num2 = (int)((ulong)this.get0() % (ulong)((long)arraymax));
+				int num3 = (int)((ulong)this.get0() % (ulong)((long)arraymax));
+				int num4 = num2;
+				int num5 = num3;
+				T t = A[num3];
+				T t2 = A[num2];
+				A[num4] = t;
+				A[num5] = t2;
+			}
 		}
 
 		public XorsMaker saveRandSeeds(uint[] Av)
@@ -179,7 +238,7 @@ namespace XX
 			return this;
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool noClearRandA = false)
+		public virtual void readBinaryFrom(ByteReader Ba, bool noClearRandA = false)
 		{
 			if (this.RandseedFirst == null)
 			{
@@ -195,7 +254,7 @@ namespace XX
 			}
 		}
 
-		public void writeBinaryTo(ByteArray Ba)
+		public virtual void writeBinaryTo(ByteArray Ba)
 		{
 			if (this.RandseedFirst == null)
 			{

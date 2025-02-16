@@ -699,7 +699,7 @@ namespace XX
 										EffectItem effectItem = this.setEffectTo(this.Ef, true, 2, agd.FD_EfDraw);
 										if (effectItem != null)
 										{
-											effectItem.setFunction(agd.FD_EfDraw, this._2);
+											effectItem.setFunction(agd.FD_EfDraw, effectItem.title);
 											goto IL_0586;
 										}
 										goto IL_0586;

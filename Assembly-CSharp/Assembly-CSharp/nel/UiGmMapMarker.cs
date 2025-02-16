@@ -24,8 +24,8 @@ namespace nel
 				NelItem.CreateItemEntry(text2, new NelItem(text2, 0, 64, 999)
 				{
 					category = (NelItem.CATEG)2097153U,
-					FnGetName = new FnGetItemDetail(NelItem.fnGetNameMapMarker),
-					FnGetDesc = new FnGetItemDetail(NelItem.fnGetDescMapMarker),
+					FnGetName = NelItem.fnGetNameMapMarker,
+					FnGetDesc = NelItem.fnGetDescMapMarker,
 					SpecificColor = MTRX.ColWhite
 				}, 62200 + i, false);
 			}

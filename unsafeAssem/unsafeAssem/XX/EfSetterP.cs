@@ -110,15 +110,18 @@ namespace XX
 			}
 		}
 
-		public EfSetterP ScriptAdd(EfSetterP PS)
+		public void ScriptAdd(STB Stb, int lcs = 0, int lce = -1)
 		{
-			this.SourceStb += PS.SourceStb;
-			return this;
+			if (lce < 0)
+			{
+				lce = Stb.Length;
+			}
+			this.SourceStb.Add(Stb, lcs, lce - lcs);
 		}
 
-		public EfSetterP ScriptSet(EfSetterP PS)
+		public EfSetterP CopyTo(STB Stb)
 		{
-			this.SourceStb.Set(PS.SourceStb);
+			Stb.Add(this.SourceStb).Ret("\n");
 			return this;
 		}
 

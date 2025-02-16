@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using PixelLiner;
 using UnityEngine;
 
 namespace XX
@@ -95,7 +96,7 @@ namespace XX
 			}
 		}
 
-		public void OnDestroy()
+		public virtual void OnDestroy()
 		{
 			try
 			{
@@ -296,32 +297,33 @@ namespace XX
 			{
 				TextRenderer.MaWord.clear(Md).Set(false);
 			}
+			bool flag5 = Tx != null;
 			byte b = 0;
 			BList<int> blist = null;
-			float num26;
+			float num28;
 			using (STB stb = TX.PopBld(null, 0))
 			{
 				using (STB stb2 = TX.PopBld(null, 0))
 				{
-					bool flag5 = false;
+					bool flag6 = false;
 					TextRendererTagMemory textRendererTagMemory = null;
 					CharacterInfo characterInfo = default(CharacterInfo);
 					int i = 0;
 					while (i <= length)
 					{
-						bool flag6 = false;
+						bool flag7 = false;
 						if (i < length)
 						{
 							c = Stb[i];
-							flag6 = c == '\n' || c == '\r';
+							flag7 = c == '\n' || c == '\r';
 						}
-						bool flag7 = html_mode && c == '<';
-						if (!flag6 && flag4 && (!html_mode || textRendererTagMemory == null || textRendererTagMemory.CurTag == null) && (b == 0 || b == 3))
+						bool flag8 = html_mode && c == '<';
+						if (!flag7 && flag4 && (!html_mode || textRendererTagMemory == null || textRendererTagMemory.CurTag == null) && (b == 0 || b == 3))
 						{
-							bool flag8 = true;
-							if (i == length || (!flag5 && (UseStyle.isWordDelimiter(c) || flag7 || b == 3)))
+							bool flag9 = true;
+							if (i == length || (!flag6 && (UseStyle.isWordDelimiter(c) || flag8 || b == 3)))
 							{
-								flag8 = false;
+								flag9 = false;
 								float lineSWidth;
 								if (num13 > -1000f && !stb.Equals(stb2) && !stb2.Equals("") && (lineSWidth = Storage.getLineSWidth(num8, num11, Style.size)) > condense_swidth)
 								{
@@ -332,7 +334,7 @@ namespace XX
 									TextRenderer.MaWord.translateAll(-num13 + num7, 0f, false);
 									num13 = num16;
 									b = 1;
-									flag6 = true;
+									flag7 = true;
 								}
 								else
 								{
@@ -340,11 +342,11 @@ namespace XX
 									stb2.Set("");
 									if (!UseStyle.isWordDelimiter(c))
 									{
-										flag8 = true;
+										flag9 = true;
 									}
 								}
 							}
-							if (flag8)
+							if (flag9)
 							{
 								if (num13 == -1000f)
 								{
@@ -361,11 +363,11 @@ namespace XX
 						}
 						if (i == length || b == 2)
 						{
-							flag6 = true;
+							flag7 = true;
 						}
-						if (!flag6)
+						if (!flag7)
 						{
-							goto IL_0573;
+							goto IL_0577;
 						}
 						if (b != 1)
 						{
@@ -385,7 +387,7 @@ namespace XX
 						float num19 = ((UseStyle.alignx != ALIGN.LEFT) ? (((UseStyle.alignx == ALIGN.CENTER) ? (-0.5f) : (-1f)) * num18) : 0f);
 						float num20 = num15 * (float)num * Storage.yshift_to_baseline;
 						num10 = X.Mx(num10, num18);
-						if (Tx != null)
+						if (flag5)
 						{
 							if (Tx.Aline_ver_pos != null)
 							{
@@ -410,7 +412,7 @@ namespace XX
 						num12++;
 						num9 -= (UseStyle.fix_line_spacing ? UseStyle.lineSpacing : (num15 * num2 * Storage.base_height * UseStyle.lineSpacing));
 						num15 = num14;
-						bool flag9 = true;
+						bool flag10 = true;
 						stb.Set("");
 						if (flag4)
 						{
@@ -419,12 +421,12 @@ namespace XX
 								Ma.Set(TextRenderer.MaWord.getStartVerIndex(), TextRenderer.MaWord.getStartTriIndex());
 								num8 = num13;
 								stb.Set(stb2);
-								flag9 = false;
+								flag10 = false;
 								if (i >= length)
 								{
 									b = 2;
 									i--;
-									goto IL_0930;
+									goto IL_09DB;
 								}
 							}
 							else
@@ -448,28 +450,28 @@ namespace XX
 						{
 							break;
 						}
-						if (!flag9)
+						if (!flag10)
 						{
-							goto IL_0573;
+							goto IL_0577;
 						}
-						IL_0930:
+						IL_09DB:
 						i++;
 						continue;
-						IL_0573:
+						IL_0577:
 						float num21;
 						float num22;
 						if (html_mode)
 						{
-							bool flag10 = flag2;
-							bool flag11;
-							if (!TextRendererHtmlTag.Parse(Stb, i, c, ref num8, ref num11, ref flag2, ref textRendererTagMemory, ref blist, ref flag5, out flag11, UseStyle))
+							bool flag11 = flag2;
+							bool flag12;
+							if (!TextRendererHtmlTag.Parse(Stb, i, c, ref num8, ref num11, ref flag2, ref textRendererTagMemory, ref blist, ref flag6, out flag12, UseStyle))
 							{
 								if (!UseStyle.isApplying())
 								{
 									flag = true;
 									break;
 								}
-								if (Tx != null)
+								if (flag5)
 								{
 									int vertexMax2 = Md.getVertexMax();
 									int triMax2 = Md.getTriMax();
@@ -480,21 +482,21 @@ namespace XX
 										num3 = vertexMax2;
 									}
 								}
-								if (flag11 && flag4)
+								if (flag12 && flag4)
 								{
 									b = 3;
-									goto IL_0930;
+									goto IL_09DB;
 								}
-								goto IL_0930;
+								goto IL_09DB;
 							}
-							else if (flag10 && !flag2 && c == 'b')
+							else if (flag11 && !flag2 && c == 'b')
 							{
 								if (flag4)
 								{
 									b = 3;
-									goto IL_0930;
+									goto IL_09DB;
 								}
-								goto IL_0930;
+								goto IL_09DB;
 							}
 							else
 							{
@@ -519,30 +521,51 @@ namespace XX
 						if (c == '\t')
 						{
 							num8 = (float)(1 + (int)((num8 + num22) / (num22 * UseStyle.tab_spacing_chars))) * (num22 * UseStyle.tab_spacing_chars);
-							goto IL_0930;
+							goto IL_09DB;
 						}
 						if (c == ' ' || c == '\u3000')
 						{
 							num8 += num22;
-							goto IL_0930;
+							goto IL_09DB;
 						}
 						if (c == '\b')
 						{
-							goto IL_0930;
+							goto IL_09DB;
 						}
-						if (!Style.confusion && !Storage.TargetFont.Target.GetCharacterInfo(c, out characterInfo, num))
+						bool flag13 = false;
+						TextRenderer.CHAR_INFO_RES char_INFO_RES = TextRenderer.CHAR_INFO_RES.SUCCESS;
+						PxlFrame pxlFrame = null;
+						float num24 = 1f;
+						float num25 = num21;
+						if (!Style.confusion)
 						{
-							Storage.TargetFont.Target.RequestCharactersInTexture((Tx != null && Tx.Stb == Stb) ? Tx.text_content : Stb.ToString(), num);
-							if (!UseStyle.isApplying())
+							if (flag5)
 							{
-								flag = true;
-								break;
+								char_INFO_RES = Tx.GetCharacterInfo(c, i, out characterInfo, ref pxlFrame, ref num24, num, Style.size);
 							}
-							if (!Storage.TargetFont.Target.GetCharacterInfo(c, out characterInfo, num))
+							else
 							{
-								goto IL_0930;
+								char_INFO_RES = (Storage.TargetFont.Target.GetCharacterInfo(c, out characterInfo, num) ? TextRenderer.CHAR_INFO_RES.SUCCESS : TextRenderer.CHAR_INFO_RES.FAIL);
 							}
-							flag = false;
+							num25 *= num24;
+							if (char_INFO_RES == TextRenderer.CHAR_INFO_RES.CONTINUE)
+							{
+								goto IL_09DB;
+							}
+							if (char_INFO_RES == TextRenderer.CHAR_INFO_RES.FAIL)
+							{
+								Storage.TargetFont.Target.RequestCharactersInTexture((flag5 && Tx.Stb == Stb) ? Tx.text_content : Stb.ToString(), num);
+								if (!UseStyle.isApplying())
+								{
+									flag = true;
+									break;
+								}
+								if (!Storage.TargetFont.Target.GetCharacterInfo(c, out characterInfo, num))
+								{
+									goto IL_09DB;
+								}
+								flag = false;
+							}
 						}
 						if (flag3)
 						{
@@ -550,10 +573,19 @@ namespace XX
 						}
 						int maxY = characterInfo.maxY;
 						int minY = characterInfo.minY;
-						if (!UseStyle.consider_leftshift)
+						if (char_INFO_RES == TextRenderer.CHAR_INFO_RES.MESH_REPLACED)
 						{
-							float num24 = (float)(characterInfo.maxX - characterInfo.minX + characterInfo.bearing * 2) * num21;
-							Md.BoxCharacterInfo(num8 + ((UseStyle.monospace && !UseStyle.consider_leftshift) ? (UseStyle.size / 2f - num24 / 2f) : 0f), 0f, num21, num21, c, Storage, characterInfo, false, UseStyle);
+							if (pxlFrame != null)
+							{
+								num25 = num24 * Style.size * 0.0625f;
+								Md.RotaPF(num8, 0f, num24, num24, 0f, pxlFrame, false, false, false, uint.MaxValue, false, 0);
+								num8 += (float)pxlFrame.pSq.width * num25 * UseStyle.letterSpacing;
+							}
+						}
+						else if (!flag13)
+						{
+							float num26 = (float)(characterInfo.maxX - characterInfo.minX + characterInfo.bearing * 2) * num25;
+							Md.BoxCharacterInfo(num8 + ((UseStyle.monospace && !UseStyle.consider_leftshift) ? (UseStyle.size / 2f - num26 / 2f) : 0f), 0f, num25, num25, c, Storage, characterInfo, false, UseStyle);
 							if (UseStyle.monospace)
 							{
 								num11 = (UseStyle.letterSpacing - 1f) * UseStyle.size * Storage.xratio;
@@ -562,17 +594,17 @@ namespace XX
 							else
 							{
 								num11 = (UseStyle.letterSpacing + letterSpaceRatio - 2f) * UseStyle.size * Storage.xratio;
-								num8 += num24 + num11;
+								num8 += num26 + num11;
 							}
 						}
 						else
 						{
-							Md.BoxCharacterInfo(num8, 0f, num21, num21, c, Storage, characterInfo, false, UseStyle);
-							float num25 = (float)characterInfo.maxX * num21;
+							Md.BoxCharacterInfo(num8, 0f, num25, num25, c, Storage, characterInfo, false, UseStyle);
+							float num27 = (float)characterInfo.maxX * num25;
 							if ((float)characterInfo.maxX >= (float)(characterInfo.maxX - characterInfo.minX) * 0.5f)
 							{
-								num11 = X.Mn(num22 - num25, (UseStyle.letterSpacing - 1f) * UseStyle.size * Storage.xratio);
-								num8 += num25 + num11;
+								num11 = X.Mn(num22 - num27, (UseStyle.letterSpacing - 1f) * UseStyle.size * Storage.xratio);
+								num8 += num27 + num11;
 							}
 							else
 							{
@@ -583,9 +615,9 @@ namespace XX
 						{
 							Md.Uv23(UseStyle.BorderCol, false).allocUv23(0, true);
 						}
-						if (!(Tx != null))
+						if (!flag5)
 						{
-							goto IL_0930;
+							goto IL_09DB;
 						}
 						int vertexMax3 = Md.getVertexMax();
 						int triMax3 = Md.getTriMax();
@@ -594,9 +626,13 @@ namespace XX
 							Tx.InputCharacterOnMesh(Md, c, num3, num4, vertexMax3, triMax3, ref num15);
 							num4 = triMax3;
 							num3 = vertexMax3;
-							goto IL_0930;
 						}
-						goto IL_0930;
+						if (char_INFO_RES == TextRenderer.CHAR_INFO_RES.MESH_REPLACED)
+						{
+							Tx.initMeshSub(TextRenderer.MESH_TYPE.TX);
+							goto IL_09DB;
+						}
+						goto IL_09DB;
 					}
 					if (blist != null)
 					{
@@ -609,35 +645,35 @@ namespace XX
 					}
 					if (flag)
 					{
-						num26 = -1000f;
+						num28 = -1000f;
 					}
 					else
 					{
-						float num27 = -num9 - (UseStyle.fix_line_spacing ? UseStyle.lineSpacing : ((UseStyle.lineSpacing - 1f) * num15 * Storage.base_height));
+						float num29 = -num9 - (UseStyle.fix_line_spacing ? UseStyle.lineSpacing : ((UseStyle.lineSpacing - 1f) * num15 * Storage.base_height));
 						Ma.Set(vertexMax, triMax);
-						float num28 = ((UseStyle.aligny == ALIGNY.TOP) ? 0f : ((UseStyle.aligny == ALIGNY.MIDDLE) ? 0.5f : 1f)) * num27 * 0.015625f;
-						Ma.translateAll(0f, num28, true);
+						float num30 = ((UseStyle.aligny == ALIGNY.TOP) ? 0f : ((UseStyle.aligny == ALIGNY.MIDDLE) ? 0.5f : 1f)) * num29 * 0.015625f;
+						Ma.translateAll(0f, num30, true);
 						if (compress_type == COMPRESS_STYPE.WHOLE_SIZE && condense_swidth > 0f && num10 != 0f && condense_swidth < num10)
 						{
-							float num29 = condense_swidth / num10;
-							Ma.scaleAll(num29, num29, 0f, 0f, true);
+							float num31 = condense_swidth / num10;
+							Ma.scaleAll(num31, num31, 0f, 0f, true);
 							num10 = condense_swidth;
-							num27 *= num29;
+							num29 *= num31;
 						}
-						float num30 = x0 * 0.015625f;
-						num28 = y0 * 0.015625f;
-						Ma.translateAll(num30, num28, true);
-						if (Tx != null)
+						float num32 = x0 * 0.015625f;
+						num30 = y0 * 0.015625f;
+						Ma.translateAll(num32, num30, true);
+						if (flag5)
 						{
 							Tx.swidth = num10;
-							Tx.sheight = num27;
-							Ma.translateAll(num30, num28, true);
+							Tx.sheight = num29;
+							Ma.translateAll(num32, num30, true);
 						}
-						num26 = num10;
+						num28 = num10;
 					}
 				}
 			}
-			return num26;
+			return num28;
 		}
 
 		public bool RenderRuby(TextRenderStyle NowStyle, int ini_ver_i, STB StbContent, out int last_ver_i)
@@ -667,6 +703,59 @@ namespace XX
 			NowStyle.fix_line_spacing = fix_line_spacing;
 			last_ver_i = this.Md.getVertexMax();
 			return last_ver_i > vertexMax;
+		}
+
+		public bool RenderSLine(TextRenderStyle NowStyle, int ini_ver_i, out int last_ver_i)
+		{
+			last_ver_i = this.Md.getVertexMax();
+			if (ini_ver_i < 0 || last_ver_i == 0 || last_ver_i <= ini_ver_i || this.Aline_ver_pos == null)
+			{
+				return false;
+			}
+			this.initMeshSub(TextRenderer.MESH_TYPE.MESH_T0);
+			int num = this.Aline_ver_pos.Count - 1;
+			Vector3[] vertexArray = this.Md.getVertexArray();
+			while (last_ver_i > ini_ver_i && num >= 0)
+			{
+				int num2 = this.Aline_ver_pos[num--];
+				int num3 = X.Mx(ini_ver_i, num2);
+				this.Md.Col = C32.MulA(NowStyle.MyCol, NowStyle.alpha);
+				if (num3 <= last_ver_i - 4)
+				{
+					Vector3 zero = Vector3.zero;
+					zero.y = X.NI(vertexArray[last_ver_i - 1].y, vertexArray[last_ver_i - 2].y, 0.5f);
+					int num4 = 1;
+					zero.z = (zero.x = X.NI(vertexArray[last_ver_i - 1].x, vertexArray[last_ver_i - 2].x, 0.5f));
+					for (int i = num3; i < last_ver_i; i += 4)
+					{
+						float num5 = X.NI(vertexArray[i].x, vertexArray[i + 1].x, 0.5f);
+						if (num5 < zero.x)
+						{
+							zero.x = num5;
+						}
+						zero.y += X.NI(vertexArray[i].y, vertexArray[i + 1].y, 0.5f);
+						num4++;
+					}
+					if (num4 > 1)
+					{
+						zero.y /= (float)num4;
+					}
+					this.Md.Line(zero.x, zero.y, zero.z, zero.y, NowStyle.size * 0.0769f * 1.5f * 0.015625f, true, 0f, 0f);
+				}
+				last_ver_i = num3;
+			}
+			last_ver_i = this.Md.getVertexMax();
+			this.initMeshSub(TextRenderer.MESH_TYPE.TX);
+			return true;
+		}
+
+		protected virtual TextRenderer.CHAR_INFO_RES GetCharacterInfo(char chr, int index, out CharacterInfo Ch, ref PxlFrame PFReplace, ref float scale, int ext_size_request, float size)
+		{
+			if (!this.Storage.TargetFont.Target.GetCharacterInfo(chr, out Ch, ext_size_request))
+			{
+				return TextRenderer.CHAR_INFO_RES.FAIL;
+			}
+			return TextRenderer.CHAR_INFO_RES.SUCCESS;
 		}
 
 		protected virtual void InputCharacterOnMesh(MeshDrawer Md, char chr, int pre_ver_i, int pre_tri_i, int n_ver_i, int n_tri_i, ref float line_max_scale)
@@ -1201,7 +1290,7 @@ namespace XX
 			return this.Redraw(false);
 		}
 
-		public void OnEnable()
+		public virtual void OnEnable()
 		{
 			if (this.use_valotile_ && this.Valot != null)
 			{
@@ -1772,7 +1861,7 @@ namespace XX
 
 		private int flags;
 
-		private int mesh_using;
+		protected int mesh_using;
 
 		private float swidth;
 
@@ -1822,7 +1911,16 @@ namespace XX
 			MESH_T1,
 			ICO_T1,
 			SPECIAL0,
+			SPECIAL1,
 			_MAX
+		}
+
+		protected enum CHAR_INFO_RES
+		{
+			FAIL,
+			SUCCESS,
+			MESH_REPLACED,
+			CONTINUE
 		}
 
 		private struct TxColorPos

@@ -132,6 +132,25 @@ namespace nel.mgm.dojo
 			return (DjHkds.STYLE)this.AStyle[num - 1].pos;
 		}
 
+		public bool term_enabled
+		{
+			get
+			{
+				if (this.term_enabled_ == 2)
+				{
+					if (TX.noe(this.skill_term))
+					{
+						this.term_enabled_ = 1;
+					}
+					else
+					{
+						this.term_enabled_ = ((TX.eval(this.skill_term, "") != 0.0) ? 1 : 0);
+					}
+				}
+				return this.term_enabled_ > 0;
+			}
+		}
+
 		public const int count_default = 8;
 
 		private readonly List<DjHkdsGenerator.PosD> APos;
@@ -145,6 +164,10 @@ namespace nel.mgm.dojo
 		private float ratio_fade;
 
 		private float ratio_style;
+
+		public string skill_term;
+
+		private byte term_enabled_ = 2;
 
 		public int count = 8;
 

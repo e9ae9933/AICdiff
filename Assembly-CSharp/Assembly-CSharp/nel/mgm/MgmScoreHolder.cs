@@ -1,7 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using Better;
 using evt;
 using nel.mgm.dojo;
 using nel.mgm.mgm_ttr;
+using nel.mgm.smncr;
 using PixelLiner.PixelLinerLib;
 using XX;
 
@@ -15,12 +18,14 @@ namespace nel.mgm
 			this.AHld = new MgmScoreHolder.SHld[1];
 			this.AHld[0] = new MgmScoreHolder.SHld(1).Init(0, 0, "ml");
 			this.PHldTTR = new PrefsHolderInner();
+			this.OSmncFile = new BDic<string, SmncFileContainer>(1);
 		}
 
 		public void Clear()
 		{
 			this.Dojo.clear();
 			this.PHldTTR.DeleteAll();
+			this.OSmncFile.Clear();
 			for (int i = this.AHld.Length - 1; i >= 0; i--)
 			{
 				this.AHld[i].Clear();
@@ -35,6 +40,25 @@ namespace nel.mgm
 				shld.play_count += 1U;
 			}
 			return shld[id].UpdateScore(score);
+		}
+
+		public int getScore(MGMSCORE mgs, int id = 0)
+		{
+			return this.AHld[(int)mgs][id].score;
+		}
+
+		public SmncFileContainer getSmncFileContainer(string key, bool no_make = false)
+		{
+			SmncFileContainer smncFileContainer;
+			if (!this.OSmncFile.TryGetValue(key, out smncFileContainer))
+			{
+				if (no_make)
+				{
+					return null;
+				}
+				smncFileContainer = (this.OSmncFile[key] = new SmncFileContainer(4));
+			}
+			return smncFileContainer;
 		}
 
 		public static int EvtCacheRead(EvReader ER, string cmd, CsvReader rER)
@@ -107,7 +131,7 @@ namespace nel.mgm
 			return false;
 		}
 
-		public void readFromBytes(ByteArray Ba)
+		public void readFromBytes(ByteArray Ba, NelM2DBase M2D)
 		{
 			this.Clear();
 			int num = Ba.readByte();
@@ -120,12 +144,59 @@ namespace nel.mgm
 			if (num >= 1)
 			{
 				this.PHldTTR.readFromBytes(Ba);
+				if (num >= 2)
+				{
+					ByteReader byteReader;
+					if (num < 5)
+					{
+						byteReader = Ba;
+					}
+					else
+					{
+						byteReader = Ba.readExtractBytesShifted(4);
+					}
+					try
+					{
+						num2 = byteReader.readByte();
+						for (int j = 0; j < num2; j++)
+						{
+							string text = byteReader.readPascalString("utf-8", false);
+							int num3 = byteReader.readByte();
+							SmncFileContainer smncFileContainer = null;
+							byte b = 0;
+							if (num >= 6)
+							{
+								b = byteReader.readUByte();
+							}
+							for (int k = 0; k < num3; k++)
+							{
+								SmncFile smncFile = SmncFile.readFromBytes(byteReader, M2D, num);
+								if (smncFile != null)
+								{
+									if (smncFileContainer == null)
+									{
+										smncFileContainer = new SmncFileContainer(num3)
+										{
+											first_file = b
+										};
+										this.OSmncFile[text] = smncFileContainer;
+									}
+									smncFileContainer.Add(smncFile);
+								}
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						X.de("Smnc file read error:" + ex.ToString(), null);
+					}
+				}
 			}
 		}
 
 		public void writeBinaryTo(ByteArray Ba)
 		{
-			Ba.writeByte(1);
+			Ba.writeByte(6);
 			this.Dojo.writeBinaryTo(Ba);
 			int num = this.AHld.Length;
 			Ba.writeByte(num);
@@ -134,6 +205,20 @@ namespace nel.mgm
 				this.AHld[i].writeBinaryTo(Ba);
 			}
 			this.PHldTTR.writeToBytes(Ba);
+			ByteArray byteArray = new ByteArray((this.OSmncFile.Count == 0) ? 1U : 256U);
+			byteArray.writeByte(this.OSmncFile.Count);
+			foreach (KeyValuePair<string, SmncFileContainer> keyValuePair in this.OSmncFile)
+			{
+				byteArray.writePascalString(keyValuePair.Key, "utf-8");
+				int count = keyValuePair.Value.Count;
+				byteArray.writeByte(count);
+				byteArray.writeByte((int)keyValuePair.Value.first_file);
+				for (int j = 0; j < count; j++)
+				{
+					keyValuePair.Value[j].writeBinaryTo(byteArray);
+				}
+			}
+			Ba.writeExtractBytesShifted(byteArray, 115, 4, -1);
 		}
 
 		public readonly MgmScoreHolder.SHld[] AHld;
@@ -141,6 +226,10 @@ namespace nel.mgm
 		public readonly DjSaveData Dojo;
 
 		public readonly PrefsHolderInner PHldTTR;
+
+		public readonly BDic<string, SmncFileContainer> OSmncFile;
+
+		public const int SCOREHLD_VER = 6;
 
 		public class SHld
 		{

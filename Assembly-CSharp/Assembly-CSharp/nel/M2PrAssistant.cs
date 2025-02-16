@@ -9,7 +9,6 @@ namespace nel
 		public M2PrAssistant(PR _Pr)
 		{
 			this.Pr = _Pr;
-			this.NM2D = M2DBase.Instance as NelM2DBase;
 			this.Phy = this.Pr.getPhysic();
 			if (this.Phy != null)
 			{
@@ -33,6 +32,14 @@ namespace nel
 
 		public virtual void newGame()
 		{
+		}
+
+		public NelM2DBase NM2D
+		{
+			get
+			{
+				return this.Pr.NM2D;
+			}
 		}
 
 		public float TS
@@ -59,6 +66,14 @@ namespace nel
 			}
 		}
 
+		public AIM aim_behind
+		{
+			get
+			{
+				return this.Pr.aim_behind;
+			}
+		}
+
 		public float x
 		{
 			get
@@ -72,6 +87,22 @@ namespace nel
 			get
 			{
 				return this.Pr.y;
+			}
+		}
+
+		public float sizex
+		{
+			get
+			{
+				return this.Pr.sizex;
+			}
+		}
+
+		public float sizey
+		{
+			get
+			{
+				return this.Pr.sizey;
 			}
 		}
 
@@ -144,6 +175,22 @@ namespace nel
 			return this.Pr.getCastableMp();
 		}
 
+		public float mleft
+		{
+			get
+			{
+				return this.Pr.mleft;
+			}
+		}
+
+		public float mright
+		{
+			get
+			{
+				return this.Pr.mright;
+			}
+		}
+
 		public float mtop
 		{
 			get
@@ -157,6 +204,22 @@ namespace nel
 			get
 			{
 				return this.Pr.mbottom;
+			}
+		}
+
+		public float mpf_is_right
+		{
+			get
+			{
+				return this.Pr.mpf_is_right;
+			}
+		}
+
+		public float anm_mpf_is_right
+		{
+			get
+			{
+				return this.Pr.anm_mpf_is_right;
 			}
 		}
 
@@ -366,6 +429,22 @@ namespace nel
 			this.Pr.decline &= ~d;
 		}
 
+		public M2LockCounter<PR.OCCUR> LockCntOccur
+		{
+			get
+			{
+				return this.Pr.LockCntOccur;
+			}
+		}
+
+		public NoelAnimator Anm
+		{
+			get
+			{
+				return this.Pr.getAnimator();
+			}
+		}
+
 		protected bool isPuzzleManagingMp()
 		{
 			return this.Pr.isPuzzleManagingMp();
@@ -402,7 +481,16 @@ namespace nel
 			this.Pr.defineParticlePreVariable();
 		}
 
-		public bool getEH(EnhancerManager.EH ehbit)
+		public float CliffStopCrop(ref float vx)
+		{
+			if (this.getEH(ENHA.EH.cliff_stopper))
+			{
+				this.FootD.CliffStopCrop(ref vx);
+			}
+			return vx;
+		}
+
+		public bool getEH(ENHA.EH ehbit)
 		{
 			return this.Pr.getEH(ehbit);
 		}
@@ -430,6 +518,11 @@ namespace nel
 			this.Pr.SpSetPose(nPose, reset_anmf, fix_change, sprite_force_aim_set);
 		}
 
+		public void PadVib(string vib_key, float level = 1f)
+		{
+			this.Pr.PadVib(vib_key, level);
+		}
+
 		protected MpGaugeBreaker GaugeBrk
 		{
 			get
@@ -454,6 +547,38 @@ namespace nel
 			}
 		}
 
+		protected M2PrADmgEffect DMGE
+		{
+			get
+			{
+				return this.Pr.DMGE;
+			}
+		}
+
+		protected M2PrADmg DMG
+		{
+			get
+			{
+				return this.Pr.DMG;
+			}
+		}
+
+		protected PrVoiceController VO
+		{
+			get
+			{
+				return this.Pr.VO;
+			}
+		}
+
+		protected AnimationShuffler SfPose
+		{
+			get
+			{
+				return this.Pr.SfPose;
+			}
+		}
+
 		protected AbsorbManagerContainer AbsorbCon
 		{
 			get
@@ -474,6 +599,29 @@ namespace nel
 			return this;
 		}
 
+		public M2SoundPlayerItem playSndPos(string t, byte voice_priority_manual = 1)
+		{
+			return this.Pr.playSndPos(t, voice_priority_manual);
+		}
+
+		public M2SoundPlayerItem playSndPos(string cue_key, float x, float y, PtcHolder.PTC_HOLD hold = PtcHolder.PTC_HOLD.NO_HOLD, PTCThread.StFollow follow = PTCThread.StFollow.NO_FOLLOW, PTCThread Thread = null)
+		{
+			return this.Pr.playSndPos(cue_key, x, y, hold, follow, Thread);
+		}
+
+		public PtcHolder PtcHld
+		{
+			get
+			{
+				return this.Pr.PtcHld;
+			}
+		}
+
+		public void PunchDecline(int t, bool do_not_in_battle = false)
+		{
+			PR.PunchDecline(t, do_not_in_battle);
+		}
+
 		public PTCThread PtcST(string ptc_key, PtcHolder.PTC_HOLD hold = PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow follow = PTCThread.StFollow.NO_FOLLOW)
 		{
 			return this.Pr.PtcST(ptc_key, hold, follow);
@@ -489,7 +637,5 @@ namespace nel
 		public M2Phys Phy;
 
 		public M2FootManager FootD;
-
-		public readonly NelM2DBase NM2D;
 	}
 }

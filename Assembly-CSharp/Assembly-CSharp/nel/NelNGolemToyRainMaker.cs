@@ -422,7 +422,7 @@ namespace nel
 				Mg.calcAimPos(false);
 				Mg.MnSetRay(Mg.Ray, 0, Mg.da, 0f);
 				HITTYPE hittype = Mg.Ray.Cast(true, null, false);
-				if ((hittype & (HITTYPE)4194336) != HITTYPE.NONE && Mg.phase <= 20)
+				if ((hittype & (HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN)) != HITTYPE.NONE && Mg.phase <= 20)
 				{
 					Mg.phase = 20;
 					Mg.t = 0f;

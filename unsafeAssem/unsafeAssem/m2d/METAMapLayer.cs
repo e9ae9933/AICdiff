@@ -35,7 +35,9 @@ namespace m2d
 			this.on_light = base.GetB("light", false);
 			this.dat_byte = 0;
 			this.auto_declare = base.GetI("auto_declare", 0, 0) != 0;
+			this.no_remover = base.GetI("no_remover", 0, 0) != 0;
 			this.no_consider_config = base.GetI("no_consider_config", 0, 0) != 0;
+			this.no_draw = base.GetI("no_draw", 0, 0) != 0;
 			int ie = base.GetIE("no_chiplight", 0, 0);
 			this.no_chiplight = ie != 0;
 			float nm = base.GetNm("window_remover", -1f, 0);
@@ -194,6 +196,18 @@ namespace m2d
 			set
 			{
 				this.dat_byte = (value ? (this.dat_byte | 32) : (this.dat_byte & -33));
+			}
+		}
+
+		public bool no_draw
+		{
+			get
+			{
+				return (this.dat_byte & 64) != 0;
+			}
+			set
+			{
+				this.dat_byte = (value ? (this.dat_byte | 64) : (this.dat_byte & -65));
 			}
 		}
 

@@ -11,10 +11,6 @@ namespace nel
 	{
 		public override void appear(Map2d _Mp)
 		{
-			this.AtkIceBarn = new NelAttackInfo();
-			this.AtkIceBarn.CopyFrom(this.AtkIce);
-			this.AtkIceBarn.burst_center = 1f;
-			this.AtkIceBarn.nodamage_time = 40;
 			this.HandlerPE = new EffectHandlerPE(3);
 			this.Mp = _Mp;
 			this.kind = ENEMYKIND.DEVIL;
@@ -52,6 +48,11 @@ namespace nel
 			{
 				NelNFrog.BuryEvent = new NelNFrog.GachaGroundBury();
 			}
+			this.AtkGrab.Prepare(this, true);
+			this.AtkAbsorbInit.Prepare(this, true);
+			this.AtkAbsorbBuryHit.Prepare(this, true);
+			this.AtkTongueInGround.Prepare(this, true);
+			this.AtkAbsorbInStomach.Prepare(this, true);
 		}
 
 		public override void destruct()
@@ -132,9 +133,18 @@ namespace nel
 			return base.changeState(stt);
 		}
 
+		public override void changeRiding(IFootable _PD, FOOTRES footres)
+		{
+			base.changeRiding(_PD, footres);
+			if (this.is_alive && this.Anm != null && footres == FOOTRES.FOOTED && (this.state == NelEnemy.STATE.STAND || this.state == NelEnemy.STATE.ABSORB) && this.Anm.alpha > 0f)
+			{
+				EnemyAttr.Splash(this, 0.6f * this.nattr_splash_ratio);
+			}
+		}
+
 		private bool considerNormal(NAI Nai)
 		{
-			if (Nai.fnAwakeBasicHead(Nai))
+			if (Nai.fnAwakeBasicHead(Nai, NAI.TYPE.GAZE))
 			{
 				return true;
 			}
@@ -187,7 +197,7 @@ namespace nel
 						return Nai.AddTicketB(NAI.TYPE.PUNCH, 100, true);
 					}
 				}
-				if ((Nai.autotargetted_me && Nai.RANtk(3228) < 0.12f) || flag || (Nai.isPrSpecialAttacking() && Nai.isAttackableLength(3.5f, -3f, 3f, false)) || (Nai.isPrAttacking() && Nai.isAttackableLength(1.5f, -2f, 1f, false)))
+				if ((Nai.autotargetted_me && Nai.RANtk(3228) < 0.12f) || flag || (Nai.isPrSpecialAttacking() && Nai.isAttackableLength(3.5f, -3f, 3f, false)) || (Nai.isPrAttacking(1f) && Nai.isAttackableLength(1.5f, -2f, 1f, false)))
 				{
 					return Nai.AddTicketB(NAI.TYPE.BACKSTEP, 100, true);
 				}
@@ -504,14 +514,12 @@ namespace nel
 		public void shotFrozenBullet(float agR)
 		{
 			MagicItem magicItem = base.nM2D.MGC.setMagic(this, MGKIND.ICE_SHOT, base.mg_hit | MGHIT.IMMEDIATE);
-			magicItem.Atk0 = this.AtkIce;
-			magicItem.Atk1 = this.AtkIceBarn;
 			float num = 1.5f * this.enlarge_level;
-			magicItem.dx = X.Cos(agR);
-			magicItem.dy = -X.Sin(agR);
+			magicItem.dx = X.Cos(agR) * 0.21f;
+			magicItem.dy = -X.Sin(agR) * 0.21f;
 			magicItem.sx = base.x + num * magicItem.dx;
 			magicItem.sy = base.y + num * magicItem.dy;
-			base.MpConsume(this.McsIceShot, magicItem, 1f, 1f);
+			this.MpConsume(this.McsIceShot, magicItem, 1f, 1f);
 		}
 
 		public bool TongueExecutable()
@@ -658,13 +666,13 @@ namespace nel
 					this.Anm.showToFront(true, false);
 					if (Atk == this.AtkTongueInGround)
 					{
-						this.MgTackleTongue = new MagicItemHandlerS(base.tackleInit(this.AtkTongueInGround, this.TkiTongueInGround));
+						this.MgTackleTongue = new MagicItemHandlerS(base.tackleInit(this.AtkTongueInGround, this.TkiTongueInGround, MGHIT.AUTO));
 						this.walk_time = -1f;
 					}
 					else
 					{
 						this.walk_time = 0f;
-						this.MgTackleTongue = new MagicItemHandlerS(base.tackleInit(this.AtkGrab, this.TkiTongue));
+						this.MgTackleTongue = new MagicItemHandlerS(base.tackleInit(this.AtkGrab, this.TkiTongue, MGHIT.AUTO));
 					}
 				}
 			}
@@ -901,7 +909,7 @@ namespace nel
 				if (this.t >= this.walk_time)
 				{
 					this.walk_time += X.NIXP(13f, 22f);
-					base.applyAbsorbDamageTo(pr, this.AtkAbsorbInit, true, false, false, 0f, false, null, false);
+					base.applyAbsorbDamageTo(pr, this.AtkAbsorbInit, true, false, false, 0f, false, null, false, true);
 				}
 				this.tongueAngleWalkZero(((this.t >= 10f) ? 0.014f : 0.002f) * 3.1415927f);
 				if (this.t >= 60f)
@@ -924,7 +932,7 @@ namespace nel
 			}
 			if (this.walk_st == 2)
 			{
-				pr.fineFrozenAF(4f);
+				pr.fineFrozenAF(4f, true);
 				this.tongueAngleWalkZero(0.18849556f);
 				if (this.Anm.isAnimEnd())
 				{
@@ -943,7 +951,7 @@ namespace nel
 							num = X.Mx(num, base.x - 4f + X.Abs(num2));
 						}
 					}
-					this.Mp.BCC.isFallable(num, pr.y, pr.sizex + 0.5f, 3.7f, out bccline, true, false, base.mbottom);
+					this.Mp.BCC.isFallable(num, pr.y, pr.sizex + 0.5f, 3.7f, out bccline, true, false, base.mbottom, pr.getFootManager().get_LastBCC());
 					if (bccline != null && pr.isAbsorbState())
 					{
 						AbsorbManagerContainer absorbContainer = pr.getAbsorbContainer();
@@ -969,7 +977,7 @@ namespace nel
 							pr.getPhysic().killSpeedForce(true, true, true, false, false);
 							pr.getFootManager().initJump(true, true, false);
 							pr.PtcVar("by", (double)pr.mbottom).PtcST("frog_bury_init", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-							base.applyAbsorbDamageTo(pr, this.AtkAbsorbBuryHit, true, true, true, 1f, false, null, false);
+							base.applyAbsorbDamageTo(pr, this.AtkAbsorbBuryHit, true, true, true, 1f, false, null, false, true);
 							pr.UP.setFade(this.Absorb.uipicture_fade_key, UIPictureBase.EMSTATE.NORMAL, false, false, false);
 							this.Nai.AddF(NAI.FLAG.POWERED, 50f);
 							absorbContainer.use_torture = false;
@@ -1007,14 +1015,14 @@ namespace nel
 						pr.playVo("awkx", false, false);
 					}
 					this.walk_time += X.NIXP(30f, 40f);
-					base.applyAbsorbDamageTo(pr, this.AtkAbsorbInit, true, false, false, 0f, false, null, false);
+					base.applyAbsorbDamageTo(pr, this.AtkAbsorbInit, true, false, false, 0f, false, null, false, true);
 					this.Absorb.get_Gacha().SoloPositionPixel = new Vector3(0f, -80f, 0f);
 					this.Absorb.Con.need_fine_gacha_effect = true;
 				}
 				if (this.Anm.poseIs("torture_frog_vore2", true))
 				{
 					base.PtcST("frog_vore_in_stomach", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-					pr.fineFrozenAF(5f);
+					pr.fineFrozenAF(5f, true);
 					this.t = 0f;
 					this.walk_time = 60f;
 					this.walk_st = 110;
@@ -1039,17 +1047,17 @@ namespace nel
 				this.walk_time = X.NIXP(70f, 90f);
 				base.runAbsorb();
 				this.AtkAbsorbInStomach.Beto = ((X.XORSP() < 0.8f) ? this.BetoStomachA : this.BetoStomachB);
-				base.applyAbsorbDamageTo(pr, this.AtkAbsorbInStomach, true, X.XORSP() < 0.4f, false, 1f, false, null, false);
+				base.applyAbsorbDamageTo(pr, this.AtkAbsorbInStomach, true, X.XORSP() < 0.4f, false, 1f, false, null, false, true);
 				pr.PadVib("dmg_absorb_l", 1f);
 				pr.PtcST("frog_vore_fatal_dmg", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				pr.PtcST("absorb_atk_in_stomack", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				this.Mp.DropCon.setBlood(pr, 22, (pr.get_mp() > 0f) ? MTR.col_pr_mana : MTR.col_pr_no_mana, 0f, false);
 				pr.UP.applyVoreBurned();
-				this.Anm.randomizeFrame();
+				this.Anm.randomizeFrame(0.5f, 0.5f);
 			}
 			if (this.walk_st == 111 && this.t >= 40f)
 			{
-				pr.playVo(((float)pr.ep < 500f) ? "breath_down" : (((float)pr.ep >= 800f && X.XORSP() < 0.55f) ? "mustl" : "must"), false, false);
+				pr.VO.playMarunomiBreath();
 				this.walk_st = 110;
 			}
 			return true;
@@ -1244,7 +1252,7 @@ namespace nel
 
 		private EffectHandlerPE HandlerPE;
 
-		protected NelAttackInfo AtkGrab = new NelAttackInfo
+		protected EnAttackInfo AtkGrab = new EnAttackInfo
 		{
 			hpdmg0 = 9,
 			attr = MGATTR.GRAB,
@@ -1254,23 +1262,7 @@ namespace nel
 			Beto = BetoInfo.Normal
 		};
 
-		protected NelAttackInfo AtkIce = new NelAttackInfo
-		{
-			hpdmg0 = 15,
-			split_mpdmg = 1,
-			burst_vx = 0.024f,
-			knockback_len = 0.6f,
-			huttobi_ratio = -1000f,
-			attr = MGATTR.ICE,
-			shield_break_ratio = -4f,
-			parryable = true,
-			nodamage_time = 0,
-			SerDmg = new FlagCounter<SER>(1).Add(SER.FROZEN, 35f)
-		}.Torn(0.002f, 0.003f);
-
-		protected NelAttackInfo AtkIceBarn;
-
-		protected NelAttackInfo AtkAbsorbInit = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbInit = new EnAttackInfo
 		{
 			hpdmg0 = 1,
 			split_mpdmg = 4,
@@ -1281,7 +1273,7 @@ namespace nel
 			SerDmg = new FlagCounter<SER>(1).Add(SER.SEXERCISE, 10f)
 		};
 
-		protected NelAttackInfo AtkAbsorbBuryHit = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbBuryHit = new EnAttackInfo
 		{
 			hpdmg0 = 30,
 			split_mpdmg = 4,
@@ -1295,7 +1287,7 @@ namespace nel
 
 		private const float tongue_ground_nodam_max = 35f;
 
-		protected NelAttackInfo AtkTongueInGround = new NelAttackInfo
+		protected EnAttackInfo AtkTongueInGround = new EnAttackInfo
 		{
 			hpdmg0 = 1,
 			split_mpdmg = 6,
@@ -1312,7 +1304,7 @@ namespace nel
 			}
 		};
 
-		protected NelAttackInfo AtkAbsorbInStomach = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbInStomach = new EnAttackInfo(0.04f, 0.18f)
 		{
 			hpdmg0 = 10,
 			mpdmg0 = 22,
@@ -1324,7 +1316,7 @@ namespace nel
 				other = 5
 			},
 			SerDmg = new FlagCounter<SER>(1).Add(SER.SEXERCISE, 20f)
-		}.Torn(0.04f, 0.18f);
+		};
 
 		private BetoInfo BetoStomachA = BetoInfo.Vore.Thread(0, true);
 

@@ -183,7 +183,7 @@ namespace XX
 			CURS.fineScene();
 		}
 
-		public static bool gui_draw
+		public static bool raw_cursor_draw
 		{
 			get
 			{
@@ -196,15 +196,13 @@ namespace XX
 					return;
 				}
 				CURS.gui_draw_ = value;
-				if (CURS.GuiMono == null)
-				{
-					return;
-				}
 				if (!value)
 				{
 					IN.setZAbs(CURS.Trs, -9.5f);
 				}
-				CURS.GuiMono.gameObject.SetActive(CURS.gui_draw_);
+				Cursor.SetCursor(value ? CURS.TxCursCurrent : null, CURS.CursPivot, CursorMode.ForceSoftware);
+				Cursor.visible = value;
+				Cursor.lockState = CursorLockMode.None;
 			}
 		}
 
@@ -212,7 +210,7 @@ namespace XX
 		{
 			CURS.active = f;
 			CURS.immediate_update = false;
-			CURS.gui_draw = false;
+			CURS.raw_cursor_draw = false;
 			if (CURS.active)
 			{
 				CURS.delete_flag = false;
@@ -220,8 +218,8 @@ namespace XX
 				{
 					CURS.Gob = IN.CreateGob(IN._stage, "Cursor");
 					CURS.gob_enabled = true;
-					CURS.GuiMono = IN.CreateGob(IN._stage, "Gui").AddComponent<CURS.CursMonoBehaviourGUI>();
-					CURS.GuiMono.gameObject.SetActive(CURS.gui_draw_);
+					Cursor.SetCursor(CURS.raw_cursor_draw ? CURS.TxCursCurrent : null, CURS.CursPivot, CursorMode.ForceSoftware);
+					Cursor.visible = CURS.raw_cursor_draw;
 					CURS.Trs = CURS.Gob.transform;
 					IN.Pos(CURS.Trs, 0f, 0f, -9.5f);
 					CURS.Gob.layer = LayerMask.NameToLayer(IN.gui_layer_name);
@@ -509,10 +507,10 @@ namespace XX
 				CURS.need_fine = false;
 				CURS.t_reserve_fine = 0f;
 				CURS.immediate_update = false;
-				CURS.gui_draw = false;
+				CURS.raw_cursor_draw = false;
 				if (CURS.use_follow_mouse)
 				{
-					Cursor.visible = true;
+					Cursor.visible = false;
 					try
 					{
 						CURS.Gob.SetActive(false);
@@ -528,7 +526,7 @@ namespace XX
 				CURS.t_reserve_fine = 0f;
 				CURS.immediate_update = false;
 				CURS.need_fine = true;
-				CURS.gui_draw = false;
+				CURS.raw_cursor_draw = false;
 				if (CURS.use_follow_mouse)
 				{
 					try
@@ -539,6 +537,7 @@ namespace XX
 					{
 					}
 				}
+				Cursor.visible = false;
 				return;
 			}
 			CursStack cursStack = CURS.AStack[0];
@@ -561,8 +560,8 @@ namespace XX
 		{
 			if (!CURS.active || CURS.AStack == null || CURS.stack_len == 0 || CURS.Md == null)
 			{
-				Cursor.visible = true;
-				CURS.gui_draw = false;
+				CURS.raw_cursor_draw = false;
+				Cursor.visible = false;
 				if (CURS.Mrd != null)
 				{
 					CURS.Gob.SetActive(false);
@@ -582,29 +581,19 @@ namespace XX
 					cursStack.Categ.defineAnimation(SlideAnim.SLIDEANIM.IMMEDIATE);
 					cursStack.Categ.mvx = -1000f;
 				}
-				Cursor.visible = false;
-				PxlMeshDrawer pmesh = cursStack.PMesh;
 				int num;
-				Vector3[] rawVerticeArray = pmesh.getRawVerticeArray(out num);
+				cursStack.PMesh.getRawVerticeArray(out num);
 				if (num == 4)
 				{
-					Vector2[] rawUvArray = pmesh.getRawUvArray(out num);
-					PxlPose pPose = pmesh.SourceFrame.pPose;
-					int num2 = (int)(rawVerticeArray[1].x * 64f) + pPose.width / 2;
-					int num3 = -(int)(rawVerticeArray[1].y * 64f) + pPose.height / 2;
-					float num4 = (float)(cursStack.CK.cx + pPose.width / 2);
-					int num5 = cursStack.CK.cy + pPose.height / 2;
-					CURS.pivot_shift_x = (-num4 + (float)num2) * mouse_scale;
-					CURS.pivot_shift_y = (float)(-(float)num5 + num3) * mouse_scale;
-					CURS.gui_draw = true;
-					CURS.RcPos.width = (rawVerticeArray[2].x - rawVerticeArray[0].x) * mouse_scale * 64f;
-					CURS.RcPos.height = (rawVerticeArray[2].y - rawVerticeArray[0].y) * mouse_scale * 64f;
-					CURS.RcTexCoords.Set(rawUvArray[0].x, rawUvArray[0].y, rawUvArray[2].x - rawUvArray[0].x, rawUvArray[2].y - rawUvArray[0].y);
+					PxlPose pPose = cursStack.CK.PF.pPose;
+					CURS.TxCursCurrent = cursStack.CK.PrepareCopiedTexture(ref CURS.TxCursBuf, out CURS.CursPivot);
+					CURS.raw_cursor_draw = true;
 					CURS.Gob.SetActive(false);
 				}
 				else
 				{
-					CURS.gui_draw = false;
+					CURS.TxCursCurrent = null;
+					CURS.raw_cursor_draw = false;
 					CURS.Gob.SetActive(true);
 					Vector2 vector = IN.MouseWorld;
 					IN.Pos(CURS.Trs, vector.x, vector.y, -9.5f);
@@ -617,11 +606,10 @@ namespace XX
 			{
 				CURS.immediate_update = false;
 				CURS.Gob.SetActive(true);
-				CURS.gui_draw = false;
-				Cursor.visible = false;
+				CURS.raw_cursor_draw = false;
 				return;
 			}
-			CURS.gui_draw = false;
+			CURS.raw_cursor_draw = false;
 			CURS.Gob.SetActive(true);
 		}
 
@@ -635,7 +623,7 @@ namespace XX
 			bool flag = false;
 			if (CURS.use_follow_mouse)
 			{
-				if (CURS.t_reserve_fine == 0f && (CURS.Gob.activeSelf || CURS.gui_draw))
+				if (CURS.t_reserve_fine == 0f && (CURS.Gob.activeSelf || CURS.raw_cursor_draw))
 				{
 					if (CURS.Cam == null)
 					{
@@ -653,7 +641,7 @@ namespace XX
 							CURS.follow_mouse = 2;
 							CURS.fineMouse2();
 						}
-						else if (!CURS.gui_draw)
+						else if (!CURS.raw_cursor_draw)
 						{
 							IN.Pos(CURS.Trs, vector.x, vector.y, -9.5f);
 						}
@@ -907,6 +895,8 @@ namespace XX
 			CURS.LimitVib(CURS.AStack[0].categ_key, a);
 		}
 
+		public const bool default_cursor_visible = false;
+
 		public static Camera Cam;
 
 		private static CursStack[] AStack;
@@ -925,7 +915,11 @@ namespace XX
 
 		private static bool gob_enabled;
 
-		private static CURS.CursMonoBehaviourGUI GuiMono;
+		private static Texture2D TxCursCurrent;
+
+		private static RenderTexture TxCursBuf;
+
+		private static Vector2 CursPivot;
 
 		private static Transform Trs;
 
@@ -966,27 +960,5 @@ namespace XX
 		public const float Z_CURS = -9.5f;
 
 		public static bool gui_draw_ = false;
-
-		private static Rect RcTexCoords = default(Rect);
-
-		private static Rect RcPos = default(Rect);
-
-		private static float pivot_shift_x;
-
-		private static float pivot_shift_y;
-
-		public sealed class CursMonoBehaviourGUI : MonoBehaviour
-		{
-			public void OnGUI()
-			{
-				if (Event.current.type != EventType.Repaint)
-				{
-					return;
-				}
-				CURS.RcPos.x = IN.Mouse.x + CURS.pivot_shift_x;
-				CURS.RcPos.y = (float)Screen.height - IN.Mouse.y + CURS.pivot_shift_y;
-				GUI.DrawTextureWithTexCoords(CURS.RcPos, MTRX.MIicon.Tx, CURS.RcTexCoords);
-			}
-		}
 	}
 }

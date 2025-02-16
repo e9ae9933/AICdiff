@@ -7,6 +7,26 @@ namespace m2d
 {
 	public sealed class M2MapLayer : IIdvName
 	{
+		public uint labelpoint_ba_position
+		{
+			get
+			{
+				return this.labelpoint_ba_position_;
+			}
+			set
+			{
+				if (this.labelpoint_ba_position == value)
+				{
+					return;
+				}
+				this.labelpoint_ba_position_ = value;
+				if (value >= 4294957295U)
+				{
+					this.labelpoint_ba_position_ = value;
+				}
+			}
+		}
+
 		public M2MapLayer(Map2d Map, string _name = null, string _comment = null, uint rgba = 0U)
 		{
 			this.name = "Layer";
@@ -27,7 +47,7 @@ namespace m2d
 		}
 
 		public M2MapLayer(Map2d Map, CsvReader CR)
-			: this(Map, TX.decodeURIComponent(CR._1), TX.decodeURIComponent(CR._2), global::XX.X.NmUI(CR._4, 4286545791U, true, true))
+			: this(Map, TX.decodeURIComponent(CR._1), TX.decodeURIComponent(CR._2), X.NmUI(CR._4, 4286545791U, true, true))
 		{
 		}
 
@@ -246,7 +266,7 @@ namespace m2d
 			{
 			case 81:
 				pattern = BaLoad.readUInt();
-				break;
+				return true;
 			case 82:
 			{
 				M2ChipImage m2ChipImage = this.Mp.IMGS.GetById(BaLoad.readUInt()) as M2ChipImage;
@@ -260,8 +280,9 @@ namespace m2d
 				{
 					m2Chip.pattern = pattern;
 					this.assignNewMapChip(m2Chip, this.chip_count, true, false);
+					return true;
 				}
-				break;
+				return true;
 			}
 			case 83:
 			{
@@ -271,12 +292,10 @@ namespace m2d
 				{
 					m2Picture.pattern = pattern;
 					this.assignNewMapChip(m2Picture, this.chip_count, true, false);
+					return true;
 				}
-				else
-				{
-					unload_chip++;
-				}
-				break;
+				unload_chip++;
+				return true;
 			}
 			case 84:
 				if (this.labelpoint_ba_position == 0U)
@@ -284,15 +303,17 @@ namespace m2d
 					this.labelpoint_ba_position = (uint)BaLoad.position - 1U;
 				}
 				M2LabelPoint.readBytesContentLp(BaLoad, this, false, shift_drawx, shift_drawy);
-				break;
+				return true;
 			case 85:
 				M2GradationRect.readBytesContentGrd(BaLoad, this, false, shift_drawx, shift_drawy);
-				break;
-			default:
-				BaLoad.position -= 1UL;
-				return false;
+				return true;
+			case 87:
+				BaLoad.readUInt();
+				return true;
 			}
-			return true;
+			ulong position = BaLoad.position;
+			BaLoad.position = position - 1UL;
+			return false;
 		}
 
 		public static M2DrawItem readBytesContentCp(ByteArray BaLoad, M2MapLayer Lay, M2ChipImage I, int shift_drawx = 0, int shift_drawy = 0)
@@ -389,7 +410,7 @@ namespace m2d
 					}
 					else
 					{
-						global::XX.X.rectExpand(drect, (float)m2Chip.mapx, (float)m2Chip.mapy, (float)m2Chip.clms, (float)m2Chip.rows);
+						X.rectExpand(drect, (float)m2Chip.mapx, (float)m2Chip.mapy, (float)m2Chip.clms, (float)m2Chip.rows);
 					}
 				}
 			}
@@ -434,7 +455,7 @@ namespace m2d
 						flag = true;
 					}
 					this.chip_count++;
-					global::XX.X.unshiftEmpty<M2Puts>(this.Achips, null, index, 1, -1);
+					X.unshiftEmpty<M2Puts>(this.Achips, null, index, 1, -1);
 					num = index + 1;
 				}
 			}
@@ -443,7 +464,7 @@ namespace m2d
 				flag = false;
 				if (index < this.Achips.Length && this.Achips[index] != null && this.Achips[index] != MC)
 				{
-					global::XX.X.dl(string.Concat(new string[]
+					X.dl(string.Concat(new string[]
 					{
 						"チップ ",
 						MC.src,
@@ -467,7 +488,7 @@ namespace m2d
 			}
 			MC.index = index;
 			this.Achips[index++] = MC;
-			this.chip_count = global::XX.X.Mx(index, this.chip_count);
+			this.chip_count = X.Mx(index, this.chip_count);
 			if (sorting)
 			{
 				this.resortChips(false, false);
@@ -475,6 +496,7 @@ namespace m2d
 			}
 			if (flag2)
 			{
+				this.Mp.MyDrawerB.Col = (this.Mp.MyDrawerG.Col = (this.Mp.MyDrawerL.Col = (this.Mp.MyDrawerT.Col = (this.Mp.MyDrawerTT.Col = this.LayerColor.C))));
 				this.Mp.entryChipPlaying(MC);
 			}
 			if (num >= 0)
@@ -514,7 +536,7 @@ namespace m2d
 				this.Achips[Mcp.index] = null;
 				this.need_reindex = true;
 				Mcp.index = -1;
-				Mcp.clearDrawer(false);
+				Mcp.clearDrawer();
 			}
 			return num != 0;
 		}
@@ -532,7 +554,7 @@ namespace m2d
 			for (int i = 0; i < count; i++)
 			{
 				M2Puts m2Puts = C[i];
-				flag = this.removeChip(m2Puts, true, true) || flag;
+				flag = this.removeChip(m2Puts, true, true, false) || flag;
 				if (!no_consider_config && m2Puts is M2Chip)
 				{
 					M2Chip m2Chip = m2Puts as M2Chip;
@@ -542,7 +564,7 @@ namespace m2d
 					}
 					else
 					{
-						global::XX.X.rectExpand(drect, (float)m2Chip.mapx, (float)m2Chip.mapy, (float)m2Chip.clms, (float)m2Chip.rows);
+						X.rectExpand(drect, (float)m2Chip.mapx, (float)m2Chip.mapy, (float)m2Chip.clms, (float)m2Chip.rows);
 					}
 				}
 			}
@@ -557,7 +579,7 @@ namespace m2d
 			return flag;
 		}
 
-		public bool removeChip(M2Puts C, bool no_consider_config = false, bool no_sort = false)
+		public bool removeChip(M2Puts C, bool no_consider_config = false, bool no_sort = false, bool remove_from_redraw_chips = false)
 		{
 			if (C == null)
 			{
@@ -568,7 +590,12 @@ namespace m2d
 			{
 				this.checkReindex(false);
 			}
-			return this.connectImgLink(C, Map2d.CONNECTIMG.DELETE, no_consider_config);
+			bool flag = this.connectImgLink(C, Map2d.CONNECTIMG.DELETE, no_consider_config);
+			if (remove_from_redraw_chips)
+			{
+				this.Mp.removeRedrawingChip(C);
+			}
+			return flag;
 		}
 
 		public void translateChip(M2Chip C, int dep_mapx, int dep_mapy, bool no_consider_config = false)
@@ -621,7 +648,7 @@ namespace m2d
 			{
 				len = this.chip_count;
 			}
-			APuts.Capacity = global::XX.X.Mx(APuts.Capacity, APuts.Count + len);
+			APuts.Capacity = X.Mx(APuts.Capacity, APuts.Count + len);
 			for (int i = 0; i < len; i++)
 			{
 				APuts.Add(this.Achips[i]);
@@ -672,9 +699,9 @@ namespace m2d
 			}
 		}
 
-		public int reentryAllChips(MdMap MdB, MdMap MdG, MdMap MdT, MdMap MdL, MdMap MdTT, ref M2Puts[] ARedrawing, ref int redrawing_cnt)
+		public int reentryAllChips(MdMap MdB, MdMap MdG, MdMap MdT, MdMap MdLB, MdMap MdLT, MdMap MdTT, ref M2Puts[] ARedrawing, ref int redrawing_cnt)
 		{
-			if (!this.visible || this.unloaded)
+			if (!this.visible || this.unloaded || (this.Meta.no_draw && !Map2d.editor_decline_lighting))
 			{
 				return 0;
 			}
@@ -686,44 +713,47 @@ namespace m2d
 			if (this.is_background)
 			{
 				MdT = (MdG = (MdTT = MdB));
-				num3 = -8199;
+				MdLT = MdLB;
+				num3 = -16391;
 				num4 = 1;
 			}
 			else if (this.is_ground)
 			{
 				MdTT = (MdT = (MdB = MdG));
-				num3 = -8198;
+				MdLB = MdLT;
+				num3 = -16390;
 				num4 = 2;
 			}
 			else if (this.Meta.overtop == METAMapLayer.OVERTOP.ALLTT)
 			{
 				MdT = (MdG = (MdB = MdTT));
+				MdLB = MdLT;
 				num3 = -8;
-				num4 = 8192;
+				num4 = 16384;
 			}
 			else if (this.Meta.overtop == METAMapLayer.OVERTOP.T2TT)
 			{
 				MdT = MdTT;
+				MdLB = MdLT;
 				num3 = -5;
-				num4 = 8192;
+				num4 = 16384;
 			}
 			else if (this.Meta.overtop == METAMapLayer.OVERTOP.ALLT)
 			{
 				MdB = (MdG = (MdTT = MdT));
-				num3 = -8196;
+				MdLT = MdLB;
+				num3 = -16388;
 			}
 			else if (!Map2d.editor_decline_lighting && this.Meta.on_light)
 			{
-				MdB = MdL;
-				MdT = MdL;
-				MdG = MdL;
+				MdT = (MdG = (MdB = MdLB));
 				num3 = -8;
 				num4 = 512;
 			}
-			MdB.Col = (MdG.Col = (MdT.Col = (MdL.Col = (MdTT.Col = this.LayerColor.C))));
+			MdB.Col = (MdG.Col = (MdT.Col = (MdLB.Col = (MdLT.Col = (MdTT.Col = this.LayerColor.C)))));
 			if (this.do_not_consider_config && (Map2d.editor_decline_lighting || this.Meta.is_decrared))
 			{
-				MdB.Col.a = (MdG.Col.a = (MdT.Col.a = (MdL.Col.a = (MdTT.Col.a = (Map2d.editor_decline_lighting ? (this.LayerColor.C.a / 2) : 0)))));
+				MdB.Col.a = (MdG.Col.a = (MdT.Col.a = (MdLB.Col.a = (MdLT.Col.a = (MdTT.Col.a = (Map2d.editor_decline_lighting ? (this.LayerColor.C.a / 2) : 0))))));
 			}
 			bool flag = this.is_chip_arrangeable || this.Meta.do_not_consider_draw_bounds;
 			for (int i = 0; i < num2; i++)
@@ -731,14 +761,14 @@ namespace m2d
 				M2Puts m2Puts = this.Achips[i];
 				if (m2Puts != null && m2Puts.Img != null && m2Puts.Img.chip_id != 0U)
 				{
-					int num5 = m2Puts.entryChipMesh(MdB, MdG, MdT, MdL, MdTT, 0f, 0f, 1f, 0f);
+					int num5 = m2Puts.entryChipMesh(MdB, MdG, MdT, MdLB, MdLT, MdTT, 0f, 0f, 1f, 0f);
 					if ((num5 & 256) > 0)
 					{
 						if (ARedrawing == null)
 						{
 							ARedrawing = new M2Puts[64];
 						}
-						global::XX.X.pushToEmptyS<M2Puts>(ref ARedrawing, m2Puts, ref redrawing_cnt, 16);
+						X.pushToEmptyS<M2Puts>(ref ARedrawing, m2Puts, ref redrawing_cnt, 16);
 					}
 					if ((num5 & 1) != 0 && MdB.canBakeSimplifyOnMiddle(true))
 					{
@@ -752,11 +782,15 @@ namespace m2d
 					{
 						MdT.reentryLayerAfter(flag, true);
 					}
-					if ((num5 & 512) != 0 && MdL.canBakeSimplifyOnMiddle(true))
+					if ((num5 & 512) != 0 && MdLB.canBakeSimplifyOnMiddle(true))
 					{
-						MdL.reentryLayerAfter(flag, true);
+						MdLB.reentryLayerAfter(flag, true);
 					}
-					if ((num5 & 8192) != 0 && MdTT.canBakeSimplifyOnMiddle(true))
+					if ((num5 & 1024) != 0 && MdLT.canBakeSimplifyOnMiddle(true))
+					{
+						MdLT.reentryLayerAfter(flag, true);
+					}
+					if ((num5 & 16384) != 0 && MdTT.canBakeSimplifyOnMiddle(true))
 					{
 						MdTT.reentryLayerAfter(flag, true);
 					}
@@ -770,7 +804,8 @@ namespace m2d
 			MdB.reentryLayerAfter(flag, false);
 			MdG.reentryLayerAfter(flag, false);
 			MdT.reentryLayerAfter(flag, false);
-			MdL.reentryLayerAfter(flag, false);
+			MdLB.reentryLayerAfter(flag, false);
+			MdLT.reentryLayerAfter(flag, false);
 			MdTT.reentryLayerAfter(flag, false);
 			int num6 = num & num3;
 			if (num6 != num)
@@ -850,7 +885,7 @@ namespace m2d
 				return this.LP;
 			}
 			this.LP.Clear();
-			this.Mp.getMapBodyContentReader(ref csvReader, ref byteArray);
+			this.Mp.getMapBodyContentReader(ref csvReader, ref byteArray, false);
 			if (byteArray != null)
 			{
 				ulong position = byteArray.position;
@@ -953,6 +988,30 @@ namespace m2d
 			}
 		}
 
+		public bool CheckLP(M2LabelPoint.fnCheckLP Func, out M2LabelPoint Lp)
+		{
+			Lp = null;
+			if (this.unloaded)
+			{
+				return false;
+			}
+			if (this.remakeLabelPoint(false) == null)
+			{
+				return false;
+			}
+			int length = this.LP.Length;
+			for (int i = 0; i < length; i++)
+			{
+				M2LabelPoint m2LabelPoint = this.LP.Get(i);
+				if (Func(m2LabelPoint))
+				{
+					Lp = m2LabelPoint;
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public void open()
 		{
 		}
@@ -1033,17 +1092,18 @@ namespace m2d
 					m2Puts.closeAction(when_map_close, false);
 				}
 			}
+			M2LpFakeReveal lpFakeReveal = this.LpFakeReveal;
+			if (when_map_close)
+			{
+				this.LpFakeReveal = null;
+			}
 			for (int j = this.LP.Length - 1; j >= 0; j--)
 			{
 				this.LP.Get(j).closeAction(when_map_close);
 			}
-			if (this.LpFakeReveal != null && this.LpFakeReveal.created_by_after)
+			if (lpFakeReveal != null && lpFakeReveal.created_by_after)
 			{
-				this.LpFakeReveal.closeAction(when_map_close);
-				if (when_map_close)
-				{
-					this.LpFakeReveal = null;
-				}
+				lpFakeReveal.closeAction(when_map_close);
 			}
 			if (this.need_reindex)
 			{
@@ -1157,7 +1217,7 @@ namespace m2d
 
 		public M2Puts getChipByIndex(int c)
 		{
-			if (!global::XX.X.BTW(0f, (float)c, (float)this.count_chips))
+			if (!X.BTW(0f, (float)c, (float)this.count_chips))
 			{
 				return null;
 			}
@@ -1330,7 +1390,7 @@ namespace m2d
 
 		private bool need_reindex;
 
-		private uint labelpoint_ba_position;
+		private uint labelpoint_ba_position_;
 
 		private static SORT<M2Puts> Sorter;
 
@@ -1339,5 +1399,7 @@ namespace m2d
 		public M2LpFakeReveal LpFakeReveal;
 
 		private int chip_count;
+
+		public const string rem_key_for_fake = "FAKEWALL";
 	}
 }

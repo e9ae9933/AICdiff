@@ -68,7 +68,7 @@ namespace XX
 			return this;
 		}
 
-		public float Get(EfParticle EP, float ratio = -1f)
+		public float Get(float maxt, float ratio = -1f, bool write_prevalue = false)
 		{
 			float num = 0f;
 			if (ratio == -2f)
@@ -78,9 +78,9 @@ namespace XX
 			int num2 = this.AItm.Length;
 			for (int i = 0; i < num2; i++)
 			{
-				num += this.AItm[i].Get(EP, ratio);
+				num += this.AItm[i].Get(maxt, ratio);
 			}
-			if (EP != null)
+			if (write_prevalue)
 			{
 				this.pre_value = num;
 			}

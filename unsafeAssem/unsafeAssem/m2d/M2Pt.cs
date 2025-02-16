@@ -24,6 +24,12 @@ namespace m2d
 			this.cfg_ = Src.cfg;
 		}
 
+		public void clear()
+		{
+			this.resetConfig();
+			this.APuts.Clear();
+		}
+
 		public int cfg
 		{
 			get

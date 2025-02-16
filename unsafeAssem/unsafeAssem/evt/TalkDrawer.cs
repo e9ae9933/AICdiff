@@ -7,53 +7,60 @@ namespace evt
 {
 	public class TalkDrawer : EvDrawer
 	{
+		public bool mp_flip
+		{
+			get
+			{
+				return this.PosAttached.mp_flip;
+			}
+		}
+
 		public TalkDrawer(string _key)
 			: base(null, _key, EvDrawerContainer.LAYER.TALKER)
 		{
-			this.DepertFoc = this;
 		}
 
 		public override void clearValues(bool clear_position)
 		{
 			base.clearValues(false);
 			base.movetype = "ZSIN3";
-			this.DepertFoc = this;
 			this.base_sx = 0f;
 			this.base_sy = 0f;
 			this.base_dx = 0f;
 			this.base_dy = 0f;
 			this.mt_max = EvDrawer.MT_NORMAL;
 			this.manual_translated = false;
-			this.x = (this.sx = this.sx0);
-			this.y = (this.sy = this.sy0);
-			this.dx = this.dx0;
-			this.dy = this.dy0;
+			this.x = (this.sx = this.PosAttached.sx);
+			this.y = (this.sy = this.PosAttached.sy);
+			this.dx = this.PosAttached.depx;
+			this.dy = this.PosAttached.depy;
 			this.t = 0f;
 			this.draw_flag |= 4U;
 		}
 
-		private void initPositionFirst(string dxk, string dyk, string sxk = "", string syk = "")
+		public void animateDepertPosTo(TalkDrawer.TkDep TkPos)
 		{
-			base.initPosition(dxk, dyk, sxk, syk, 0f);
-			this.dx0 = this.dx_real;
-			this.dy0 = this.dy_real;
-			this.sx0 = this.sx_real;
-			this.sy0 = this.sy_real;
-			this.base_sx = 0f;
-			this.base_sy = 0f;
-			this.base_dx = 0f;
-			this.base_dy = 0f;
+			this.PosAttached = TkPos;
+			if (this.dx_real != TkPos.depx || this.dy_real != TkPos.depy)
+			{
+				this.sx = this.dx_real;
+				this.sy = this.dy_real;
+				this.dx = TkPos.depx;
+				this.dy = TkPos.depy;
+				this.base_dx = 0f;
+				this.base_dy = 0f;
+				base.movetype = "ZSIN3";
+				base.initMove(30);
+			}
+			if (this.t < 0f)
+			{
+				this.sx = this.PosAttached.sx;
+				this.sy = this.PosAttached.sy;
+			}
 			this.manual_translated = false;
 		}
 
-		public void animateDepertPosTo(TalkDrawer Tk)
-		{
-			this.DepertFoc = Tk;
-			base.moveTo("C+" + Tk.dx0.ToString(), "C+" + Tk.dy0.ToString(), 30, "");
-			this.manual_translated = false;
-		}
-
-		public EvPerson activatePerson(EvDrawerContainer _DC, string _person = "_", string _show_type = "")
+		public EvPerson activatePerson(EvDrawerContainer _DC, TalkDrawer.TkDep TkPos, string _person = "_", string _show_type = "")
 		{
 			this.img_center_shift_x = (this.img_center_shift_y = 0f);
 			if (_person != "")
@@ -67,9 +74,14 @@ namespace evt
 						return null;
 					}
 					this.DC = _DC;
+					this.animateDepertPosTo(TkPos);
 					this.MMRD = this.DC.get_MMRD();
 					this.Person.activate(_show_type);
 					this.person_msg = this.Person.key;
+				}
+				else
+				{
+					this.animateDepertPosTo(TkPos);
 				}
 			}
 			else
@@ -85,7 +97,7 @@ namespace evt
 			if (this.Person != null)
 			{
 				uint num = base.stringToViewType(view_key);
-				if (!this.Person.setGrp(this, grp))
+				if (!this.Person.setGrp(this, grp, out this.NextPose, out this.next_emotion))
 				{
 					X.de("Person の中身と異なるキャラクタ画像が指定されました: " + grp, null);
 				}
@@ -96,17 +108,21 @@ namespace evt
 						base.deactivateManpu(true, false);
 					}
 					this.activate(num | 256U | 2048U, true);
-					EvEmotVisibility evEmotVisibility = this.Person.get_NextPose(false);
+					EvEmotVisibility evEmotVisibility = this.get_NextPose(false);
 					if (evEmotVisibility == null)
 					{
 						return false;
 					}
 					float num2 = evEmotVisibility.get_draw_y(1f);
-					float shift_x = evEmotVisibility.shift_x;
-					if (this.img_center_shift_y != num2 || this.img_center_shift_x != shift_x)
+					float num3 = evEmotVisibility.shift_x;
+					if (evEmotVisibility.shift_x_onright != 0f)
+					{
+						num3 += evEmotVisibility.shift_x_onright * X.ZSIN(X.Abs(this.dx), IN.wh) * (float)X.MPF(this.dx > 0f);
+					}
+					if (this.img_center_shift_y != num2 || this.img_center_shift_x != num3)
 					{
 						this.img_center_shift_y = num2;
-						this.img_center_shift_x = shift_x;
+						this.img_center_shift_x = num3;
 						if (this.MdFill != null)
 						{
 							base.fineFillMeshPos(null);
@@ -137,8 +153,9 @@ namespace evt
 
 		public override bool runDraw(float fcnt, bool deleting = false)
 		{
-			if (!base.runDraw(fcnt, deleting))
+			if (!base.runDraw(fcnt, deleting || this.Person == null))
 			{
+				this.DC.releasePooledTalkDrawer(this);
 				return false;
 			}
 			if (this.Person != null)
@@ -165,8 +182,8 @@ namespace evt
 			{
 				this.base_sx = 0f;
 				this.base_sy = 0f;
-				this.sx = this.DepertFoc.sx0;
-				this.sy = this.DepertFoc.sy0;
+				this.sx = this.PosAttached.sx;
+				this.sy = this.PosAttached.sy;
 				this.mt_max = TalkDrawer.MT_HIDE;
 				base.movetype = "ZSIN2";
 			}
@@ -191,8 +208,15 @@ namespace evt
 			{
 				this.Person = this.Person.release();
 			}
+			this.CurPose = (this.NextPose = null);
 			this.img_center_shift_y = 0f;
 			return base.release();
+		}
+
+		protected override void releaseMeshDrawer()
+		{
+			this.CurPose = (this.NextPose = null);
+			base.releaseMeshDrawer();
 		}
 
 		public override void redrawMesh(float fcnt)
@@ -214,7 +238,7 @@ namespace evt
 			}
 			this.MdImg.Col = this.MdImg.ColGrd.White().setA1(drawAlpha).C;
 			base.fadeDrawPrepare(fcnt);
-			this.Person.drawTo(this, this.MdImg);
+			this.Person.drawTo(this, this.MdImg, ref this.CurPose, ref this.cur_emotion, this.NextPose, this.next_emotion);
 			if (num >= 0)
 			{
 				this.MaImg.revertVerAndTriIndexAfter(num, num2, false);
@@ -224,6 +248,24 @@ namespace evt
 				this.MaImg.Set(false);
 			}
 			base.redrawManpu();
+		}
+
+		public EvEmotVisibility get_CurPose()
+		{
+			if (this.Person == null)
+			{
+				return null;
+			}
+			return this.CurPose;
+		}
+
+		public EvEmotVisibility get_NextPose(bool avoid_empty = false)
+		{
+			if (this.NextPose == null && avoid_empty)
+			{
+				return this.CurPose;
+			}
+			return this.NextPose;
 		}
 
 		public string getPersonKey()
@@ -255,32 +297,16 @@ namespace evt
 
 		public static void loadTalkerPos(string lt_text)
 		{
-			TalkDrawer.OTk = new BDic<string, TalkDrawer>();
+			TalkDrawer.OTk = new BDic<string, TalkDrawer.TkDep>();
 			CsvReader csvReader = new CsvReader(lt_text, CsvReader.RegSpace, true);
 			while (csvReader.read())
 			{
 				if (csvReader.cmd != "")
 				{
-					TalkDrawer tk = TalkDrawer.getTk(csvReader.cmd, false);
-					tk.initPositionFirst(csvReader._1, csvReader._2, csvReader._3, csvReader._4);
-					tk.mp_flip = csvReader._B5;
+					TalkDrawer.TkDep tkDep = new TalkDrawer.TkDep(csvReader);
+					TalkDrawer.OTk[csvReader.cmd] = tkDep;
 				}
 			}
-		}
-
-		public static TalkDrawer getTk(string key, bool no_make = true)
-		{
-			TalkDrawer talkDrawer = X.Get<string, TalkDrawer>(TalkDrawer.OTk, key);
-			if (talkDrawer != null)
-			{
-				return talkDrawer;
-			}
-			if (no_make)
-			{
-				return null;
-			}
-			TalkDrawer talkDrawer2 = new TalkDrawer(key);
-			return TalkDrawer.OTk[key] = talkDrawer2;
 		}
 
 		public override Vector3 getHkdsDepertPos()
@@ -290,7 +316,7 @@ namespace evt
 			vector.y += this.img_center_shift_y;
 			if (this.Person != null)
 			{
-				EvEmotVisibility evEmotVisibility = this.Person.get_NextPose(true);
+				EvEmotVisibility evEmotVisibility = this.get_NextPose(true);
 				if (evEmotVisibility != null)
 				{
 					vector += evEmotVisibility.getMouthPos();
@@ -299,20 +325,30 @@ namespace evt
 			return vector;
 		}
 
-		public static BDic<string, TalkDrawer> getDefinedPositionList()
+		public static BDic<string, TalkDrawer.TkDep> getDefinedPositionList()
 		{
 			return TalkDrawer.OTk;
 		}
 
 		public static bool getDefinedPosition(string key, out Vector4 Pos)
 		{
-			TalkDrawer talkDrawer = X.Get<string, TalkDrawer>(TalkDrawer.OTk, key);
-			if (talkDrawer != null)
+			TalkDrawer.TkDep tkDep;
+			if (TalkDrawer.OTk.TryGetValue(key, out tkDep))
 			{
-				Pos = talkDrawer.getDefinedFirstPosition();
+				Pos = tkDep.V4;
 				return true;
 			}
 			Pos = default(Vector4);
+			return false;
+		}
+
+		public static bool getDefinedPositionRaw(string key, out TalkDrawer.TkDep Pos)
+		{
+			if (TalkDrawer.OTk.TryGetValue(key, out Pos))
+			{
+				return true;
+			}
+			Pos = default(TalkDrawer.TkDep);
 			return false;
 		}
 
@@ -320,13 +356,13 @@ namespace evt
 		{
 			if (pos_id == "_")
 			{
-				if (this.Person == null)
+				if (this.Person == null || this.CurPose == null)
 				{
 					P = new Vector3(this.x, this.y + 60f, 1f);
 				}
 				else
 				{
-					EvEmotVisibility curPose = this.Person.get_CurPose();
+					EvEmotVisibility curPose = this.get_CurPose();
 					P = curPose.getFacePos(shift_y);
 					P.x += this.x + this.img_center_shift_x;
 					P.y += this.y + this.img_center_shift_y;
@@ -344,10 +380,10 @@ namespace evt
 
 		public static IHkdsFollowable getVpTalkerFirstPositionFollowable(string key)
 		{
-			TalkDrawer talkDrawer = X.Get<string, TalkDrawer>(TalkDrawer.OTk, key);
-			if (talkDrawer != null)
+			TalkDrawer.TkDep tkDep;
+			if (TalkDrawer.OTk.TryGetValue(key, out tkDep))
 			{
-				return new TalkDrawer.IHkdsFollowableFirstPos(talkDrawer);
+				return new TalkDrawer.IHkdsFollowableFirstPos(tkDep);
 			}
 			X.de("不明な vp_talker ポジション: " + key, null);
 			return null;
@@ -371,11 +407,6 @@ namespace evt
 			return this.Person;
 		}
 
-		public Vector4 getDefinedFirstPosition()
-		{
-			return new Vector4(this.dx0, this.dy0, this.sx0, this.sy0);
-		}
-
 		public override int id_in_layer
 		{
 			get
@@ -392,40 +423,38 @@ namespace evt
 
 		public string person_msg = "";
 
-		public static readonly int MT_HIDE = 34;
+		public TalkDrawer.TkDep PosAttached;
 
-		public bool mp_flip;
+		public static readonly int MT_HIDE = 34;
 
 		private int talker_appeard_index_;
 
-		private float sx0;
-
-		private float sy0;
-
-		private float dx0;
-
-		private float dy0;
-
 		public bool manual_translated;
-
-		private TalkDrawer DepertFoc;
 
 		private Material MtrImage;
 
 		private Material MtrImageST;
 
-		private static BDic<string, TalkDrawer> OTk;
+		private EvEmotVisibility CurPose;
+
+		private string cur_emotion;
+
+		private EvEmotVisibility NextPose;
+
+		private string next_emotion;
+
+		private static BDic<string, TalkDrawer.TkDep> OTk;
 
 		public class IHkdsFollowableFirstPos : IHkdsFollowable
 		{
-			public IHkdsFollowableFirstPos(TalkDrawer _Tk)
+			public IHkdsFollowableFirstPos(TalkDrawer.TkDep _Tk)
 			{
 				this.Tk = _Tk;
 			}
 
 			public Vector3 getHkdsDepertPos()
 			{
-				return new Vector3(this.Tk.dx0, this.Tk.dy0, 1f);
+				return new Vector3(this.Tk.depx, this.Tk.depy, 1f);
 			}
 
 			public bool checkPositionMoved(IMessageContainer Msg)
@@ -433,7 +462,46 @@ namespace evt
 				return false;
 			}
 
-			private TalkDrawer Tk;
+			private TalkDrawer.TkDep Tk;
+		}
+
+		public struct TkDep
+		{
+			public TkDep(CsvReader CR)
+			{
+				this.mp_flip = CR._B5;
+				float num;
+				float num2;
+				float num3;
+				float num4;
+				float num5;
+				float num6;
+				float num7;
+				float num8;
+				EvDrawer.initPositionS(CR._1, CR._2, CR._3, CR._4, out num, out num2, out num3, out num4, out num5, out num6, out num7, out num8, 0f, null);
+				this.depx = EvDrawer.realX(num5, num);
+				this.depy = EvDrawer.realY(num6, num2);
+				this.sx = EvDrawer.realX(num7, num3);
+				this.sy = EvDrawer.realY(num8, num4);
+			}
+
+			public Vector4 V4
+			{
+				get
+				{
+					return new Vector4(this.depx, this.depy, this.sx, this.sy);
+				}
+			}
+
+			public float depx;
+
+			public float depy;
+
+			public float sx;
+
+			public float sy;
+
+			public bool mp_flip;
 		}
 	}
 }

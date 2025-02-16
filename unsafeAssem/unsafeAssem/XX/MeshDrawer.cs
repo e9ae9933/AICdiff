@@ -194,7 +194,7 @@ namespace XX
 		{
 			if (this.Ms != null && !this.mesh_cloned)
 			{
-				Object.DestroyImmediate(this.Ms);
+				global::UnityEngine.Object.DestroyImmediate(this.Ms);
 			}
 			this.Ms = null;
 			this.mesh_cloned = false;
@@ -1284,6 +1284,24 @@ namespace XX
 			return this;
 		}
 
+		public MeshDrawer Kakko(float x, float y, float w, float h, float thick, bool no_divide_ppu = false)
+		{
+			if (!no_divide_ppu && this.ppu != 1f)
+			{
+				x *= this.ppur;
+				y *= this.ppur;
+				w *= this.ppur;
+				h *= this.ppur;
+				thick *= this.ppur;
+			}
+			this.TriRectBL(0, 1, 4, 5).TriRectBL(4, 1, 2, 3);
+			this.Pos(x, y - h, null).Pos(x, y, null).Pos(x + w, y, null)
+				.Pos(x + w, y - thick, null)
+				.Pos(x + thick, y - thick, null)
+				.Pos(x + thick, y - h, null);
+			return this;
+		}
+
 		public MeshDrawer Drip(float x, float y, float w, float h, float thick, float grd_level_in = 0f, float grd_level_out = 0f)
 		{
 			if (thick >= w)
@@ -1444,9 +1462,14 @@ namespace XX
 
 		public MeshDrawer InputImageUv(float cl, float ct, float cw = 1f, float ch = 1f)
 		{
-			if (this.uv_settype == UV_SETTYPE.IMG)
+			return this.InputImageUv(cl, ct, cw, ch, this.getVertexMax() - 4, false);
+		}
+
+		public MeshDrawer InputImageUv(float cl, float ct, float cw, float ch, int ver_from, bool force = false)
+		{
+			if (this.uv_settype == UV_SETTYPE.IMG || force)
 			{
-				int num = this.getVertexMax() - 4;
+				int num = ver_from;
 				for (int i = 0; i < 4; i++)
 				{
 					this.AMeshUv[num++].Set((i == 0 || i == 1) ? (this.uv_left + this.uv_width * cl) : (this.uv_left + this.uv_width * (cl + cw)), (i == 0 || i == 3) ? (this.uv_top + this.uv_height * ct) : (this.uv_top + this.uv_height * (ct + ch)));
@@ -1995,6 +2018,63 @@ namespace XX
 					this.Pos(x + num6 * num9, y + num7 * num10, c2);
 					sagR += num5;
 				}
+			}
+			return this;
+		}
+
+		public MeshDrawer ArcCGrd(float x, float y, float rw, float rh, float sagR, float dagR, float grd_level_out = 0f, float grd_level_in = 0f, int kaku = 0)
+		{
+			if (dagR < sagR)
+			{
+				float num = sagR;
+				float num2 = dagR;
+				dagR = num;
+				sagR = num2;
+			}
+			float num3 = dagR - sagR;
+			if (num3 >= 6.2831855f)
+			{
+				return this.Circle(x, y, rw, 0f, false, grd_level_out, grd_level_in);
+			}
+			if (this.ppu != 1f)
+			{
+				x *= this.ppur;
+				y *= this.ppur;
+				rw *= this.ppur;
+				rh *= this.ppur;
+			}
+			float num4 = X.NI(x, x + rw * X.Cos(sagR + num3 * 0.5f), 0.5f);
+			float num5 = X.NI(y, y + rh * X.Sin(sagR + num3 * 0.5f), 0.5f);
+			C32 c = null;
+			C32 c2 = null;
+			if (grd_level_out > 0f)
+			{
+				c = ((grd_level_out == 1f) ? this.ColGrd : MeshDrawer.ColBuf0.Set(this.Col).blend(this.ColGrd, grd_level_out));
+			}
+			if (grd_level_in > 0f)
+			{
+				c2 = ((grd_level_in == 1f) ? this.ColGrd : MeshDrawer.ColBuf1.Set(this.Col).blend(this.ColGrd, grd_level_in));
+			}
+			this.Pos(num4, num5, c2);
+			this.Pos(x, y, c);
+			if (kaku < 3)
+			{
+				kaku = X.MMX(3, X.IntC(num3 * X.Mx(rw, rh) * 2f / (9f * this.ppur)) + 1, 20);
+			}
+			float num6 = num3 / (float)kaku;
+			this.Tri(-1, -2, 0, false).Tri(-1, kaku, -2, false);
+			for (int i = 0; i < kaku; i++)
+			{
+				this.Tri(i, -2, i + 1, false);
+			}
+			for (int j = 0; j <= kaku; j++)
+			{
+				if (j == kaku)
+				{
+					sagR = dagR;
+				}
+				this.Pos(x + rw * X.Cos(sagR), y + rh * X.Sin(sagR), c);
+				sagR += num6;
 			}
 			return this;
 		}
@@ -3111,9 +3191,9 @@ namespace XX
 			return this;
 		}
 
-		public MeshDrawer MIcon(float cx, float cy, float wd, string name, float val1 = 0f)
+		public MeshDrawer MIcon(float cx, float cy, float wd, int shape_id, float val1 = 0f)
 		{
-			MTRX.DrawMeshIcon(this, cx, cy, wd, name, val1);
+			Shape.DrawMeshIcon(this, cx, cy, wd, shape_id, val1);
 			return this;
 		}
 
@@ -3416,6 +3496,12 @@ namespace XX
 				h *= this.ppur;
 				thick *= this.ppur;
 			}
+			if (thick < 0f)
+			{
+				this.RectBL(x, y, w, h, true);
+				this.LineDashedMAfter(line_count, fill_ratio, false);
+				return this;
+			}
 			float num = (float)line_count / ((w + h) * 2f);
 			float num2 = y + h;
 			float num3 = x + w;
@@ -3437,6 +3523,16 @@ namespace XX
 			this.uvRectN((float)line_count, fill_ratio);
 			this.Pos(x, y, null).Pos(x + thick, y + thick, null);
 			this.uv_settype = uv_SETTYPE;
+			return this;
+		}
+
+		public MeshDrawer LineDashedMAfter(int line_count, float fill_ratio = 0.5f, bool reverse = false)
+		{
+			int num = this.ver_i - 4;
+			for (int i = 0; i < 4; i++)
+			{
+				this.AMeshUv[i + num] = new Vector2((float)(((i == 1 || i == 2) != reverse) ? line_count : 0), 0.5f);
+			}
 			return this;
 		}
 

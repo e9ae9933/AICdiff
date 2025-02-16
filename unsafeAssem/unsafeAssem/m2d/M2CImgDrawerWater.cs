@@ -25,7 +25,7 @@ namespace m2d
 					Md.Uv2(num, num2, i == 0);
 					Md.Uv3(num3, num3, i == 0);
 				}
-				base.Mp.addUpdateMesh(1024, false);
+				base.Mp.addUpdateMesh(2048, false);
 			}
 			base.entryMainPicToMesh(Md, meshx, meshy, _zmx, _zmy, _rotR, Ms);
 			return false;

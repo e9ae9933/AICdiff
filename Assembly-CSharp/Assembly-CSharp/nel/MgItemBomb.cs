@@ -200,7 +200,7 @@ namespace nel
 							Mg.Ray.check_hit_wall = false;
 							Mg.Ray.check_mv_hit = true;
 							Mg.Ray.check_other_hit = false;
-							Mg.Ray.hittype &= (HITTYPE)(-16777409);
+							Mg.Ray.hittype &= ~(HITTYPE.AUTO_TARGET | HITTYPE.GUARD_IGNORE | HITTYPE.TARGET_CHECKER);
 							if (!this.ReflectCheck(Mg, Mg.Ray.hittype, num2))
 							{
 								num2 = 95;
@@ -274,7 +274,7 @@ namespace nel
 		{
 			Mg.MnSetRay(Mg.Ray.PosMap(Mg.sx, Mg.sy), 1, Mg.sa, Mg.t);
 			Mg.Ray.check_mv_hit = true;
-			Mg.Ray.hittype &= (HITTYPE)(-12582945);
+			Mg.Ray.hittype &= ~(HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED);
 			if ((Mg.hittype & MGHIT.PR) != (MGHIT)0)
 			{
 				Mg.Ray.hittype |= HITTYPE.PR;
@@ -282,7 +282,7 @@ namespace nel
 			}
 			else
 			{
-				Mg.Ray.hittype &= (HITTYPE)(-2);
+				Mg.Ray.hittype &= ~HITTYPE.PR;
 				Mg.Atk0.pr_myself_fire = false;
 			}
 			Mg.Ray.Atk = Mg.Atk0;
@@ -485,14 +485,16 @@ namespace nel
 			Mg.wind_apply_s_level = 0.15f;
 		}
 
-		public void initExplode(MagicItem Mg)
+		public bool initExplode(MagicItem Mg)
 		{
 			int num = Mg.phase / 100;
 			if (Mg.phase % 100 < 95)
 			{
 				Mg.phase = num * 100 + 95;
 				Mg.t = 0f;
+				return true;
 			}
+			return false;
 		}
 
 		public void initSelfExplodeThrow(MgItemBomb.MgBombMem Mem, NelItem Itm, bool first)
@@ -564,7 +566,7 @@ namespace nel
 
 		protected virtual bool ReflectCheck(MagicItem Mg, HITTYPE hitres, int fphase)
 		{
-			if ((hitres & (HITTYPE)4194336) != HITTYPE.NONE)
+			if ((hitres & (HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN)) != HITTYPE.NONE)
 			{
 				if (!this.alreadyThrownSelfExplode(Mg))
 				{
@@ -575,7 +577,7 @@ namespace nel
 					Mg.da = (float)X.MPF(Mg.Dro.vx > 0f) * (1f / X.NIXP(25f, 50f)) * 6.2831855f;
 					Mg.Dro.gravity_scale = 0.1f;
 				}
-				Mg.Ray.hittype &= (HITTYPE)(-4194337);
+				Mg.Ray.hittype &= ~(HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN);
 			}
 			return true;
 		}
@@ -793,6 +795,10 @@ namespace nel
 				this.ABccFoot.Remove(Lsn);
 			}
 
+			public void addOnIce()
+			{
+			}
+
 			public void applyMapDamage(M2MapDamageContainer.M2MapDamageItem MapDmg, M2BlockColliderContainer.BCCLine Bcc)
 			{
 				if (this.Mg == null || this.Mg.Dro == null)
@@ -822,6 +828,11 @@ namespace nel
 					this.Con.initEatenProcess(Mg);
 				}
 				return true;
+			}
+
+			public bool forceExplode(MagicItem Mg)
+			{
+				return Mg.Other as MgItemBomb.MgBombMem == this && this.Con.initExplode(Mg);
 			}
 
 			public void applyVelocity(FOCTYPE type, float velocity_x, float velocity_y)

@@ -34,7 +34,7 @@ namespace nel
 							for (int k = 0; k < count; k++)
 							{
 								M2Chip m2Chip = pointPuts[k] as M2Chip;
-								if (m2Chip != null && (m2Chip.Lay == this.Lay || blist.IndexOf(m2Chip.index) < 0) && base.isContainingMapXy((float)m2Chip.mapx, (float)m2Chip.mapy, (float)((int)m2Chip.mright), (float)((int)m2Chip.mbottom)) && m2Chip.getConfig(this.mapx + i - m2Chip.mapx, this.mapy + j - m2Chip.mapy) == pointPuts.cfg)
+								if (m2Chip != null && (m2Chip.Lay == this.Lay || blist.IndexOf(m2Chip.index) < 0) && base.isContainingMapXy((float)m2Chip.mapx, (float)m2Chip.mapy, (float)((int)m2Chip.mright), (float)((int)m2Chip.mbottom), 0f) && m2Chip.getConfig(this.mapx + i - m2Chip.mapx, this.mapy + j - m2Chip.mapy) == pointPuts.cfg)
 								{
 									blist.Add(m2Chip.index);
 									M2Chip m2Chip2 = this.Lay.MakeChip(m2Chip.Img, m2Chip.drawx, m2Chip.drawy, m2Chip.opacity, m2Chip.rotation, m2Chip.flip) as M2Chip;
@@ -65,7 +65,7 @@ namespace nel
 				for (int i = this.APuts.Count - 1; i >= 0; i--)
 				{
 					M2Puts m2Puts = this.APuts[i];
-					this.Lay.removeChip(m2Puts, true, true);
+					this.Lay.removeChip(m2Puts, true, true, false);
 				}
 			}
 			if (this.Dro != null)

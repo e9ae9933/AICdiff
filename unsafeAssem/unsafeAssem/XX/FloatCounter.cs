@@ -237,7 +237,7 @@ namespace XX
 			}
 		}
 
-		public FloatCounter<T> readBinaryFrom(ByteArray Ba, Func<int, T> FConvertInt2T)
+		public FloatCounter<T> readBinaryFrom(ByteReader Ba, Func<int, T> FConvertInt2T)
 		{
 			this.Clear(true);
 			int num = (int)Ba.readUShort();

@@ -276,8 +276,8 @@ namespace nel
 			}
 			else
 			{
-				num = X.NI(X.ZPOW(this.Pr.Ser.GachaReleaseRate() + 0.25f), 1f, DIFF.gacha_punch_ser_screen_value);
-				float num2 = this.Pr.getRE(RecipeManager.RPI_EFFECT.ARREST_ESCAPE);
+				num = X.NI(this.Pr.GachaReleaseRate(), 1f, DIFF.gacha_punch_ser_screen_value);
+				float num2 = this.Pr.getRE(RCP.RPI_EFFECT.ARREST_ESCAPE);
 				if (num2 > 0f)
 				{
 					num2 = X.Scr2(num2, DIFF.gacha_punch_screen_value) * 0.5f;
@@ -308,7 +308,7 @@ namespace nel
 			if (!this.ev_assign)
 			{
 				float num = X.Mn(0.5f, 1f / this.Mp.M2D.Cam.getScale(true));
-				Vector2 damageCounterShiftMapPos = this.Pr.getDamageCounterShiftMapPos();
+				Vector3 damageCounterShiftMapPos = this.Pr.getDamageCounterShiftMapPos();
 				num2 = this.Mp.ux2effectScreenx(this.Mp.pixel2ux(this.Pr.drawx + damageCounterShiftMapPos.x * this.Mp.CLEN + this.depx * num));
 				num3 = this.Mp.uy2effectScreeny(this.Mp.pixel2uy(this.Pr.drawy + damageCounterShiftMapPos.y * this.Mp.CLEN - this.depy * num));
 				num4 = 1f;
@@ -573,9 +573,9 @@ namespace nel
 			}
 		}
 
-		public bool CorruptGacha(float level)
+		public bool CorruptGacha(float level, bool use_limit = true)
 		{
-			if (!this.isUseable() || this.count <= 0f)
+			if (!this.isUseable() || this.count <= 0f || this.type == PrGachaItem.TYPE.PENDULUM_ONNIE)
 			{
 				return false;
 			}
@@ -585,7 +585,12 @@ namespace nel
 				this.t_lock_coruppt = 45f;
 			}
 			level *= 100f;
-			this.corrupt_val = X.Mn(level * 4f, this.corrupt_val + level);
+			if (use_limit)
+			{
+				this.corrupt_val = X.Mn(X.Mx(this.corrupt_val, level * 4f), this.corrupt_val + level);
+				return flag;
+			}
+			this.corrupt_val += level;
 			return flag;
 		}
 

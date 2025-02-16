@@ -198,7 +198,7 @@ namespace nel
 				this.animation_immediate_flag = true;
 				if (num5 > 0)
 				{
-					if (usingTarget != null && this.DefaultTargetInventory.isAddable(usingTarget))
+					if (usingTarget != null && this.DefaultTargetInventory.isAddable(usingTarget, false))
 					{
 						int num6 = X.Mn(num5, this.Inventory.getReduceable(usingTarget, this.grade_cursor));
 						num6 = this.DefaultTargetInventory.Add(usingTarget, num6, this.grade_cursor, true, false);
@@ -238,6 +238,10 @@ namespace nel
 						flag = false;
 					}
 				}
+			}
+			if (num3 != 0 && this.fnSlidedMeterAfter != null)
+			{
+				this.fnSlidedMeterAfter(B, num3, num2, num);
 			}
 			if (this.ANeedCheckGrade != null && this.ANeedCheckGrade.IndexOf(B) == -1)
 			{
@@ -332,6 +336,8 @@ namespace nel
 		private aBtnMeterNel BWheelTarget;
 
 		private int wheel_lock;
+
+		public UiItemManageBoxSlider.FnSlidedMeter fnSlidedMeterAfter;
 
 		private BDic<aBtnMeterNel, UiItemManageBoxSlider.DsnDataSliderIMB> OSliderData;
 

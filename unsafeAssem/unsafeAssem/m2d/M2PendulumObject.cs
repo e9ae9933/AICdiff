@@ -29,6 +29,11 @@ namespace m2d
 			IN.Pos2(base.transform, this.Mp.map2ux(this.mapcx), this.Mp.map2uy(this.mapcy));
 		}
 
+		public float auto_target_priority(M2Mover CalcFrom)
+		{
+			return 0f;
+		}
+
 		public RAYHIT can_hit(M2Ray Ray)
 		{
 			return (RAYHIT)33;
@@ -36,7 +41,7 @@ namespace m2d
 
 		public HITTYPE getHitType(M2Ray Ray)
 		{
-			if ((Ray.hittype & (HITTYPE)16777280) == HITTYPE.NONE)
+			if ((Ray.hittype & (HITTYPE.AUTO_TARGET | HITTYPE.TARGET_CHECKER)) == HITTYPE.NONE)
 			{
 				this.initVibU(Ray.Pos.x, Ray.Pos.y);
 			}

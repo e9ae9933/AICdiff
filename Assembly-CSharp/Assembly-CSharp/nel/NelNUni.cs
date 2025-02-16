@@ -34,7 +34,6 @@ namespace nel
 			}
 			this.kind = ENEMYKIND.DEVIL;
 			float num = 9f;
-			this.Od = new OverDriveManager(this, 53, 43);
 			ENEMYID id = this.id;
 			this.id = ENEMYID.UNI_0;
 			NOD.BasicData basicData = NOD.getBasicData("UNI_0");
@@ -61,6 +60,15 @@ namespace nel
 			this.FD_fnFineUniFrame = new EnemyAnimator.FnFineFrame(this.fnFineUniFrame);
 			this.Anm.fnFineFrame = this.FD_fnFineUniFrame;
 			base.addF((NelEnemy.FLAG)192);
+			this.AtkTackleBody.Prepare(this, true);
+			this.AtkPunchWeed.Prepare(this, true);
+			this.AtkShot.Prepare(this, true);
+			this.AtkDrill.Prepare(this, true);
+			this.AtkTackleBodyOd.Prepare(this, true);
+			this.AtkOdTackleBodyFall.Prepare(this, true);
+			this.AtkAbsorbOd.Prepare(this, true);
+			this.AtkOdSplashNeedle.Prepare(this, false);
+			this.AtkOdMAttrNeedleAbsorb.Prepare(this, true);
 		}
 
 		public override void initOverDriveAppear()
@@ -129,7 +137,7 @@ namespace nel
 					return;
 				}
 				bool can_hold_tackle = this.can_hold_tackle;
-				this.MgTackleBody = new MagicItemHandlerS(base.tackleInit(Atk, tackleInfo));
+				this.MgTackleBody = new MagicItemHandlerS(base.tackleInit(Atk, tackleInfo, MGHIT.AUTO));
 				this.can_hold_tackle = can_hold_tackle;
 			}
 			else
@@ -153,7 +161,7 @@ namespace nel
 				{
 					return;
 				}
-				this.MgNeedle = new MagicItemHandlerS(base.tackleInit(_Atk, Tki));
+				this.MgNeedle = new MagicItemHandlerS(base.tackleInit(_Atk, Tki, MGHIT.AUTO));
 				this.TkiNeedleSetted = Tki;
 			}
 			float num = this.TkiNeedleSetted.calc_difx_map(this);
@@ -247,7 +255,7 @@ namespace nel
 
 		private bool considerNormal(NAI Nai)
 		{
-			if (Nai.fnAwakeBasicHead(Nai))
+			if (Nai.fnAwakeBasicHead(Nai, NAI.TYPE.GAZE))
 			{
 				return true;
 			}
@@ -262,11 +270,11 @@ namespace nel
 				{
 					return true;
 				}
-				if (base.Useable(this.McDrill, 1f, 0f) && (Nai.target_hasfoot || Nai.isPrMagicChanting(1f) || Nai.isPrShieldOpening(20)) && target_slen_n > 3f && target_slen_n < 10f && this.Mp.canThroughBcc(base.x, base.y, Nai.target_x, Nai.target_y, 0.3f, -1000f, -1, false, false, null, true, null) && Nai.fnBasicMagic(Nai, 200, 0f, (float)(base.Useable(this.McDrill, 1.6f, 0f) ? 80 : 55), 0f, 0f, 7145, false))
+				if (this.Useable(this.McDrill, 1f, 0f) && (Nai.target_hasfoot || Nai.isPrMagicChanting(1f) || Nai.isPrShieldOpening(20)) && target_slen_n > 3f && target_slen_n < 10f && this.Mp.canThroughBcc(base.x, base.y, Nai.target_x, Nai.target_y, 0.3f, -1000f, -1, false, false, null, true, null) && Nai.fnBasicMagic(Nai, 200, 0f, (float)(this.Useable(this.McDrill, 1.6f, 0f) ? 80 : 55), 0f, 0f, 7145, false))
 				{
 					return true;
 				}
-				if (base.Useable(this.McShot, 1f, 0f) && Nai.fnBasicMagic(Nai, 200, (float)(Nai.isPrAlive() ? 50 : 80), 0f, 0f, 0f, 7145, false))
+				if (this.Useable(this.McShot, 1f, 0f) && Nai.fnBasicMagic(Nai, 200, (float)(Nai.isPrAlive() ? 50 : 80), 0f, 0f, 0f, 7145, false))
 				{
 					return true;
 				}
@@ -290,7 +298,7 @@ namespace nel
 				return true;
 			}
 			float num = Nai.RANtk(463);
-			if (((num < 0.4f && Nai.target_lastfoot_len < this.TkiSplashNeedle.calc_difx_map(this) * 0.7f) || Nai.HasF(NAI.FLAG.POWERED, false)) && base.Useable(this.McsSplashNeedle, 1f, 0f) && !Nai.hasTypeLock(NAI.TYPE.PUNCH_0))
+			if (((num < 0.4f && Nai.target_lastfoot_len < this.TkiSplashNeedle.calc_difx_map(this) * 0.7f) || Nai.HasF(NAI.FLAG.POWERED, false)) && this.Useable(this.McsSplashNeedle, 1f, 0f) && !Nai.hasTypeLock(NAI.TYPE.PUNCH_0))
 			{
 				Nai.RemF(NAI.FLAG.POWERED);
 				return Nai.AddTicketB(NAI.TYPE.PUNCH_0, 200, true);
@@ -360,7 +368,7 @@ namespace nel
 					base.killPtc(PtcHolder.PTC_HOLD.ACT);
 					if (Tk.prog >= PROG.PROG0)
 					{
-						base.MpConsume(this.McDrill, null, 1f, 1f);
+						this.MpConsume(this.McDrill, null, 1f, 1f);
 					}
 					this.cannot_move = false;
 				}
@@ -543,7 +551,7 @@ namespace nel
 			if (init_flag)
 			{
 				this.t = 0f;
-				if (!base.Useable(this.McShot, 1f, 0f))
+				if (!this.Useable(this.McShot, 1f, 0f))
 				{
 					this.Nai.addTypeLock(NAI.TYPE.MAG, 300f);
 					return false;
@@ -616,7 +624,7 @@ namespace nel
 					magicItem.sa = this.rotR;
 					magicItem.Atk0 = this.AtkShot;
 					magicItem.wind_apply_s_level = 1f;
-					base.MpConsume(this.McShot, magicItem, 1f, 1f);
+					this.MpConsume(this.McShot, magicItem, 1f, 1f);
 					magicItem.Ray.RadiusM(0.12f);
 					if (this.ShotDepert.z > 0f)
 					{
@@ -704,6 +712,10 @@ namespace nel
 			if ((hittype & HITTYPE.WALL_AND_BREAK) != HITTYPE.NONE)
 			{
 				Mg.PtcVar("sx", (double)Mg.sx).PtcVar("sy", (double)Mg.sy).PtcST("uni_shot_broken", PTCThread.StFollow.NO_FOLLOW, false);
+				if ((hittype & HITTYPE.WALL) != HITTYPE.NONE)
+				{
+					EnemyAttr.Splash(this, Mg.sx, Mg.sy, 0.33f, 1f, 1f);
+				}
 				return false;
 			}
 			if (Mg.da > 0f)
@@ -736,8 +748,8 @@ namespace nel
 			float num3 = 61f + 20f * num2;
 			meshImg.initForImg(MTRX.EffBlurCircle245, 0).Rect(0f, 0f, num3, num3, false);
 			MeshDrawer mesh = Mg.Ef.GetMesh("", uint.MaxValue, BLEND.ADD, false);
-			mesh.Col = mesh.ColGrd.Set(4290650157U).blend(4294957272U, X.saturate(0.4f + 0.4f * X.COSI(Mg.t, 12.4f) + 0.2f * X.COSI(Mg.t, 5.4f))).mulA(0.8f - num2 * 0.25f)
-				.C;
+			mesh.ColGrd.Set(EnemyAttr.get_mcolor2(this, 4290650157U)).blend(EnemyAttr.get_mcolor(this, 4294957272U), X.saturate(0.4f + 0.4f * X.COSI(Mg.t, 12.4f) + 0.2f * X.COSI(Mg.t, 5.4f)));
+			mesh.Col = mesh.ColGrd.mulA(0.8f - num2 * 0.25f).C;
 			mesh.Poly(0f, 0f, 13f + 1.2f * num2, num, 3, 0f, false, 0f, 0f);
 			return true;
 		}
@@ -818,9 +830,10 @@ namespace nel
 				this.AtkDrill.BurstDir((float)X.MPF(num3 > 0f));
 				if (this.MgNeedle.isActive(this) && base.hit_wall_collider && this.t >= 5f)
 				{
-					float num4 = base.x + (this.sizex + 0.5f) * num3;
-					float num5 = base.y - (this.sizey + 0.5f) * X.Sin(rotR2);
-					this.CpForGroundBreaking = this.Mp.getHardChip((int)num4, (int)num5, null, false, true, null);
+					float num4 = X.Sin(rotR2);
+					float num5 = base.x + (this.sizex + 0.5f) * num3;
+					float num6 = base.y - (this.sizey + 0.5f) * num4;
+					this.CpForGroundBreaking = this.Mp.getHardChip((int)num5, (int)num6, null, false, true, null);
 					if (this.CpForGroundBreaking != null)
 					{
 						this.AtkDrill.knockback_len = 0.2f;
@@ -831,13 +844,14 @@ namespace nel
 						this.SpSetPose("drill_2", -1, null, false);
 						Tk.AfterDelay(70f);
 						this.MgNeedle.Mg.killEffect();
+						EnemyAttr.Splash(this, base.x + 0.2f * num3, base.y - 0.2f * num4, 1.5f * this.nattr_splash_ratio, 1f, 1f);
 						this.cannot_move = true;
 					}
 				}
 				if (Tk.prog == PROG.PROG0)
 				{
 					bool flag = !this.MgNeedle.isActive(this);
-					if (this.t > 90f || flag || (this.t > 15f && !base.Useable(this.McDrill, 1f, 0f)) || this.Phy.isin_water)
+					if (this.t > 90f || flag || (this.t > 15f && !this.Useable(this.McDrill, 1f, 0f)) || this.Phy.isin_water)
 					{
 						Tk.prog = (flag ? PROG.PROG3 : PROG.PROG2);
 						num2 *= ((Tk.prog == PROG.PROG3) ? (-0.6f) : 0.7f);
@@ -856,11 +870,11 @@ namespace nel
 			if (Tk.prog == PROG.PROG1 && Tk.Progress(ref this.t, 100, true))
 			{
 				float rotR3 = this.rotR;
-				float num6 = X.Cos(rotR3);
-				this.Phy.addFoc(FOCTYPE.WALK, -0.12f * num6, 0.12f * X.Sin(rotR3), -1f, 0, 1, 60, -1, 0);
-				float num7 = (float)X.MPF(num6 > 0f);
-				this.dep_agR += X.NIXP(0.4f, 0.6f) * 3.1415927f * num7;
-				this.Anm.rotationR_speed = 0.21991149f * num7;
+				float num7 = X.Cos(rotR3);
+				this.Phy.addFoc(FOCTYPE.WALK, -0.12f * num7, 0.12f * X.Sin(rotR3), -1f, 0, 1, 60, -1, 0);
+				float num8 = (float)X.MPF(num7 > 0f);
+				this.dep_agR += X.NIXP(0.4f, 0.6f) * 3.1415927f * num8;
+				this.Anm.rotationR_speed = 0.21991149f * num8;
 				base.PtcVar("hagR", (double)(rotR3 + 1.5707964f)).PtcST("uni_drill_quit", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.NO_FOLLOW);
 				this.cannot_move = false;
 			}
@@ -1065,6 +1079,7 @@ namespace nel
 					this.GClimb = null;
 					return false;
 				}
+				this.t_nattr_add = 0f;
 				this.GClimb.alloc_jump_air = this.FootD.FootIsLift();
 				this.GClimb.addChangedFn(new NASGroundClimber.FnClimbEvent(this.fnBccChanged));
 				this.Nai.RemF((NAI.FLAG)48);
@@ -1100,6 +1115,22 @@ namespace nel
 					this.setBaseTackle(true, null);
 				}
 				return false;
+			}
+			if (base.nattr_has_mattr && this.walk_st < 200)
+			{
+				if (this.FootD.get_FootBCC() != null && this.FootD.get_FootBCC().foot_aim == AIM.B)
+				{
+					this.t_nattr_add += this.TS * this.NasChaser.run_speed;
+					if (this.t_nattr_add >= 4f)
+					{
+						this.t_nattr_add = 0f;
+						EnemyAttr.Splash(this, 1.5f);
+					}
+				}
+				else
+				{
+					this.t_nattr_add = 0f;
+				}
 			}
 			return true;
 		}
@@ -1276,7 +1307,7 @@ namespace nel
 					float osnagR = this.getOSNagR(i);
 					base.PtcVar("agR", (double)osnagR).PtcVar("len", (double)num).PtcST("uni_od_splash_needle_disappear", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				}
-				base.MpConsume(this.McsSplashNeedle, null, 1f, 1f);
+				this.MpConsume(this.McsSplashNeedle, null, 1f, 1f);
 				if (!this.Nai.isPrGaraakiState())
 				{
 					this.Nai.addTypeLock(NAI.TYPE.PUNCH_0, 140f);
@@ -1358,7 +1389,7 @@ namespace nel
 		public void setOdSplashNeedle(bool hold_forever = false, bool set_tackle = true)
 		{
 			int count = this.TkiSplashNeedle._count;
-			float num = ((!base.Useable(this.McsSplashNeedle, 1f, 0f)) ? 0.5f : 1f);
+			float num = ((!this.Useable(this.McsSplashNeedle, 1f, 0f)) ? 0.5f : 1f);
 			for (int i = 0; i < count; i++)
 			{
 				float osnagR = this.getOSNagR(i);
@@ -1366,7 +1397,7 @@ namespace nel
 					.PtcST((i == 0) ? "uni_od_splash_needle_appear_first" : "uni_od_splash_needle_appear", PtcHolder.PTC_HOLD.ACT, PTCThread.StFollow.FOLLOW_C);
 				if (set_tackle)
 				{
-					MagicItem magicItem = base.tackleInit(this.AtkOdSplashNeedle, this.TkiSplashNeedle);
+					MagicItem magicItem = base.tackleInit(this.AtkOdSplashNeedle, this.TkiSplashNeedle, MGHIT.AUTO);
 					float num2 = X.Abs(magicItem.sx) * num;
 					magicItem.sx = num2 * X.Cos(osnagR);
 					magicItem.sy = -num2 * X.Sin(osnagR);
@@ -1377,6 +1408,15 @@ namespace nel
 		protected float getOSNagR(int _id)
 		{
 			return 3.1415927f * (0.5f + 0.58f * (-1f + 2f * ((float)_id + 0.5f + X.NI(-0.3f, 0.3f, X.RAN((uint)this.error_cnt, 2441))) / (float)this.TkiSplashNeedle._count));
+		}
+
+		public override void changeRiding(IFootable _PD, FOOTRES footres)
+		{
+			base.changeRiding(_PD, footres);
+			if (base.isOverDrive() && this.is_alive && this.Anm != null && footres == FOOTRES.FOOTED && this.state == NelEnemy.STATE.STAND && this.Anm.alpha > 0f)
+			{
+				EnemyAttr.Splash(this, 1.5f);
+			}
 		}
 
 		public bool isUniPublish(AbsorbManager Abm)
@@ -1444,7 +1484,7 @@ namespace nel
 				this.od_rotate_spd_ratio = 1f;
 				Abm.target_pose = ((num == -1) ? "stride" : "injectrided");
 				Abm.get_Gacha().activate(PrGachaItem.TYPE.REP, 10, 63U);
-				Abm.get_Gacha().SoloPositionPixel = new Vector3(0f, -38f, 0f);
+				Abm.get_Gacha().SoloPositionPixel = new Vector3(0f, 38f, 0f);
 				Abm.no_clamp_speed = true;
 				Abm.no_change_release_in_dead = true;
 				Abm.no_shuffle_aim = true;
@@ -1469,7 +1509,7 @@ namespace nel
 				{
 					return false;
 				}
-				if (!base.Useable(this.McsSplashNeedle, 1f, 0f) || Atk != this.AtkOdSplashNeedle)
+				if (!this.Useable(this.McsSplashNeedle, 1f, 0f) || Atk != this.AtkOdSplashNeedle)
 				{
 					return false;
 				}
@@ -1565,7 +1605,7 @@ namespace nel
 									base.M2D.Cam.Qu.SinV(6f * X.NIXP(0.2f, 1f), 20f, 0.2f, 0);
 								}
 							}
-							base.applyAbsorbDamageTo(pr, this.AtkAbsorbOd, true, false, true, 0f, false, (X.XORSP() < 0.9f) ? this.Absorb.uipicture_fade_key : null, false);
+							base.applyAbsorbDamageTo(pr, this.AtkAbsorbOd, true, false, true, 0f, false, (X.XORSP() < 0.9f) ? this.Absorb.uipicture_fade_key : null, false, true);
 							base.PtcVar("cy", (double)(base.mbottom - 0.4f)).PtcST("ground_pound_attacked", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 							this.Mp.DropCon.setBlood(pr, 7, MTR.col_blood, 0f, true);
 							if (TX.valid(text) && this.Absorb.Con.current_pose_priority == this.Absorb.pose_priority && (!pr.poseIs(text) || this.walk_st == 10 || this.walk_st == 11))
@@ -1621,9 +1661,10 @@ namespace nel
 			if (this.t <= 100f)
 			{
 				this.t = (float)(200 + X.xors(140));
-				base.applyAbsorbDamageTo(pr, this.AtkOdSplashNeedle, true, false, true, 0f, false, null, false);
+				base.applyAbsorbDamageTo(pr, this.AtkOdSplashNeedle, true, false, true, 0f, false, null, false, true);
 				physic.killSpeedForce(true, true, true, false, false);
 				this.walk_time = 0f;
+				this.t_nattr_add = 60f;
 				base.carryable_other_object = true;
 				pr.getFootManager().rideInitTo(this, false);
 				float num2 = this.TkiSplashNeedle.calc_difx_map(this) * 0.5f;
@@ -1672,6 +1713,15 @@ namespace nel
 				{
 					base.M2D.Cam.Qu.HandShake(2f, 20f, X.NIXP(3f, 5f), 0);
 					pr.TeCon.setColorBlink(1f, 14f, 0.14f, 16711680, 0);
+				}
+			}
+			if (base.nattr_has_mattr)
+			{
+				this.t_nattr_add -= this.TS;
+				if (this.t_nattr_add <= 0f)
+				{
+					this.t_nattr_add = X.NIXP(35f, 66f);
+					base.applyAbsorbDamageTo(pr, this.AtkOdMAttrNeedleAbsorb, true, false, true, 0f, false, null, false, true);
 				}
 			}
 			if (flag)
@@ -1844,7 +1894,7 @@ namespace nel
 					return true;
 				}
 			}
-			float num2 = (this.TkiSplashNeedle.calc_difx_map(this) + this.TkiSplashNeedle.radius + 0.6f) * base.CLENM * ((this.state == NelEnemy.STATE.STAND && !base.Useable(this.McsSplashNeedle, 1f, 0f)) ? 0.5f : 1f);
+			float num2 = (this.TkiSplashNeedle.calc_difx_map(this) + this.TkiSplashNeedle.radius + 0.6f) * base.CLENM * ((this.state == NelEnemy.STATE.STAND && !this.Useable(this.McsSplashNeedle, 1f, 0f)) ? 0.5f : 1f);
 			if (num < 0f)
 			{
 				num2 *= X.ZSIN(this.t, 90f);
@@ -1868,15 +1918,15 @@ namespace nel
 				for (int j = 0; j < count; j++)
 				{
 					uint ran = X.GETRAN2(IN.totalframe / 4, 7 + j * 3);
-					M2MoverPr m2MoverPr = null;
+					M2Attackable m2Attackable = null;
 					float num5 = X.NI(3, 5, X.RAN(ran, 1983)) * 0.015625f * num;
 					float num6 = X.NI(5, 13, X.RAN(ran, 2145)) * 0.015625f;
 					MeshDrawer meshDrawer = null;
 					float num7;
 					if (this.state == NelEnemy.STATE.ABSORB && this.walk_st - 1000 == j && base.AimPr != null)
 					{
-						m2MoverPr = base.AimPr;
-						num7 = this.Mp.GAR(base.x, base.y, m2MoverPr.drawx_map, m2MoverPr.drawy_map);
+						m2Attackable = base.AimPr;
+						num7 = this.Mp.GAR(base.x, base.y, m2Attackable.drawx_map, m2Attackable.drawy_map);
 						meshDrawer = Ef.GetMesh("", MTRX.MtrMeshSub, false);
 						meshDrawer.Col = mesh3.Col;
 					}
@@ -1899,7 +1949,7 @@ namespace nel
 					{
 						meshDrawer.setCurrentMatrix(mesh3.getCurrentMatrix(), false);
 						float num8 = num4 * 0.5f;
-						float num9 = X.LENGTHXY(base.x, base.y, m2MoverPr.drawx_map, m2MoverPr.drawy_map) * base.CLENM * 0.015625f;
+						float num9 = X.LENGTHXY(base.x, base.y, m2Attackable.drawx_map, m2Attackable.drawy_map) * base.CLENM * 0.015625f;
 						meshDrawer.TriRectBL(0).Pos(num9 * 0.25f, 0f, null).Pos(num9 - num8 * 0.5f, num8, null)
 							.Pos(num9, 0f, null)
 							.Pos(num9 - num8 * 0.5f, -num8, null);
@@ -1953,7 +2003,7 @@ namespace nel
 
 		private float normal_walk_spd = 0.08f;
 
-		protected NelAttackInfo AtkTackleBody = new NelAttackInfo
+		protected EnAttackInfo AtkTackleBody = new EnAttackInfo(0.02f, 0.09f)
 		{
 			hpdmg0 = 4,
 			split_mpdmg = 2,
@@ -1966,11 +2016,11 @@ namespace nel
 			nodamage_time = 24,
 			shield_success_nodamage = 24f,
 			parryable = true
-		}.Torn(0.02f, 0.09f);
+		};
 
 		protected NOD.TackleInfo TkiBody = NOD.getTackle("uni_body");
 
-		protected NelAttackInfo AtkPunchWeed = new NelAttackInfo
+		protected EnAttackInfo AtkPunchWeed = new EnAttackInfo(0.01f, 0.04f)
 		{
 			hpdmg0 = 2,
 			burst_vx = 0.02f,
@@ -1978,11 +2028,11 @@ namespace nel
 			attr = MGATTR.STAB,
 			Beto = BetoInfo.Normal,
 			parryable = true
-		}.Torn(0.02f, 0.08f);
+		};
 
 		protected NOD.TackleInfo TkiPunchWeed = NOD.getTackle("uni_punch_weed");
 
-		protected NelAttackInfo AtkShot = new NelAttackInfo
+		protected EnAttackInfo AtkShot = new EnAttackInfo(0.04f, 0.08f)
 		{
 			hpdmg0 = 15,
 			split_mpdmg = 6,
@@ -1991,13 +2041,13 @@ namespace nel
 			attr = MGATTR.STAB,
 			Beto = BetoInfo.Normal,
 			parryable = true
-		}.Torn(0.04f, 0.08f);
+		};
 
 		protected NOD.MpConsume McShot = NOD.getMpConsume("uni_shot");
 
 		private const float knockback_drill_moving = 2.7f;
 
-		protected NelAttackInfo AtkDrill = new NelAttackInfo
+		protected EnAttackInfo AtkDrill = new EnAttackInfo(0.03f, 0.05f)
 		{
 			hpdmg0 = 2,
 			split_mpdmg = 5,
@@ -2011,7 +2061,7 @@ namespace nel
 			nodamage_time = 6,
 			shield_success_nodamage = 4f,
 			parryable = true
-		}.Torn(0.03f, 0.05f);
+		};
 
 		protected NOD.TackleInfo TkiDrill = NOD.getTackle("uni_drill");
 
@@ -2021,10 +2071,10 @@ namespace nel
 
 		private const float knockback_od_tackle = 1.2f;
 
-		protected NelAttackInfo AtkTackleBodyOd = new NelAttackInfo
+		protected EnAttackInfo AtkTackleBodyOd = new EnAttackInfo(0.02f, 0.2f)
 		{
 			is_grab_attack = true,
-			hpdmg0 = 5,
+			hpdmg0 = 13,
 			split_mpdmg = 2,
 			mpdmg0 = 4,
 			burst_vx = 0.18f,
@@ -2037,11 +2087,11 @@ namespace nel
 			shield_success_nodamage = 14f,
 			Beto = BetoInfo.Normal,
 			parryable = true
-		}.Torn(0.02f, 0.2f);
+		};
 
-		protected NelAttackInfo AtkOdTackleBodyFall = new NelAttackInfo
+		protected EnAttackInfo AtkOdTackleBodyFall = new EnAttackInfo(0.02f, 0.2f)
 		{
-			hpdmg0 = 10,
+			hpdmg0 = 25,
 			split_mpdmg = 2,
 			mpdmg0 = 4,
 			shield_break_ratio = 2.5f,
@@ -2053,7 +2103,7 @@ namespace nel
 			Beto = BetoInfo.Normal,
 			press_state_replace = 3,
 			parryable = true
-		}.Torn(0.02f, 0.2f);
+		};
 
 		protected NOD.TackleInfo TkiOdTackleBodyFall = NOD.getTackle("uni_body_od_fall");
 
@@ -2061,7 +2111,7 @@ namespace nel
 
 		private static M2DropObjectReader DroOdGroundPound;
 
-		protected NelAttackInfo AtkAbsorbOd = new NelAttackInfo
+		protected EnAttackInfo AtkAbsorbOd = new EnAttackInfo(0.02f, 0.05f)
 		{
 			hpdmg0 = 3,
 			mpdmg0 = 3,
@@ -2074,12 +2124,12 @@ namespace nel
 				vagina = 1,
 				canal = 6
 			}
-		}.Torn(0.02f, 0.05f);
+		};
 
-		protected NelAttackInfo AtkOdSplashNeedle = new NelAttackInfo
+		protected EnAttackInfo AtkOdSplashNeedle = new EnAttackInfo(0.4f, 0.4f)
 		{
 			absorb_replace_prob_both = 100f,
-			hpdmg0 = 19,
+			hpdmg0 = 46,
 			split_mpdmg = 32,
 			huttobi_ratio = 100f,
 			shield_break_ratio = 40f,
@@ -2090,7 +2140,13 @@ namespace nel
 			aim_to_opposite_when_pr_dieing = 0f,
 			pee_apply100 = 5f,
 			parryable = true
-		}.Torn(0.4f, 0.4f);
+		};
+
+		protected EnAttackInfo AtkOdMAttrNeedleAbsorb = new EnAttackInfo
+		{
+			split_mpdmg = 8,
+			huttobi_ratio = -1000f
+		};
 
 		protected NOD.TackleInfo TkiSplashNeedle = NOD.getTackle("uni_od_splash_needle");
 
@@ -2125,6 +2181,8 @@ namespace nel
 		private const int absorb_weight_rotating = 2;
 
 		private const int absorb_weight_stab = 5;
+
+		private float t_nattr_add;
 
 		private Vector3 ShotDepert;
 

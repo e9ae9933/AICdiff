@@ -40,7 +40,7 @@ namespace nel
 			this.clear();
 			if (this.ADuped == null)
 			{
-				this.ADuped = new List<RecipeManager.RPI_EFFECT>(4);
+				this.ADuped = new List<RCP.RPI_EFFECT>(4);
 			}
 			else
 			{
@@ -48,11 +48,11 @@ namespace nel
 			}
 			if (this.Src != null)
 			{
-				foreach (KeyValuePair<RecipeManager.RPI_EFFECT, float> keyValuePair in this.Src.OEffect)
+				foreach (KeyValuePair<RCP.RPI_EFFECT, float> keyValuePair in this.Src.OEffect)
 				{
 					this.OEffect[keyValuePair.Key] = keyValuePair.Value;
 				}
-				foreach (KeyValuePair<RecipeManager.RPI_EFFECT, float> keyValuePair2 in this.Src.OReduce)
+				foreach (KeyValuePair<RCP.RPI_EFFECT, float> keyValuePair2 in this.Src.OReduce)
 				{
 					this.OReduce[keyValuePair2.Key] = keyValuePair2.Value;
 				}
@@ -70,30 +70,30 @@ namespace nel
 			return this;
 		}
 
-		private Stomach addEffect(RecipeManager.RPI_EFFECT ef, float lvl01, float multiply)
+		private Stomach addEffect(RCP.RPI_EFFECT ef, float lvl01, float multiply)
 		{
-			if (ef == RecipeManager.RPI_EFFECT.NONE)
+			if (ef == RCP.RPI_EFFECT.NONE)
 			{
 				return this;
 			}
-			float num = (float)global::XX.X.IntR(global::XX.X.MMX(-1f, lvl01, 1f) * 100f) / 100f * multiply;
+			float num = (float)X.IntR(X.MMX(-1f, lvl01, 1f) * 100f) / 100f * multiply;
 			if (num >= 0f)
 			{
-				float num2 = global::XX.X.Get<RecipeManager.RPI_EFFECT, float>(this.OEffect, ef, 0f);
+				float num2 = X.Get<RCP.RPI_EFFECT, float>(this.OEffect, ef, 0f);
 				if (this.ADuped != null && num2 > 0f && num2 >= num && this.ADuped.IndexOf(ef) == -1)
 				{
 					this.ADuped.Add(ef);
 				}
-				this.OEffect[ef] = global::XX.X.Mn(global::XX.X.Mx(num2, num), 1f);
+				this.OEffect[ef] = X.Mn(X.Mx(num2, num), 1f);
 			}
 			else
 			{
-				this.OReduce[ef] = global::XX.X.Get<RecipeManager.RPI_EFFECT, float>(this.OReduce, ef, 0f) - num;
+				this.OReduce[ef] = X.Get<RCP.RPI_EFFECT, float>(this.OReduce, ef, 0f) - num;
 			}
 			return this;
 		}
 
-		public bool applyableDoubleBonus(RecipeManager.RecipeDish Dh)
+		public bool applyableDoubleBonus(RCP.RecipeDish Dh)
 		{
 			if (Dh.Rcp.is_water)
 			{
@@ -112,7 +112,7 @@ namespace nel
 
 		public float getEatableLevel(float add_cost)
 		{
-			float num = global::XX.X.Mn((float)this.cost_max - this.cost, add_cost);
+			float num = X.Mn((float)this.cost_max - this.cost, add_cost);
 			if (num < 0.0625f)
 			{
 				return 0f;
@@ -125,7 +125,7 @@ namespace nel
 			return num2;
 		}
 
-		public Stomach addEffect(RecipeManager.RecipeDish Dh, bool fine_pr_state = false, bool consider_bonus = true)
+		public Stomach addEffect(RCP.RecipeDish Dh, bool fine_pr_state = false, bool consider_bonus = true, bool add_to_achive = false)
 		{
 			float num = 1f;
 			bool flag = false;
@@ -134,7 +134,7 @@ namespace nel
 				num *= 1.5f;
 				flag = true;
 			}
-			float num2 = global::XX.X.Mn((float)this.cost_max - this.cost, (float)Dh.cost);
+			float num2 = X.Mn((float)this.cost_max - this.cost, (float)Dh.cost);
 			this.cost_applied_level = this.getEatableLevel((float)Dh.cost);
 			num *= this.cost_applied_level;
 			this.cost += num2;
@@ -142,7 +142,7 @@ namespace nel
 			{
 				this.has_water = true;
 			}
-			foreach (KeyValuePair<RecipeManager.RPI_EFFECT, Vector2> keyValuePair in Dh.OEffect)
+			foreach (KeyValuePair<RCP.RPI_EFFECT, Vector2> keyValuePair in Dh.OEffect)
 			{
 				this.addEffect(keyValuePair.Key, keyValuePair.Value.x, num);
 			}
@@ -162,13 +162,18 @@ namespace nel
 					{
 						Dh.ItemData.Use(this.Pr, null, Dh.calced_grade, this.Pr);
 					}
-					this.Pr.addWaterDrunkCache(num2 * (Dh.Rcp.is_water ? 1f : 0.14f), this.water_drunk_level, -1);
+					this.Pr.JuiceCon.addWaterDrunkCache(num2 * (Dh.Rcp.is_water ? 1f : 0.14f), this.water_drunk_level, -1);
 				}
 				this.finePrStatus(true);
 				if (this.Pr != null && Dh.ItemData.has(NelItem.CATEG.SER_APPLY))
 				{
 					this.Pr.recheck_emot_in_gm = true;
 				}
+			}
+			if (add_to_achive && this != Stomach.Temporary)
+			{
+				COOK.CurAchive.Set(ACHIVE.MENT.lunch_max_stomach, (int)X.Mx((float)COOK.getAchive(ACHIVE.MENT.lunch_max_stomach), this.cost));
+				COOK.CurAchive.Add(ACHIVE.MENT.lunch_total_stomach, X.IntC(num2));
 			}
 			return this;
 		}
@@ -188,9 +193,9 @@ namespace nel
 
 		public void fineReducedEffect()
 		{
-			foreach (KeyValuePair<RecipeManager.RPI_EFFECT, float> keyValuePair in this.OReduce)
+			foreach (KeyValuePair<RCP.RPI_EFFECT, float> keyValuePair in this.OReduce)
 			{
-				this.OEffect[keyValuePair.Key] = global::XX.X.Mx(-1f, global::XX.X.Get<RecipeManager.RPI_EFFECT, float>(this.OEffect, keyValuePair.Key, 0f) - keyValuePair.Value);
+				this.OEffect[keyValuePair.Key] = X.Mx(-1f, X.Get<RCP.RPI_EFFECT, float>(this.OEffect, keyValuePair.Key, 0f) - keyValuePair.Value);
 			}
 			this.OReduce.Clear();
 		}
@@ -210,7 +215,7 @@ namespace nel
 				{
 					this.has_water = true;
 				}
-				foreach (KeyValuePair<RecipeManager.RPI_EFFECT, Vector2> keyValuePair in dishInStomach.Dh.OEffect)
+				foreach (KeyValuePair<RCP.RPI_EFFECT, Vector2> keyValuePair in dishInStomach.Dh.OEffect)
 				{
 					this.addEffect(keyValuePair.Key, keyValuePair.Value.x, dishInStomach.lvl01);
 				}
@@ -276,11 +281,11 @@ namespace nel
 					Stomach.DishInStomach dishInStomach2 = this.AEaten[j];
 					if (only_water && !dishInStomach2.is_water)
 					{
-						goto IL_0171;
+						goto IL_0183;
 					}
-					float num5 = global::XX.X.Mn(dishInStomach2.cost, num4 * (float)dishInStomach2.getProgressLevel(j, count) / num3);
-					float num6 = num5;
-					if (only_water && dishInStomach2.is_water && dishInStomach2.Dh.Rcp.categ == RecipeManager.RP_CATEG.ACTIHOL)
+					float num5 = X.Mn(dishInStomach2.cost, num4 * (float)dishInStomach2.getProgressLevel(j, count) / num3);
+					float num6 = num5 * dishInStomach2.Dh.Rcp.cost_reduce_ratio;
+					if (only_water && dishInStomach2.is_water && dishInStomach2.Dh.Rcp.categ == RCP.RP_CATEG.ACTIHOL)
 					{
 						num6 = dishInStomach2.cost;
 					}
@@ -294,7 +299,7 @@ namespace nel
 					}
 					if (dishInStomach2.cost >= 0.0625f)
 					{
-						goto IL_0171;
+						goto IL_0183;
 					}
 					this.AEaten.RemoveAt(j);
 					flag = true;
@@ -302,12 +307,12 @@ namespace nel
 					{
 						blist.Add(dishInStomach2);
 					}
-					IL_0185:
+					IL_0197:
 					j--;
 					continue;
-					IL_0171:
+					IL_0183:
 					this.cost += dishInStomach2.cost;
-					goto IL_0185;
+					goto IL_0197;
 				}
 			}
 			while (lvl_cost >= 0.0625f && this.AEaten.Count != 0);
@@ -360,7 +365,7 @@ namespace nel
 		{
 			if (this.Pr.Ser.has(SER.DRUNK) && ratio < 1f)
 			{
-				global::XX.X.XORSP();
+				X.XORSP();
 			}
 		}
 
@@ -374,7 +379,7 @@ namespace nel
 			}
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool recipe_reffer_add = false, bool fine_pr_state = true)
+		public void readBinaryFrom(ByteReader Ba, bool recipe_reffer_add = false, bool fine_pr_state = true)
 		{
 			this.clear();
 			int num = (int)Ba.readUShort();
@@ -401,16 +406,16 @@ namespace nel
 				{
 					return this.cost.ToString();
 				}
-				return global::XX.X.spr_after(this.cost, 2);
+				return X.spr_after(this.cost, 2);
 			}
 		}
 
-		public bool isEffectDuped(RecipeManager.RPI_EFFECT ef)
+		public bool isEffectDuped(RCP.RPI_EFFECT ef)
 		{
 			return this.ADuped != null && this.ADuped.IndexOf(ef) >= 0;
 		}
 
-		public bool Has(RecipeManager.RP_CATEG categ)
+		public bool Has(RCP.RP_CATEG categ)
 		{
 			for (int i = this.AEaten.Count - 1; i >= 0; i--)
 			{
@@ -427,7 +432,7 @@ namespace nel
 			return this.has_water;
 		}
 
-		public bool isSame(Stomach Stm, RecipeManager.RPI_EFFECT ef)
+		public bool isSame(Stomach Stm, RCP.RPI_EFFECT ef)
 		{
 			return Stm.getValue(ef) == this.getValue(ef);
 		}
@@ -471,14 +476,14 @@ namespace nel
 			return this.Aeaten_cost;
 		}
 
-		public BDic<RecipeManager.RPI_EFFECT, float> getLevelDictionary01()
+		public BDic<RCP.RPI_EFFECT, float> getLevelDictionary01()
 		{
 			return this.OEffect;
 		}
 
-		public float getValue(RecipeManager.RPI_EFFECT ef)
+		public float getValue(RCP.RPI_EFFECT ef)
 		{
-			float num = global::XX.X.Get<RecipeManager.RPI_EFFECT, float>(this.OEffect, ef, 0f);
+			float num = X.Get<RCP.RPI_EFFECT, float>(this.OEffect, ef, 0f);
 			if (num < 0f)
 			{
 				return num;
@@ -494,13 +499,13 @@ namespace nel
 
 		public readonly PR Pr;
 
-		public List<RecipeManager.RPI_EFFECT> ADuped;
+		public List<RCP.RPI_EFFECT> ADuped;
 
 		private List<Stomach.DishInStomach> AEaten = new List<Stomach.DishInStomach>();
 
-		private BDic<RecipeManager.RPI_EFFECT, float> OEffect = new BDic<RecipeManager.RPI_EFFECT, float>();
+		private BDic<RCP.RPI_EFFECT, float> OEffect = new BDic<RCP.RPI_EFFECT, float>();
 
-		private BDic<RecipeManager.RPI_EFFECT, float> OReduce = new BDic<RecipeManager.RPI_EFFECT, float>();
+		private BDic<RCP.RPI_EFFECT, float> OReduce = new BDic<RCP.RPI_EFFECT, float>();
 
 		private List<Stomach.CostData> Aeaten_cost = new List<Stomach.CostData>();
 
@@ -526,7 +531,7 @@ namespace nel
 
 		public class DishInStomach
 		{
-			public DishInStomach(RecipeManager.RecipeDish _Dh, float _lvl01, bool _bonused, float _cost)
+			public DishInStomach(RCP.RecipeDish _Dh, float _lvl01, bool _bonused, float _cost)
 			{
 				this.Dh = _Dh;
 				this.lvl01 = _lvl01;
@@ -542,9 +547,9 @@ namespace nel
 				this.cost = _Src.cost;
 			}
 
-			public DishInStomach(ByteArray Ba)
+			public DishInStomach(ByteReader Ba)
 			{
-				this.Dh = RecipeManager.getDishByRecipeId(Ba.readUInt());
+				this.Dh = RCP.getDishByRecipeId(Ba.readUInt());
 				if (this.Dh != null)
 				{
 					this.Dh.referred++;
@@ -582,7 +587,7 @@ namespace nel
 					return;
 				}
 				float num = this.cost;
-				this.cost = global::XX.X.Mx(0f, this.cost - lvl * (this.Dh.Rcp.is_water ? 1.35f : 1f));
+				this.cost = X.Mx(0f, this.cost - lvl);
 				if (this.cost <= 0f)
 				{
 					return;
@@ -601,7 +606,7 @@ namespace nel
 				}
 			}
 
-			public readonly RecipeManager.RecipeDish Dh;
+			public readonly RCP.RecipeDish Dh;
 
 			public float lvl01;
 

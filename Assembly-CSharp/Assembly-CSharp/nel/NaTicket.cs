@@ -275,29 +275,29 @@ namespace nel
 			return false;
 		}
 
-		public bool isPunch()
+		public bool isPunch(bool include_quit = false)
 		{
-			return (this.prog & PROG.QUIT) == PROG.PREPARE && X.BTWW(5f, (float)this.type, 8f);
+			return ((this.prog & PROG.QUIT) == PROG.PREPARE || include_quit) && X.BTWW(5f, (float)this.type, 8f);
 		}
 
-		public bool isMagic()
+		public bool isMagic(bool include_quit = false)
 		{
-			return (this.prog & PROG.QUIT) == PROG.PREPARE && X.BTWW(10f, (float)this.type, 13f);
+			return ((this.prog & PROG.QUIT) == PROG.PREPARE || include_quit) && X.BTWW(10f, (float)this.type, 13f);
 		}
 
-		public bool isGuard()
+		public bool isGuard(bool include_quit = false)
 		{
-			return (this.prog & PROG.QUIT) == PROG.PREPARE && X.BTWW(14f, (float)this.type, 17f);
+			return ((this.prog & PROG.QUIT) == PROG.PREPARE || include_quit) && X.BTWW(14f, (float)this.type, 17f);
 		}
 
-		public bool isAttack()
+		public bool isAttack(bool include_quit = false)
 		{
-			return this.isPunch() || this.isMagic();
+			return this.isPunch(include_quit) || this.isMagic(include_quit);
 		}
 
-		public bool isAction()
+		public bool isAction(bool include_quit = false)
 		{
-			return this.isPunch() || this.isMagic() || this.isGuard();
+			return this.isPunch(include_quit) || this.isMagic(include_quit) || this.isGuard(false);
 		}
 
 		public bool isMove()

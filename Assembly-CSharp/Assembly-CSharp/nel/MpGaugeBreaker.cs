@@ -40,16 +40,16 @@ namespace nel
 			{
 				return false;
 			}
-			float num = global::XX.X.Mn(global::XX.X.Mx(this.Pr.GSaver.GsMp.saved_gauge_value, this.Pr.getCastableMp()) + (float)this.Pr.EggCon.total_real, this.Pr.get_maxmp());
-			float num2 = global::XX.X.NI(0.5f, 0.125f, global::XX.X.ZSIN((float)(this.break_cnt - this.cured_count - 6), 15f));
+			float num = X.Mn(X.Mx(this.Pr.GSaver.GsMp.saved_gauge_value, this.Pr.getCastableMp()) + (float)this.Pr.EggCon.total_real, this.Pr.get_maxmp());
+			float num2 = X.NI(0.5f, 0.125f, X.ZSIN((float)(this.break_cnt - this.cured_count - 6), 15f));
 			float num3 = ((this.Pr.NM2D.GameOver != null && this.Pr.NM2D.GameOver.isGivingUp()) ? 2f : this.Pr.Ser.mpGageCrackRate());
 			float num4 = 0f;
 			if (this.cured_count > 0)
 			{
-				num3 = global::XX.X.Mx(num3, 0.2f);
-				num4 += 0.02f * global::XX.X.ZLINE(1f - this.Pr.mp_ratio - 0.5f, 0.4f);
+				num3 = X.Mx(num3, 0.2f);
+				num4 += 0.02f * X.ZLINE(1f - this.Pr.mp_ratio - 0.5f, 0.4f);
 			}
-			float num5 = num4 + global::XX.X.Mn(num2, num3 * mp_dmg / global::XX.X.Mx(this.Pr.get_maxmp() * 0.15f, mp_dmg + num));
+			float num5 = num4 + X.Mn(num2, num3 * mp_dmg / X.Mx(this.Pr.get_maxmp() * 0.15f, mp_dmg + num));
 			if (num < this.Pr.get_maxmp() * (0.6f * (float)((this.cured_count > 0) ? 2 : 1)))
 			{
 				this.applyDamage(num5);
@@ -67,7 +67,7 @@ namespace nel
 			{
 				return 0;
 			}
-			val = global::XX.X.Mn(val, this.break_cnt - this.cured_count);
+			val = X.Mn(val, this.break_cnt - this.cured_count);
 			int num = 0;
 			int num2 = 0;
 			int num3 = 0;
@@ -88,13 +88,13 @@ namespace nel
 			}
 			if (num3 > 0)
 			{
-				num3 = ((num3 <= 1) ? 0 : global::XX.X.xors(num3));
+				num3 = ((num3 <= 1) ? 0 : X.xors(num3));
 				for (int j = 2; j >= 0; j--)
 				{
 					if ((int)(this.Agage_breaked[j] - this.Agage_cured[j]) == num4 && --num3 < 0)
 					{
 						this.last_breaked_index = (int)((byte)j);
-						val = global::XX.X.Mn((int)this.Agage_breaked[j], val);
+						val = X.Mn((int)this.Agage_breaked[j], val);
 						byte[] agage_cured = this.Agage_cured;
 						int num6 = j;
 						agage_cured[num6] += (byte)val;
@@ -131,12 +131,12 @@ namespace nel
 			int num = 0;
 			while (this.break_cnt + num - this.cured_count < 21)
 			{
-				float num2 = global::XX.X.NI(0, 3, global::XX.X.ZSIN((float)(this.break_cnt - this.cured_count + num - 6 - ((this.cured_count > 0) ? 8 : 0)), 15f));
-				if (global::XX.X.XORSP() * (num2 + 2f) / 1f >= this.damage - 0.25f)
+				float num2 = X.NI(0, 3, X.ZSIN((float)(this.break_cnt - this.cured_count + num - 6 - ((this.cured_count > 0) ? 8 : 0)), 15f));
+				if (X.XORSP() * (num2 + 2f) / 1f >= this.damage - 0.25f)
 				{
 					break;
 				}
-				this.damage = global::XX.X.Mx(0f, global::XX.X.Mn(2f, this.damage) - (0.5f + num2));
+				this.damage = X.Mx(0f, X.Mn(2f, this.damage) - (0.5f + num2));
 				num++;
 			}
 			if (num >= 1)
@@ -175,7 +175,7 @@ namespace nel
 						byte b = agage_breaked[num] - 1;
 						agage_breaked[num] = b;
 						byte b2 = b;
-						this.Agage_cured[i] = global::XX.X.Mn(this.Agage_cured[i], b2);
+						this.Agage_cured[i] = X.Mn(this.Agage_cured[i], b2);
 						if (b2 <= 0)
 						{
 							break;
@@ -190,12 +190,12 @@ namespace nel
 			for (int j = 0; j < 3; j++)
 			{
 				float breakDep = this.getBreakDep(j, true);
-				this.safe_holdable_ratio_ = global::XX.X.Mn(breakDep, this.safe_holdable_ratio_);
+				this.safe_holdable_ratio_ = X.Mn(breakDep, this.safe_holdable_ratio_);
 				this.cured_count += (int)this.Agage_cured[j];
 				this.break_cnt += (int)this.Agage_breaked[j];
-				num2 = global::XX.X.Mn(num2, breakDep);
+				num2 = X.Mn(num2, breakDep);
 			}
-			return global::XX.X.Mn(target_ratio, num2);
+			return X.Mn(target_ratio, num2);
 		}
 
 		public int cureToRatioTemp(float target_ratio)
@@ -229,7 +229,7 @@ namespace nel
 			int num = -1;
 			while (val > 0)
 			{
-				int num2 = global::XX.X.xors(3);
+				int num2 = X.xors(3);
 				int i;
 				for (i = 0; i < 3; i++)
 				{
@@ -331,7 +331,7 @@ namespace nel
 				break;
 			}
 			int num7 = -1;
-			for (int j = global::XX.X.Mn(2, num); j < 3; j++)
+			for (int j = X.Mn(2, num); j < 3; j++)
 			{
 				if (this.Agage_breaked[j] < 7)
 				{
@@ -341,7 +341,7 @@ namespace nel
 			}
 			if (num7 == -1)
 			{
-				for (int k = global::XX.X.Mn(2, num - 1); k >= 0; k--)
+				for (int k = X.Mn(2, num - 1); k >= 0; k--)
 				{
 					if (this.Agage_breaked[k] < 7)
 					{
@@ -364,7 +364,7 @@ namespace nel
 			this.break_cnt++;
 			this.last_breaked_index = num7;
 			this.active_flag |= 1;
-			this.safe_holdable_ratio_ = global::XX.X.Mn(this.safe_holdable_ratio_, this.getBreakDep(num7, true));
+			this.safe_holdable_ratio_ = X.Mn(this.safe_holdable_ratio_, this.getBreakDep(num7, true));
 			UIStatus.Instance.initCrack();
 			if (!no_effect)
 			{
@@ -397,12 +397,12 @@ namespace nel
 
 		public void secureSplitTime(float t)
 		{
-			this.secure_split_time = global::XX.X.Mx(this.secure_split_time, t);
+			this.secure_split_time = X.Mx(this.secure_split_time, t);
 		}
 
 		public void secureSplitMpHoldTime(float t)
 		{
-			this.secure_split_mphold_time = global::XX.X.Mx(this.secure_split_mphold_time, t);
+			this.secure_split_mphold_time = X.Mx(this.secure_split_mphold_time, t);
 		}
 
 		public int getReducePlayerMpValue(float fcnt = 0f)
@@ -416,7 +416,7 @@ namespace nel
 					this.break_delayed_stack = num - 1;
 					if (num > 0)
 					{
-						this.t_break_delay -= 20f + global::XX.X.NIXP(0f, 5f);
+						this.t_break_delay -= 20f + X.NIXP(0f, 5f);
 						this.gageDamage(false);
 					}
 					else
@@ -438,11 +438,11 @@ namespace nel
 			bool flag = false;
 			if (this.secure_split_mphold_time > 0f)
 			{
-				this.secure_split_mphold_time = global::XX.X.Mx(this.secure_split_mphold_time - fcnt, 0f);
+				this.secure_split_mphold_time = X.Mx(this.secure_split_mphold_time - fcnt, 0f);
 			}
 			if (this.secure_split_time > 0f)
 			{
-				this.secure_split_time = global::XX.X.Mx(this.secure_split_time - fcnt, 0f);
+				this.secure_split_time = X.Mx(this.secure_split_time - fcnt, 0f);
 				flag = true;
 			}
 			if (this.omorasi_delay < 40f)
@@ -480,7 +480,7 @@ namespace nel
 						i--;
 						continue;
 					}
-					this.mp_damage_counter = global::XX.X.Mn(this.mp_damage_counter + 1f, 1f);
+					this.mp_damage_counter = X.Mn(this.mp_damage_counter + 1f, 1f);
 				}
 				this.omorasi_delay = 40f;
 				this.active_flag |= 2;
@@ -493,7 +493,7 @@ namespace nel
 					{
 						int num6 = this.mana_counter / 4;
 						Vector2 vector = (flag2 ? this.Pr.getTargetPos() : this.Pr.getCenter());
-						mana.AddMulti(vector.x, vector.y - (flag2 ? 0f : (this.Pr.sizey * global::XX.X.NIXP(0f, 0.5f))), (float)(4 * num6), (MANA_HIT)2058);
+						mana.AddMulti(vector.x, vector.y - (flag2 ? 0f : (this.Pr.sizey * X.NIXP(0f, 0.5f))), (float)(4 * num6), MANA_HIT.EN | MANA_HIT.FALL | MANA_HIT.FROM_GAGE_SPLIT, 1f);
 						this.mana_counter -= num6 * 4;
 					}
 					if (!this.Pr.Ser.has(SER.SHAMED_SPLIT))
@@ -580,14 +580,14 @@ namespace nel
 					this.safe_holdable_ratio_ = 1f;
 					for (int i = 0; i < 3; i++)
 					{
-						this.safe_holdable_ratio_ = global::XX.X.Mn(this.getBreakDep(i, true), this.safe_holdable_ratio_);
+						this.safe_holdable_ratio_ = X.Mn(this.getBreakDep(i, true), this.safe_holdable_ratio_);
 					}
 				}
 				return this.safe_holdable_ratio_;
 			}
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool apply_break_cnt)
+		public void readBinaryFrom(ByteReader Ba, bool apply_break_cnt)
 		{
 			this.reset();
 			this.damage = Ba.readFloat();

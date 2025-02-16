@@ -55,9 +55,9 @@ namespace nel
 			return this;
 		}
 
-		public void posSetA(float _sx, float _sy, bool no_reset_time = true)
+		public void posSetA(float _dx, float _dy, bool no_reset_time = true)
 		{
-			this.Bx.posSetA(_sx, _sy, no_reset_time);
+			this.Bx.posSetA(_dx, _dy, no_reset_time);
 		}
 
 		public void posSetA(float _sx, float _sy, float _dx, float _dy, bool no_reset_time = true)
@@ -290,7 +290,7 @@ namespace nel
 		{
 			base.deactivate();
 			this.Bx.deactivate();
-			CURS.Active.Rem(base.gameObject.name);
+			CURS.Active.Rem(this.gob_name);
 			return this;
 		}
 
@@ -453,11 +453,21 @@ namespace nel
 
 		public static FillBlock addPTo(Designer Ds, string t, ALIGN _alignx = ALIGN.LEFT, float _swidth = 0f, bool _html = false, float _sheight = 0f, string _name = "", int _text_auto_wrap = -1)
 		{
+			FillBlock fillBlock;
+			using (STB stb = TX.PopBld(t, 0))
+			{
+				fillBlock = UiBoxDesigner.addPTo(Ds, stb, _alignx, _swidth, _html, _sheight, _name, _text_auto_wrap);
+			}
+			return fillBlock;
+		}
+
+		public static FillBlock addPTo(Designer Ds, STB Stb, ALIGN _alignx = ALIGN.LEFT, float _swidth = 0f, bool _html = false, float _sheight = 0f, string _name = "", int _text_auto_wrap = -1)
+		{
 			DsnDataP dsnDataP = new DsnDataP("", false)
 			{
-				text = t,
+				Stb = Stb,
 				name = _name,
-				size = 18f,
+				size = ((_sheight == 0f) ? 18f : X.Mn(_sheight - 4f, 18f)),
 				alignx = _alignx,
 				Col = MTRX.ColTrnsp,
 				TxCol = C32.d2c(4283780170U),
@@ -596,6 +606,18 @@ namespace nel
 			UiBox.FocusTo(this.Bx);
 		}
 
+		public string gob_name
+		{
+			get
+			{
+				if (this.gob_name_ == null)
+				{
+					this.gob_name_ = base.gameObject.name;
+				}
+				return this.gob_name_;
+			}
+		}
+
 		public static bool FocusTo(UiBoxDesigner Bx)
 		{
 			return UiBox.FocusTo(Bx.Bx);
@@ -618,6 +640,8 @@ namespace nel
 			}
 		}
 
+		public string gob_name_;
+
 		protected UiBox Bx;
 
 		private UiBoxDesigner.DSN_MODE mode;
@@ -633,6 +657,8 @@ namespace nel
 		private UiBoxDesigner.FnUiBoxDesignerBindings[] AFnFocus;
 
 		private UiBoxDesigner.FnUiBoxDesignerBindings[] AFnBlur;
+
+		public const uint hr_color = 2857717320U;
 
 		public delegate bool FnUiBoxDesignerBindings(UiBoxDesigner _B);
 

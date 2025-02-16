@@ -85,7 +85,7 @@ namespace m2d
 
 		public bool isBCCListenerActive(M2BlockColliderContainer.BCCLine BCC)
 		{
-			if (this.TargetCp != null && BCC.is_map_bcc && base.isContainingMapXy(BCC.x, BCC.y, BCC.right, BCC.bottom))
+			if (this.TargetCp != null && BCC.is_map_bcc && base.isContainingMapXy(BCC.x, BCC.y, BCC.right, BCC.bottom, 0f))
 			{
 				BCC.fixFootStampChip(this.TargetCp, -1);
 			}

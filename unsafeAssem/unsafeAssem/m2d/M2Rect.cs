@@ -215,9 +215,9 @@ namespace m2d
 			return true;
 		}
 
-		public bool isContainingMapXy(float _x, float _y, float _r, float _b)
+		public bool isContainingMapXy(float _x, float _y, float _r, float _b, float _extend_px = 0f)
 		{
-			return this.isContainingXy(_x * this.CLEN, _y * this.CLEN, _r * this.CLEN, _b * this.CLEN, 0f);
+			return this.isContainingXy(_x * this.CLEN, _y * this.CLEN, _r * this.CLEN, _b * this.CLEN, _extend_px);
 		}
 
 		public bool isConveringMapXy(float _x, float _y, float _r, float _b)

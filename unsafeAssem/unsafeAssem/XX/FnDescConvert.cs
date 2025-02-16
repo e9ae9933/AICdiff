@@ -2,5 +2,5 @@
 
 namespace XX
 {
-	public delegate string FnDescConvert(string str);
+	public delegate void FnDescConvert(STB Stb);
 }

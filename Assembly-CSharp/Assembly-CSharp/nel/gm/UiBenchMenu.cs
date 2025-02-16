@@ -98,7 +98,7 @@ namespace nel.gm
 			UiBenchMenu.ACmd[6] = new UiBenchMenu.BenchCmd("fast_travel", null, false, false);
 			UiBenchMenu.ACmd[7] = new UiBenchMenu.BenchCmd("fast_travel_home", null, false, false);
 			UiBenchMenu.ACmd[8] = new UiBenchMenu.BenchCmd("save", null, false, false);
-			UiBenchMenu.CmdBenchPee = new UiBenchMenu.BenchCmd("pee", (PR Pr) => Pr.Ser.has(SER.NEAR_PEE) && !Pr.NM2D.isSafeArea() && global::XX.X.sensitive_level == 0, false, false);
+			UiBenchMenu.CmdBenchPee = new UiBenchMenu.BenchCmd("pee", (PR Pr) => Pr.Ser.has(SER.NEAR_PEE) && !Pr.NM2D.isSafeArea() && X.sensitive_level == 0, false, false);
 			UiBenchMenu.newGame();
 		}
 
@@ -142,7 +142,7 @@ namespace nel.gm
 			UiBenchMenu.Adebug_keys = null;
 		}
 
-		public static void readBinaryFrom(ByteArray Ba)
+		public static void readBinaryFrom(ByteReader Ba)
 		{
 			int num = UiBenchMenu.ACmd.Length;
 			uint num2 = Ba.readUInt();
@@ -245,7 +245,7 @@ namespace nel.gm
 									else
 									{
 										text = "_bench_cure_egged_00";
-										if ((float)Pr.EggCon.total >= Pr.get_maxmp() * 0.7f && !global::XX.X.SENSITIVE)
+										if ((float)Pr.EggCon.total >= Pr.get_maxmp() * 0.7f && !X.SENSITIVE)
 										{
 											num2 = 1010;
 										}
@@ -261,7 +261,7 @@ namespace nel.gm
 								if (flag || UiBenchMenu.hasDebugKey("EP1"))
 								{
 									text = "_bench_cure_ep_enemy_orgasm";
-									num2 = 1010;
+									num2 = ((X.sensitive_level > 0) ? 2 : 1010);
 								}
 								else if ((float)Pr.ep >= 400f || UiBenchMenu.hasDebugKey("EP0"))
 								{
@@ -282,7 +282,7 @@ namespace nel.gm
 						num2 = 10;
 					}
 				}
-				int num3 = global::XX.X.Abs(benchCmd.event_pow);
+				int num3 = X.Abs(benchCmd.event_pow);
 				if (num2 > 0 && num2 > num3)
 				{
 					benchCmd.event_name = text;
@@ -306,9 +306,20 @@ namespace nel.gm
 				for (int i = -1; i < num2; i++)
 				{
 					UiBenchMenu.BenchCmd benchCmd2 = ((i == -1) ? UiBenchMenu.CmdBenchPee : UiBenchMenu.ACmd[i]);
-					if ((!benchCmd2.can_set_auto || benchCmd2.is_auto) && (benchCmd2.FnCanUse == null || benchCmd2.FnCanUse(Pr)) && benchCmd2.event_name != "" && benchCmd2.event_pow > num && benchCmd2.alloc_auto_play)
+					if (!benchCmd2.can_set_auto || benchCmd2.is_auto)
 					{
-						benchCmd = benchCmd2;
+						if (benchCmd2.FnCanUse != null && !benchCmd2.FnCanUse(Pr))
+						{
+							if (!benchCmd2.is_default && benchCmd2.event_pow >= 1000)
+							{
+								benchCmd2.event_pow *= -1;
+							}
+						}
+						else if (benchCmd2.event_name != "" && benchCmd2.event_pow > num && benchCmd2.alloc_auto_play)
+						{
+							num = benchCmd2.event_pow;
+							benchCmd = benchCmd2;
+						}
 					}
 				}
 				if (benchCmd != null)
@@ -353,14 +364,15 @@ namespace nel.gm
 						using (STB stb = TX.PopBld(null, 0))
 						{
 							stb.AR("#< % >");
-							stb.AR("BENCH_UIPIC_SLIDE 0");
 							stb.AR("CHANGE_EVENT2 ", event_name, " 0");
 							evReader.parseText(stb.ToString());
-							goto IL_0174;
+							goto IL_0180;
 						}
 					}
 					using (STB stb2 = TX.PopBld(null, 0))
 					{
+						stb2.AR("WAIT_FN UICUTIN 110");
+						stb2.AR("<LOAD>");
 						stb2.AR("#< ", PrOnSitDown.key, " >");
 						stb2.AR("CHANGE_EVENT2 ", event_name, " 1");
 						stb2.AR("IFDEF _bench_auto_decline SEEK_END ");
@@ -368,7 +380,7 @@ namespace nel.gm
 						stb2.AR("BENCH_AUTO_EXECUTE");
 						evReader.parseText(stb2.ToString());
 					}
-					IL_0174:
+					IL_0180:
 					EV.stackReader(evReader, -1);
 				}
 				return true;
@@ -431,7 +443,7 @@ namespace nel.gm
 			this.Bx = _Bx;
 			this.GM = _GM;
 			this.BenchCp = _BenchCp;
-			this.left_pos = -(this.GM.bounds_wh + 40f);
+			this.left_pos = -(UiGameMenu.bounds_wh + 40f);
 			this.M2D = M2DBase.Instance as NelM2DBase;
 			this.EfZoom = PostEffect.IT.setPE(POSTM.ZOOM2, 40f, 1f, -40);
 			this.remake_command = true;
@@ -449,10 +461,10 @@ namespace nel.gm
 			}
 			if (this.M2D.curMap != null)
 			{
-				PR pr = this.M2D.curMap.getKeyPr() as PR;
-				if (pr != null)
+				PRMain prmain = this.M2D.curMap.getKeyPr() as PRMain;
+				if (prmain != null)
 				{
-					pr.benchWaitInit(false);
+					prmain.benchWaitInit(false);
 				}
 			}
 			if ((this.done_cmd || UiBenchMenu.need_save) && CFG.autosave_on_bench)
@@ -505,32 +517,32 @@ namespace nel.gm
 			}
 			if (this.t >= 0f)
 			{
-				PR pr = this.M2D.curMap.getKeyPr() as PR;
-				if (pr == null || this.BenchCp == null)
+				PRMain prmain = this.M2D.curMap.getKeyPr() as PRMain;
+				if (prmain == null || this.BenchCp == null)
 				{
 					this.deactivateEdit(false);
 					this.run(fcnt);
 					return false;
 				}
-				if (!pr.isOnBench(true))
+				if (!prmain.isOnBench(true))
 				{
-					if (IN.isCancel() || IN.isMenuPD(1) || !UiBenchMenu.canSwitchToBenchMenu(pr))
+					if (IN.isCancel() || IN.isMenuPD(1) || !UiBenchMenu.canSwitchToBenchMenu(prmain))
 					{
 						this.deactivateEdit(false);
 						SND.Ui.play("cancel", false);
 					}
 					else if (this.initialize_bench)
 					{
-						if (!pr.hasFoot() && this.delay < 100f)
+						if (!prmain.hasFoot() && this.delay < 100f)
 						{
-							pr.benchWaitInit(true);
+							prmain.benchWaitInit(true);
 							this.t += fcnt;
 							this.delay += fcnt;
 						}
 						else
 						{
 							this.t += fcnt;
-							if (pr.isCovering(this.BenchCp.mleft - 1f, this.BenchCp.mright + 1f, this.BenchCp.mtop - 1f, this.BenchCp.mbottom + 3f, 0f) && pr.initBenchSitDown(this.BenchCp, false, false))
+							if (prmain.isCovering(this.BenchCp.mleft - 1f, this.BenchCp.mright + 1f, this.BenchCp.mtop - 1f, this.BenchCp.mbottom + 3f, 0f) && prmain.initBenchSitDown(this.BenchCp, false, false))
 							{
 								this.delay = 36f;
 								this.initialize_bench = false;
@@ -679,7 +691,7 @@ namespace nel.gm
 				this.Bx.activate();
 			}
 			this.setEnableBtns();
-			this.Btns.Get(this.btn_sel_index).Select(false);
+			this.Btns.Get(this.btn_sel_index).Select(true);
 		}
 
 		private void setEnableBtns()
@@ -692,7 +704,7 @@ namespace nel.gm
 				benchCmd.currennt_useable = benchCmd.scn_enable && (benchCmd.FnCanUse == null || benchCmd.FnCanUse(prNoel)) && (!benchCmd.only_in_safearea || (M2DBase.Instance as NelM2DBase).isSafeArea());
 				aBtn aBtn = this.Btns.Get(i);
 				ButtonSkin skin = aBtn.get_Skin();
-				bool flag = benchCmd.event_name != "" && global::XX.X.Abs(benchCmd.event_pow) > 1;
+				bool flag = benchCmd.event_name != "" && X.Abs(benchCmd.event_pow) > 1;
 				if (benchCmd.key == "wait_nightingale" && !prNoel.NM2D.WDR.alreadyMeet(WanderingManager.TYPE.NIG))
 				{
 					aBtn.setSkinTitle("???");
@@ -731,7 +743,7 @@ namespace nel.gm
 				if (text != null)
 				{
 					SND.Ui.play("locked", false);
-					CURS.limitVib(_B.Get(cur_value), global::XX.AIM.L);
+					CURS.limitVib(_B.Get(cur_value), AIM.L);
 					UILog.Instance.AddAlertTX(text, UILogRow.TYPE.ALERT);
 					return false;
 				}
@@ -739,14 +751,14 @@ namespace nel.gm
 			if (!benchCmd.scn_enable)
 			{
 				SND.Ui.play("locked", false);
-				CURS.limitVib(_B.Get(cur_value), global::XX.AIM.L);
+				CURS.limitVib(_B.Get(cur_value), AIM.L);
 				UILog.Instance.AddAlertTX("Alert_bench_execute_scenario_locked", UILogRow.TYPE.ALERT);
 				return false;
 			}
 			if (benchCmd.only_in_safearea && !(M2DBase.Instance as NelM2DBase).isSafeArea())
 			{
 				SND.Ui.play("locked", false);
-				CURS.limitVib(_B.Get(cur_value), global::XX.AIM.L);
+				CURS.limitVib(_B.Get(cur_value), AIM.L);
 				UILog.Instance.AddAlertTX("Alert_bench_execute_only_in_safe_area", UILogRow.TYPE.ALERT);
 				return false;
 			}
@@ -765,7 +777,7 @@ namespace nel.gm
 							if (!SCN.canSave(this.GM.BenchChip != null))
 							{
 								SND.Ui.play("locked", false);
-								CURS.limitVib(_B.Get(cur_value), global::XX.AIM.L);
+								CURS.limitVib(_B.Get(cur_value), AIM.L);
 								UILog.Instance.AddAlertTX("Alert_bench_execute_scenario_locked", UILogRow.TYPE.ALERT);
 								return false;
 							}
@@ -785,7 +797,7 @@ namespace nel.gm
 							if (!flag || wmrectItem == null)
 							{
 								SND.Ui.play("locked", false);
-								CURS.limitVib(_B.Get(cur_value), global::XX.AIM.L);
+								CURS.limitVib(_B.Get(cur_value), AIM.L);
 								return false;
 							}
 							M2MoverPr pr = this.M2D.curMap.Pr;
@@ -804,19 +816,19 @@ namespace nel.gm
 					if (aBtn.isLocked() || this.M2D.curMap == null)
 					{
 						SND.Ui.play("locked", false);
-						CURS.limitVib(_B.Get(cur_value), global::XX.AIM.L);
+						CURS.limitVib(_B.Get(cur_value), AIM.L);
 						return false;
 					}
 					if (this.M2D.WDR.isOtherNpcAppearHere(this.M2D.curMap, this.M2D.WDR.getNightingale()))
 					{
-						CURS.limitVib(_B.Get(cur_value), global::XX.AIM.L);
+						CURS.limitVib(_B.Get(cur_value), AIM.L);
 						UILog.Instance.AddAlertTX("Alert_nighingale_locked_by_other_people", UILogRow.TYPE.ALERT);
 						return false;
 					}
 					if (!SCN.isWNpcEnableInMap(this.M2D.curMap, WanderingManager.TYPE.NIG))
 					{
 						SND.Ui.play("locked", false);
-						CURS.limitVib(_B.Get(cur_value), global::XX.AIM.L);
+						CURS.limitVib(_B.Get(cur_value), AIM.L);
 						UILog.Instance.AddAlertTX("Alert_bench_execute_scenario_locked", UILogRow.TYPE.ALERT);
 						return false;
 					}
@@ -839,7 +851,7 @@ namespace nel.gm
 			}
 			else
 			{
-				UiBenchMenu.ExecuteBenchCmd(cur_value, 0, true, false, false);
+				UiBenchMenu.ExecuteBenchCmd(cur_value, 0, true, false, false, 2);
 			}
 			return false;
 		}
@@ -849,7 +861,7 @@ namespace nel.gm
 			B.SetChecked(!B.isChecked(), true);
 			if (REG.match(B.title, REG.RegSuffixNumber))
 			{
-				UiBenchMenu.BenchCmd benchCmd = UiBenchMenu.ACmd[global::XX.X.NmI(REG.R1, 0, false, false)];
+				UiBenchMenu.BenchCmd benchCmd = UiBenchMenu.ACmd[X.NmI(REG.R1, 0, false, false)];
 				if (benchCmd.can_set_auto)
 				{
 					benchCmd.is_auto = B.isChecked();
@@ -863,25 +875,37 @@ namespace nel.gm
 			int cmdIndex = UiBenchMenu.GetCmdIndex(cmd);
 			if (cmdIndex == -1)
 			{
-				global::XX.X.de("ベンチコマンドが見つかりません: " + cmd, null);
+				X.de("ベンチコマンドが見つかりません: " + cmd, null);
 				return delay;
 			}
-			return UiBenchMenu.ExecuteBenchCmd(cmdIndex, delay, fine_pr_motion, false, nosnd);
+			return UiBenchMenu.ExecuteBenchCmd(cmdIndex, delay, fine_pr_motion, false, nosnd, 2);
 		}
 
-		public static int ExecuteBenchCmd(int cmd_id, int delay = 0, bool fine_pr_motion = true, bool on_auto = false, bool nosnd = false)
+		public static int ExecuteBenchCmd(int cmd_id, int delay = 0, bool fine_pr_motion = true, bool on_auto = false, bool nosnd = false, byte hp_low = 2)
 		{
 			if (cmd_id < 0)
 			{
 				int num = UiBenchMenu.ACmd.Length;
 				delay += 18;
 				UiBenchMenu.fineBenchCmdEnable();
-				for (int i = 0; i < num; i++)
+				if (hp_low == 2)
 				{
-					UiBenchMenu.BenchCmd benchCmd = UiBenchMenu.ACmd[i];
+					for (int i = 0; i < num; i++)
+					{
+						PR pr = M2DBase.Instance.curMap.getPr(i) as PR;
+						if (!(pr == null))
+						{
+							hp_low = ((pr.hp_ratio <= 0.66f) ? 1 : 0);
+							break;
+						}
+					}
+				}
+				for (int j = 0; j < num; j++)
+				{
+					UiBenchMenu.BenchCmd benchCmd = UiBenchMenu.ACmd[j];
 					if (!benchCmd.auto_event_enabled && benchCmd.can_set_auto && benchCmd.is_auto && benchCmd.scn_enable)
 					{
-						UiBenchMenu.ExecuteBenchCmd(i, delay, false, true, nosnd);
+						delay = UiBenchMenu.ExecuteBenchCmd(j, delay, false, true, nosnd, hp_low);
 					}
 				}
 			}
@@ -903,10 +927,10 @@ namespace nel.gm
 				}
 				string key = benchCmd2.key;
 				string text = null;
-				for (int j = 0; j < count_players; j++)
+				for (int k = 0; k < count_players; k++)
 				{
-					PR pr = M2DBase.Instance.curMap.getPr(j) as PR;
-					if (!(pr == null) && key != null)
+					PRMain prmain = M2DBase.Instance.curMap.getPr(k) as PRMain;
+					if (!(prmain == null) && key != null)
 					{
 						if (!(key == "cure_hp"))
 						{
@@ -918,20 +942,20 @@ namespace nel.gm
 									{
 										if (key == "cure_mp")
 										{
-											pr.recheck_emot_in_gm = true;
-											pr.cureFull(true, false, false, false);
+											prmain.recheck_emot_in_gm = true;
+											prmain.cureFull(true, false, false, false);
 											if (!nosnd)
 											{
-												pr.PtcVar("delay", (double)delay).PtcST("bench_cure_mp", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-												pr.TeCon.setColorBlinkAdd(1f, 30f, 0.5f, 11665305, delay);
+												prmain.PtcVar("delay", (double)delay).PtcST("bench_cure_mp", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+												prmain.TeCon.setColorBlinkAdd(1f, 30f, 0.5f, 11665305, delay);
 											}
 											if (!fine_pr_motion || benchCmd2.currennt_useable)
 											{
-												UILog.Instance.AddAlertTX("Bench_execute_cure_mp", UILogRow.TYPE.ALERT_BENCH).ShowDelay((float)delay);
+												UILog.Instance.AddAlertTX("Bench_execute_cure_mp", UILogRow.TYPE.ALERT_BENCH);
 											}
 										}
 									}
-									else if (on_auto || global::XX.X.SENSITIVE || TX.noe(benchCmd2.event_name))
+									else if (on_auto || X.SENSITIVE || TX.noe(benchCmd2.event_name))
 									{
 										UiBenchMenu.executeOtherCommand("cure_egged", false);
 									}
@@ -939,43 +963,49 @@ namespace nel.gm
 								else
 								{
 									fine_pr_motion = false;
-									if (on_auto || global::XX.X.SENSITIVE || TX.noe(benchCmd2.event_name))
+									if (on_auto || X.SENSITIVE || TX.noe(benchCmd2.event_name))
 									{
-										pr.cureFull(false, true, false, false);
+										prmain.cureFull(false, true, false, false);
 									}
 									else
 									{
-										pr.initMasturbation(true, true);
+										prmain.initMasturbation(true, true);
 									}
 								}
 							}
 							else
 							{
+								if (hp_low == 2)
+								{
+									hp_low = ((prmain.hp_ratio <= 0.66f) ? 1 : 0);
+								}
+								prmain.UP.CutinMng.initBenchCureCloth(delay, hp_low >= 1, false);
 								text = "shower_clean_cure_cloth";
 								if (!nosnd)
 								{
-									pr.PtcVar("delay", (double)delay).PtcST("bench_cure_torned", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-									pr.TeCon.setColorBlinkAdd(1f, 30f, 0.5f, 9369341, delay);
+									prmain.PtcVar("delay", (double)delay).PtcST("bench_cure_torned", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+									prmain.TeCon.setColorBlinkAdd(1f, 30f, 0.5f, 9369341, delay);
 								}
 								if (!fine_pr_motion || benchCmd2.currennt_useable)
 								{
-									UILog.Instance.AddAlertTX("Bench_execute_cure_cloth", UILogRow.TYPE.ALERT_BENCH).ShowDelay((float)delay);
+									UILog.Instance.AddAlertTX("Bench_execute_cure_cloth", UILogRow.TYPE.ALERT_BENCH);
 								}
 							}
 						}
 						else
 						{
-							pr.cureHp((int)pr.get_maxhp());
-							pr.setHpCrack(0);
+							prmain.UP.CutinMng.initBenchCureHp(delay, prmain.BetoMng.is_torned, false);
+							prmain.cureHp((int)prmain.get_maxhp());
+							prmain.DMG.setHpCrack(0);
 							if (!nosnd)
 							{
-								pr.PtcVar("delay", (double)delay).PtcST("bench_cure_hp", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-								pr.TeCon.setColorBlinkAdd(1f, 30f, 0.5f, 16757145, delay);
+								prmain.PtcVar("delay", (double)delay).PtcST("bench_cure_hp", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
+								prmain.TeCon.setColorBlinkAdd(1f, 30f, 0.5f, 16757145, delay);
 							}
-							pr.recheck_emot_in_gm = true;
+							prmain.recheck_emot_in_gm = true;
 							if (!fine_pr_motion || benchCmd2.currennt_useable)
 							{
-								UILog.Instance.AddAlertTX("Bench_execute_cure_hp", UILogRow.TYPE.ALERT_BENCH).ShowDelay((float)delay);
+								UILog.Instance.AddAlertTX("Bench_execute_cure_hp", UILogRow.TYPE.ALERT_BENCH);
 							}
 						}
 					}
@@ -988,12 +1018,12 @@ namespace nel.gm
 			if (fine_pr_motion)
 			{
 				int count_players2 = M2DBase.Instance.curMap.count_players;
-				for (int k = 0; k < count_players2; k++)
+				for (int l = 0; l < count_players2; l++)
 				{
-					PR pr2 = M2DBase.Instance.curMap.getPr(k) as PR;
-					if (!(pr2 == null))
+					PRMain prmain2 = M2DBase.Instance.curMap.getPr(l) as PRMain;
+					if (!(prmain2 == null))
 					{
-						pr2.initBenchSitDown(null, true, false);
+						prmain2.initBenchSitDown(null, true, false);
 					}
 				}
 			}
@@ -1020,46 +1050,46 @@ namespace nel.gm
 								{
 									if (num2 != 513096600U)
 									{
-										goto IL_0316;
+										goto IL_0279;
 									}
 									if (!(cmd == "shower_clean_cure_cloth"))
 									{
-										goto IL_0316;
+										goto IL_0279;
 									}
-									goto IL_0279;
+									goto IL_01DC;
 								}
 								else if (!(cmd == "cure_egged"))
 								{
-									goto IL_0316;
+									goto IL_0279;
 								}
 							}
 							else if (num2 != 575437287U)
 							{
 								if (num2 != 1497915634U)
 								{
-									goto IL_0316;
+									goto IL_0279;
 								}
 								if (!(cmd == "pee_excrete"))
 								{
-									goto IL_0316;
+									goto IL_0279;
 								}
-								goto IL_01BD;
+								goto IL_01BA;
 							}
 							else if (!(cmd == "restroom_cure_egged"))
 							{
-								goto IL_0316;
+								goto IL_0279;
 							}
 							if (pr.EggCon.total > 0)
 							{
-								num = global::XX.X.Mx(num, pr.EggCon.total);
+								num = X.Mx(num, pr.EggCon.total);
 								pr.EggCon.clear(true);
 							}
 							if (pr.NM2D.isSafeArea())
 							{
 								pr.cureFull(true, false, false, false);
-								goto IL_0316;
+								goto IL_0279;
 							}
-							goto IL_0316;
+							goto IL_0279;
 						}
 						else if (num2 <= 2343068853U)
 						{
@@ -1067,70 +1097,43 @@ namespace nel.gm
 							{
 								if (num2 != 2343068853U)
 								{
-									goto IL_0316;
+									goto IL_0279;
 								}
 								if (!(cmd == "shower_clean"))
 								{
-									goto IL_0316;
+									goto IL_0279;
 								}
-								goto IL_0279;
+								goto IL_01DC;
 							}
 							else if (!(cmd == "pee"))
 							{
-								goto IL_0316;
+								goto IL_0279;
 							}
 						}
 						else if (num2 != 4178361163U)
 						{
 							if (num2 != 4275172322U)
 							{
-								goto IL_0316;
+								goto IL_0279;
 							}
 							if (!(cmd == "shower_cure_cloth"))
 							{
-								goto IL_0316;
+								goto IL_0279;
 							}
-							goto IL_0279;
+							goto IL_01DC;
 						}
 						else
 						{
 							if (!(cmd == "shower"))
 							{
-								goto IL_0316;
+								goto IL_0279;
 							}
-							goto IL_0279;
+							goto IL_01DC;
 						}
-						IL_01BD:
-						if (pr.water_drunk > 0)
-						{
-							num = global::XX.X.Mx(pr.water_drunk, num);
-							pr.water_drunk = 0;
-						}
-						if (pr.water_drunk_cache > 0)
-						{
-							num = global::XX.X.Mx(pr.water_drunk_cache, num);
-							pr.water_drunk_cache = 0;
-						}
-						pr.Ser.Cure(SER.NEAR_PEE);
-						if (!(cmd == "pee_excrete"))
-						{
-							goto IL_0316;
-						}
-						if (pr.Ser.has(SER.DRUNK))
-						{
-							pr.cureSerDrunk1(3000f);
-							num = global::XX.X.Mx(num, 1);
-						}
-						Stomach stmNoel = pr.NM2D.IMNG.StmNoel;
-						if (stmNoel.eaten_anything)
-						{
-							num = global::XX.X.Mx(stmNoel.eaten_item_count, num);
-							stmNoel.clear();
-							stmNoel.finePrStatus(false);
-							goto IL_0316;
-						}
-						goto IL_0316;
-						IL_0279:
+						IL_01BA:
+						num = X.Mx(pr.JuiceCon.cureOnBench(cmd == "pee_excrete"), num);
+						goto IL_0279;
+						IL_01DC:
 						pr.Ser.Cure(SER.SHAMED_WET);
 						pr.BetoMng.setWetten(pr, false, false);
 						bool flag = cmd == "shower_clean" || cmd == "shower_clean_cure_cloth";
@@ -1151,7 +1154,7 @@ namespace nel.gm
 						pr.recheck_emot = true;
 						pr.recheck_emot_in_gm = true;
 					}
-					IL_0316:
+					IL_0279:
 					pr.Ser.checkSer();
 				}
 			}
@@ -1338,9 +1341,9 @@ namespace nel.gm
 				stb.Add("NEL_MAP_TRANSFER", " ", SrcMp.key).Add(" ", WmRect.index, " ").Add(WmRect.key)
 					.Ret("\n");
 				stb.ARd("CHANGE_EVENT2 __M2D_FLUSHED_AREA", " ", nelM2DBase.WM.CurWM.text_key, wholeMapItem.text_key, null, null);
-				global::XX.AIM aim = WmRect.getAim();
+				AIM aim = WmRect.getAim();
 				int num = ((WmRect.index < 0) ? 2 : 1);
-				stb.Add("#MS_ % '>+[", 45 * num * global::XX.CAim._XD(aim, 1), ",0 :").Add(60 * num).Add("]'");
+				stb.Add("#MS_ % '>+[", 45 * num * CAim._XD(aim, 1), ",0 :").Add(60 * num).Add("]'");
 			}
 			else
 			{
@@ -1397,7 +1400,7 @@ namespace nel.gm
 				if (checking_special_state && this.M2D.curMap != null)
 				{
 					PR pr = this.M2D.curMap.getKeyPr() as PR;
-					if (pr != null && pr.isMasturbateState() && pr.Onnie != null)
+					if (pr != null && pr.isMasturbateState() && pr.SpRunner is M2PrMasturbate)
 					{
 						return false;
 					}

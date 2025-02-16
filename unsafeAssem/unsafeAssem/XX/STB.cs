@@ -652,6 +652,20 @@ namespace XX
 			return this;
 		}
 
+		public STB AddIconHtml(string icon, uint color, bool tx_color = false)
+		{
+			this.Add("<img mesh=\"", icon, "\" width=\"26\" ");
+			if (tx_color)
+			{
+				this.Add("txcolor");
+			}
+			else
+			{
+				this.Add("color=\"").AddCol(color, "0x").Add("\"");
+			}
+			return this.Add("/>");
+		}
+
 		public static int Len(string a)
 		{
 			if (a == null)
@@ -924,6 +938,40 @@ namespace XX
 			return this;
 		}
 
+		public STB spr_after(float _val, int kurai)
+		{
+			if (kurai <= 0)
+			{
+				return this.Add((int)_val);
+			}
+			if (_val == 0f)
+			{
+				this.Add("0.");
+				for (int i = 0; i < kurai; i++)
+				{
+					this.Add("0");
+				}
+				return this;
+			}
+			if (_val < 0f)
+			{
+				this.Add('-');
+				_val *= -1f;
+			}
+			int num = (int)_val;
+			this.EnsureCapacity(kurai + 1 + X.keta_count(num));
+			this.Add(num).Add('.');
+			_val -= (float)num;
+			while (--kurai >= 0)
+			{
+				_val *= 10f;
+				num = (int)_val;
+				this.Add(num);
+				_val -= (float)num;
+			}
+			return this;
+		}
+
 		public STB AppendTxA(string tx_key, string delimiter = "\n")
 		{
 			if (this.Length != 0)
@@ -931,6 +979,11 @@ namespace XX
 				this.Add(delimiter);
 			}
 			return this.AddTxA(tx_key, false);
+		}
+
+		public STB SetTxA(string tx_key, bool error_input_raw = false)
+		{
+			return this.Clear().AddTxA(tx_key, error_input_raw);
 		}
 
 		public STB AddTxA(string tx_key, bool error_input_raw = false)
@@ -945,10 +998,15 @@ namespace XX
 				this.txa_first = -1;
 				return this;
 			}
-			this.txa_first = this.Length;
-			this.txa_id = 1;
+			this.prepareTxReplace(this.Length, 1);
 			this.Add(tx.text);
 			return this;
+		}
+
+		public void prepareTxReplace(int start_char0, byte start_id = 1)
+		{
+			this.txa_first = start_char0;
+			this.txa_id = start_id;
 		}
 
 		public STB TxRpl(STB StO)
@@ -1804,6 +1862,13 @@ namespace XX
 			return this.Nm(0, out num, -1, false) > STB.PARSERES.ERROR;
 		}
 
+		public bool Nm(out STB.PARSERES res)
+		{
+			int num;
+			res = this.Nm(0, out num, -1, false);
+			return res > STB.PARSERES.ERROR;
+		}
+
 		public STB.PARSERES Nm(int s, out int end_char_index, int e = -1, bool force_hex = false)
 		{
 			if (e < 0)
@@ -1977,6 +2042,11 @@ namespace XX
 
 		public int NmI(int s, out int end_char_index, int e = -1, int def = 0)
 		{
+			if (s >= this.Length)
+			{
+				end_char_index = this.Length;
+				return def;
+			}
 			int num = 0;
 			bool flag = false;
 			if (e < 0)
@@ -2243,6 +2313,17 @@ namespace XX
 			return TX.isSpaceOrCommaOrTilde(s);
 		}
 
+		public bool isFirstWord(string compare_to, int index = 0)
+		{
+			if (this.Length < compare_to.Length + index)
+			{
+				return false;
+			}
+			int num;
+			this.ScrollFirstWord(index, out num, null, -1);
+			return this.Equals(index, num, compare_to, false);
+		}
+
 		public List<string> csvSplit(int start, int e = -1, bool ensure_element_0 = true)
 		{
 			if (e < 0)
@@ -2439,6 +2520,36 @@ namespace XX
 				s++;
 			}
 			end_char_index = e;
+			return this;
+		}
+
+		public STB ScrollPreviousLine(int s, out int start_char_index, out int end_char_index)
+		{
+			bool flag = true;
+			end_char_index = s;
+			while (s >= 0)
+			{
+				char c = this.Stb[s];
+				if (c == '\n' || c == '\r')
+				{
+					if (!flag)
+					{
+						start_char_index = s + 1;
+						return this;
+					}
+					s--;
+				}
+				else
+				{
+					if (flag)
+					{
+						flag = false;
+						end_char_index = s + 1;
+					}
+					s--;
+				}
+			}
+			start_char_index = 0;
 			return this;
 		}
 
@@ -2965,14 +3076,24 @@ namespace XX
 			{
 				e = this.Length;
 			}
-			StbWord.Clear();
+			if (StbWord != null)
+			{
+				StbWord.Clear();
+			}
 			int num = -1;
 			while (s < e)
 			{
 				char c = this.Stb[s++];
 				if ((num >= 0) ? TX.isSpaceStrict(c) : (c == '\n' || c == '\r'))
 				{
-					this.SkipSpace(s, out end_char_index, e);
+					if (StbWord != null)
+					{
+						this.SkipSpace(s, out end_char_index, e);
+					}
+					else
+					{
+						end_char_index = s;
+					}
 					return this;
 				}
 				if (num < 0)
@@ -2983,7 +3104,10 @@ namespace XX
 					}
 					num = s;
 				}
-				StbWord.Add(c);
+				if (StbWord != null)
+				{
+					StbWord.Add(c);
+				}
 			}
 			end_char_index = e;
 			return this;

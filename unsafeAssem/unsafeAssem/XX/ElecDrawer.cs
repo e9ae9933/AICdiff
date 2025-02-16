@@ -12,6 +12,10 @@ namespace XX
 
 		public ElecDrawer Ran(uint _ran)
 		{
+			if (this.ran != _ran)
+			{
+				this.refine_time = 0f;
+			}
 			this.ran = _ran;
 			return this;
 		}
@@ -55,7 +59,7 @@ namespace XX
 			this.sy = _sy * 0.015625f;
 			this.dx = _dx * 0.015625f;
 			this.dy = _dy * 0.015625f;
-			this.RANNEXT();
+			this.RANNEXT(1);
 			this.t = X.Mx(0f, this.t - this.refine_time);
 			this.sdlen = X.LENGTHXY(this.sx, this.sy, this.dx, this.dy);
 			this.count = X.IntR(this.sdlen / this.divide_w) + 1;
@@ -78,11 +82,11 @@ namespace XX
 				this.AVc[i].Set(0f, 0f, 0f);
 			}
 			float num = 0f;
-			this.Aran[0] = this.RANNEXT();
+			this.Aran[0] = this.RANNEXT(1);
 			for (int j = 1; j < this.count; j++)
 			{
 				Vector3[] avc = this.AVc;
-				this.Aran[j] = (this._ran = this.RANNEXT());
+				this.Aran[j] = (this._ran = this.RANNEXT(1));
 				float num2 = 0f;
 				if (this.RAN(1787) < this.jump_ratio)
 				{
@@ -102,21 +106,17 @@ namespace XX
 				}
 				this.AVc[j].y = (this.AVc[j - 1].z = num2);
 			}
-			this.Aran[this.count] = this.RANNEXT();
+			this.Aran[this.count] = this.RANNEXT(1);
 			return this;
 		}
 
-		public bool need_fine_pos
+		public uint RANNEXT(int count = 1)
 		{
-			get
+			for (int i = 0; i < count; i++)
 			{
-				return this.t >= this.refine_time || this.t < 0f;
+				this.ran = X.GETRAN2((int)(this.ran % 1024U), (int)(4U + this.ran % 111U));
 			}
-		}
-
-		private uint RANNEXT()
-		{
-			return this.ran = X.GETRAN2((int)(this.ran % 1024U), (int)(4U + this.ran % 111U));
+			return this.ran;
 		}
 
 		private float RAN(int f)

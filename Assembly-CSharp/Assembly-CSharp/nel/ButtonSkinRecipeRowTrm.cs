@@ -21,17 +21,18 @@ namespace nel
 			}
 		}
 
-		protected override string getTitleString()
+		protected override STB getTitleString(STB Stb)
 		{
 			if (this.Trm == null)
 			{
-				return "";
+				return Stb.Clear();
 			}
-			if (this.Trm.is_active)
+			if (!this.Trm.is_active)
 			{
-				return this.Trm.getNameLocalized();
+				return base.getTitleString(Stb);
 			}
-			return base.getTitleString();
+			Stb.Set(this.Trm.getNameLocalized());
+			return Stb;
 		}
 
 		protected override STB getCountString(STB Stb)
@@ -51,7 +52,7 @@ namespace nel
 			}
 		}
 
-		protected RecipeManager.Recipe Rcp;
+		protected RCP.Recipe Rcp;
 
 		protected TRMManager.TRMItem Trm;
 	}

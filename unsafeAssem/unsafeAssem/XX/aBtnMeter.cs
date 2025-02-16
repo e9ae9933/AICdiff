@@ -162,7 +162,7 @@ namespace XX
 					return;
 				}
 				this.Setter.deactivate();
-				base.Select(false);
+				base.Select(true);
 				return;
 			}
 		}
@@ -270,7 +270,10 @@ namespace XX
 				base.fine_flag = true;
 				if (this.Setter != null)
 				{
-					this.Setter.fineValue(v.ToString(), false);
+					using (STB stb = TX.PopBld(null, 0))
+					{
+						this.Setter.fineValue(stb.Add(v), false);
+					}
 				}
 			}
 		}
@@ -344,22 +347,24 @@ namespace XX
 			this.setValue(num, false);
 		}
 
-		public virtual string getDescForValue(float val)
+		public virtual void getDescForValue(STB Stb, float val)
 		{
-			string text;
 			if (this.Adesc_keys != null)
 			{
-				text = this.Adesc_keys[(int)val % this.Adesc_keys.Length];
+				Stb.Set(this.Adesc_keys[(int)val % this.Adesc_keys.Length]);
+			}
+			else if (val == (float)((int)val) || this.return_integer)
+			{
+				Stb.Clear().Add((int)val);
 			}
 			else
 			{
-				text = ((val == (float)((int)val) || this.return_integer) ? val.ToString() : X.spr_after(val, 1));
+				Stb.Clear().spr_after(val, 1);
 			}
-			if (this.fnDescConvert == null)
+			if (this.fnDescConvert != null)
 			{
-				return text;
+				this.fnDescConvert(Stb);
 			}
-			return this.fnDescConvert(text);
 		}
 
 		protected override void OnSelect()
@@ -468,7 +473,10 @@ namespace XX
 			}
 			else if (this.Setter != null)
 			{
-				this.Setter.fineValue(this.curind.ToString(), false);
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					this.Setter.fineValue(stb.Add(this.curind), false);
+				}
 			}
 		}
 
@@ -506,6 +514,7 @@ namespace XX
 		public void resetDraggingPos()
 		{
 			this.PosFirst = IN.getMousePos(IN.getGUICamera());
+			this.first_clicked_curind = this.curind;
 		}
 
 		public override bool OnPointerDown()

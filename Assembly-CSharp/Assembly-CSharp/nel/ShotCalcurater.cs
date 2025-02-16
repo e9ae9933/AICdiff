@@ -85,7 +85,7 @@ namespace nel
 						ShotCalcurater.BreakPos.Set(m2RayHittedItem2.hit_ux, m2RayHittedItem2.hit_uy);
 						return 1;
 					}
-					if ((m2RayHittedItem2.type & (HITTYPE)98340) != HITTYPE.NONE)
+					if ((m2RayHittedItem2.type & (HITTYPE.WALL | HITTYPE.REFLECTED | HITTYPE.BREAK | HITTYPE.KILLED)) != HITTYPE.NONE)
 					{
 						ShotCalcurater.BreakPos.Set(m2RayHittedItem2.hit_ux, m2RayHittedItem2.hit_uy);
 						return 0;

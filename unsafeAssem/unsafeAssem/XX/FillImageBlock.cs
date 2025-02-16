@@ -5,7 +5,7 @@ using UnityEngine;
 namespace XX
 {
 	[RequireComponent(typeof(BoxCollider2D))]
-	public sealed class FillImageBlock : FillBlock
+	public class FillImageBlock : FillBlock
 	{
 		public override void StartFb(string text, STB Stb, bool text_html_mode)
 		{

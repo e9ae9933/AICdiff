@@ -15,6 +15,14 @@ namespace evt
 			this.sheight_px = (float)this.PF.pPose.height;
 		}
 
+		public MImage MI
+		{
+			get
+			{
+				return MTRX.getMI(this.PF.pChar, false);
+			}
+		}
+
 		public void RotaGraphTo(MeshDrawer Md, float x, float y, float z = 1f, float agR = 0f, bool flip = false)
 		{
 		}

@@ -10,14 +10,15 @@ namespace nel
 		{
 		}
 
-		protected override string getTitleString()
+		protected override STB getTitleString(STB Stb)
 		{
 			if (base.Inventory == null)
 			{
-				return base.getTitleString();
+				return base.getTitleString(Stb);
 			}
 			NelItem data = this.ItmRow.Data;
-			return this.ItemMng.getDescStr(this.ItmRow, UiItemManageBox.DESC_ROW.NAME, (int)this.ItmRow.splitted_grade);
+			Stb.Add(this.ItemMng.getDescStr(this.ItmRow, UiItemManageBox.DESC_ROW.NAME, (int)this.ItmRow.splitted_grade));
+			return Stb;
 		}
 	}
 }

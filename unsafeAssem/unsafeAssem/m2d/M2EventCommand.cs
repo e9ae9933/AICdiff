@@ -99,7 +99,7 @@ namespace m2d
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(cmd);
 				if (num <= 1848018870U)
 				{
-					if (num <= 735327009U)
+					if (num <= 755604140U)
 					{
 						if (num <= 512870383U)
 						{
@@ -115,7 +115,7 @@ namespace m2d
 									{
 										return false;
 									}
-									goto IL_0AA1;
+									goto IL_0AF3;
 								}
 								else
 								{
@@ -123,7 +123,7 @@ namespace m2d
 									{
 										return false;
 									}
-									goto IL_065C;
+									goto IL_06A0;
 								}
 							}
 							else if (num != 448976475U)
@@ -154,7 +154,7 @@ namespace m2d
 								{
 									return false;
 								}
-								goto IL_0E3D;
+								goto IL_0F1A;
 							}
 						}
 						else if (num <= 640509306U)
@@ -188,19 +188,30 @@ namespace m2d
 						{
 							if (num != 735327009U)
 							{
-								return false;
+								if (num != 755604140U)
+								{
+									return false;
+								}
+								if (!(cmd == "#CALL2"))
+								{
+									return false;
+								}
+								goto IL_099C;
 							}
-							if (!(cmd == "PTCST"))
+							else
 							{
-								return false;
+								if (!(cmd == "PTCST"))
+								{
+									return false;
+								}
+								if (map2d == null)
+								{
+									return rER.tError("Map2d 未定義");
+								}
+								PTCThreadRunner.PreVar(rER, 2);
+								map2d.PtcST(rER._1, null, PTCThread.StFollow.NO_FOLLOW);
+								return true;
 							}
-							if (map2d == null)
-							{
-								return rER.tError("Map2d 未定義");
-							}
-							PTCThreadRunner.PreVar(rER, 2);
-							map2d.PtcST(rER._1, null, PTCThread.StFollow.NO_FOLLOW);
-							return true;
 						}
 						else
 						{
@@ -216,16 +227,28 @@ namespace m2d
 							return true;
 						}
 					}
-					else if (num <= 1047935295U)
+					else if (num <= 1457290945U)
 					{
-						if (num <= 861497370U)
+						if (num <= 1033694922U)
 						{
-							if (num != 755604140U)
+							if (num != 861497370U)
 							{
-								if (num != 861497370U)
+								if (num != 1033694922U)
 								{
 									return false;
 								}
+								if (!(cmd == "#SND_LOAD"))
+								{
+									return false;
+								}
+								if (M2DBase.Instance != null)
+								{
+									M2DBase.Instance.loadMaterialSnd(rER.slice(1, -1000));
+								}
+								return true;
+							}
+							else
+							{
 								if (!(cmd == "#NO_DECLINE_AREA_CAMERA"))
 								{
 									return false;
@@ -234,59 +257,16 @@ namespace m2d
 								{
 									return rER.tError("Map2d 未定義");
 								}
-								map2d.M2D.Cam.do_not_consider_decline_area = true;
+								map2d.M2D.Cam.do_not_consider_decline_area = (byte)X.NmI(rER._1, 0, false, false);
 								return true;
 							}
-							else
-							{
-								if (!(cmd == "#CALL2"))
-								{
-									return false;
-								}
-								goto IL_094A;
-							}
 						}
-						else if (num != 1033694922U)
+						else if (num != 1047935295U)
 						{
-							if (num != 1047935295U)
+							if (num != 1457290945U)
 							{
 								return false;
 							}
-							if (!(cmd == "#MS_"))
-							{
-								return false;
-							}
-							goto IL_065C;
-						}
-						else
-						{
-							if (!(cmd == "#SND_LOAD"))
-							{
-								return false;
-							}
-							if (M2DBase.Instance != null)
-							{
-								M2DBase.Instance.loadMaterialSnd(rER.slice(1, -1000));
-							}
-							return true;
-						}
-					}
-					else if (num <= 1578796092U)
-					{
-						if (num != 1457290945U)
-						{
-							if (num != 1578796092U)
-							{
-								return false;
-							}
-							if (!(cmd == "DARK_DEACTIVATE"))
-							{
-								return false;
-							}
-							goto IL_1185;
-						}
-						else
-						{
 							if (!(cmd == "#NO_LIMIT_CAMERA"))
 							{
 								return false;
@@ -294,8 +274,38 @@ namespace m2d
 							M2Camera.no_limit_camera = true;
 							return true;
 						}
+						else
+						{
+							if (!(cmd == "#MS_"))
+							{
+								return false;
+							}
+							goto IL_06A0;
+						}
 					}
-					else if (num != 1597248115U)
+					else if (num <= 1597248115U)
+					{
+						if (num != 1578796092U)
+						{
+							if (num != 1597248115U)
+							{
+								return false;
+							}
+							if (!(cmd == "#MS_SOFT"))
+							{
+								return false;
+							}
+						}
+						else
+						{
+							if (!(cmd == "DARK_DEACTIVATE"))
+							{
+								return false;
+							}
+							goto IL_1262;
+						}
+					}
+					else if (num != 1632596406U)
 					{
 						if (num != 1676631637U)
 						{
@@ -377,9 +387,19 @@ namespace m2d
 							return true;
 						}
 					}
-					else if (!(cmd == "#MS_SOFT"))
+					else
 					{
-						return false;
+						if (!(cmd == "#LIGHT"))
+						{
+							return false;
+						}
+						M2EventItem m2EventItem2 = M2EventCommand.EvMV as M2EventItem;
+						if (m2EventItem2 == null)
+						{
+							return rER.tError("#LIGHT 対象Mover未定義");
+						}
+						m2EventItem2.setLight(X.NmUI(rER._1, 0U, true, true), X.Nm(rER._2, -1f, false));
+						return true;
 					}
 					if (M2EventCommand.EvMV == null)
 					{
@@ -387,7 +407,7 @@ namespace m2d
 					}
 					M2EventCommand.EvMV.assignMoveScript(rER.slice_join(1, " ", ""), rER.cmd == "#MS_SOFT");
 					return true;
-					IL_065C:
+					IL_06A0:
 					M2EventCommand.saveMv();
 					rER.tError(M2EventCommand.focusEventMover(rER._1, false));
 					if (M2EventCommand.EvMV == null)
@@ -451,7 +471,7 @@ namespace m2d
 							{
 								return false;
 							}
-							goto IL_1185;
+							goto IL_1262;
 						}
 						else if (!(cmd == "CHIP_DEACTIVATE"))
 						{
@@ -483,12 +503,12 @@ namespace m2d
 							{
 								return false;
 							}
-							M2EventItem m2EventItem2 = M2EventCommand.EvMV as M2EventItem;
-							if (m2EventItem2 == null)
+							M2EventItem m2EventItem3 = M2EventCommand.EvMV as M2EventItem;
+							if (m2EventItem3 == null)
 							{
 								return rER.tError("#MOVE 対象Mover未定義");
 							}
-							m2EventItem2.setMovePattern(rER._1);
+							m2EventItem3.setMovePattern(rER._1);
 							return false;
 						}
 					}
@@ -525,7 +545,7 @@ namespace m2d
 							{
 								return false;
 							}
-							goto IL_0AA1;
+							goto IL_0AF3;
 						}
 					}
 					else
@@ -548,17 +568,17 @@ namespace m2d
 							{
 								return rER.tError("Map2d 未定義");
 							}
-							M2EventItem m2EventItem3 = map2d.getMoverByName(rER._1, false) as M2EventItem;
-							if (!(m2EventItem3 != null))
+							M2EventItem m2EventItem4 = map2d.getMoverByName(rER._1, false) as M2EventItem;
+							if (!(m2EventItem4 != null))
 							{
 								return rER.tError("DescKey 対象イベント不明: " + rER._1);
 							}
-							m2EventItem3.check_desc_name = rER._2;
+							m2EventItem4.check_desc_name = rER._2;
 						}
 						return true;
 					}
 				}
-				else if (num <= 3174601361U)
+				else if (num <= 3486860610U)
 				{
 					if (num <= 2931185174U)
 					{
@@ -572,7 +592,7 @@ namespace m2d
 							{
 								return false;
 							}
-							goto IL_094A;
+							goto IL_099C;
 						}
 						else
 						{
@@ -608,9 +628,22 @@ namespace m2d
 					{
 						if (num != 3174601361U)
 						{
-							return false;
+							if (num != 3486860610U)
+							{
+								return false;
+							}
+							if (!(cmd == "#DECLINE_AREA_CAMERA"))
+							{
+								return false;
+							}
+							if (map2d == null)
+							{
+								return rER.tError("Map2d 未定義");
+							}
+							map2d.M2D.Cam.do_not_consider_decline_area = 0;
+							return true;
 						}
-						if (!(cmd == "CHIP_ACTIVATE"))
+						else if (!(cmd == "CHIP_ACTIVATE"))
 						{
 							return false;
 						}
@@ -621,18 +654,18 @@ namespace m2d
 						{
 							return false;
 						}
-						M2EventItem m2EventItem4 = M2EventCommand.EvMV as M2EventItem;
-						if (m2EventItem4 == null)
+						M2EventItem m2EventItem5 = M2EventCommand.EvMV as M2EventItem;
+						if (m2EventItem5 == null)
 						{
 							return rER.tError("#CLEARSND 対象Mover未定義");
 						}
-						m2EventItem4.clearSndIntv(rER._1, rER._2);
+						m2EventItem5.clearSndIntv(rER._1, rER._2);
 						return true;
 					}
 				}
 				else if (num <= 3978172628U)
 				{
-					if (num != 3486860610U)
+					if (num != 3842021065U)
 					{
 						if (num != 3978172628U)
 						{
@@ -642,25 +675,33 @@ namespace m2d
 						{
 							return false;
 						}
-						M2EventItem m2EventItem5 = M2EventCommand.EvMV as M2EventItem;
-						if (m2EventItem5 == null)
+						M2EventItem m2EventItem6 = M2EventCommand.EvMV as M2EventItem;
+						if (m2EventItem6 == null)
 						{
 							return rER.tError("#SNDINTV 対象Mover未定義");
 						}
-						m2EventItem5.addSndIntv(rER._1, rER._2, rER.Nm(3, 120f), rER.Nm(4, 0f), rER.Int(5, -1));
+						m2EventItem6.addSndIntv(rER._1, rER._2, rER.Nm(3, 120f), rER.Nm(4, 0f), rER.Int(5, -1));
 						return true;
 					}
 					else
 					{
-						if (!(cmd == "#DECLINE_AREA_CAMERA"))
+						if (!(cmd == "#PHY"))
 						{
 							return false;
 						}
-						if (map2d == null)
+						M2EventItem m2EventItem7 = M2EventCommand.EvMV as M2EventItem;
+						if (m2EventItem7 == null)
 						{
-							return rER.tError("Map2d 未定義");
+							return rER.tError("#PHY 対象Mover未定義");
 						}
-						map2d.M2D.Cam.do_not_consider_decline_area = false;
+						if (rER.IntE(1, 1) != 0)
+						{
+							m2EventItem7.initPhysics();
+						}
+						else
+						{
+							m2EventItem7.removePhysics();
+						}
 						return true;
 					}
 				}
@@ -715,7 +756,7 @@ namespace m2d
 					{
 						return false;
 					}
-					goto IL_0E3D;
+					goto IL_0F1A;
 				}
 				if (map2d == null)
 				{
@@ -748,7 +789,7 @@ namespace m2d
 					chipByIndex.deactivateToDrawer();
 				}
 				return true;
-				IL_094A:
+				IL_099C:
 				string[] array = null;
 				M2EventCommand m2EventCommand;
 				if (rER.clength == 2)
@@ -757,8 +798,8 @@ namespace m2d
 					{
 						return rER.tError("#CALL 現在のイベントが不明 ");
 					}
-					M2EventItem m2EventItem6 = M2EventCommand.Ev0;
-					m2EventCommand = m2EventItem6.Get(rER._1);
+					M2EventItem m2EventItem8 = M2EventCommand.Ev0;
+					m2EventCommand = m2EventItem8.Get(rER._1);
 				}
 				else
 				{
@@ -766,12 +807,12 @@ namespace m2d
 					{
 						return true;
 					}
-					M2EventItem m2EventItem6 = map2d.getMoverByName(rER._1, false) as M2EventItem;
-					if (m2EventItem6 == null)
+					M2EventItem m2EventItem8 = map2d.getMoverByName(rER._1, false) as M2EventItem;
+					if (m2EventItem8 == null)
 					{
 						return rER.tError("#CALL 対象のイベント名が見つかりません: " + rER._1);
 					}
-					m2EventCommand = m2EventItem6.Get(rER._2);
+					m2EventCommand = m2EventItem8.Get(rER._2);
 					array = rER.slice(3, -1000);
 				}
 				if (m2EventCommand == null)
@@ -788,7 +829,7 @@ namespace m2d
 					EV.moduleInit(ER, m2EventCommand, array, false);
 				}
 				return true;
-				IL_0AA1:
+				IL_0AF3:
 				if (map2d == null)
 				{
 					return rER.tError("Map2d 未定義");
@@ -829,7 +870,7 @@ namespace m2d
 					map2d.PtcST(rER._1, null, PTCThread.StFollow.NO_FOLLOW);
 				}
 				return true;
-				IL_0E3D:
+				IL_0F1A:
 				if (map2d == null)
 				{
 					return rER.tError("Map2d 未定義");
@@ -867,7 +908,7 @@ namespace m2d
 					}
 				}
 				return true;
-				IL_1185:
+				IL_1262:
 				if (map2d == null)
 				{
 					return rER.tError("Map2d 未定義");

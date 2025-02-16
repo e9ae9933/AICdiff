@@ -517,6 +517,19 @@ namespace m2d
 			return base.getSpShiftY() + this.shift_y_;
 		}
 
+		public override Vector2 calcHitUPosFromRay(float raymapx, float raymapy, Vector3 DirU)
+		{
+			if (this.CC is M2MvColliderCreatorCM)
+			{
+				Vector3 vector = (this.CC as M2MvColliderCreatorCM).BCC.crosspoint(raymapx, raymapy, raymapx + DirU.x, raymapy - DirU.y, 0.25f, 0.25f, null, true, null);
+				if (vector.z >= 2f)
+				{
+					return vector;
+				}
+			}
+			return base.calcHitUPosFromRay(raymapx, raymapy, DirU);
+		}
+
 		public bool particle_auto_setting
 		{
 			get

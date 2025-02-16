@@ -13,7 +13,7 @@ namespace nel
 		{
 			if (this.Anm == null)
 			{
-				this.Anm = new EnemyAnimator(this, new EnemyAnimator.FnCreate(NelNMage.EnemyFrameDataWithCane.CreateCane), new EnemyAnimator.FnFineFrame(this.fnFineAnimationFrame));
+				this.Anm = new EnemyAnimator(this, new EnemyAnimator.FnCreate(NelNMage.EnemyFrameDataWithCane.CreateCane), new EnemyAnimator.FnFineFrame(this.fnFineAnimationFrame), true);
 			}
 			base.Awake();
 		}
@@ -179,14 +179,14 @@ namespace nel
 				{
 					return true;
 				}
-				if (Nai.fnAwakeBasicHead(Nai))
+				if (Nai.fnAwakeBasicHead(Nai, NAI.TYPE.GAZE))
 				{
 					return true;
 				}
 			}
 			else
 			{
-				bool flag = Nai.isPrAttacking() || Nai.RANtk(398) < 0.33f;
+				bool flag = Nai.isPrAttacking(1f) || Nai.RANtk(398) < 0.33f;
 				if ((Nai.isFrontType(NAI.TYPE.MAG, PROG.ACTIVE) || flag) && this.isPrNear(base.x, base.y))
 				{
 					Nai.AddF(NAI.FLAG.ESCAPE, 180f);
@@ -207,7 +207,7 @@ namespace nel
 						return true;
 					}
 				}
-				if (Nai.fnAwakeBasicHead(Nai))
+				if (Nai.fnAwakeBasicHead(Nai, NAI.TYPE.GAZE))
 				{
 					return true;
 				}
@@ -259,12 +259,12 @@ namespace nel
 
 		public override bool has_chantable_mp()
 		{
-			return base.Useable(this.McsChant, X.Mx(1f, this.Nai.RANtk(3441) * 2.5f), 0f);
+			return this.Useable(this.McsChant, X.Mx(1f, this.Nai.RANtk(3441) * 2.5f), 0f);
 		}
 
 		public bool canWarp()
 		{
-			return base.Useable(this.McsWarp, 1f, (float)(this.McsChant.consume + 6)) && !this.Nai.hasPriorityTicket(150, false, false) && !this.Nai.hasTypeLock(NAI.TYPE.WARP);
+			return this.Useable(this.McsWarp, 1f, (float)(this.McsChant.consume + 6)) && !this.Nai.hasPriorityTicket(150, false, false) && !this.Nai.hasTypeLock(NAI.TYPE.WARP);
 		}
 
 		public override bool readTicket(NaTicket Tk)
@@ -549,7 +549,7 @@ namespace nel
 				if (Tk.Progress(ref this.t, 122, true))
 				{
 					base.PtcST("enemy_warp", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
-					base.MpConsume(this.McsWarp, null, 1f, 1f);
+					this.MpConsume(this.McsWarp, null, 1f, 1f);
 				}
 			}
 			if (Tk.prog == PROG.PROG0 && Tk.Progress(ref this.t, 13, true))
@@ -687,7 +687,7 @@ namespace nel
 			{
 				base.PtcST("mage_small_punch_swing", PtcHolder.PTC_HOLD.NORMAL, PTCThread.StFollow.NO_FOLLOW);
 				this.SpSetPose("attack_1", -1, null, false);
-				base.tackleInit(this.AtkSmallPunch, this.TkiSmallPunch);
+				base.tackleInit(this.AtkSmallPunch, this.TkiSmallPunch, MGHIT.AUTO);
 			}
 			if (Tk.prog == PROG.PROG0)
 			{

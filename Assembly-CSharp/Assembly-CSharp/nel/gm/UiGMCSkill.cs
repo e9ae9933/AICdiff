@@ -14,6 +14,7 @@ namespace nel.gm
 		{
 			if (base.initAppearMain())
 			{
+				this.SkillMng.initAppear();
 				return true;
 			}
 			this.SkillMng = new UiSkillManageBox();
@@ -41,7 +42,7 @@ namespace nel.gm
 		{
 			if (this.SkillMng.FirstFocus != null)
 			{
-				this.SkillMng.FirstFocus.Select(false);
+				this.SkillMng.FirstFocus.Select(true);
 			}
 			this.SkillMng.activateEdit();
 		}

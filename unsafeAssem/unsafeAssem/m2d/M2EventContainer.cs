@@ -33,6 +33,16 @@ namespace m2d
 			{
 				this.VarCon = EV.getVariableContainer();
 			}
+			if (this.VarCon == null && this.Mp.is_submap)
+			{
+				try
+				{
+					this.VarCon = this.Mp.SubMapData.getBaseMap().getEventContainer().VarCon;
+				}
+				catch
+				{
+				}
+			}
 			if (this.VarCon == null)
 			{
 				this.VarCon = new CsvVariableContainer();
@@ -55,7 +65,9 @@ namespace m2d
 			this.Mp.cmd_loadevent_execute &= 4294967293U;
 			M2PxlAnimator m2PxlAnimator = null;
 			bool flag2 = false;
-			while (M2EventContainer.readContainerCmd0(this.Mp, this, this, only_this, ref m2EventItem, ref m2LabelPoint, ref flag2, ref flag, ref m2PxlAnimator, this.AnotInitEvent, no_load_and_loadonce))
+			Map2d mp = this.Mp;
+			M2EventContainer m2EventContainer = this;
+			while (M2EventContainer.readContainerCmd0(this.Mp, ref mp, ref m2EventContainer, this, only_this, ref m2EventItem, ref m2LabelPoint, ref flag2, ref flag, ref m2PxlAnimator, this.AnotInitEvent, no_load_and_loadonce))
 			{
 			}
 			this.runFn(this.AFnReload);
@@ -78,45 +90,14 @@ namespace m2d
 			X.dl("M2EventContainer::reload - コマンドの再読み込みを実行:" + this.Mp.key + " " + ((only_this != "") ? ("(イベント: " + only_this + " )") : " "), null, false, false);
 		}
 
-		public static bool readContainerCmd0(Map2d Mp, M2EventContainer Con, CsvReaderA rER, string only_this, ref M2EventItem curEv, ref M2LabelPoint DefineOnPoint, ref bool talk_target_ttt, ref bool map_assigned, ref M2PxlAnimator Anm, List<M2EventItem> AnotInitEvent, bool no_load_and_loadonce)
+		public static bool readContainerCmd0(Map2d BaseMp, ref Map2d Mp, ref M2EventContainer Con, CsvReaderA rER, string only_this, ref M2EventItem curEv, ref M2LabelPoint DefineOnPoint, ref bool talk_target_ttt, ref bool map_assigned, ref M2PxlAnimator Anm, List<M2EventItem> AnotInitEvent, bool no_load_and_loadonce)
 		{
 			bool flag = !rER.read();
 			if (TX.isStart(rER.cmd, "##", 0))
 			{
 				return true;
 			}
-			if (rER.cmd == "%DEFINE_ON_POINT" && !flag)
-			{
-				if (rER.clength > 1)
-				{
-					DefineOnPoint = Mp.getPoint(((rER._2 != "") ? (rER._2 + "..") : "") + rER._1, false);
-				}
-				else
-				{
-					DefineOnPoint = null;
-				}
-			}
-			else if (rER.cmd == "%MOBTYPE" && !flag)
-			{
-				Mp.M2D.ev_mobtype = rER._1 ?? "";
-			}
-			else if (TX.isStart(rER.cmd, '@') && !flag)
-			{
-				string text = M2DBase.readMapEventContent(TX.slice(rER.cmd, 1));
-				if (TX.valid(text))
-				{
-					CsvReaderA csvReaderA = new CsvReaderA(text, Con.VarCon)
-					{
-						tilde_replace = Con.tilde_replace,
-						no_replace_quote = Con.no_replace_quote,
-						no_write_varcon = Con.no_write_varcon
-					};
-					while (M2EventContainer.readContainerCmd0(Mp, Con, csvReaderA, only_this, ref curEv, ref DefineOnPoint, ref talk_target_ttt, ref map_assigned, ref Anm, AnotInitEvent, no_load_and_loadonce))
-					{
-					}
-				}
-			}
-			else if (rER.cmd == "/*" || rER.cmd == "/*___" || flag)
+			if (rER.cmd == "/*" || rER.cmd == "/*___" || flag)
 			{
 				M2EventItem m2EventItem = curEv;
 				if (flag)
@@ -125,14 +106,14 @@ namespace m2d
 				}
 				else
 				{
-					string text2 = rER.getIndex((rER.cmd == "/*") ? 2 : 1);
-					if (REG.match(text2, M2EventContainer.RegEvTitle))
+					string text = rER.getIndex((rER.cmd == "/*") ? 2 : 1);
+					if (REG.match(text, M2EventContainer.RegEvTitle))
 					{
-						text2 = REG.R1;
+						text = REG.R1;
 						curEv = null;
-						if (only_this == "" || text2 == only_this)
+						if (only_this == "" || text == only_this)
 						{
-							curEv = Con.Get(text2, false, false);
+							curEv = Con.Get(text, false, false);
 							curEv.talk_target_ttt = talk_target_ttt;
 							map_assigned = false;
 							AnotInitEvent.Add(curEv);
@@ -147,6 +128,75 @@ namespace m2d
 				if (flag)
 				{
 					return false;
+				}
+			}
+			else if (rER.cmd == "%DEFINE_ON_POINT")
+			{
+				if (rER.clength > 1)
+				{
+					DefineOnPoint = Mp.getPoint(((rER._2 != "") ? (rER._2 + "..") : "") + rER._1, false);
+				}
+				else
+				{
+					DefineOnPoint = null;
+				}
+			}
+			else if (rER.cmd == "%DOD_CM_BEHIND_BG")
+			{
+				Mp.MovRenderer.z_cm_override = 505f;
+			}
+			else if (rER.cmd == "%DARK_ACTIVATE")
+			{
+				Mp.Unstb.use_dark = rER.NmE(1, 1f) != 0f;
+			}
+			else if (rER.cmd == "%MOBTYPE")
+			{
+				Mp.M2D.ev_mobtype = rER._1 ?? "";
+			}
+			else if (rER.cmd == "%TARGET_MAP")
+			{
+				if (TX.noe(rER._1))
+				{
+					Mp = BaseMp;
+					Con = Mp.getEventContainer();
+				}
+				else
+				{
+					Map2d map2d = BaseMp.M2D.Get(rER._1, false);
+					if (map2d == null)
+					{
+						rER.tError("ターゲットマップ不明");
+					}
+					else if (map2d.SubMapData == null || map2d.SubMapData.getBaseMap() != BaseMp)
+					{
+						rER.tError("ターゲットマップ " + rER._1 + " はサブマップとして開かれていません");
+					}
+					else
+					{
+						Mp = map2d;
+						Con = Mp.getEventContainer();
+						DefineOnPoint = null;
+						if (Con == null)
+						{
+							Con = Mp.prepareCommand(null);
+						}
+					}
+				}
+			}
+			else if (TX.isStart(rER.cmd, '@'))
+			{
+				string text2 = M2DBase.readMapEventContent(TX.slice(rER.cmd, 1));
+				if (TX.valid(text2))
+				{
+					CsvReaderA csvReaderA = new CsvReaderA(text2, Con.VarCon)
+					{
+						tilde_replace = Con.tilde_replace,
+						no_replace_quote = Con.no_replace_quote,
+						no_write_varcon = Con.no_write_varcon
+					};
+					while (M2EventContainer.readContainerCmd0(BaseMp, ref Mp, ref Con, csvReaderA, only_this, ref curEv, ref DefineOnPoint, ref talk_target_ttt, ref map_assigned, ref Anm, AnotInitEvent, no_load_and_loadonce))
+					{
+					}
 				}
 			}
 			else if (curEv != null)
@@ -194,35 +244,34 @@ namespace m2d
 			if (cmd != null)
 			{
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(cmd);
-				if (num <= 2294610188U)
+				if (num <= 2177608140U)
 				{
-					if (num <= 1365989493U)
+					if (num <= 632223139U)
 					{
-						if (num <= 591069755U)
+						if (num <= 541049905U)
 						{
 							if (num != 39109648U)
 							{
-								if (num != 541049905U)
+								if (num != 55238731U)
 								{
-									if (num != 591069755U)
+									if (num != 541049905U)
 									{
-										goto IL_07AF;
+										goto IL_07FE;
 									}
-									if (!(cmd == "%MOBG"))
+									if (!(cmd == "%SIZE"))
 									{
-										goto IL_07AF;
+										goto IL_07FE;
 									}
-									curEv.setMobgChara(rER._1, rER._2);
-									curEv.SpSetShift(0f, 3.5f);
-									return true;
+									curEv.Size(rER._N1, X.Nm(rER._2, -1000f, true), ALIGN.CENTER, ALIGNY.MIDDLE, false);
+									return flag;
 								}
 								else
 								{
-									if (!(cmd == "%SIZE"))
+									if (!(cmd == "%MOBG_ATLAS_WH"))
 									{
-										goto IL_07AF;
+										goto IL_07FE;
 									}
-									curEv.Size(rER._N1, X.Nm(rER._2, -1000f, true), ALIGN.CENTER, ALIGNY.MIDDLE, false);
+									curEv.setMobgAtlasWH(rER.Int(1, 0), rER.Int(2, 0));
 									return flag;
 								}
 							}
@@ -230,106 +279,95 @@ namespace m2d
 							{
 								if (!(cmd == "%PXL_MTR_WITH_LIGHT"))
 								{
-									goto IL_07AF;
+									goto IL_07FE;
 								}
 								curEv.setPxlMtrWithLight(rER.getB(1, true));
 								return flag;
 							}
 						}
-						else if (num != 627876397U)
+						else if (num != 591069755U)
 						{
-							if (num != 632223139U)
+							if (num != 627876397U)
 							{
-								if (num != 1365989493U)
+								if (num != 632223139U)
 								{
-									goto IL_07AF;
+									goto IL_07FE;
 								}
-								if (!(cmd == "%PXL_LOAD"))
-								{
-									goto IL_07AF;
-								}
-							}
-							else
-							{
 								if (!(cmd == "%PXL_MTR_USE_MASK"))
 								{
-									goto IL_07AF;
+									goto IL_07FE;
 								}
 								curEv.setPxlMtrUseMask(rER.getB(1, true));
 								return flag;
 							}
+							else
+							{
+								if (!(cmd == "%MOVE"))
+								{
+									goto IL_07FE;
+								}
+								curEv.setMovePattern(rER);
+								return flag;
+							}
 						}
 						else
 						{
-							if (!(cmd == "%MOVE"))
+							if (!(cmd == "%MOBG"))
 							{
-								goto IL_07AF;
+								goto IL_07FE;
 							}
-							curEv.setMovePattern(rER);
-							return flag;
+							curEv.setMobgChara(rER._1, rER._2, rER._3);
+							curEv.SpSetShift(0f, 3.5f);
+							return true;
 						}
 					}
-					else if (num <= 2007160852U)
+					else if (num <= 1853018414U)
 					{
-						if (num != 1668734952U)
+						if (num != 1365989493U)
 						{
-							if (num != 1853018414U)
+							if (num != 1668734952U)
 							{
-								if (num != 2007160852U)
+								if (num != 1853018414U)
 								{
-									goto IL_07AF;
+									goto IL_07FE;
 								}
-								if (!(cmd == "%LIGHT"))
-								{
-									goto IL_07AF;
-								}
-								curEv.setLight(X.NmUI(rER._1, 0U, true, true), X.Nm(rER._2, -1f, false));
-								return true;
-							}
-							else
-							{
 								if (!(cmd == "%SP_SHIFT_DEFAULT"))
 								{
-									goto IL_07AF;
+									goto IL_07FE;
 								}
 								curEv.SpSetShift(0f, 3.5f);
 								return flag;
 							}
-						}
-						else
-						{
-							if (!(cmd == "%SP_SHIFT"))
+							else
 							{
-								goto IL_07AF;
-							}
-							if (!curEv.SpSetShift(X.Nm(rER._1, -1000f, true), X.Nm(rER._2, -1000f, true)))
-							{
-								rER.tError("M2EventContainer::reload - スプライトが空です");
+								if (!(cmd == "%SP_SHIFT"))
+								{
+									goto IL_07FE;
+								}
+								if (!curEv.SpSetShift(X.Nm(rER._1, -1000f, true), X.Nm(rER._2, -1000f, true)))
+								{
+									rER.tError("M2EventContainer::reload - スプライトが空です");
+									return flag;
+								}
 								return flag;
 							}
-							return flag;
+						}
+						else if (!(cmd == "%PXL_LOAD"))
+						{
+							goto IL_07FE;
 						}
 					}
-					else if (num != 2021943417U)
+					else if (num != 2007160852U)
 					{
-						if (num != 2177608140U)
+						if (num != 2021943417U)
 						{
-							if (num != 2294610188U)
+							if (num != 2177608140U)
 							{
-								goto IL_07AF;
+								goto IL_07FE;
 							}
-							if (!(cmd == "%MS"))
-							{
-								goto IL_07AF;
-							}
-							curEv.assignMoveScript(rER._1, false);
-							return flag;
-						}
-						else
-						{
 							if (!(cmd == "%PT"))
 							{
-								goto IL_07AF;
+								goto IL_07FE;
 							}
 							curEv.lp_set_pos_randw = null;
 							if (curEv.appear_first || rER._B4)
@@ -339,198 +377,220 @@ namespace m2d
 							}
 							return flag;
 						}
+						else
+						{
+							if (!(cmd == "%AIM"))
+							{
+								goto IL_07FE;
+							}
+							if (rER._1 == "LR" || rER._1 == "RL")
+							{
+								curEv.setAim((X.xors(2) == 0) ? AIM.L : AIM.R, false);
+								return flag;
+							}
+							curEv.setAim((AIM)CAim.parseString(rER._1, 0), false);
+							return flag;
+						}
 					}
 					else
 					{
-						if (!(cmd == "%AIM"))
+						if (!(cmd == "%LIGHT"))
 						{
-							goto IL_07AF;
+							goto IL_07FE;
 						}
-						if (rER._1 == "LR" || rER._1 == "RL")
-						{
-							curEv.setAim((X.xors(2) == 0) ? AIM.L : AIM.R, false);
-							return flag;
-						}
-						curEv.setAim((AIM)CAim.parseString(rER._1, 0), false);
-						return flag;
+						curEv.setLight(X.NmUI(rER._1, 0U, true, true), X.Nm(rER._2, -1f, false));
+						return true;
 					}
 				}
-				else if (num <= 3555506413U)
+				else if (num <= 3474896040U)
 				{
-					if (num <= 2390737418U)
+					if (num <= 2366762826U)
 					{
-						if (num != 2328090668U)
+						if (num != 2294610188U)
 						{
-							if (num != 2366762826U)
+							if (num != 2328090668U)
 							{
-								if (num != 2390737418U)
+								if (num != 2366762826U)
 								{
-									goto IL_07AF;
+									goto IL_07FE;
 								}
-								if (!(cmd == "%MOBG_CLIP"))
-								{
-									goto IL_07AF;
-								}
-								M2LabelPoint point = Mp.getPoint(rER._1, false);
-								if (point == null)
-								{
-									rER.tError("不明なLP: " + rER._1);
-									return flag;
-								}
-								if (!curEv.MobgClipArea(point))
-								{
-									rER.tError("MobGがありません");
-									return flag;
-								}
-								return flag;
-							}
-							else
-							{
 								if (!(cmd == "%PXL_FRAME"))
 								{
-									goto IL_07AF;
+									goto IL_07FE;
 								}
 								curEv.first_anm_frame = rER.Int(1, -1);
 								return flag;
 							}
+							else
+							{
+								if (!(cmd == "%PXL_TS"))
+								{
+									goto IL_07FE;
+								}
+								curEv.anm_timescale = rER.Nm(1, 1f);
+								return flag;
+							}
 						}
 						else
 						{
-							if (!(cmd == "%PXL_TS"))
+							if (!(cmd == "%MS"))
 							{
-								goto IL_07AF;
+								goto IL_07FE;
 							}
-							curEv.anm_timescale = rER.Nm(1, 1f);
+							curEv.assignMoveScript(rER._1, false);
 							return flag;
 						}
 					}
-					else if (num != 2899045254U)
+					else if (num != 2390737418U)
 					{
-						if (num != 3474896040U)
+						if (num != 2899045254U)
 						{
-							if (num != 3555506413U)
+							if (num != 3474896040U)
 							{
-								goto IL_07AF;
+								goto IL_07FE;
 							}
-							if (!(cmd == "%POSE"))
-							{
-								goto IL_07AF;
-							}
-							curEv.SpSetPose((rER._1 == "") ? null : rER._1, -1, null, false);
-							return flag;
-						}
-						else
-						{
 							if (!(cmd == "%SND_LOAD"))
 							{
-								goto IL_07AF;
+								goto IL_07FE;
 							}
 							Mp.M2D.loadMaterialSnd(rER.slice(1, -1000));
 							return true;
 						}
-					}
-					else
-					{
-						if (!(cmd == "%SET_ENABLE"))
+						else
 						{
-							goto IL_07AF;
-						}
-						if (rER.clength == 2)
-						{
-							curEv.setExecutableAll(rER.NmE(1, 1f) != 0f);
-							return flag;
-						}
-						M2EventItem.CMD cmd2;
-						if (FEnum<M2EventItem.CMD>.TryParse(rER._1U, out cmd2, true))
-						{
-							curEv.setExecutable(cmd2, rER.NmE(2, 1f) != 0f);
-							return flag;
-						}
-						return flag;
-					}
-				}
-				else if (num <= 3792388793U)
-				{
-					if (num != 3589123125U)
-					{
-						if (num != 3771565507U)
-						{
-							if (num != 3792388793U)
+							if (!(cmd == "%SET_ENABLE"))
 							{
-								goto IL_07AF;
+								goto IL_07FE;
 							}
-							if (!(cmd == "%AREA"))
+							if (rER.clength == 2)
 							{
-								goto IL_07AF;
+								curEv.setExecutableAll(rER.NmE(1, 1f) != 0f);
+								return flag;
 							}
-							curEv.lp_set_pos_randw = null;
-							if (curEv.appear_first)
+							M2EventItem.CMD cmd2;
+							if (FEnum<M2EventItem.CMD>.TryParse(rER._1U, out cmd2, true))
 							{
-								curEv.setToLabelPt(rER._1 + ".r" + rER._2, rER._N3, rER._N4);
+								curEv.setExecutable(cmd2, rER.NmE(2, 1f) != 0f);
 								return flag;
 							}
 							return flag;
 						}
-						else
+					}
+					else
+					{
+						if (!(cmd == "%MOBG_CLIP"))
 						{
+							goto IL_07FE;
+						}
+						M2LabelPoint point = Mp.getPoint(rER._1, false);
+						if (point == null)
+						{
+							rER.tError("不明なLP: " + rER._1);
+							return flag;
+						}
+						if (!curEv.MobgClipArea(point))
+						{
+							rER.tError("MobGがありません");
+							return flag;
+						}
+						return flag;
+					}
+				}
+				else if (num <= 3771565507U)
+				{
+					if (num != 3555506413U)
+					{
+						if (num != 3589123125U)
+						{
+							if (num != 3771565507U)
+							{
+								goto IL_07FE;
+							}
 							if (!(cmd == "%PHY"))
 							{
-								goto IL_07AF;
+								goto IL_07FE;
 							}
 							curEv.initPhysics();
+							return flag;
+						}
+						else
+						{
+							if (!(cmd == "%POS_RANDW"))
+							{
+								goto IL_07FE;
+							}
+							curEv.lp_set_pos_randw = rER._1 ?? "";
 							return flag;
 						}
 					}
 					else
 					{
-						if (!(cmd == "%POS_RANDW"))
+						if (!(cmd == "%POSE"))
 						{
-							goto IL_07AF;
+							goto IL_07FE;
 						}
-						curEv.lp_set_pos_randw = rER._1 ?? "";
+						curEv.SpSetPose((rER._1 == "") ? null : rER._1, -1, null, false);
 						return flag;
 					}
 				}
-				else if (num != 3805527783U)
+				else if (num <= 3805527783U)
 				{
-					if (num != 4044720000U)
+					if (num != 3792388793U)
 					{
-						if (num != 4087780412U)
+						if (num != 3805527783U)
 						{
-							goto IL_07AF;
+							goto IL_07FE;
 						}
-						if (!(cmd == "%PXL"))
+						if (!(cmd == "%DOD"))
 						{
-							goto IL_07AF;
+							goto IL_07FE;
 						}
+						M2Mover.DRAW_ORDER draw_ORDER;
+						if (!FEnum<M2Mover.DRAW_ORDER>.TryParse(rER._1, out draw_ORDER, true))
+						{
+							rER.tError("DOD が不明: " + rER._1);
+							return flag;
+						}
+						if (!curEv.setDod(draw_ORDER))
+						{
+							rER.tError("DOD の設定に失敗");
+							return flag;
+						}
+						return flag;
 					}
 					else
 					{
-						if (!(cmd == "%CHECK_DESC"))
+						if (!(cmd == "%AREA"))
 						{
-							goto IL_07AF;
+							goto IL_07FE;
 						}
-						curEv.check_desc_name = rER._1;
+						curEv.lp_set_pos_randw = null;
+						if (curEv.appear_first)
+						{
+							curEv.setToLabelPt(rER._1 + ".r" + rER._2, rER._N3, rER._N4);
+							return flag;
+						}
 						return flag;
+					}
+				}
+				else if (num != 4044720000U)
+				{
+					if (num != 4087780412U)
+					{
+						goto IL_07FE;
+					}
+					if (!(cmd == "%PXL"))
+					{
+						goto IL_07FE;
 					}
 				}
 				else
 				{
-					if (!(cmd == "%DOD"))
+					if (!(cmd == "%CHECK_DESC"))
 					{
-						goto IL_07AF;
+						goto IL_07FE;
 					}
-					M2Mover.DRAW_ORDER draw_ORDER;
-					if (!FEnum<M2Mover.DRAW_ORDER>.TryParse(rER._1, out draw_ORDER, true))
-					{
-						rER.tError("DOD が不明: " + rER._1);
-						return flag;
-					}
-					if (!curEv.setDod(draw_ORDER))
-					{
-						rER.tError("DOD の設定に失敗");
-						return flag;
-					}
+					curEv.check_desc_name = rER._1;
 					return flag;
 				}
 				string text;
@@ -544,7 +604,7 @@ namespace m2d
 				}
 				if (rER.cmd == "%PXL_LOAD")
 				{
-					Mp.M2D.loadMaterialPxl(rER._1, text + ".pxls", true, true);
+					Mp.M2D.loadMaterialPxl(rER._1, text + ".pxls", true, true, false);
 					return flag;
 				}
 				if (curEv.setPxlChara(rER._1, text, "stand") == null)
@@ -555,7 +615,7 @@ namespace m2d
 				curEv.spriteSetted();
 				return true;
 			}
-			IL_07AF:
+			IL_07FE:
 			if (REG.match(rER.cmd, M2EventContainer.RegEventDefine) && (no_check_equal || rER._1 == "="))
 			{
 				flag = true;
@@ -1320,12 +1380,30 @@ namespace m2d
 
 		public void addReloadListener(IListenerEvcReload _Fn)
 		{
+			if (this.Mp.is_submap)
+			{
+				M2EventContainer eventContainer = this.Mp.SubMapData.getBaseMap().getEventContainer();
+				if (eventContainer != null)
+				{
+					eventContainer.addReloadListener(_Fn);
+				}
+				return;
+			}
 			aBtn.addFnT<IListenerEvcReload>(ref this.AFnReload, _Fn);
 			this.Mp.cmd_reload_flg |= 1U;
 		}
 
 		public void remReloadListener(IListenerEvcReload _Fn)
 		{
+			if (this.Mp.is_submap)
+			{
+				M2EventContainer eventContainer = this.Mp.SubMapData.getBaseMap().getEventContainer();
+				if (eventContainer != null)
+				{
+					eventContainer.remReloadListener(_Fn);
+				}
+				return;
+			}
 			X.emptySpecific<IListenerEvcReload>(this.AFnReload, _Fn, -1);
 		}
 

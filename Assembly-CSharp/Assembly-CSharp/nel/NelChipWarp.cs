@@ -260,6 +260,10 @@ namespace nel
 			return true;
 		}
 
+		public void rewriteFootType(M2BlockColliderContainer.BCCLine Bcc, IMapDamageListener Fd, ref string s)
+		{
+		}
+
 		public static bool isPlayerFooting(M2Attackable NearPR, M2Chip Cp)
 		{
 			return NearPR != null && X.BTW(Cp.mtop - 0.85f, NearPR.mbottom, Cp.mbottom + 0.125f) && X.BTW(Cp.mleft - 1.5f, NearPR.x, Cp.mright + 1.5f);

@@ -136,6 +136,15 @@ namespace nel
 				unselectable = 2,
 				fnClick = new FnBtnBindings(base.changeMode)
 			});
+			DsLT.add(new DsnDataButton
+			{
+				title = "_A",
+				skin_title = "Achive",
+				w = 66f,
+				h = 18f,
+				unselectable = 2,
+				fnClick = new FnBtnBindings(base.changeMode)
+			});
 		}
 
 		public override bool categoryInit(string category, Designer DsT, Designer DsL, Designer DsR)
@@ -162,6 +171,11 @@ namespace nel
 				if (category == "_R")
 				{
 					this.initCategoryRecipe(DsT, DsL, DsR);
+					return true;
+				}
+				if (category == "_A")
+				{
+					this.initCategoryAchivement(DsT, DsL, DsR);
 					return true;
 				}
 			}
@@ -194,11 +208,11 @@ namespace nel
 				size = 22,
 				min = 0.0,
 				max = 160.0,
-				def = NC.getDangerMeterVal(true).ToString(),
+				def = NC.getDangerMeterVal(true, false).ToString(),
 				fnReturn = this.fnReturnNothing,
 				fnChangedDelay = delegate(LabeledInputField Li)
 				{
-					NC.applyDangerousFromEvent(X.NmI(Li.text, 0, true, false), true, false);
+					NC.applyDangerousFromEvent(X.NmI(Li.text, 0, true, false), true, false, false);
 					return true;
 				}
 			}).Br();
@@ -583,7 +597,7 @@ namespace nel
 						}
 						else if (TX.isStart(byId.key, "spconfig_", 0))
 						{
-							CFG.addSp(TX.slice(byId.key, "spconfig_".Length));
+							CFGSP.addSp(TX.slice(byId.key, "spconfig_".Length));
 						}
 						else
 						{
@@ -649,13 +663,13 @@ namespace nel
 			designer.margin_in_tb = 10f;
 			designer.margin_in_lr = 16f;
 			designer.init();
-			for (int i = 0; i < 26; i++)
+			for (int i = 0; i < 28; i++)
 			{
 				Designer dsL = DsL;
 				DsnDataP dsnDataP = new DsnDataP("", false);
 				dsnDataP.swidth = 200f;
 				dsnDataP.sheight = 18f;
-				RecipeManager.RPI_EFFECT rpi_EFFECT = (RecipeManager.RPI_EFFECT)i;
+				RCP.RPI_EFFECT rpi_EFFECT = (RCP.RPI_EFFECT)i;
 				dsnDataP.text = rpi_EFFECT.ToString();
 				dsnDataP.alignx = ALIGN.RIGHT;
 				dsnDataP.TxCol = MTRX.ColWhite;
@@ -707,7 +721,7 @@ namespace nel
 				unselectable = 2,
 				fnClick = delegate(aBtn B)
 				{
-					for (int k = 0; k < 26; k++)
+					for (int k = 0; k < 28; k++)
 					{
 						DsL.setValueTo("rpi_" + k.ToString(), "0");
 					}
@@ -729,13 +743,13 @@ namespace nel
 				}
 			});
 			DsL.alignx = ALIGN.LEFT;
-			for (int j = 0; j < 26; j++)
+			for (int j = 0; j < 28; j++)
 			{
 				Designer dsR = DsR;
 				DsnDataP dsnDataP2 = new DsnDataP("", false);
 				dsnDataP2.swidth = 220f;
 				dsnDataP2.sheight = 22f;
-				RecipeManager.RPI_EFFECT rpi_EFFECT = (RecipeManager.RPI_EFFECT)j;
+				RCP.RPI_EFFECT rpi_EFFECT = (RCP.RPI_EFFECT)j;
 				dsnDataP2.text = rpi_EFFECT.ToString();
 				dsnDataP2.alignx = ALIGN.RIGHT;
 				dsnDataP2.TxCol = MTRX.ColWhite;
@@ -758,22 +772,22 @@ namespace nel
 
 		private void applyEffects(Designer DsL, Designer DsR)
 		{
-			RecipeManager.RecipeDish recipeDish = null;
-			BDic<RecipeManager.RPI_EFFECT, float> bdic = null;
-			for (int i = 0; i < 26; i++)
+			RCP.RecipeDish recipeDish = null;
+			BDic<RCP.RPI_EFFECT, float> bdic = null;
+			for (int i = 0; i < 28; i++)
 			{
 				float num = X.Nm(DsL.getValue("rpi_" + i.ToString()), -101f, false);
 				if (num >= -100f && num != 0f)
 				{
 					if (recipeDish == null)
 					{
-						recipeDish = new RecipeManager.RecipeDish(null, 1);
-						bdic = new BDic<RecipeManager.RPI_EFFECT, float>();
-						recipeDish.Create(RecipeManager.Get("supersalad"));
+						recipeDish = new RCP.RecipeDish(null, 1);
+						bdic = new BDic<RCP.RPI_EFFECT, float>();
+						recipeDish.Create(RCP.Get("supersalad"));
 						recipeDish.fineTitle(null, true, null);
 					}
 					bdic.Clear();
-					bdic[(RecipeManager.RPI_EFFECT)i] = num;
+					bdic[(RCP.RPI_EFFECT)i] = num;
 					recipeDish.addEffect100(bdic, 1f);
 				}
 			}
@@ -782,19 +796,19 @@ namespace nel
 				recipeDish.addCostInCreating(X.NmI(DsL.getValue("cost"), 1, false, false));
 				recipeDish.finalizeDish();
 				recipeDish.finalizeDishEffect();
-				RecipeManager.assignDish(recipeDish);
-				this.NM2D.IMNG.StmNoel.addEffect(recipeDish, true, false);
+				RCP.assignDish(recipeDish);
+				this.NM2D.IMNG.StmNoel.addEffect(recipeDish, true, false, false);
 				this.fineRecipeEffects(DsR);
 			}
 		}
 
 		private void fineRecipeEffects(Designer DsR)
 		{
-			BDic<RecipeManager.RPI_EFFECT, float> levelDictionary = this.NM2D.IMNG.StmNoel.getLevelDictionary01();
-			for (int i = 0; i < 26; i++)
+			BDic<RCP.RPI_EFFECT, float> levelDictionary = this.NM2D.IMNG.StmNoel.getLevelDictionary01();
+			for (int i = 0; i < 28; i++)
 			{
 				float num = 0f;
-				levelDictionary.TryGetValue((RecipeManager.RPI_EFFECT)i, out num);
+				levelDictionary.TryGetValue((RCP.RPI_EFFECT)i, out num);
 				string text;
 				if (num == 0f)
 				{
@@ -808,15 +822,73 @@ namespace nel
 			}
 		}
 
+		public void initCategoryAchivement(Designer DsT, Designer DsL, Designer DsR)
+		{
+			DsT.Clear();
+			DsL.Clear();
+			DsR.Clear();
+			DsL.item_margin_y_px = 2f;
+			Dictionary<ACHIVE.MENT, ushort> wholeDictionary = COOK.CurAchive.getWholeDictionary();
+			int num = 0;
+			FnFldBindings fnFldBindings = (LabeledInputField Fld) => this.fineAchivementValue(DsL, Fld);
+			foreach (KeyValuePair<ACHIVE.MENT, ushort> keyValuePair in wholeDictionary)
+			{
+				DsL.addP(new DsnDataP("", false)
+				{
+					name = "achivement__" + num.ToString(),
+					text = keyValuePair.Key.ToString(),
+					swidth = 200f,
+					size = 14f,
+					TxCol = MTRX.ColWhite
+				}, false);
+				DsL.addInput(new DsnDataInput
+				{
+					name = "achivement_val_" + num.ToString(),
+					label = "",
+					def = keyValuePair.Value.ToString(),
+					w = DsL.use_w - 10f,
+					size = 14,
+					integer = true,
+					min = 0.0,
+					max = 65535.0,
+					fnBlur = fnFldBindings
+				});
+				DsL.Br();
+				num++;
+			}
+		}
+
+		private bool fineAchivementValue(Designer DsL, LabeledInputField Fld)
+		{
+			string name = DsL.getName(Fld);
+			if (name == null)
+			{
+				return false;
+			}
+			int num = X.NmI(TX.slice(name, "achivement_val_".Length), -1, false, false);
+			if (num < 0)
+			{
+				return false;
+			}
+			FillBlock fillBlock = DsL.Get("achivement__" + num.ToString(), false) as FillBlock;
+			if (fillBlock == null)
+			{
+				return false;
+			}
+			string text_content = fillBlock.text_content;
+			COOK.CurAchive.Set(text_content, X.NmI(Fld.text, 0, false, false));
+			return true;
+		}
+
 		public override bool debugCommandLine(string[] Acmd)
 		{
 			string text = Acmd[0].ToUpper();
 			if (text != null)
 			{
 				uint num = <PrivateImplementationDetails>.ComputeStringHash(text);
-				if (num <= 2338783123U)
+				if (num <= 2178102629U)
 				{
-					if (num <= 453043962U)
+					if (num <= 325011298U)
 					{
 						if (num <= 130093117U)
 						{
@@ -824,64 +896,65 @@ namespace nel
 							{
 								if (num != 130093117U)
 								{
-									goto IL_0767;
+									goto IL_07C7;
 								}
 								if (!(text == "MOBTYPE"))
 								{
-									goto IL_0767;
+									goto IL_07C7;
 								}
 								if (M2DBase.Instance == null)
 								{
-									goto IL_0767;
+									goto IL_07C7;
 								}
 								if (Acmd.Length >= 2)
 								{
 									UiBenchMenu.event_defined = false;
 									M2DBase.Instance.ev_mobtype = Acmd[1];
 									X.dl("ev_mobtype を " + Acmd[1] + " に設定", null, false, false);
-									goto IL_0767;
+									goto IL_07C7;
 								}
 								X.dl("ev_mobtype は " + M2DBase.Instance.ev_mobtype + " です", null, false, false);
-								goto IL_0767;
+								goto IL_07C7;
 							}
 							else
 							{
 								if (!(text == "PRPOS"))
 								{
-									goto IL_0767;
+									goto IL_07C7;
 								}
 								if (Acmd.Length >= 2)
 								{
 									Vector2 pos = this.NM2D.curMap.getPos(Acmd[1], 0f, 0f, this.NM2D.getPrNoel());
 									this.NM2D.getPrNoel().setTo(pos.x, pos.y);
-									goto IL_0767;
+									goto IL_07C7;
 								}
-								goto IL_0767;
+								goto IL_07C7;
 							}
 						}
 						else if (num != 166681459U)
 						{
 							if (num != 320605779U)
 							{
-								if (num != 453043962U)
+								if (num != 325011298U)
 								{
-									goto IL_0767;
+									goto IL_07C7;
 								}
-								if (!(text == "UIDAMAGE"))
+								if (!(text == "BENCH_ENEMY_ORGASM"))
 								{
-									goto IL_0767;
+									goto IL_07C7;
 								}
-								if (Acmd.Length >= 2 && this.NM2D.PlayerNoel.UP.applyDamageDebug(Acmd[1]))
+								if (Acmd.Length >= 2)
 								{
-									return false;
+									UiBenchMenu.enemy_orgasm = X.NmI(Acmd[1], 0, false, false) != 0;
 								}
-								goto IL_0767;
+								X.dl("gm.UiBenchMenu.enemy_orgasm: " + UiBenchMenu.enemy_orgasm.ToString(), null, false, false);
+								goto IL_07C7;
 							}
 							else
 							{
 								if (!(text == "FADER"))
 								{
-									goto IL_0767;
+									goto IL_07C7;
 								}
 								if (Acmd.Length >= 2)
 								{
@@ -889,14 +962,14 @@ namespace nel
 									X.dl("setFader: " + Acmd[1], null, false, false);
 									return num2 == 0;
 								}
-								goto IL_0767;
+								goto IL_07C7;
 							}
 						}
 						else
 						{
 							if (!(text == "WEATHER"))
 							{
-								goto IL_0767;
+								goto IL_07C7;
 							}
 							if (Acmd.Length < 2)
 							{
@@ -907,271 +980,287 @@ namespace nel
 							{
 								return false;
 							}
-							goto IL_0767;
+							goto IL_07C7;
 						}
 					}
-					else if (num <= 997919947U)
+					else if (num <= 961323417U)
 					{
-						if (num != 808188337U)
+						if (num != 453043962U)
 						{
-							if (num != 961323417U)
+							if (num != 808188337U)
 							{
-								if (num != 997919947U)
+								if (num != 961323417U)
 								{
-									goto IL_0767;
+									goto IL_07C7;
 								}
-								if (!(text == "HIDENOEL"))
-								{
-									goto IL_0767;
-								}
-								if (M2DBase.Instance != null)
-								{
-									bool flag = Acmd.Length == 1 || X.NmI(Acmd[1], 1, false, false) != 0;
-									(M2DBase.Instance as NelM2DBase).getPrNoel().getAnimator().hidden_flag = flag;
-								}
-								return true;
-							}
-							else
-							{
 								if (!(text == "BENCH"))
 								{
-									goto IL_0767;
+									goto IL_07C7;
 								}
 								if (Acmd.Length >= 2)
 								{
 									UiBenchMenu.debugDefineCmd(Acmd, 1);
 									X.dl("ベンチコマンドを追加:" + TX.join<string>(",", Acmd, 1, -1), null, false, false);
-									goto IL_0767;
+									goto IL_07C7;
 								}
 								UiBenchMenu.endS(true);
 								X.dl("ベンチコマンドを初期化", null, false, false);
-								goto IL_0767;
+								goto IL_07C7;
+							}
+							else
+							{
+								if (!(text == "NOELJUICE"))
+								{
+									goto IL_07C7;
+								}
+								if (M2DBase.Instance != null)
+								{
+									(M2DBase.Instance as NelM2DBase).getPrNoel().JuiceCon.executeSplashNoelJuice(false, true, 0, false, false, false, false);
+								}
+								return true;
 							}
 						}
 						else
 						{
-							if (!(text == "NOELJUICE"))
+							if (!(text == "UIDAMAGE"))
 							{
-								goto IL_0767;
+								goto IL_07C7;
 							}
-							if (M2DBase.Instance != null)
+							if (Acmd.Length >= 2 && this.NM2D.PlayerNoel.UP.applyDamageDebug(Acmd[1]))
 							{
-								(M2DBase.Instance as NelM2DBase).getPrNoel().executeSplashNoelJuice(false, true, 0, false, false, false, false);
+								return false;
 							}
-							return true;
+							goto IL_07C7;
 						}
 					}
-					else if (num != 1425517024U)
+					else if (num != 997919947U)
 					{
-						if (num != 2178102629U)
+						if (num != 1425517024U)
 						{
-							if (num != 2338783123U)
+							if (num != 2178102629U)
 							{
-								goto IL_0767;
+								goto IL_07C7;
 							}
-							if (!(text == "AUTOSAVE"))
-							{
-								goto IL_0767;
-							}
-							goto IL_0621;
-						}
-						else
-						{
 							if (!(text == "NIGHTINGALE"))
 							{
-								goto IL_0767;
+								goto IL_07C7;
 							}
 							this.NM2D.WDR.debugFlush(WanderingManager.TYPE.NIG, Acmd);
-							goto IL_0767;
+							goto IL_07C7;
 						}
-					}
-					else if (!(text == "FLUSH_MAP"))
-					{
-						goto IL_0767;
-					}
-				}
-				else if (num <= 3044942830U)
-				{
-					if (num <= 2400252072U)
-					{
-						if (num != 2357528558U)
+						else if (!(text == "FLUSH_MAP"))
 						{
-							if (num != 2400252072U)
-							{
-								goto IL_0767;
-							}
-							if (!(text == "GATHER_ITEM"))
-							{
-								goto IL_0767;
-							}
-							this.NM2D.IMNG.gatherWholeDropItem();
-							return true;
-						}
-						else
-						{
-							if (!(text == "DANGER"))
-							{
-								goto IL_0767;
-							}
-							if (Acmd.Length >= 2)
-							{
-								this.NM2D.NightCon.applyDangerousFromEvent(X.NmI(Acmd[1], 0, false, false), false, false);
-								this.NM2D.NightCon.setBattleCount(64);
-								return true;
-							}
-							goto IL_0767;
-						}
-					}
-					else if (num != 2450413691U)
-					{
-						if (num != 2463182076U)
-						{
-							if (num != 3044942830U)
-							{
-								goto IL_0767;
-							}
-							if (!(text == "PUPPETNPC"))
-							{
-								goto IL_0767;
-							}
-							this.NM2D.WDR.debugFlush(WanderingManager.TYPE.PUP, Acmd);
-							goto IL_0767;
-						}
-						else
-						{
-							if (!(text == "GETSKILL"))
-							{
-								goto IL_0767;
-							}
-							if (Acmd.Length < 2)
-							{
-								goto IL_0767;
-							}
-							PrSkill prSkill = SkillManager.Get(Acmd[1]);
-							if (prSkill == null)
-							{
-								X.de("スキルが不明:" + Acmd[1], null);
-								goto IL_0767;
-							}
-							this.NM2D.IMNG.get_DescBox().addTaskFocus(prSkill, false);
-							prSkill.Obtain(false);
-							goto IL_0767;
-						}
-					}
-					else if (!(text == "FLUSH_MATERIAL"))
-					{
-						goto IL_0767;
-					}
-				}
-				else if (num <= 3911183430U)
-				{
-					if (num != 3613420707U)
-					{
-						if (num != 3681775455U)
-						{
-							if (num != 3911183430U)
-							{
-								goto IL_0767;
-							}
-							if (!(text == "AUTO_SAVE"))
-							{
-								goto IL_0767;
-							}
-							goto IL_0621;
-						}
-						else
-						{
-							if (!(text == "WALKCOUNT"))
-							{
-								goto IL_0767;
-							}
-							if (Acmd.Length >= 2)
-							{
-								COOK.map_walk_count = X.NmI(Acmd[1], 0, false, false);
-								X.dl("map_walk_count を " + Acmd[1] + " に設定", null, false, false);
-								return true;
-							}
-							goto IL_0767;
+							goto IL_07C7;
 						}
 					}
 					else
 					{
-						if (!(text == "GET_ALL_ITEM"))
+						if (!(text == "HIDENOEL"))
 						{
-							goto IL_0767;
+							goto IL_07C7;
 						}
-						foreach (KeyValuePair<string, NelItem> keyValuePair in NelItem.getWholeDictionary())
+						if (M2DBase.Instance != null)
 						{
-							if (!keyValuePair.Value.is_cache_item)
-							{
-								this.NM2D.IMNG.getItem(keyValuePair.Value, 1, 0, false, false, false, false);
-							}
+							bool flag = Acmd.Length == 1 || X.NmI(Acmd[1], 1, false, false) != 0;
+							(M2DBase.Instance as NelM2DBase).getPrNoel().getAnimator().hidden_flag = flag;
 						}
 						return true;
 					}
 				}
-				else if (num != 3977484580U)
+				else
 				{
-					if (num != 4005525579U)
+					if (num <= 3044942830U)
 					{
-						if (num != 4071042880U)
+						if (num <= 2400252072U)
 						{
-							goto IL_0767;
+							if (num != 2338783123U)
+							{
+								if (num != 2357528558U)
+								{
+									if (num != 2400252072U)
+									{
+										goto IL_07C7;
+									}
+									if (!(text == "GATHER_ITEM"))
+									{
+										goto IL_07C7;
+									}
+									this.NM2D.IMNG.gatherWholeDropItem();
+									return true;
+								}
+								else
+								{
+									if (!(text == "DANGER"))
+									{
+										goto IL_07C7;
+									}
+									if (Acmd.Length >= 2)
+									{
+										this.NM2D.NightCon.applyDangerousFromEvent(X.NmI(Acmd[1], 0, false, false), false, false, false);
+										this.NM2D.NightCon.setBattleCount(64);
+										return true;
+									}
+									goto IL_07C7;
+								}
+							}
+							else if (!(text == "AUTOSAVE"))
+							{
+								goto IL_07C7;
+							}
 						}
-						if (!(text == "STOREFLUSH"))
+						else if (num != 2450413691U)
 						{
-							goto IL_0767;
+							if (num != 2463182076U)
+							{
+								if (num != 3044942830U)
+								{
+									goto IL_07C7;
+								}
+								if (!(text == "PUPPETNPC"))
+								{
+									goto IL_07C7;
+								}
+								this.NM2D.WDR.debugFlush(WanderingManager.TYPE.PUP, Acmd);
+								goto IL_07C7;
+							}
+							else
+							{
+								if (!(text == "GETSKILL"))
+								{
+									goto IL_07C7;
+								}
+								if (Acmd.Length < 2)
+								{
+									goto IL_07C7;
+								}
+								PrSkill prSkill = SkillManager.Get(Acmd[1]);
+								if (prSkill == null)
+								{
+									X.de("スキルが不明:" + Acmd[1], null);
+									goto IL_07C7;
+								}
+								this.NM2D.IMNG.get_DescBox().addTaskFocus(prSkill, false);
+								prSkill.Obtain(false);
+								goto IL_07C7;
+							}
 						}
-						if (Acmd.Length < 2)
+						else
 						{
-							StoreManager.FlushAll(false);
-							goto IL_0767;
+							if (!(text == "FLUSH_MATERIAL"))
+							{
+								goto IL_07C7;
+							}
+							goto IL_05EE;
 						}
-						StoreManager storeManager = StoreManager.Get(Acmd[1], false);
-						if (storeManager != null)
+					}
+					else if (num <= 3911183430U)
+					{
+						if (num != 3613420707U)
 						{
-							storeManager.need_summon_flush |= StoreManager.MODE.FLUSH;
-							goto IL_0767;
+							if (num != 3681775455U)
+							{
+								if (num != 3911183430U)
+								{
+									goto IL_07C7;
+								}
+								if (!(text == "AUTO_SAVE"))
+								{
+									goto IL_07C7;
+								}
+							}
+							else
+							{
+								if (!(text == "WALKCOUNT"))
+								{
+									goto IL_07C7;
+								}
+								if (Acmd.Length >= 2)
+								{
+									COOK.map_walk_count = X.NmI(Acmd[1], 0, false, false);
+									X.dl("map_walk_count を " + Acmd[1] + " に設定", null, false, false);
+									return true;
+								}
+								goto IL_07C7;
+							}
 						}
-						goto IL_0767;
+						else
+						{
+							if (!(text == "GET_ALL_ITEM"))
+							{
+								goto IL_07C7;
+							}
+							foreach (KeyValuePair<string, NelItem> keyValuePair in NelItem.getWholeDictionary())
+							{
+								if (!keyValuePair.Value.is_cache_item)
+								{
+									this.NM2D.IMNG.getItem(keyValuePair.Value, 1, 0, false, false, false, false);
+								}
+							}
+							return true;
+						}
+					}
+					else if (num != 3977484580U)
+					{
+						if (num != 4005525579U)
+						{
+							if (num != 4071042880U)
+							{
+								goto IL_07C7;
+							}
+							if (!(text == "STOREFLUSH"))
+							{
+								goto IL_07C7;
+							}
+							if (Acmd.Length < 2)
+							{
+								StoreManager.FlushAll(false);
+								goto IL_07C7;
+							}
+							StoreManager storeManager = StoreManager.Get(Acmd[1], false);
+							if (storeManager != null)
+							{
+								storeManager.need_summon_flush |= StoreManager.MODE.FLUSH;
+								goto IL_07C7;
+							}
+							goto IL_07C7;
+						}
+						else
+						{
+							if (!(text == "COFFEEMAKER"))
+							{
+								goto IL_07C7;
+							}
+							this.NM2D.WDR.debugFlush(WanderingManager.TYPE.COF, Acmd);
+							goto IL_07C7;
+						}
 					}
 					else
 					{
-						if (!(text == "COFFEEMAKER"))
+						if (!(text == "TILDENPC"))
 						{
-							goto IL_0767;
+							goto IL_07C7;
 						}
-						this.NM2D.WDR.debugFlush(WanderingManager.TYPE.COF, Acmd);
-						goto IL_0767;
+						this.NM2D.WDR.debugFlush(WanderingManager.TYPE.TLD, Acmd);
+						goto IL_07C7;
 					}
-				}
-				else
-				{
-					if (!(text == "TILDENPC"))
+					if (M2DBase.Instance != null)
 					{
-						goto IL_0767;
+						COOK.autoSave(M2DBase.Instance as NelM2DBase, false, true);
+						goto IL_07C7;
 					}
-					this.NM2D.WDR.debugFlush(WanderingManager.TYPE.TLD, Acmd);
-					goto IL_0767;
+					goto IL_07C7;
 				}
-				if (M2DBase.Instance == null)
-				{
-					goto IL_0767;
-				}
-				M2DBase.Instance.setFlushOtherMatFlag();
-				if (Acmd[0] == "FLUSH_MAP" || (Acmd.Length >= 2 && X.Nm(Acmd[1], 0f, false) != 0f))
-				{
-					M2DBase.Instance.setFlushAllFlag(true);
-					goto IL_0767;
-				}
-				goto IL_0767;
-				IL_0621:
+				IL_05EE:
 				if (M2DBase.Instance != null)
 				{
-					COOK.autoSave(M2DBase.Instance as NelM2DBase, false, true);
+					M2DBase.Instance.setFlushOtherMatFlag();
+					if (Acmd[0] == "FLUSH_MAP" || (Acmd.Length >= 2 && X.Nm(Acmd[1], 0f, false) != 0f))
+					{
+						M2DBase.Instance.setFlushAllFlag(true);
+					}
 				}
 			}
-			IL_0767:
+			IL_07C7:
 			return base.debugCommandLine(Acmd);
 		}
 

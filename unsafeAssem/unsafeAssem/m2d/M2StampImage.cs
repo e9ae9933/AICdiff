@@ -20,7 +20,7 @@ namespace m2d
 			this.APuts = _APuts;
 		}
 
-		public static M2StampImage readFromBytes(ByteArray Ba, byte load_ver, M2ImageContainer IMGS, string dirname, bool create = true, bool is_pxls_builtin = false)
+		public static M2StampImage readFromBytes(ByteReader Ba, byte load_ver, M2ImageContainer IMGS, string dirname, bool create = true, bool is_pxls_builtin = false)
 		{
 			string text = Ba.readPascalString("utf-8", false);
 			int num = Ba.readByte();
@@ -148,12 +148,12 @@ namespace m2d
 				{
 					M2StampImage.M2StampImageItem m2StampImageItem = this.APuts[i];
 					IM2Inputtable inputtable = m2StampImageItem.getInputtable(true, !this.no_strict_image);
-					Vector2 vector = global::XX.X.ROTV2e(new Vector2((float)global::XX.X.MPF(!flip) * m2StampImageItem.x, m2StampImageItem.y), (float)rotation * 1.5707964f);
-					int num3 = global::XX.X.IntR(m2StampImageItem.rot01 * 4f);
+					Vector2 vector = X.ROTV2e(new Vector2((float)X.MPF(!flip) * m2StampImageItem.x, m2StampImageItem.y), (float)rotation * 1.5707964f);
+					int num3 = X.IntR(m2StampImageItem.rot01 * 4f);
 					float num4 = num * (float)base.CLEN + vector.x;
 					float num5 = num2 * (float)base.CLEN + vector.y;
 					int num6 = num3 + rotation;
-					List<M2Chip> list2 = inputtable.MakeChip(Lay, global::XX.X.IntR(num4 / (float)base.CLEN), global::XX.X.IntR(num5 / (float)base.CLEN), opacity, num6, flip != m2StampImageItem.flip);
+					List<M2Chip> list2 = inputtable.MakeChip(Lay, X.IntR(num4 / (float)base.CLEN), X.IntR(num5 / (float)base.CLEN), opacity, num6, flip != m2StampImageItem.flip);
 					if (list2 != null && list2.Count > 0)
 					{
 						M2Chip m2Chip = list2[0];
@@ -187,8 +187,8 @@ namespace m2d
 				{
 					M2StampImage.M2StampImageItem m2StampImageItem = this.APuts[i];
 					IM2Inputtable inputtable = m2StampImageItem.getInputtable(true, false);
-					Vector2 vector = global::XX.X.ROTV2e(new Vector2((float)global::XX.X.MPF(!flip) * m2StampImageItem.x / (float)base.CLEN, m2StampImageItem.y / (float)base.CLEN), (float)rotation / 180f * 3.1415927f);
-					int num = global::XX.X.IntR(m2StampImageItem.rot01 * 360f);
+					Vector2 vector = X.ROTV2e(new Vector2((float)X.MPF(!flip) * m2StampImageItem.x / (float)base.CLEN, m2StampImageItem.y / (float)base.CLEN), (float)rotation / 180f * 3.1415927f);
+					int num = X.IntR(m2StampImageItem.rot01 * 360f);
 					List<M2Picture> list2 = inputtable.MakePicture(Lay, x + vector.x, y + vector.y, opacity, num + rotation, flip != m2StampImageItem.flip);
 					if (list2 != null && list2.Count > 0)
 					{
@@ -242,7 +242,7 @@ namespace m2d
 			M2StampImage.M2StampImageItem m2StampImageItem = this.spoitStampItemAt(j);
 			if (m2StampImageItem != null)
 			{
-				rotation = global::XX.X.IntR(m2StampImageItem.rot01 * 4f);
+				rotation = X.IntR(m2StampImageItem.rot01 * 4f);
 				flip = m2StampImageItem.flip;
 				return m2StampImageItem.Img;
 			}
@@ -256,7 +256,7 @@ namespace m2d
 			for (int i = this.APuts.Count - 1; i >= 0; i--)
 			{
 				Rect boundsGrid = this.APuts[i].getBoundsGrid(this);
-				if (global::XX.X.BTW(boundsGrid.x, (float)num, boundsGrid.xMax) && global::XX.X.BTW(boundsGrid.y, (float)num2, boundsGrid.yMax))
+				if (X.BTW(boundsGrid.x, (float)num, boundsGrid.xMax) && X.BTW(boundsGrid.y, (float)num2, boundsGrid.yMax))
 				{
 					return this.APuts[i];
 				}
@@ -272,7 +272,7 @@ namespace m2d
 		{
 			if (this.APuts.Count == 1)
 			{
-				global::XX.X.dl("イメージが消滅するので消去不可", null, false, false);
+				X.dl("イメージが消滅するので消去不可", null, false, false);
 				return;
 			}
 			this.reindex();
@@ -392,7 +392,7 @@ namespace m2d
 				return this.Img != null;
 			}
 
-			public static M2StampImage.M2StampImageItem readFromBytes(ByteArray Ba, byte load_ver, bool create = true)
+			public static M2StampImage.M2StampImageItem readFromBytes(ByteReader Ba, byte load_ver, bool create = true)
 			{
 				uint num = Ba.readUInt();
 				if (num == 0U)
@@ -430,8 +430,8 @@ namespace m2d
 			{
 				float clen = Con.IMGS.CLEN;
 				Rect rect = new Rect(this.x / clen + (float)Con.pclms * 0.5f, this.y / clen + (float)Con.prows * 0.5f, 0f, 0f);
-				rect.width = (float)(global::XX.X.IntC(rect.x + (float)this.Img.iwidth / clen) - (int)rect.x);
-				rect.height = (float)(global::XX.X.IntC(rect.y + (float)this.Img.iheight / clen) - (int)rect.y);
+				rect.width = (float)(X.IntC(rect.x + (float)this.Img.iwidth / clen) - (int)rect.x);
+				rect.height = (float)(X.IntC(rect.y + (float)this.Img.iheight / clen) - (int)rect.y);
 				rect.x = (float)((int)rect.x);
 				rect.y = (float)((int)rect.y);
 				return rect;

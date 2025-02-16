@@ -169,18 +169,18 @@ namespace nel.fatal
 									{
 										if (num3 != 316823588U)
 										{
-											goto IL_11DF;
+											goto IL_11E0;
 										}
 										if (!(cmd == "BG_EVPIC"))
 										{
-											goto IL_11DF;
+											goto IL_11E0;
 										}
 									}
 									else
 									{
 										if (!(cmd == "BASE_SPINE"))
 										{
-											goto IL_11DF;
+											goto IL_11E0;
 										}
 										text2 = this.CR._1;
 										if (fcut != null)
@@ -195,7 +195,7 @@ namespace nel.fatal
 								{
 									if (!(cmd == "%BGM"))
 									{
-										goto IL_11DF;
+										goto IL_11E0;
 									}
 									this.bgm_key = this.CR._1;
 									continue;
@@ -209,16 +209,16 @@ namespace nel.fatal
 									{
 										if (num3 != 989430776U)
 										{
-											goto IL_11DF;
+											goto IL_11E0;
 										}
 										if (!(cmd == "%MOSAIC"))
 										{
-											goto IL_11DF;
+											goto IL_11E0;
 										}
 									}
 									else if (!(cmd == "%MOSAIC_ATTACHMENT"))
 									{
-										goto IL_11DF;
+										goto IL_11E0;
 									}
 									List<MosaicShower.MosaicInfo> list3 = X.Get<string, List<MosaicShower.MosaicInfo>>(this.OAMosaicInfo, this.CR._1);
 									if (list3 == null)
@@ -236,7 +236,7 @@ namespace nel.fatal
 								}
 								if (!(cmd == "BG"))
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 							}
 							if (this.CR.cmd == "BG")
@@ -266,7 +266,7 @@ namespace nel.fatal
 								{
 									this.evt_load_wait = true;
 								}
-								MImage mi = MTRX.getMI(pic.PF.pChar);
+								MImage mi = MTRX.getMI(pic.PF.pChar, false);
 								if (mi == null)
 								{
 									this.CR.tError("読み込まれていません" + pic.PF.pChar.title);
@@ -292,18 +292,18 @@ namespace nel.fatal
 								{
 									if (num3 != 1224525797U)
 									{
-										goto IL_11DF;
+										goto IL_11E0;
 									}
 									if (!(cmd == "%SPINE_SV"))
 									{
-										goto IL_11DF;
+										goto IL_11E0;
 									}
 								}
 								else
 								{
 									if (!(cmd == "ROTATE"))
 									{
-										goto IL_11DF;
+										goto IL_11E0;
 									}
 									if (!(this.CR._1 == "#0"))
 									{
@@ -327,7 +327,7 @@ namespace nel.fatal
 							{
 								if (!(cmd == "SPINE_STENCIL"))
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								num = this.CR.Int(1, -1);
 								if (flag2)
@@ -349,11 +349,11 @@ namespace nel.fatal
 							{
 								if (num3 != 1580586464U)
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								if (!(cmd == "SPEED"))
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								if (!flag7)
 								{
@@ -384,7 +384,7 @@ namespace nel.fatal
 							{
 								if (!(cmd == "LABEL_HEADER"))
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								text = this.getMsgLabelHeader(ref text, this.CR._1);
 								continue;
@@ -394,11 +394,11 @@ namespace nel.fatal
 						{
 							if (num3 != 1891474104U)
 							{
-								goto IL_11DF;
+								goto IL_11E0;
 							}
 							if (!(cmd == "SKIN"))
 							{
-								goto IL_11DF;
+								goto IL_11E0;
 							}
 							if (!flag)
 							{
@@ -420,7 +420,7 @@ namespace nel.fatal
 						{
 							if (!(cmd == "VO"))
 							{
-								goto IL_11DF;
+								goto IL_11E0;
 							}
 							goto IL_0C99;
 						}
@@ -435,11 +435,11 @@ namespace nel.fatal
 								{
 									if (num3 != 2719294369U)
 									{
-										goto IL_11DF;
+										goto IL_11E0;
 									}
 									if (!(cmd == "ANIM+"))
 									{
-										goto IL_11DF;
+										goto IL_11E0;
 									}
 									int num5 = ((this.CR._1 == "_") ? 0 : X.isinStr(array, this.CR._1, -1));
 									if (num5 < 0)
@@ -501,7 +501,7 @@ namespace nel.fatal
 								{
 									if (!(cmd == "POS"))
 									{
-										goto IL_11DF;
+										goto IL_11E0;
 									}
 									goto IL_0F67;
 								}
@@ -510,7 +510,7 @@ namespace nel.fatal
 							{
 								if (!(cmd == "%TRM"))
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								this.bgm_key = ((this.CR._1 == "B") ? "BGM_bukiyou_na_hutari" : "BGM_yatto_deaeta");
 								bgInfo = new FatalShower.BgInfo(this.getBgTexture("troom_bg", false))
@@ -529,11 +529,11 @@ namespace nel.fatal
 							{
 								if (num3 != 3412022864U)
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								if (!(cmd == "ANIM"))
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								if (!flag4)
 								{
@@ -563,7 +563,7 @@ namespace nel.fatal
 							{
 								if (!(cmd == "CLIPRECT"))
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								float num9 = this.CR.Nm(1, vector.x - IN.wh);
 								float num10 = this.CR.Nm(2, vector.y - IN.hh);
@@ -583,7 +583,7 @@ namespace nel.fatal
 						}
 						else if (!(cmd == "%SPINE"))
 						{
-							goto IL_11DF;
+							goto IL_11E0;
 						}
 					}
 					else if (num3 <= 3687055305U)
@@ -594,11 +594,11 @@ namespace nel.fatal
 							{
 								if (num3 != 3687055305U)
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								if (!(cmd == "%SPINE_SIZE"))
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								SpvLoader spvLoader = this.OLoadSpine[this.CR._1];
 								spvLoader.width = this.CR.Nm(2, spvLoader.width);
@@ -609,7 +609,7 @@ namespace nel.fatal
 							{
 								if (!(cmd == "IMMEDIATE"))
 								{
-									goto IL_11DF;
+									goto IL_11E0;
 								}
 								if (fcut != null)
 								{
@@ -623,7 +623,7 @@ namespace nel.fatal
 						{
 							if (!(cmd == "%SND_LOAD"))
 							{
-								goto IL_11DF;
+								goto IL_11E0;
 							}
 							for (int n = 1; n < this.CR.clength; n++)
 							{
@@ -638,11 +638,11 @@ namespace nel.fatal
 						{
 							if (num3 != 3688922219U)
 							{
-								goto IL_11DF;
+								goto IL_11E0;
 							}
 							if (!(cmd == "LOOP"))
 							{
-								goto IL_11DF;
+								goto IL_11E0;
 							}
 							if (!flag5)
 							{
@@ -673,7 +673,7 @@ namespace nel.fatal
 						{
 							if (!(cmd == "%VOICE"))
 							{
-								goto IL_11DF;
+								goto IL_11E0;
 							}
 							for (int num13 = 1; num13 < this.CR.clength; num13++)
 							{
@@ -686,11 +686,11 @@ namespace nel.fatal
 					{
 						if (num3 != 4144876992U)
 						{
-							goto IL_11DF;
+							goto IL_11E0;
 						}
 						if (!(cmd == "SND"))
 						{
-							goto IL_11DF;
+							goto IL_11E0;
 						}
 						goto IL_0C99;
 					}
@@ -698,7 +698,7 @@ namespace nel.fatal
 					{
 						if (!(cmd == "MSG_HEADER"))
 						{
-							goto IL_11DF;
+							goto IL_11E0;
 						}
 						this.msg_header = this.CR._1;
 						continue;
@@ -814,7 +814,7 @@ namespace nel.fatal
 					}
 					continue;
 				}
-				IL_11DF:
+				IL_11E0:
 				if (REG.match(this.CR.cmd, FatalShower.RegImportOtherFile))
 				{
 					string resource = TX.getResource("Fatal/" + REG.R1 + ".fatal", ".csv", false);
@@ -961,7 +961,7 @@ namespace nel.fatal
 
 		public bool isMaterialLoaded()
 		{
-			return !this.evt_load_wait || !EV.isLoading(false);
+			return !this.evt_load_wait || !EV.isLoading();
 		}
 
 		public void initGameObject(GameObject Base, int layer = -1, float shiftz = 0f)
@@ -1278,7 +1278,7 @@ namespace nel.fatal
 					}
 					else
 					{
-						this.SubmitCfg.Select(false);
+						this.SubmitCfg.Select(true);
 					}
 				}
 			}
@@ -1563,7 +1563,7 @@ namespace nel.fatal
 			MeshRenderer meshRenderer = this.AMrdFadeScreen[buffer];
 			Camera camera = this.AFadeCam[buffer];
 			RenderTexture targetTexture = camera.targetTexture;
-			Object @object = targetTexture;
+			global::UnityEngine.Object @object = targetTexture;
 			BLIT.Alloc(ref targetTexture, Screen.width, Screen.height, true, RenderTextureFormat.ARGB32, 24);
 			if (@object != targetTexture)
 			{
@@ -1683,7 +1683,7 @@ namespace nel.fatal
 				FatalShower.FCut fcut = this.ACutPoint[this.cur_cut];
 				using (BList<string> blist = ListBuffer<string>.Pop(0))
 				{
-					if (NelMSGResource.getContent(fcut.msg_label, blist, false, false) && blist.Count > 0 && blist[0].Length > 0)
+					if (NelMSGResource.getContent(fcut.msg_label, blist, false, false, true) && blist.Count > 0 && blist[0].Length > 0)
 					{
 						this.Tx.reserveText(blist, 0, false);
 						if (TX.getCurrentFamily().is_english)
@@ -1760,7 +1760,7 @@ namespace nel.fatal
 			{
 				aBtn = this.BxR.getBtn("Fatal_quit");
 			}
-			aBtn.Select(false);
+			aBtn.Select(true);
 		}
 
 		public void reselectQuitBtn()
@@ -1768,7 +1768,7 @@ namespace nel.fatal
 			aBtn btn = this.BxR.getBtn("Fatal_quit");
 			if (btn != null)
 			{
-				btn.Select(false);
+				btn.Select(true);
 			}
 		}
 
@@ -3224,18 +3224,18 @@ namespace nel.fatal
 			{
 				if (this.PreSelected != null && this.PreSelected.skin != "chapter")
 				{
-					this.PreSelected.Select(false);
+					this.PreSelected.Select(true);
 				}
 				else
 				{
 					aBtn aBtn = this.BConChapter.Get(this.ACutPoint[this.cur_cut].dot_index);
 					if (aBtn != null)
 					{
-						aBtn.Select(false);
+						aBtn.Select(true);
 					}
 					else
 					{
-						this.BConChapter.Get(0).Select(false);
+						this.BConChapter.Get(0).Select(true);
 					}
 				}
 				if (this.freecam)
@@ -3299,9 +3299,18 @@ namespace nel.fatal
 			return false;
 		}
 
-		private string fnDescConvertAutoMode(string V)
+		private void fnDescConvertAutoMode(STB Stb)
 		{
-			return TX.GetA("Fatal_auto_mode_speed", X.spr_after(X.Nm(V, 0f, false) * 0.5f, 1));
+			STB.PARSERES parseres;
+			if (Stb.Nm(out parseres))
+			{
+				float num = (float)STB.NmRes(parseres, -1.0);
+				Stb.AddTxA("Fatal_auto_mode_speed", false);
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					Stb.TxRpl(stb.spr_after(num * 0.5f, 1));
+				}
+			}
 		}
 
 		private bool fnHideUiChanging(aBtn B)
@@ -3584,7 +3593,7 @@ namespace nel.fatal
 			this.BxR.item_margin_x_px = 14f;
 			this.BxR.item_margin_y_px = 18f;
 			this.BxR.alignx = ALIGN.CENTER;
-			this.EditCfg = new CFG(this.BxR, this.BxDesc, this.BxMenu, false, true, null);
+			this.EditCfg = new UiCFG(this.BxR, this.BxDesc, this.BxMenu, false, true, null);
 			IN.setZ(this.BxMenu.transform, -5f);
 		}
 
@@ -3628,7 +3637,7 @@ namespace nel.fatal
 				this.Tx.TargetFont = TX.getDefaultFont();
 				this.fineCutText(this.cur_cut);
 			}
-			btnContainerRunner.Get(0).Select(false);
+			btnContainerRunner.Get(0).Select(true);
 			return true;
 		}
 
@@ -3636,7 +3645,7 @@ namespace nel.fatal
 		{
 		}
 
-		public void executeRestMsgCmd()
+		public void executeRestMsgCmd(int count)
 		{
 		}
 
@@ -3923,7 +3932,7 @@ namespace nel.fatal
 
 		private WheelListener WhLis;
 
-		private CFG EditCfg;
+		private UiCFG EditCfg;
 
 		private aBtnBoxEar MenuEar;
 

@@ -6,7 +6,7 @@ namespace nel
 {
 	public struct WmPosition
 	{
-		public WmPosition(WholeMapItem _Wm, WholeMapItem.WMItem _Wmi, WholeMapItem.WMSpecialIcon _SpIco)
+		public WmPosition(WholeMapItem _Wm, WholeMapItem.WMItem _Wmi, WMSpecialIcon _SpIco)
 		{
 			this.Wm = _Wm;
 			this.Wmi = _Wmi;
@@ -18,6 +18,14 @@ namespace nel
 			get
 			{
 				return this.Wm != null;
+			}
+		}
+
+		public bool valid2
+		{
+			get
+			{
+				return this.Wm != null && this.Wmi != null;
 			}
 		}
 
@@ -71,12 +79,12 @@ namespace nel
 									}
 								}
 							}
-							List<WholeMapItem.WMSpecialIcon> specialPositionList = Showing_From.getSpecialPositionList(blist[i]);
+							List<WMSpecialIcon> specialPositionList = Showing_From.getSpecialPositionList(blist[i]);
 							if (specialPositionList != null)
 							{
 								for (int k = specialPositionList.Count - 1; k >= 0; k--)
 								{
-									WholeMapItem.WMSpecialIcon wmspecialIcon = specialPositionList[k];
+									WMSpecialIcon wmspecialIcon = specialPositionList[k];
 									if (wmspecialIcon.go_other_wm == this.Wm.text_key)
 									{
 										APos.Add(new MapPosition(wmspecialIcon.SrcLP.mapcx, wmspecialIcon.SrcLP.mapcy - 0.5f, wmspecialIcon.Wmi.SrcMap));
@@ -95,7 +103,7 @@ namespace nel
 
 		public WholeMapItem.WMItem Wmi;
 
-		public WholeMapItem.WMSpecialIcon SpIco;
+		public WMSpecialIcon SpIco;
 
 		private static readonly LabelPointListener<WholeMapItem.WMTransferPoint> LplBuffer = new LabelPointListener<WholeMapItem.WMTransferPoint>();
 	}

@@ -7,7 +7,7 @@ namespace XX.mobpxl
 {
 	public class SkltSequence
 	{
-		public SkltSequence(string _name = "_", string _type = "stand", ByteArray Ba = null, int vers = 10)
+		public SkltSequence(string _name = "_", string _type = "stand", ByteArray Ba = null, int vers = 13)
 		{
 			this.name = _name;
 			if (Ba != null)
@@ -38,7 +38,7 @@ namespace XX.mobpxl
 			}
 		}
 
-		public void readFromBytes(ByteArray Ba, int vers = 10)
+		public void readFromBytes(ByteArray Ba, int vers = 13)
 		{
 			this.type = Ba.readPascalString("utf-8", false);
 			int num = (int)Ba.readUByte();
@@ -136,7 +136,7 @@ namespace XX.mobpxl
 				}
 			}
 
-			public void readFromBytes(ByteArray Ba, int vers = 10)
+			public void readFromBytes(ByteArray Ba, int vers = 13)
 			{
 				if (this.Msp == null)
 				{
@@ -275,7 +275,7 @@ namespace XX.mobpxl
 				return false;
 			}
 
-			public bool readFromBytes(ByteArray Ba, int vers = 10)
+			public bool readFromBytes(ByteArray Ba, int vers = 13)
 			{
 				this.crf60 = (int)Ba.readUByte();
 				this.ORewritePos.Clear();

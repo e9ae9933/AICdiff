@@ -328,7 +328,7 @@ namespace XX
 			{
 				if (this.GobCld != null)
 				{
-					Object.Destroy(this.GobCld);
+					global::UnityEngine.Object.Destroy(this.GobCld);
 					this.GobCld = null;
 					this.Cld = null;
 				}

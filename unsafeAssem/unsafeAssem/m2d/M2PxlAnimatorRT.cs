@@ -74,7 +74,7 @@ namespace m2d
 			this.need_fine = true;
 		}
 
-		protected bool RenderPrepareMesh(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected bool RenderPrepareMesh(Camera Cam, M2RenderTicket Tk, bool need_redraw, int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			MdOut = null;
 			if (this.Mv.destructed)
@@ -83,17 +83,17 @@ namespace m2d
 			}
 			if (draw_id == 0 && need_redraw && this.auto_replace_matrix)
 			{
-				float num = this.Trs.localScale.x * base.Mp.base_scale;
-				float num2 = this.Trs.localScale.y * base.Mp.base_scale;
-				float num3 = this.Trs.localPosition.x * base.Mp.base_scale + base.offsetPixelX * 0.015625f;
-				float num4 = this.Trs.localPosition.y * base.Mp.base_scale + base.offsetPixelY * 0.015625f;
-				Tk.Matrix = Matrix4x4.Translate(new Vector3(num3, num4, 0f)) * Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, this.rotationR / 3.1415927f * 180f)) * Matrix4x4.Scale(new Vector3(num, num2, 1f));
+				float x = this.Trs.localScale.x;
+				float y = this.Trs.localScale.y;
+				float num = this.Trs.localPosition.x + base.offsetPixelX * 0.015625f;
+				float num2 = this.Trs.localPosition.y + base.offsetPixelY * 0.015625f;
+				Tk.Matrix = this.Mv.Mp.gameObject.transform.localToWorldMatrix * Matrix4x4.Translate(new Vector3(num, num2, 0f)) * Matrix4x4.Rotate(Quaternion.Euler(0f, 0f, this.rotationR / 3.1415927f * 180f)) * Matrix4x4.Scale(new Vector3(x, y, 1f));
 			}
 			if (this.need_fine && this.auto_replace_mesh)
 			{
 				this.need_fine = false;
 				this.MyMd.clearSimple();
-				PxlFrame currentDrawnFrame = this.getCurrentDrawnFrame();
+				PxlFrame currentDrawnFrame = base.getCurrentDrawnFrame();
 				this.MyMd.Col = this.ColorForMaterial;
 				this.MyMd.Uv23(this.CAdd, false);
 				this.MyMd.RotaPF(0f, 0f, 1f, 1f, 0f, currentDrawnFrame, false, false, false, uint.MaxValue, false, 0);
@@ -101,7 +101,7 @@ namespace m2d
 			}
 			if (this.FnReplaceRender != null)
 			{
-				return this.FnReplaceRender(Cam, Tk, need_redraw, draw_id, out MdOut, ref paste_mesh);
+				return this.FnReplaceRender(Cam, Tk, need_redraw, draw_id, out MdOut, ref color_one_overwrite);
 			}
 			if (draw_id == 0)
 			{
@@ -132,7 +132,7 @@ namespace m2d
 			this.Mtr = ReplaceMaterial;
 			this.AMtr[0] = ReplaceMaterial;
 			this.MyMd.setMaterial(this.Mtr, false);
-			this.Mtr.mainTexture = base.getCurrentTexture();
+			this.Mtr.mainTexture = base.getCurrentDrawnTexture();
 		}
 
 		public override Color32 color

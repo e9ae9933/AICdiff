@@ -38,6 +38,16 @@ namespace XX
 			return this;
 		}
 
+		public FlagCounter<T> Replace(FlagCounter<T> Src, float multiple = 1f)
+		{
+			foreach (KeyValuePair<T, float> keyValuePair in Src.OItem)
+			{
+				this.Rem(keyValuePair.Key);
+				this.Add(keyValuePair.Key, keyValuePair.Value * multiple);
+			}
+			return this;
+		}
+
 		public FlagCounter<T> Rem(T val)
 		{
 			this.OItem.Remove(val);
@@ -140,7 +150,7 @@ namespace XX
 			}
 		}
 
-		public FlagCounter<T> readBinaryFrom(ByteArray Ba, Func<int, T> FConvertInt2T)
+		public FlagCounter<T> readBinaryFrom(ByteReader Ba, Func<int, T> FConvertInt2T)
 		{
 			this.Clear();
 			int num = (int)Ba.readUShort();

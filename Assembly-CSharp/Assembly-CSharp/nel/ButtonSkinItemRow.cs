@@ -10,7 +10,6 @@ namespace nel
 		public ButtonSkinItemRow(aBtn _B, float _w, float _h)
 			: base(_B, _w, _h)
 		{
-			this.fine_continue_flags |= 8U;
 			this.fineTextScale();
 			this.fine_on_binding_changing = false;
 			this.TxR = base.MakeTx("-text_r");
@@ -79,7 +78,7 @@ namespace nel
 			if (this.Storage != null && this.ItmRow != null && this.Storage.check_quest_target && this.ItemMng != null)
 			{
 				QuestTracker quest = this.ItemMng.IMNG.M2D.QUEST;
-				this.quest_target = quest.isQuestTargetItem(this.ItmRow.Data);
+				this.quest_target = quest.isQuestTargetItem(this.ItmRow.Data, this.Storage.grade_split ? ((int)this.ItmRow.splitted_grade) : (-1));
 				if (this.quest_target)
 				{
 					this.fine_continue_flags |= 16U;
@@ -104,24 +103,29 @@ namespace nel
 			}
 		}
 
-		protected virtual string getTitleString()
+		protected virtual STB getTitleString(STB Stb)
 		{
 			NelItem data = this.ItmRow.Data;
+			if (data == null)
+			{
+				return Stb;
+			}
 			if (this.Storage == null)
 			{
-				return data.getLocalizedName((int)this.ItmRow.splitted_grade, null);
+				data.getLocalizedName(Stb, (int)this.ItmRow.splitted_grade);
+				return Stb;
 			}
 			base.effect_confusion = this.Storage.isMngEffectConfusion();
-			string text = (this.Storage.grade_split ? data.getLocalizedName((int)this.ItmRow.splitted_grade, this.Inventory) : data.getLocalizedName(this.ItmRow.top_grade, this.Inventory));
+			data.getLocalizedName(Stb, this.Storage.grade_split ? ((int)this.ItmRow.splitted_grade) : this.ItmRow.top_grade);
 			if (this.Storage.FD_RowNameAddition != null)
 			{
-				text = this.Storage.FD_RowNameAddition(this.ItmRow, this.Storage, text);
+				this.Storage.FD_RowNameAddition(Stb, this.ItmRow, this.Storage);
 			}
 			if (this.Storage.grade_split && !data.individual_grade)
 			{
-				text = text + " <img mesh=\"nel_item_grade." + ((int)(5 + this.ItmRow.splitted_grade)).ToString() + "\" width=\"34\" tx_color/>";
+				Stb.Add(" <img mesh=\"nel_item_grade.", (int)(5 + this.ItmRow.splitted_grade), "\" width=\"34\" tx_color/>");
 			}
-			return text;
+			return Stb;
 		}
 
 		protected override void setTitleText(string str)
@@ -139,10 +143,30 @@ namespace nel
 			}
 		}
 
+		public override ButtonSkinRow setTitleTextS(STB Stb)
+		{
+			bool flag = false;
+			if (this.fix_text_size_ <= 0f)
+			{
+				flag = true;
+				this.fix_text_size_ = 18f * this.text_scale;
+			}
+			base.setTitleTextS(Stb);
+			if (flag)
+			{
+				this.fix_text_size_ = 0f;
+			}
+			return this;
+		}
+
 		protected virtual STB getCountString(STB Stb)
 		{
 			if (this.Storage == null)
 			{
+				if (this.ItmRow.total > 1)
+				{
+					Stb.Add(this.ItmRow.Data.getCountString(this.ItmRow.total, null));
+				}
 				return Stb;
 			}
 			Stb.Add((this.ItemMng != null) ? this.ItemMng.getDescStr(this.ItmRow, UiItemManageBox.DESC_ROW.ROW_COUNT, this.Storage.grade_split ? ((int)this.ItmRow.splitted_grade) : (-1)) : this.ItmRow.Data.getCountString(this.ItmRow.total, this.Storage));
@@ -345,7 +369,10 @@ namespace nel
 				return;
 			}
 			this.fine_title_string = false;
-			this.setTitle(this.getTitleString());
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				this.setTitleTextS(this.getTitleString(stb));
+			}
 		}
 
 		public NelItem getItemData()

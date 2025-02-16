@@ -194,7 +194,7 @@ namespace XX
 			if (!this.temporary_replaced)
 			{
 				GL.Flush();
-				BLIT.JustPaste(this.RenderingBuffer, this.RenderingTarget);
+				BLIT.JustPaste(this.RenderingBuffer, this.RenderingTarget, false);
 				Graphics.SetRenderTarget(this.RenderingTarget);
 				this.temporary_replaced = true;
 			}
@@ -235,7 +235,7 @@ namespace XX
 			}
 			else
 			{
-				BLIT.JustPaste(Src, Dest);
+				BLIT.JustPaste(Src, Dest, false);
 			}
 			GL.Flush();
 			if (!flag)

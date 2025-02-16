@@ -194,7 +194,7 @@ namespace nel.mgm.dojo
 				this.BCfCancel.gameObject.SetActive(true);
 				this.BCfOK.setAlpha(0f);
 				this.BCfCancel.setAlpha(0f);
-				this.BCfOK.Select(false);
+				this.BCfOK.Select(true);
 				return;
 			}
 			if (this.stt == DjUI.STATE.MAIN)
@@ -203,7 +203,7 @@ namespace nel.mgm.dojo
 				this.BCfOK.gameObject.SetActive(false);
 				this.BCfCancel.gameObject.SetActive(false);
 				this.DsMain.bind();
-				this.BConSkill.Get(this.pre_selected_skill).Select(false);
+				this.BConSkill.Get(this.pre_selected_skill).Select(true);
 				return;
 			}
 			this.deactivate(false);
@@ -215,7 +215,8 @@ namespace nel.mgm.dojo
 			Adest.Add("_tuto");
 			foreach (KeyValuePair<string, DjHkdsGenerator> keyValuePair in this.DJ.GM.HK.getWholeGeneratorDictionary())
 			{
-				if (SkillManager.Get(keyValuePair.Key) != null)
+				PrSkill prSkill = SkillManager.Get(keyValuePair.Key);
+				if (prSkill != null && (prSkill.always_enable || prSkill.visible || keyValuePair.Value.term_enabled))
 				{
 					Adest.Add(keyValuePair.Key);
 				}

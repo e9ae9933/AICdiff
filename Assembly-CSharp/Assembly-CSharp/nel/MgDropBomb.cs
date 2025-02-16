@@ -126,7 +126,7 @@ namespace nel
 				}
 				float num12 = X.NI(Mg.Cen.x, Mg.sx, num11);
 				float num13 = X.NI(Mg.Cen.y, Mg.sy, 0.1f);
-				int num14 = Mg.reduce_mp / num;
+				int num14 = (int)(Mg.reduce_mp / (float)num);
 				int num15 = 0;
 				float num16 = (flag ? (1f / (0.001f + (float)num4 - 1f)) : (1f / (0.001f + (float)num - 1f)));
 				for (int i = 0; i < num; i++)
@@ -136,7 +136,7 @@ namespace nel
 					Mg.sy = num13;
 					if (i > 0)
 					{
-						magicItem.reduce_mp = num14;
+						magicItem.reduce_mp = (float)num14;
 						num15 += num14;
 						magicItem.Atk0.CopyFrom(Mg.Atk0);
 					}
@@ -164,7 +164,7 @@ namespace nel
 					magicItem.sz = num7;
 					magicItem.da = num6;
 				}
-				Mg.reduce_mp -= num15;
+				Mg.reduce_mp -= (float)num15;
 				Mg.run(0f);
 				return true;
 			}
@@ -254,7 +254,7 @@ namespace nel
 							m2DropObject.gravity_scale = 0.16f;
 							Mg.t = 0f;
 						}
-						Mg.Ray.hittype &= (HITTYPE)(-33);
+						Mg.Ray.hittype &= ~HITTYPE.REFLECTED;
 					}
 					if (Mg.t <= Mg.Mn._0.accel_maxt)
 					{
@@ -305,7 +305,7 @@ namespace nel
 							Mg.dz = (float)(EV.isActive(true) ? (-20) : (-40));
 						}
 						Mg.Ray.check_hit_wall = true;
-						Mg.Ray.hittype |= (HITTYPE)16777408;
+						Mg.Ray.hittype |= HITTYPE.AUTO_TARGET | HITTYPE.GUARD_IGNORE | HITTYPE.TARGET_CHECKER;
 						Mg.Ray.check_other_hit = flag2;
 						Mg.Ray.HitLock(0f, null);
 						HITTYPE hittype = Mg.Ray.Cast(false, null, true);
@@ -366,7 +366,7 @@ namespace nel
 						Mg.Ray.HitLock(0f, null);
 						Mg.Ray.check_other_hit = true;
 						Mg.Ray.check_hit_wall = false;
-						Mg.Ray.hittype &= (HITTYPE)(-16777409);
+						Mg.Ray.hittype &= ~(HITTYPE.AUTO_TARGET | HITTYPE.GUARD_IGNORE | HITTYPE.TARGET_CHECKER);
 						Mg.MnSetRay(Mg.Ray, 2, Mg.sa, 0f);
 						HITTYPE hittype2 = Mg.Ray.Cast(false, null, true);
 						if ((hittype2 & HITTYPE.KILLED) != HITTYPE.NONE)
@@ -374,7 +374,7 @@ namespace nel
 							Mg.kill(0f);
 							return false;
 						}
-						if ((hittype2 & (HITTYPE)12582912) != HITTYPE.NONE)
+						if ((hittype2 & (HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED)) != HITTYPE.NONE)
 						{
 							Mg.phase = 20;
 						}
@@ -435,7 +435,7 @@ namespace nel
 			if (Mg.phase == 20)
 			{
 				Mg.killEffect();
-				Mg.Ray.hittype &= (HITTYPE)(-29360353);
+				Mg.Ray.hittype &= ~(HITTYPE.REFLECTED | HITTYPE.AUTO_TARGET | HITTYPE.GUARD_IGNORE | HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED | HITTYPE.TARGET_CHECKER);
 				Mg.sa = X.correctangleR(Mg.sa);
 				Mg.MnSetRay(Mg.Ray, 1, Mg.sa, 0f);
 				if (!Mg.exploded)
@@ -446,12 +446,17 @@ namespace nel
 				Mg.projectile_power = 100;
 				Mg.Ray.clearHittedTarget();
 				Mg.Ray.HitLock(-1f, null);
+				Mg.t = 0f;
 				Mg.Ray.check_other_hit = true;
-				Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0, HITTYPE.NONE);
 				Mg.PtcVar("height", (double)(Mg.Mn._1.v0 * Mg.CLENB)).PtcVar("agR", (double)Mg.sa).PtcST("dropbomb_explode", PTCThread.StFollow.NO_FOLLOW, false);
-				return true;
 			}
-			return Mg.phase != 100;
+			if (Mg.phase == 100)
+			{
+				Mg.Ray.clearReflectBuffer();
+				Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk0, HITTYPE.NONE);
+				return Mg.t < 14f;
+			}
+			return true;
 		}
 
 		public override bool draw(MagicItem Mg, float fcnt)
@@ -499,6 +504,17 @@ namespace nel
 			Mg.calcTargetPos();
 			Mg.PtcVar("tx", (double)Mg.PosT.x).PtcVar("ty", (double)Mg.PosT.y).PtcVar("time", (double)((Mg.Mn != null) ? Mg.Mn._1.maxt : 10f))
 				.PtcST("dropbomb_prepare_explode_eaten", PTCThread.StFollow.FOLLOW_S, false);
+		}
+
+		public bool forceExplode(MagicItem Mg)
+		{
+			if (Mg.kind == MGKIND.DROPBOMB && !Mg.killed && !Mg.isPreparingCircle && X.BTW(2f, (float)Mg.phase, 20f))
+			{
+				Mg.phase = 20;
+				Mg.t = 0f;
+				return true;
+			}
+			return false;
 		}
 
 		public MagicNotifiear.TARGETTING fnManipulateTargettingDropBomb(MagicItem Mg, PR Pr, ref int dx, ref int dy, bool is_first)
@@ -581,6 +597,11 @@ namespace nel
 					return true;
 				}
 				return false;
+			}
+
+			public bool forceExplode(MagicItem Mg)
+			{
+				return Mg.Other as MgDropBomb.MgDbMem == this && this.Con.forceExplode(Mg);
 			}
 
 			public MgDropBomb Con;

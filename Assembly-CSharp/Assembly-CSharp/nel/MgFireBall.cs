@@ -91,7 +91,7 @@ namespace nel
 				Mg.Ray.check_other_hit = false;
 				num = Mg.Atk1.hpdmg0;
 				Mg.Atk1.hpdmg0 = (int)((float)num * num2);
-				Mg.Ray.hittype &= (HITTYPE)(-12582945);
+				Mg.Ray.hittype &= ~(HITTYPE.REFLECTED | HITTYPE.REFLECT_BROKEN | HITTYPE.REFLECT_KILLED);
 				Mg.MGC.CircleCast(Mg, Mg.Ray, Mg.Atk1.Burst(0.2f * Mg.mpf_is_right, -0.04f), HITTYPE.NONE);
 				Mg.Atk1.hpdmg0 = num;
 				Mg.kill(-1f);

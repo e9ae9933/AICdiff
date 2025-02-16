@@ -60,7 +60,7 @@ namespace nel
 
 		public void reloadUiScript(bool fine_front = false)
 		{
-			int num = 44;
+			int num = 50;
 			UIPictureBodyData.initUiPictureBodyData();
 			this.AEmot = new UIPictureBase.PrEmotion[num];
 			for (int i = 0; i < num; i++)
@@ -132,15 +132,23 @@ namespace nel
 			}
 		}
 
-		public virtual void run(float fcnt, bool can_transfer_uipic = true)
+		public virtual float TS_animation
+		{
+			get
+			{
+				return 1f;
+			}
+		}
+
+		public virtual void run(float fcnt, float fcnt_picture, bool can_transfer_uipic = true)
 		{
 			if (this.can_transfer && (can_transfer_uipic || this.t_force_recheck_allocate > 0f))
 			{
 				if (X.D || this.t_force_recheck_allocate > 0f)
 				{
 					float num = this.TS * (X.D ? ((float)X.AF) : 0.5f) * 1.7f;
-					this.FDCon.run(this, num);
-					if (this.t_recheck >= 0f && (this.t_recheck -= num) < 0f && !this.changeEmotDefault(false, this.t_force_recheck_allocate > 0f))
+					this.FDCon.run(this, num, this.TS_animation);
+					if (this.TS_animation > 0f && this.t_recheck >= 0f && (this.t_recheck -= num) < 0f && !this.changeEmotDefault(false, this.t_force_recheck_allocate > 0f))
 					{
 						this.t_recheck = 24f;
 					}
@@ -156,7 +164,7 @@ namespace nel
 			}
 			if (X.D && this.CurBodyData != null)
 			{
-				this.CurBodyData.run(this.Gob.transform, (float)X.AF, this.TS, false);
+				this.CurBodyData.run(this.Gob.transform, (float)X.AF, this.TS * fcnt_picture, false);
 			}
 			if (this.need_uipic_texture_remake)
 			{
@@ -168,6 +176,18 @@ namespace nel
 		{
 			if (X.D)
 			{
+				if (this.t_flush_fade < 22f)
+				{
+					if ((this.FLUSH_FADE_COL & 16777215U) != 16777215U)
+					{
+						this.t_flush_fade += (float)X.AF;
+						this.need_color_fine = true;
+					}
+					else
+					{
+						this.t_flush_fade = 22f;
+					}
+				}
 				if (this.need_color_fine)
 				{
 					this.setMulColor(this.MulColor);
@@ -206,11 +226,13 @@ namespace nel
 			case UIEMOT.TORTURE_KETSUDASI:
 			case UIEMOT.TORTURE_GOLEM_INJECT:
 			case UIEMOT.TORTURE_MKB:
+			case UIEMOT.TORTURE_MKB_ACME:
 			case UIEMOT.TORTURE_ROMERO:
 			case UIEMOT.TORTURE_SWALLOWED:
 			case UIEMOT.TORTURE_DRILLN:
 			case UIEMOT.TORTURE_DRILLN_2:
 			case UIEMOT.TORTURE_MKB_URCHIN:
+			case UIEMOT.TORTURE_BACKINJ:
 			case UIEMOT.SHRIMP:
 				return 1;
 			}
@@ -242,7 +264,7 @@ namespace nel
 			return this.pre_emstate;
 		}
 
-		public void newGame()
+		public virtual void newGame()
 		{
 			this.recheck_emot = true;
 			this.FDCon.Blur();
@@ -261,16 +283,16 @@ namespace nel
 			return true;
 		}
 
-		public bool setFade(string fade_key, UIPictureBase.EMSTATE add_state = UIPictureBase.EMSTATE.NORMAL, bool immediate = false, bool force_change = false, bool state_absolute = false)
+		public virtual bool setFade(string fade_key, UIPictureBase.EMSTATE add_state = UIPictureBase.EMSTATE.NORMAL, bool immediate = false, bool force_change = false, bool state_absolute = false)
 		{
 			Bench.P("UIP-Fade");
 			Bench.P(fade_key);
 			bool flag = false;
-			UIPictureFader.UIP_RES uip_RES = this.FDCon.Explode(this, fade_key, immediate, force_change);
+			UIPictureFader.UIP_RES uip_RES = this.FDCon.Explode(this, fade_key, immediate, force_change, !force_change && !this.fader_restartable);
 			this.t_recheck = -1f;
 			if ((uip_RES & UIPictureFader.UIP_RES.CHANGED) != (UIPictureFader.UIP_RES)0)
 			{
-				this.readFader(this.FDCon.Cur, uip_RES | (state_absolute ? UIPictureFader.UIP_RES.STATE_ABSOLUTE : ((UIPictureFader.UIP_RES)0)), add_state);
+				this.readFader(this.FDCon.Cur, uip_RES | (state_absolute ? UIPictureFader.UIP_RES.STATE_ABSOLUTE : ((UIPictureFader.UIP_RES)0)), add_state, force_change);
 				flag = true;
 			}
 			else
@@ -289,7 +311,7 @@ namespace nel
 			return flag;
 		}
 
-		public UIPictureFader.UIP_RES readFader(UIPictureFader.UIPFader Fader, UIPictureFader.UIP_RES res, UIPictureBase.EMSTATE add_state = UIPictureBase.EMSTATE.NORMAL)
+		public virtual UIPictureFader.UIP_RES readFader(UIPictureFader.UIPFader Fader, UIPictureFader.UIP_RES res, UIPictureBase.EMSTATE add_state = UIPictureBase.EMSTATE.NORMAL, bool force_change = false)
 		{
 			if (Fader == null)
 			{
@@ -301,7 +323,7 @@ namespace nel
 				add_state |= this.checkPlayerState();
 			}
 			UIPictureFader.UIP_RES uip_RES = this.changeEmotIn(Fader.getEmot(), Fader.add_state | add_state, Fader, res);
-			if ((uip_RES == UIPictureFader.UIP_RES.CHANGED || (res & UIPictureFader.UIP_RES.REDRAW) != (UIPictureFader.UIP_RES)0) && X.xors(100) < (int)Fader.same_restart)
+			if ((uip_RES == UIPictureFader.UIP_RES.CHANGED || (res & UIPictureFader.UIP_RES.REDRAW) != (UIPictureFader.UIP_RES)0) && this.fader_restartable && X.xors(100) < (int)Fader.same_restart)
 			{
 				this.redrawMainMesh(this.pre_emot, this.pre_emstate, 1);
 			}
@@ -310,6 +332,14 @@ namespace nel
 				this.FDCon.AssignGroundNext(Fader, 90);
 			}
 			return uip_RES;
+		}
+
+		public virtual bool fader_restartable
+		{
+			get
+			{
+				return true;
+			}
 		}
 
 		public string getCurrentFadeKey(bool consider_next = true)
@@ -350,6 +380,7 @@ namespace nel
 
 		public UIPictureFader.UIP_RES changeEmotIn(UIEMOT v, UIPictureBase.EMSTATE st, UIPictureFader.UIPFader Fd = null, UIPictureFader.UIP_RES uip_res = (UIPictureFader.UIP_RES)0)
 		{
+			UIPictureBase.EMSTATE emstate = st;
 			UIPictureBase.PrEmotion emot = this.GetEmot(v, ref st);
 			UIPictureBase.EMSTATE_ADD emstate_ADD = this.pre_sta;
 			UIPictureBase.EMSTATE_ADD additionalState = this.getAdditionalState(true);
@@ -372,6 +403,7 @@ namespace nel
 				this.redrawMainMesh(v, st, 2);
 				this.changeEmotFinalize(this.CurBodyData.Mtr, v, st, uip_res);
 				this.pre_emot = v;
+				this.pre_emstate0 = emstate;
 				this.pre_emstate = st;
 				this.CurBodyData.run(this.Gob.transform, 0f, 0f, true);
 				return UIPictureFader.UIP_RES.CHANGED;
@@ -392,6 +424,11 @@ namespace nel
 				this.need_uipic_texture_remake = false;
 				this.CurBodyData.fineMaterial(this.MdKarioki);
 			}
+		}
+
+		public void initFlushFade(float delay = 0f)
+		{
+			this.t_flush_fade = X.Mn(0f, -delay);
 		}
 
 		public virtual ValotileRenderer useValotileFilterMode(bool flag)
@@ -439,6 +476,12 @@ namespace nel
 			CMul.g = (byte)((float)CMul.g * num2);
 			CMul.b = (byte)((float)CMul.b * num2);
 			num = X.NI(num, 0.5f, 1f - num2);
+			if (this.t_flush_fade < 22f)
+			{
+				float num3 = 1f - X.ZPOW(this.t_flush_fade, 22f);
+				num = X.Scr(num, num3);
+				CMul = (this.MulColor = MTRX.colb.Set(CMul).blend(this.FLUSH_FADE_COL, num3).C);
+			}
 			this.MtrPxl.SetColor("_Color", CMul);
 			this.MtrSpine.SetColor("_FillColor", CMul);
 			this.MtrSpine.SetFloat("_FillPhase", num);
@@ -511,9 +554,13 @@ namespace nel
 				case UIEMOT.CUTS_PEEREMOVE:
 				case UIEMOT.CUTS_LAYEGG:
 				case UIEMOT.CUTS_EGGREMOVE:
+				case UIEMOT.CUTS_IYAPAN:
 					return v;
 				case UIEMOT.PAJAMA:
 					return UIEMOT.STAND;
+				case UIEMOT.WEB_TRAPPED:
+				case UIEMOT.WEB_TRAPPED_DOWN:
+					return UIEMOT.CROUCH;
 				}
 				if (IN.totalframe % 90 < 75)
 				{
@@ -656,7 +703,7 @@ namespace nel
 		{
 			if (state == "")
 			{
-				return UIPictureBase.EMSTATE_ADD.EMPTY;
+				return UIPictureBase.EMSTATE_ADD.NORMAL;
 			}
 			bool flag = false;
 			if (TX.isStart(state, "!", 0))
@@ -666,10 +713,10 @@ namespace nel
 			}
 			string[] array = state.ToUpper().Split(new char[] { '|' });
 			int num = array.Length;
-			UIPictureBase.EMSTATE_ADD emstate_ADD = UIPictureBase.EMSTATE_ADD.EMPTY;
+			UIPictureBase.EMSTATE_ADD emstate_ADD = UIPictureBase.EMSTATE_ADD.NORMAL;
 			for (int i = 0; i < num; i++)
 			{
-				UIPictureBase.EMSTATE_ADD emstate_ADD2 = UIPictureBase.EMSTATE_ADD.EMPTY;
+				UIPictureBase.EMSTATE_ADD emstate_ADD2 = UIPictureBase.EMSTATE_ADD.NORMAL;
 				if (!FEnum<UIPictureBase.EMSTATE_ADD>.TryParse(array[i], out emstate_ADD2, true))
 				{
 					X.de("不明なEMSTATE_ADD: " + array[i], null);
@@ -813,6 +860,8 @@ namespace nel
 
 		protected UIEMOT pre_emot = UIEMOT._OFFLINE;
 
+		protected UIPictureBase.EMSTATE pre_emstate0;
+
 		protected UIPictureBase.EMSTATE pre_emstate;
 
 		protected UIPictureBase.EMSTATE_ADD pre_sta = UIPictureBase.EMSTATE_ADD._NO_CHECK;
@@ -847,6 +896,12 @@ namespace nel
 
 		public const float Fader_TS = 1.7f;
 
+		public float t_flush_fade = 22f;
+
+		public const float FLUSH_FADE_MAXT = 22f;
+
+		public uint FLUSH_FADE_COL = 16777215U;
+
 		public Vector3 PosTeScale = new Vector3(1f, 1f, 1f);
 
 		private Color32 MulColor = MTRX.ColWhite;
@@ -873,43 +928,45 @@ namespace nel
 		}
 
 		[Flags]
-		public enum EMSTATE
+		public enum EMSTATE : uint
 		{
-			NORMAL = 0,
-			DIRT = 1,
-			PROG0 = 2,
-			PROG1 = 4,
-			PROG2 = 8,
-			LOWHP = 32,
-			BATTLE = 64,
-			SER = 128,
-			SHAMED = 256,
-			SMASH = 512,
-			ABSORBED = 1024,
-			STUNNED = 4096,
-			LOWMP = 8192,
-			EGGED = 16384,
-			WET = 32768,
-			BOTE = 65536,
-			ORGASM = 131072,
-			CONFUSED = 262144,
-			OSGM = 524288,
-			TORNED = 1048576,
-			SLEEP = 2097152,
-			DEAD = 4194304,
-			SP_SENSITIVE = 1073741824
+			NORMAL = 0U,
+			DIRT = 1U,
+			PROG0 = 2U,
+			PROG1 = 4U,
+			PROG2 = 8U,
+			LOWHP = 32U,
+			BATTLE = 64U,
+			SER = 128U,
+			SHAMED = 256U,
+			SMASH = 512U,
+			ABSORBED = 1024U,
+			STUNNED = 4096U,
+			LOWMP = 8192U,
+			EGGED = 16384U,
+			WET = 32768U,
+			BOTE = 65536U,
+			ORGASM = 131072U,
+			CONFUSED = 262144U,
+			OSGM = 524288U,
+			TORNED = 1048576U,
+			SLEEP = 2097152U,
+			DEAD = 4194304U,
+			STONEOVER = 8388608U,
+			SP_SENSITIVE = 1073741824U,
+			_ALL = 1073741825U
 		}
 
-		public enum EMSTATE_ADD
+		[Flags]
+		public enum EMSTATE_ADD : uint
 		{
-			_NO_CHECK = -1,
-			EMPTY,
-			NORMAL = 0,
-			DIRT0,
-			SENSITIVE = 4,
-			SP_SENSITIVE = 8,
-			FROZEN = 2,
-			_ALL = 65535
+			NORMAL = 0U,
+			DIRT0 = 1U,
+			FROZEN = 2U,
+			SENSITIVE = 8U,
+			SP_SENSITIVE = 16U,
+			_ALL = 32U,
+			_NO_CHECK = 33U
 		}
 
 		public class PrEmotion

@@ -14,11 +14,19 @@ namespace nel.gm
 		{
 			get
 			{
-				return this.bounds_w - 20f;
+				return UiGameMenu.bounds_w - 20f;
 			}
 		}
 
-		public float bounds_h
+		public static float bounds_wh
+		{
+			get
+			{
+				return UiGameMenu.bounds_w * 0.5f;
+			}
+		}
+
+		public static float bounds_h
 		{
 			get
 			{
@@ -30,7 +38,7 @@ namespace nel.gm
 		{
 			get
 			{
-				return this.bounds_wh - this.right_w / 2f;
+				return UiGameMenu.bounds_wh - this.right_w / 2f;
 			}
 		}
 
@@ -48,9 +56,9 @@ namespace nel.gm
 			this.M2D = M2DBase.Instance as NelM2DBase;
 			this.ItemMng = new UiItemManageBoxSlider(this.M2D.IMNG, base.transform);
 			this.ItemMngMv = new UiItemManageBoxSlider(this.M2D.IMNG, base.transform);
-			this.bounds_wh = this.bounds_w / 2f;
-			this.right_w = this.bounds_w - 190f - 20f;
-			float num = (-IN.wh + this.bounds_wh + 20f) * 0.015625f;
+			this.AStatDangerListener = new List<IStatDangerousDescriptor>(1);
+			this.right_w = UiGameMenu.bounds_w - 190f - 20f;
+			float num = (-IN.wh + UiGameMenu.bounds_wh + 20f) * 0.015625f;
 			this.auto_deactive_gameobject = false;
 			this.AGmcCache = new UiGMC[11];
 			IN.Pos(base.transform, num, 0f, -4.125f);
@@ -58,12 +66,12 @@ namespace nel.gm
 			this.BxCategory.RowBtnMode(38f).DelayT(this.BXR_DELAYT);
 			this.BxCategory.anim_time(22);
 			this.BxCategory.Focusable(true, true, null);
-			this.BxR = base.Create("right", 0f, 0f, this.right_w, this.bounds_h, 0, 0f, UiBoxDesignerFamily.MASKTYPE.BOX);
+			this.BxR = base.Create("right", 0f, 0f, this.right_w, UiGameMenu.bounds_h, 0, 0f, UiBoxDesignerFamily.MASKTYPE.BOX);
 			this.BxR.anim_time(22);
 			this.BxR.Focusable(true, true, null);
 			this.BxR.use_button_connection = true;
 			this.bxr_stencil_default = this.BxR.box_stencil_ref_mask;
-			this.BxItmv = base.Create("itmv", 0f, 0f, this.right_w, this.bounds_h, 0, 0f, UiBoxDesignerFamily.MASKTYPE.BOX);
+			this.BxItmv = base.Create("itmv", 0f, 0f, this.right_w, UiGameMenu.bounds_h, 0, 0f, UiBoxDesignerFamily.MASKTYPE.BOX);
 			this.BxItmv.anim_time(22);
 			this.BxItmv.Focusable(true, false, null);
 			this.BxItmv.use_button_connection = true;
@@ -267,12 +275,12 @@ namespace nel.gm
 			switch (_t)
 			{
 			case UiGameMenu.POSTYPE.OFFLINE:
-				this.BxCategory.position(-this.bounds_w * 1.6f, 50f, -1000f, -1000f, false);
-				this.BxR.position(this.bounds_w * 2.4f, 50f, -1000f, -1000f, false);
+				this.BxCategory.position(-UiGameMenu.bounds_w * 1.6f, 50f, -1000f, -1000f, false);
+				this.BxR.position(UiGameMenu.bounds_w * 2.4f, 50f, -1000f, -1000f, false);
 				break;
 			case UiGameMenu.POSTYPE.KEYCON:
-				this.BxCategory.positionD(-this.bounds_w * 1.6f, 50f, -1, 30f);
-				this.BxR.positionD(this.bounds_w * 2.4f, 50f, -1, 30f);
+				this.BxCategory.positionD(-UiGameMenu.bounds_w * 1.6f, 50f, -1, 30f);
+				this.BxR.positionD(UiGameMenu.bounds_w * 2.4f, 50f, -1, 30f);
 				break;
 			case UiGameMenu.POSTYPE.NORMAL:
 				this.setPosNormalPosition(flag, false);
@@ -283,7 +291,7 @@ namespace nel.gm
 			case UiGameMenu.POSTYPE.SVD:
 				if (!flag)
 				{
-					this.BxCategory.posSetDA(-this.bounds_w * 1.6f, 50f, 2, 20f, true);
+					this.BxCategory.posSetDA(-UiGameMenu.bounds_w * 1.6f, 50f, 2, 20f, true);
 				}
 				this.BxCategory.hide();
 				this.BxR.positionD(right_box_center_x + 190f, this.BXR_Y_TRANSLATED, num, 230f);
@@ -292,7 +300,7 @@ namespace nel.gm
 			case UiGameMenu.POSTYPE.ITEM:
 				if (!flag)
 				{
-					this.BxCategory.positionD(-this.bounds_w * 1.6f, 50f, -1, 30f);
+					this.BxCategory.positionD(-UiGameMenu.bounds_w * 1.6f, 50f, -1, 30f);
 				}
 				this.BxCategory.hide();
 				this.BxR.positionD(right_box_center_x + 130f, this.BXR_Y_TRANSLATED, num, 230f);
@@ -301,13 +309,13 @@ namespace nel.gm
 			case UiGameMenu.POSTYPE.ITEMMOVE_L:
 			case UiGameMenu.POSTYPE.ITEMMOVE_R:
 				this.BxR.Focusable(true, false, null);
-				this.BxCategory.positionD(-this.bounds_w * 1.6f, 50f, -1, 30f);
+				this.BxCategory.positionD(-UiGameMenu.bounds_w * 1.6f, 50f, -1, 30f);
 				this.BxCategory.hide();
 				IN.setZ(this.BxR.transform, -0.5f);
 				IN.setZ(this.BxItmv.transform, -0.5f);
 				break;
 			case UiGameMenu.POSTYPE.BENCH:
-				this.BxCategory.positionD(-this.bounds_w * 1.6f, 50f, -1, 30f);
+				this.BxCategory.positionD(-UiGameMenu.bounds_w * 1.6f, 50f, -1, 30f);
 				this.BxR.positionD(right_box_center_x + 1140f, this.BXR_Y_TRANSLATED, num, 230f);
 				this.BxCategory.hide();
 				this.BxR.hide();
@@ -319,7 +327,7 @@ namespace nel.gm
 				this.M2D.Cam.fineImmediately();
 				break;
 			case UiGameMenu.POSTYPE.MAP_EXTEND:
-				this.BxCategory.positionD(-this.bounds_w * 1.6f, 50f, -1, 30f);
+				this.BxCategory.positionD(-UiGameMenu.bounds_w * 1.6f, 50f, -1, 30f);
 				this.BxR.positionD(0f, this.BXR_Y_TRANSLATED, -1, 0f);
 				this.BxCategory.hide();
 				this.BxR.WHanim(this.extend_right_w, this.BxR.get_sheight_px(), true, false);
@@ -335,7 +343,7 @@ namespace nel.gm
 
 		public void setPosNormalPosition(bool bench_temp, bool use_da = false)
 		{
-			float num = -this.bounds_wh + 95f;
+			float num = -UiGameMenu.bounds_wh + 95f;
 			float num2 = 50f;
 			float right_box_center_x = this.right_box_center_x;
 			float bxr_Y_TRANSLATED = this.BXR_Y_TRANSLATED;
@@ -358,7 +366,7 @@ namespace nel.gm
 			this.BxR.positionD(right_box_center_x, bxr_Y_TRANSLATED, 2, 230f);
 		}
 
-		internal float BXR_Y_TRANSLATED
+		public float BXR_Y_TRANSLATED
 		{
 			get
 			{
@@ -424,16 +432,17 @@ namespace nel.gm
 					}
 					if (state == UiGameMenu.STATE.EDIT && this.select_categ != this.appear_categ)
 					{
-						this.BxCategory.getBtn((int)this.select_categ).Select(false);
+						this.BxCategory.getBtn((int)this.select_categ).Select(true);
+						this.state = st;
 						this.appearCategory(this.select_categ, false);
 					}
 					else if (this.appear_categ != CATEG._NOUSE)
 					{
-						this.BxCategory.getBtn((int)this.appear_categ).Select(false);
+						this.BxCategory.getBtn((int)this.appear_categ).Select(true);
 					}
 					else
 					{
-						this.BxCategory.getBtn(0).Select(false);
+						this.BxCategory.getBtn(0).Select(true);
 					}
 					UiBoxDesigner.FocusTo(this.BxCategory);
 				}
@@ -451,7 +460,7 @@ namespace nel.gm
 						{
 						case CATEG.MAP:
 							postype = UiGameMenu.POSTYPE.MAP_EXTEND;
-							goto IL_0304;
+							goto IL_030B;
 						case CATEG.BENCH:
 						{
 							if (this.BenchMenu != null)
@@ -483,11 +492,11 @@ namespace nel.gm
 							this.M2D.FlgRenderAfter.Rem("UIGM");
 							BGM.remHalfFlag("UIGM");
 							postype = UiGameMenu.POSTYPE.BENCH;
-							goto IL_0304;
+							goto IL_030B;
 						}
 						case CATEG.SVD_SELECT:
 							postype = UiGameMenu.POSTYPE.SVD;
-							goto IL_0304;
+							goto IL_030B;
 						}
 						if (this.BxDesc.isActive())
 						{
@@ -498,7 +507,7 @@ namespace nel.gm
 					{
 						postype = UiGameMenu.POSTYPE.ITEM;
 					}
-					IL_0304:
+					IL_030B:
 					this.EditC = this.AppearC;
 					this.state = st;
 					if (postype != this.postype_)
@@ -562,9 +571,10 @@ namespace nel.gm
 			this.item_modified = false;
 			SND.Ui.play("tool_prmp_init", false);
 			BGM.addHalfFlag("UIGM");
-			this.M2D.NightCon.deactivate(true);
+			this.M2D.NightCon.UiDg.deactivate(true);
 			this.M2D.Ui.QuestBox.FlgHide.Add("UIGM");
 			this.M2D.need_blursc_hiding_whole = true;
+			this.M2D.Tips.deactivate(true);
 			UIPictureBase.FlgStopAutoFade.Add("UIGM");
 			UIBase.FlgHideLog.Add("UIGM");
 			UIBase.FlgUiEffectGmDisable.Add("UIGM");
@@ -697,6 +707,16 @@ namespace nel.gm
 					}
 					return this;
 				}
+				if (this.ReopenTarget is QuestTracker.Quest)
+				{
+					QuestTracker.Quest quest = this.ReopenTarget as QuestTracker.Quest;
+					this.activateScenario(UiGameMenu.SCENARIO_CTG._MAX);
+					if (this.AGmcCache[6] is UiGMCScenario)
+					{
+						(this.AGmcCache[6] as UiGMCScenario).revealQuest(quest);
+					}
+					return this;
+				}
 				if (this.ReopenTarget is string)
 				{
 					string text = (string)this.ReopenTarget;
@@ -715,10 +735,24 @@ namespace nel.gm
 							Designer bxCategory = this.BxCategory;
 							string text2 = "categ_";
 							int num = (int)categ;
-							bxCategory.getBtn(text2 + num.ToString()).Select(false);
+							bxCategory.getBtn(text2 + num.ToString()).Select(true);
 						}
 						return this;
 					}
+				}
+				else if (this.ReopenTarget is UiGMCStat.STATUS_CTG)
+				{
+					UiGMCStat.STATUS_CTG status_CTG = (UiGMCStat.STATUS_CTG)this.ReopenTarget;
+					this.select_categ = CATEG.STAT;
+					this.activate();
+					this.BxCategory.getBtn(0).Select(true);
+					this.initCategoryEdit(CATEG.STAT, false);
+					UiGMCStat uiGMCStat = this.AGmcCache[5] as UiGMCStat;
+					if (uiGMCStat != null)
+					{
+						uiGMCStat.switchTab(status_CTG);
+					}
+					return this;
 				}
 				this.activate();
 			}
@@ -734,7 +768,7 @@ namespace nel.gm
 			}
 			else
 			{
-				this.BxCategory.getBtn(5).Select(false);
+				this.BxCategory.getBtn(5).Select(true);
 				SND.Ui.play("enter_small", false);
 			}
 			this.initCategoryEdit(CATEG.MAP, false);
@@ -745,10 +779,11 @@ namespace nel.gm
 			UiGMCMap uiGMCMap = this.AGmcCache[5] as UiGMCMap;
 			if (uiGMCMap != null)
 			{
-				QuestTracker.QuestDeperture frontDepert = this.M2D.Ui.QuestBox.getFrontDepert();
+				QuestTracker.QuestProgress questProgress;
+				QuestTracker.QuestDeperture frontDepert = this.M2D.Ui.QuestBox.getFrontDepert(out questProgress);
 				if (frontDepert.isActiveMap())
 				{
-					uiGMCMap.reveal(frontDepert.WmDepert, false);
+					uiGMCMap.reveal(frontDepert.WmDepert(questProgress, questProgress.phase), false);
 				}
 			}
 			return this;
@@ -763,7 +798,7 @@ namespace nel.gm
 			}
 			else
 			{
-				this.BxCategory.getBtn(1).Select(false);
+				this.BxCategory.getBtn(1).Select(true);
 				SND.Ui.play("enter_small", false);
 			}
 			this.initCategoryEdit(CATEG.ITEM, false);
@@ -774,13 +809,38 @@ namespace nel.gm
 			return this;
 		}
 
+		public UiBoxDesignerFamily activateScenario(UiGameMenu.SCENARIO_CTG scncateg = UiGameMenu.SCENARIO_CTG._MAX)
+		{
+			if (!this.isActive())
+			{
+				this.select_categ = CATEG.SCENARIO;
+				this.activate();
+			}
+			else
+			{
+				this.BxCategory.getBtn(6).Select(true);
+				SND.Ui.play("enter_small", false);
+			}
+			this.initCategoryEdit(CATEG.SCENARIO, false);
+			if (!Map2d.can_handle)
+			{
+				this.category_to_quit = true;
+			}
+			UiGMCScenario uiGMCScenario = this.AGmcCache[6] as UiGMCScenario;
+			if (uiGMCScenario != null && scncateg != UiGameMenu.SCENARIO_CTG._MAX)
+			{
+				uiGMCScenario.initScnTab(scncateg);
+			}
+			return this;
+		}
+
 		public UiBoxDesignerFamily activateItemMove()
 		{
 			if (!this.isActive())
 			{
 				this.activate();
 			}
-			this.BxCategory.getBtn(1).Select(false);
+			this.BxCategory.getBtn(1).Select(true);
 			UiGMCItem uiGMCItem = this.initCategoryEdit(CATEG.ITEM, false) as UiGMCItem;
 			if (uiGMCItem != null && this.IMNG.canSwitchItemMove())
 			{
@@ -820,7 +880,7 @@ namespace nel.gm
 			{
 				this.LdHd.deactivate(false);
 			}
-			if (UIStatus.Instance != null)
+			if (UIPicture.Instance != null)
 			{
 				UIPicture.Instance.alpha = 1f;
 			}
@@ -914,6 +974,11 @@ namespace nel.gm
 				}
 			}
 			this.M2D.FlgRenderAfter.Rem("UIGM");
+			this.M2D.Freezer.setLockInput(10f);
+			if (this.M2D.GameOver != null)
+			{
+				this.M2D.GameOver.setLockInput(10f);
+			}
 			return this;
 		}
 
@@ -1007,7 +1072,7 @@ namespace nel.gm
 				CFG.endEdit();
 				this.resetConditionUI();
 				this.M2D.Ui.fineUiDmgCounterDraw();
-				if (this.Pr.EggCon.total > 0 && CFG.isSpEnabled("threshold_pregnant"))
+				if (this.Pr.EggCon.total > 0 && CFGSP.isSpEnabled("threshold_pregnant"))
 				{
 					this.Pr.UP.recheck_emot = true;
 					this.Pr.recheck_emot_in_gm = true;
@@ -1147,7 +1212,7 @@ namespace nel.gm
 			float num3 = ((this.BenchMenu != null && this.BenchMenu.isTempWaiting() && this.appear_categ == CATEG.MAP) ? this.extend_right_w : this.right_w);
 			if (force || flag || num3 != this.BxR.get_swidth_px())
 			{
-				this.BxR.WHanim(num3, this.bounds_h - num - num2, true, true);
+				this.BxR.WHanim(num3, UiGameMenu.bounds_h - num - num2, true, true);
 				if (this.isMainRightState(this.state))
 				{
 					UiGameMenuTopTab.BoxSpeedSet(this.BxR.getBox(), true);
@@ -1360,14 +1425,14 @@ namespace nel.gm
 								aBtn btn = bxCategory.getBtn(text + num2.ToString());
 								if (btn != null)
 								{
-									btn.Select(false);
+									btn.Select(true);
 									IN.clearPushDown(true);
 								}
 							}
 						}
 						if (this.af == (float)this.BXR_DELAYT && this.appear_categ != CATEG._NOUSE)
 						{
-							this.BxCategory.getBtn((int)this.appear_categ).Deselect(true).Select(false);
+							this.BxCategory.getBtn((int)this.appear_categ).Deselect(true).Select(true);
 						}
 					}
 				}
@@ -1540,7 +1605,7 @@ namespace nel.gm
 					{
 						try
 						{
-							this.HandleObject.Select(false);
+							this.HandleObject.Select(true);
 						}
 						catch
 						{
@@ -1588,6 +1653,10 @@ namespace nel.gm
 				flag = false;
 			}
 			UiFieldGuide.NextRevealAtAwake = RecipeBookTarget ?? this.ReopenTarget;
+			if (UiFieldGuide.NextRevealAtAwake is UiFieldGuide.IFieldGuideOpenable)
+			{
+				UiFieldGuide.NextRevealAtAwake = (UiFieldGuide.NextRevealAtAwake as UiFieldGuide.IFieldGuideOpenable).getFDR();
+			}
 			EV.stack("___GM/alchemy_recipe_book", 0, -1, new string[] { flag ? "1" : "0" }, null);
 			return true;
 		}
@@ -1662,7 +1731,7 @@ namespace nel.gm
 				}
 				if (!do_not_destruct_element)
 				{
-					Object.Destroy(LunchTime.gameObject);
+					global::UnityEngine.Object.Destroy(LunchTime.gameObject);
 				}
 				else
 				{
@@ -1725,76 +1794,96 @@ namespace nel.gm
 
 		public bool EvtRead(StringHolder rER)
 		{
-			string _ = rER._1;
-			if (_ != null)
+			string text;
+			if (rER.cmd == "UIGM")
 			{
-				if (_ == "WAIT")
+				text = rER._1;
+				if (text != null)
 				{
-					if (rER._2 == "UIGM_ACTIVATE")
+					if (text == "WAIT")
 					{
-						EV.initWaitFn(this.WaitFnGMActivate(), 0);
-					}
-					else if (REG.match(rER._2, new Regex("OPENTAB_(.+)")))
-					{
-						CATEG categ;
-						if (FEnum<CATEG>.TryParse(REG.R1, out categ, true))
+						if (rER._2 == "UIGM_ACTIVATE")
 						{
-							EV.initWaitFn(new UiGameMenu.WaitListenerGMOpenTab(this, categ), 0);
+							EV.initWaitFn(this.WaitFnGMActivate(), 0);
 						}
-					}
-					else if (REG.match(rER._2, new Regex("OPENSKILLTAB_(.+)")))
-					{
-						SkillManager.SKILL_CTG skill_CTG;
-						if (FEnum<SkillManager.SKILL_CTG>.TryParse(REG.R1, out skill_CTG, true))
+						else if (REG.match(rER._2, new Regex("OPENTAB_(.+)")))
 						{
-							EV.initWaitFn(new UiGameMenu.WaitListenerGMOpenSkillTab(this, skill_CTG), 0);
-						}
-					}
-					else if (REG.match(rER._2, new Regex("SKILLENABLE_(.+)")))
-					{
-						string[] array = TX.split(REG.R1, "|");
-						List<PrSkill> list = new List<PrSkill>(array.Length);
-						for (int i = array.Length - 1; i >= 0; i--)
-						{
-							PrSkill prSkill = SkillManager.Get(array[i]);
-							if (prSkill == null)
+							CATEG categ;
+							if (FEnum<CATEG>.TryParse(REG.R1, out categ, true))
 							{
-								rER.tError("不明なスキル: " + array[i]);
-							}
-							else
-							{
-								list.Add(prSkill);
+								EV.initWaitFn(new UiGameMenu.WaitListenerGMOpenTab(this, categ), 0);
 							}
 						}
-						EV.initWaitFn(new UiGameMenu.WaitListenerGMSkillEnable(this, list.ToArray()), 0);
+						else if (REG.match(rER._2, new Regex("OPENSKILLTAB_(.+)")))
+						{
+							SkillManager.SKILL_CTG skill_CTG;
+							if (FEnum<SkillManager.SKILL_CTG>.TryParse(REG.R1, out skill_CTG, true))
+							{
+								EV.initWaitFn(new UiGameMenu.WaitListenerGMOpenSkillTab(this, skill_CTG), 0);
+							}
+						}
+						else if (REG.match(rER._2, new Regex("SKILLENABLE_(.+)")))
+						{
+							string[] array = TX.split(REG.R1, "|");
+							List<PrSkill> list = new List<PrSkill>(array.Length);
+							for (int i = array.Length - 1; i >= 0; i--)
+							{
+								PrSkill prSkill = SkillManager.Get(array[i]);
+								if (prSkill == null)
+								{
+									rER.tError("不明なスキル: " + array[i]);
+								}
+								else
+								{
+									list.Add(prSkill);
+								}
+							}
+							EV.initWaitFn(new UiGameMenu.WaitListenerGMSkillEnable(this, list.ToArray()), 0);
+						}
+						else if (rER._2 == "UIGM_ACTIVATE_EVENT_RUN_IN_MENU")
+						{
+							EV.initWaitFn(new UiGameMenu.WaitListenerGMActivate(this, false), 0);
+						}
+						return true;
 					}
-					else if (rER._2 == "UIGM_ACTIVATE_EVENT_RUN_IN_MENU")
+					if (text == "HIDEBTN")
 					{
-						EV.initWaitFn(new UiGameMenu.WaitListenerGMActivate(this, false), 0);
+						this.BxCategory.hide();
+						this.BxR.hide();
+						return true;
 					}
-					return true;
-				}
-				if (_ == "HIDEBTN")
-				{
-					this.BxCategory.hide();
-					this.BxR.hide();
-					return true;
-				}
-				if (_ == "DEACTIVATE")
-				{
-					if (this.isActive())
-					{
-						this.deactivate(false);
-					}
-					return true;
-				}
-				if (!(_ == "CHOOSE_ITEM"))
-				{
-					if (_ == "CATEGORY_DEFAULT")
+					if (text == "DEACTIVATE")
 					{
 						if (this.isActive())
 						{
-							this.BxCategory.getBtn(0).Select(false);
+							this.deactivate(false);
+						}
+						return true;
+					}
+					if (text == "CHOOSE_ITEM")
+					{
+						UiGMCItem.item_tab = UiGMCItem.ITEM_CTG.MAIN;
+						this.activateItem();
+						if (!TX.isStart(rER._2, '@'))
+						{
+							NelItem byId = NelItem.GetById(rER._2, true);
+							if (byId == null)
+							{
+								return rER.tError(rER._2);
+							}
+							EV.initWaitFn(new UiGameMenu.WaitListenerGMItemChoose(this, byId, rER.getIndex(3, "_result", true), rER._B4), 0);
+						}
+						else
+						{
+							EV.initWaitFn(new UiGameMenu.WaitListenerGMItemChoose(this, rER._2, rER.getIndex(3, "_result", true), rER._B4), 0);
+						}
+						return true;
+					}
+					if (text == "CATEGORY_DEFAULT")
+					{
+						if (this.isActive())
+						{
+							this.BxCategory.getBtn(0).Select(true);
 						}
 						else
 						{
@@ -1802,14 +1891,14 @@ namespace nel.gm
 						}
 						return true;
 					}
-					if (_ == "WAIT_NIGHTINGALE")
+					if (text == "WAIT_NIGHTINGALE")
 					{
 						bool flag = false;
 						if (this.BenchChip != null)
 						{
 							float num;
 							this.M2D.IMNG.StmNoel.progress(1f, true, out num, true, false);
-							this.M2D.IMNG.StmNoel.Pr.progressWaterDrunkCache(num, false, false);
+							this.M2D.IMNG.StmNoel.Pr.JuiceCon.progressWaterDrunkCache(num, false, false);
 							WanderingNPC nightingale = this.M2D.WDR.getNightingale();
 							if (nightingale.checkBench(this.BenchChip, 1f, 3f, true))
 							{
@@ -1831,19 +1920,39 @@ namespace nel.gm
 						return true;
 					}
 				}
-				else
+				return true;
+			}
+			text = rER.cmd;
+			if (text != null)
+			{
+				if (text == "GM_OPEN")
 				{
-					this.activateItem();
-					NelItem byId = NelItem.GetById(rER._2, true);
-					if (byId == null)
-					{
-						return rER.tError(rER._2);
-					}
-					EV.initWaitFn(new UiGameMenu.WaitListenerGMItemChoose(this, byId, rER.getIndex(3, "_result", true), rER._B4), 0);
+					this.M2D.FlagOpenGm.Rem("EV");
+					this.M2D.menu_open = NelM2DBase.MENU_OPEN.NONE;
+					this.activateNormal();
+					return true;
+				}
+				if (text == "GM_ITEMMOVE")
+				{
+					this.M2D.FlagOpenGm.Rem("EV");
+					this.M2D.menu_open = NelM2DBase.MENU_OPEN.NONE;
+					this.activateItemMove();
+					this.category_to_quit = true;
+					EV.initWaitFn(this.WaitFnGMStopGame(), 0);
 					return true;
 				}
 			}
 			return false;
+		}
+
+		public void addStatDangerDescriptor(IStatDangerousDescriptor Stat)
+		{
+			X.pushIdentical<IStatDangerousDescriptor>(this.AStatDangerListener, Stat);
+		}
+
+		public void remStatDangerDescriptor(IStatDangerousDescriptor Stat)
+		{
+			this.AStatDangerListener.Remove(Stat);
 		}
 
 		public bool general_button_handleable
@@ -1966,9 +2075,7 @@ namespace nel.gm
 
 		internal UiGameMenuTopTab BtmTab;
 
-		internal float bounds_w = IN.w - 340f - 60f;
-
-		public float bounds_wh;
+		public static float bounds_w = IN.w - 340f - 60f;
 
 		public float right_w;
 
@@ -2072,6 +2179,8 @@ namespace nel.gm
 
 		private object ReopenTarget;
 
+		internal List<IStatDangerousDescriptor> AStatDangerListener;
+
 		internal enum STATE
 		{
 			OFFLINE,
@@ -2101,6 +2210,14 @@ namespace nel.gm
 			ITEMMOVE_R,
 			BENCH,
 			MAP_EXTEND
+		}
+
+		public enum SCENARIO_CTG
+		{
+			LOG,
+			MAIN_QUEST,
+			SUB_QUEST,
+			_MAX
 		}
 
 		public class WaitListenerGMStoppingGame : IEventWaitListener
@@ -2220,14 +2337,19 @@ namespace nel.gm
 		public class WaitListenerGMItemChoose : IEventWaitListener
 		{
 			public WaitListenerGMItemChoose(UiGameMenu _GM, NelItem Itm, string _var_name, bool _alloc_other_selection = false)
+				: this(_GM, Itm.key, _var_name, _alloc_other_selection)
+			{
+			}
+
+			public WaitListenerGMItemChoose(UiGameMenu _GM, string category, string _var_name, bool _alloc_other_selection = false)
 			{
 				this.GM = _GM;
 				this.GM.category_to_quit = true;
-				this.TargetItm = Itm;
+				this.target_category = category;
 				this.alloc_other_selection = _alloc_other_selection;
 				this.GMItm = this.GM.AGmcCache[1] as UiGMCItem;
 				this.var_name = _var_name;
-				EV.getVariableContainer().define(this.var_name, "0", true);
+				EV.getVariableContainer().define(this.var_name, "", true);
 				if (this.GMItm != null)
 				{
 					this.GMItm.attachCommandPrepareFn(new UiItemManageBox.FnCommandPrepare(this.fnItemChoosedImmediately));
@@ -2246,29 +2368,38 @@ namespace nel.gm
 			public bool fnItemChoosedImmediately(UiItemManageBox IMng, UiBoxDesigner BxCmd, aBtnItemRow RowB)
 			{
 				NelItem itemData = RowB.getItemData();
-				if (!this.alloc_other_selection && itemData != this.TargetItm)
+				bool flag = this.checkTarget(itemData);
+				if (!this.alloc_other_selection && !flag)
 				{
 					SND.Ui.play("locked", false);
 					CURS.limitVib(RowB, AIM.R);
 					return false;
 				}
-				EV.getVariableContainer().define(this.var_name, (itemData == this.TargetItm) ? "1" : "0", true);
+				EV.getVariableContainer().define(this.var_name, flag ? itemData.key : "", true);
+				EV.getVariableContainer().define("__grade", RowB.getItemRow().split_or_top_grade(IMng.Inventory).ToString(), true);
 				this.GM.deactivate(false);
 				return false;
 			}
 
 			public void fnRowInitAfterNotTarget(aBtnItemRow B, ItemStorage.IRow IRow)
 			{
-				B.SetLocked(IRow.Data != this.TargetItm, true, false);
+				B.SetLocked(!this.checkTarget(IRow.Data), true, false);
+			}
+
+			public bool checkTarget(NelItem Data)
+			{
+				return Data.Is(this.target_category);
 			}
 
 			private readonly UiGameMenu GM;
 
 			private readonly UiGMCItem GMItm;
 
-			private readonly NelItem TargetItm;
+			private readonly string target_category;
 
 			private string var_name;
+
+			public const string var_name_grade = "__grade";
 
 			public bool alloc_other_selection;
 		}

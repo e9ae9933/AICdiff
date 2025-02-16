@@ -167,7 +167,7 @@ namespace m2d
 			return this.Adirecs[i];
 		}
 
-		public static M2SmartImagePiece readFromBytes(ByteArray Ba, byte load_ver, bool create = true)
+		public static M2SmartImagePiece readFromBytes(ByteReader Ba, byte load_ver, bool create = true)
 		{
 			int num = Ba.readByte();
 			uint[] array = null;

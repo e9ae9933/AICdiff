@@ -19,9 +19,9 @@ namespace nel
 			}
 		}
 
-		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdL, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
+		public override int entryChipMesh(MeshDrawer MdB, MeshDrawer MdG, MeshDrawer MdT, MeshDrawer MdLB, MeshDrawer MdLT, MeshDrawer MdTT, float sx, float sy, float _zm, float _rotR = 0f)
 		{
-			return base.entryChipMesh(MdB, MdB, MdT, MdT, MdT, sx, sy, _zm, _rotR);
+			return base.entryChipMesh(MdB, MdB, MdT, MdT, MdT, MdT, sx, sy, _zm, _rotR);
 		}
 	}
 }

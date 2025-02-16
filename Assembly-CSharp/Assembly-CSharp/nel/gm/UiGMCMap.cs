@@ -145,7 +145,6 @@ namespace nel.gm
 		private void fineKD(IVariableObject P)
 		{
 			this.FD_Target = null;
-			this.FD_ReturnBack = default(WMIconDescription);
 			using (STB stb = TX.PopBld(null, 0))
 			{
 				if (this.WmSkin.is_detail)
@@ -159,7 +158,7 @@ namespace nel.gm
 					}
 					else
 					{
-						stb.AddTxA("GM_KD_map_current_pos", false);
+						this.WmCtr.fineMapKD(stb);
 						if (this.Marker.marker_enabled)
 						{
 							stb.Add("  ");
@@ -174,11 +173,13 @@ namespace nel.gm
 							}
 						}
 					}
-					stb.Add(" ");
-					stb.AddTxA((!this.WmSkin.is_zoomin) ? "KD_map_zoomin" : "KD_map_zoomout", false);
 					NightController.SummonerData summonerData = null;
 					WMIcon wmicon;
 					EnemySummoner currentFocusEnemySummoner = this.WmCtr.getCurrentFocusEnemySummoner(out summonerData, out wmicon);
+					if (wmiCurPos != null)
+					{
+						this.FD_ReturnBack = new WMIconDescription(wmicon, this.WmSkin.getWholeMapTarget().text_key, wmiCurPos.Lay.name);
+					}
 					if (currentFocusEnemySummoner != null && wmiCurPos != null)
 					{
 						this.prepareSummonerDesc();
@@ -213,31 +214,46 @@ namespace nel.gm
 						}
 						if (!base.M2D.IMNG.has_recipe_collection)
 						{
-							goto IL_03D6;
+							goto IL_0375;
 						}
 						this.FD_Target = currentFocusEnemySummoner;
-						this.FD_ReturnBack = new WMIconDescription(wmicon, this.WmSkin.getWholeMapTarget().text_key, wmiCurPos.Lay.name);
 						using (STB stb3 = TX.PopBld(null, 0))
 						{
 							stb3.AddTxA("KD_go_to_def_in_catalog", false).Ret("\n").Append(stb, " ", 0, -1);
 							stb.Clear().Set(stb3);
-							goto IL_03D6;
+							goto IL_0375;
 						}
 					}
 					if (this.BxDesc.isActive())
 					{
 						this.BxDesc.deactivate();
 					}
+					IL_0375:
+					if (this.FD_Target == null)
+					{
+						List<QuestTracker.QuestProgress> focusdQuestArray = this.WmSkin.getFocusdQuestArray();
+						if (focusdQuestArray != null)
+						{
+							int count = focusdQuestArray.Count;
+							for (int i = 0; i < count; i++)
+							{
+								QuestTracker.QuestProgress questProgress = focusdQuestArray[i];
+								if (questProgress.Q.getFieldGuideTarget(questProgress.phase, out this.FD_Target))
+								{
+									break;
+								}
+							}
+						}
+					}
 				}
 				else
 				{
-					this.WmCtr.getKDforWA(stb);
+					this.WmCtr.fineMapKD(stb);
 					if (this.BxDesc.isActive())
 					{
 						this.BxDesc.deactivate();
 					}
 				}
-				IL_03D6:
 				if (P is FillBlock)
 				{
 					(P as FillBlock).Txt(stb);
@@ -425,16 +441,23 @@ namespace nel.gm
 					}
 				}
 			}
-			else if (this.gres == GMC_RES.LOAD_GAME && (IN.isCancel() || !this.BxCmd.isFocused()))
+			else if (this.gres == GMC_RES.LOAD_GAME)
 			{
-				aBtn btn2 = this.BxCmd.getBtn("Cancel");
-				if (btn2 != null)
+				if (IN.isCancel() || !this.BxCmd.isFocused())
 				{
-					btn2.ExecuteOnSubmitKey();
+					aBtn btn2 = this.BxCmd.getBtn("Cancel");
+					if (btn2 != null)
+					{
+						btn2.ExecuteOnSubmitKey();
+					}
+					else
+					{
+						this.quitCmd(false);
+					}
 				}
-				else
+				else if (base.M2D.isRbkPD() && this.initRecipeBookInCmd())
 				{
-					this.quitCmd(false);
+					return GMC_RES.QUIT_GM;
 				}
 			}
 			if (this.gres == GMC_RES.BACK_CATEGORY)
@@ -486,23 +509,29 @@ namespace nel.gm
 			}
 		}
 
+		public static float map2meshx(float mappos_x, float center_mapx, float size)
+		{
+			return WholeMapItem.map2meshx(mappos_x, center_mapx, size);
+		}
+
+		public static float map2meshy(float mappos_y, float center_mapy, float size)
+		{
+			return WholeMapItem.map2meshy(mappos_y, center_mapy, size);
+		}
+
 		public void FnDrawNightingale(ButtonSkinWholeMapArea WmSkin, MeshDrawer MdIco, float blink_alpha, float mappos_x, float mappos_y, float cell_size)
 		{
-			if (this.see_nightingale)
+			if (this.see_nightingale && WmSkin.getWholeMapTarget() == base.M2D.WM.CurWM)
 			{
-				WholeMapItem wholeMapTarget = WmSkin.getWholeMapTarget();
-				if (wholeMapTarget == base.M2D.WM.CurWM)
+				WanderingNPC nightingale = base.M2D.WDR.getNightingale();
+				Vector2 position = nightingale.getPosition();
+				float num = UiGMCMap.map2meshx(position.x, mappos_x, cell_size);
+				float num2 = UiGMCMap.map2meshy(position.y, mappos_y, cell_size);
+				MdIco.Col = MdIco.ColGrd.White().setA1(blink_alpha).C;
+				MdIco.RotaPF(num, num2, 1f, 1f, 0f, MTRX.getPF("IconNightingale"), false, false, false, uint.MaxValue, false, 0);
+				if (!nightingale.isPositionDecided())
 				{
-					WanderingNPC nightingale = base.M2D.WDR.getNightingale();
-					Vector2 position = nightingale.getPosition();
-					float num = wholeMapTarget.map2meshx(position.x, mappos_x, cell_size);
-					float num2 = wholeMapTarget.map2meshy(position.y, mappos_y, cell_size);
-					MdIco.Col = MdIco.ColGrd.White().setA1(blink_alpha).C;
-					MdIco.RotaPF(num, num2, 1f, 1f, 0f, MTRX.getPF("IconNightingale"), false, false, false, uint.MaxValue, false, 0);
-					if (!nightingale.isPositionDecided())
-					{
-						NEL.drawPointCurs(MdIco, num, num2, cell_size * base.M2D.WDR.getNightingale().catchable, blink_alpha, NEL.POINT_CURS.SUN_S);
-					}
+					NEL.drawPointCurs(MdIco, num, num2, cell_size * base.M2D.WDR.getNightingale().catchable, blink_alpha, NEL.POINT_CURS.SUN_S);
 				}
 			}
 		}
@@ -629,10 +658,11 @@ namespace nel.gm
 							}
 							else
 							{
-								uiQuestCard2 = this.QuestCon.addTabT<UiQuestCard>("tab_" + i.ToString(), this.QuestCon.use_w, 0f, this.QuestCon.use_w, 50f, false) as UiQuestCard;
+								uiQuestCard2 = this.QuestCon.addTabT<UiQuestCard>("tab_" + i.ToString(), this.QuestCon.use_w, 0f, this.QuestCon.use_w, 50f, false);
 								uiQuestCard2.FD_QuestBtnDefine = this.FD_fnQuestBtnDefineOnMap;
 								uiQuestCard2.small_mode = true;
 							}
+							uiQuestCard2.QM = base.M2D.QUEST;
 							if (uiQuestCard == null)
 							{
 								uiQuestCard = uiQuestCard2;
@@ -681,7 +711,7 @@ namespace nel.gm
 							btnContainerRunner.BCon.setLockedAll(true);
 							if (uiQuestCard == null || uiQuestCard.SelectFirstButton(null) == null)
 							{
-								btnContainerRunner.Get(0).Select(false);
+								btnContainerRunner.Get(0).Select(true);
 							}
 						}
 						else
@@ -691,12 +721,12 @@ namespace nel.gm
 							if (this.Marker.focus + 1 < btnContainerRunner.BCon.Length)
 							{
 								btnContainerRunner.setValue((this.Marker.focus + 1).ToString());
-								btnContainerRunner.Get(this.Marker.focus + 1).Select(false);
+								btnContainerRunner.Get(this.Marker.focus + 1).Select(true);
 							}
 							else
 							{
 								btnContainerRunner.setValue("0");
-								btnContainerRunner.Get(0).Select(false);
+								btnContainerRunner.Get(0).Select(true);
 							}
 						}
 						btnContainerRunner.BCon.clearNaviAll(10U, true);
@@ -839,7 +869,7 @@ namespace nel.gm
 			}
 			this.QuestCon = null;
 			this.BxR.Focus();
-			this.WmSkin.getBtn().Select(false);
+			this.WmSkin.getBtn().Select(true);
 			if (this.gres == GMC_RES.LOAD_GAME)
 			{
 				this.gres = GMC_RES.CONTINUE;
@@ -855,12 +885,17 @@ namespace nel.gm
 				{
 					if (!(title == "&&button_quest_jump"))
 					{
-						if (title == "quest_tracking")
+						if (!(title == "quest_tracking"))
 						{
-							if (this.WmSkin != null)
+							if (title == "&&KD_go_to_def_in_catalog")
 							{
-								this.WmSkin.redraw_marker = true;
+								this.initRecipeBookInCmd();
+								return true;
 							}
+						}
+						else if (this.WmSkin != null)
+						{
+							this.WmSkin.redraw_marker = true;
 						}
 					}
 					else
@@ -880,16 +915,16 @@ namespace nel.gm
 						}
 						QuestTracker.Quest quest = uiQuestCard.getQuest();
 						QuestTracker.CATEG categ;
-						UiGMCScenario.SCN_CTG scn_CTG;
+						UiGameMenu.SCENARIO_CTG scenario_CTG;
 						if ((quest.categ & QuestTracker.CATEG.MAIN) != (QuestTracker.CATEG)0)
 						{
 							categ = QuestTracker.CATEG.MAIN;
-							scn_CTG = UiGMCScenario.SCN_CTG.MAIN_QUEST;
+							scenario_CTG = UiGameMenu.SCENARIO_CTG.MAIN_QUEST;
 						}
 						else
 						{
 							categ = QuestTracker.CATEG.SUB;
-							scn_CTG = UiGMCScenario.SCN_CTG.SUB_QUEST;
+							scenario_CTG = UiGameMenu.SCENARIO_CTG.SUB_QUEST;
 						}
 						base.M2D.QUEST.UiDefaultFocusChange(categ, quest);
 						this.GM.clearMapCancelingJump();
@@ -899,7 +934,7 @@ namespace nel.gm
 						if (uiGMCScenario != null)
 						{
 							this.QuestCancelingMapJump = positionMemory;
-							uiGMCScenario.initScnTab(scn_CTG);
+							uiGMCScenario.initScnTab(scenario_CTG);
 						}
 					}
 				}
@@ -915,10 +950,22 @@ namespace nel.gm
 						return false;
 					}
 					this.quitCmd(false);
-					this.WmSkin.reveal(uiQuestCard.getCurrentDepert().WmDepert, false, false);
+					this.WmSkin.reveal(uiQuestCard.getCurrentDepert().WmDepert(uiQuestCard.Prog, uiQuestCard.Prog.phase), false, false);
 				}
 			}
 			return true;
+		}
+
+		public bool initRecipeBookInCmd()
+		{
+			object obj = null;
+			UiQuestCard tabForButton = base.M2D.QUEST.getTabForButton(aBtn.PreSelected);
+			if (tabForButton != null)
+			{
+				QuestTracker.QuestProgress prog = tabForButton.Prog;
+				prog.Q.getFieldGuideTarget(prog.phase, out obj);
+			}
+			return this.GM.initRecipeBook(this.FD_ReturnBack, obj ?? this.FD_Target);
 		}
 
 		public void clearQuestCancelingJump()
@@ -950,14 +997,19 @@ namespace nel.gm
 
 		public void reveal(WMIconDescription Depert)
 		{
-			if (this.WmSkin != null && Depert.Icon != null)
+			if (this.WmSkin != null && TX.valid(Depert.wm_key))
 			{
 				WholeMapItem byTextKey = base.M2D.WM.GetByTextKey(Depert.wm_key);
-				WholeMapItem.WMItem wmitem = ((byTextKey != null) ? byTextKey.GetWmi(base.M2D.Get(Depert.map_key, false), null) : null);
+				WholeMapItem.WMItem wmitem = ((byTextKey != null) ? byTextKey.GetWmi(base.M2D.Get(Depert.map_key, true), null) : null);
 				if (wmitem != null)
 				{
-					Vector2 mapWmPos = Depert.Icon.getMapWmPos(wmitem);
-					this.WmSkin.SetCenter(wmitem.Rc.x + mapWmPos.x, wmitem.Rc.y + mapWmPos.y, false, true);
+					if (Depert.Icon != null)
+					{
+						Vector2 mapWmPos = Depert.Icon.getMapWmPos(wmitem);
+						this.WmSkin.SetCenter(wmitem.Rc.x + mapWmPos.x, wmitem.Rc.y + mapWmPos.y, false, true);
+						return;
+					}
+					this.WmSkin.SetCenter(wmitem.Rc.cx, wmitem.Rc.cy, false, true);
 				}
 			}
 		}

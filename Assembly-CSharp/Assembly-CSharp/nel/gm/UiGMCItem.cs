@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using m2d;
 using UnityEngine;
 using XX;
 
@@ -23,13 +24,13 @@ namespace nel.gm
 			if (base.initAppearMain())
 			{
 				this.fineTopArea();
+				this.RTabBar.lr_input = true;
 				return true;
 			}
 			base.M2D.QUEST.fineAutoItemCollection(false);
 			this.BxR.item_margin_x_px = 0f;
 			this.BxR.item_margin_y_px = 0f;
 			this.RTabBar = ColumnRowNel.NCreateT<aBtnNel>(this.BxR, "ctg_tab", "row_tab", (int)UiGMCItem.item_tab, FEnum<UiGMCItem.ITEM_CTG>.ToStrListUp(3, "&&Item_Tab_", true), new BtnContainerRadio<aBtn>.FnRadioBindings(this.fnItemTabChanged), this.BxR.use_w, 0f, false, false);
-			this.RTabBar.LrInput(false);
 			if (!base.M2D.canAccesableToHouseInventory())
 			{
 				this.RTabBar.Get(1).setSkinTitle(TX.Get("Inventory_reel_booster", ""));
@@ -138,13 +139,13 @@ namespace nel.gm
 
 		internal override void initEdit()
 		{
-			this.BxDesc.WH(this.desc_item_w, base.bounds_h - base.right_last_top_row_height - base.right_last_btm_row_height);
+			this.BxDesc.WH(UiGMCItem.desc_item_w, UiGMC.bounds_h - base.right_last_top_row_height - base.right_last_btm_row_height);
 			this.initItemTab(false, true);
 			if (this.ItemMng.Inventory != null)
 			{
 				this.fineSafeAreaKd((this.ItemMng.Inventory.SelectedRow != null) ? this.ItemMng.Inventory.SelectedRow.getItemData() : null);
 			}
-			this.BxDesc.positionD(-base.bounds_wh + this.desc_item_w / 2f - 20f, this.GM.BXR_Y_TRANSLATED, 0, 30f);
+			this.BxDesc.positionD(-UiGMC.bounds_wh + UiGMCItem.desc_item_w / 2f - 20f, this.GM.BXR_Y_TRANSLATED, 0, 30f);
 			this.GM.item_modified = true;
 			this.istate = UiGameMenu.STATE.EDIT;
 		}
@@ -193,7 +194,7 @@ namespace nel.gm
 			UiItemManageBox itemMng = this.ItemMng;
 			this.FnSpecialItemRowInitAfter = FD_RowInitAfter;
 			itemMng.fnItemRowInitAfter = FD_RowInitAfter;
-			if (execute_to_exist_rows && FD_RowInitAfter != null)
+			if (execute_to_exist_rows && FD_RowInitAfter != null && this.ItemMng.Inventory != null)
 			{
 				int itemRowBtnCount = this.ItemMng.Inventory.getItemRowBtnCount();
 				for (int i = 0; i < itemRowBtnCount; i++)
@@ -241,13 +242,20 @@ namespace nel.gm
 			{
 				for (int i = this.APoolEvacuated.Count - 1; i >= 0; i--)
 				{
-					IN.DestroyE(this.APoolEvacuated[i].gameObject);
+					if (this.APoolEvacuated[i] != null)
+					{
+						IN.DestroyE(this.APoolEvacuated[i].gameObject);
+					}
 				}
 				this.APoolEvacuated = null;
 			}
 			this.quitUiReel(false);
 			this.quitLunch(false);
-			this.releaseEvac(ref this.EvcItemMoveCmd);
+			if (this.IMvCon != null)
+			{
+				this.IMvCon.destruct();
+				this.IMvCon = null;
+			}
 			this.StReelSpliced = null;
 			base.releaseEvac();
 		}
@@ -286,10 +294,11 @@ namespace nel.gm
 			itemMng.item_row_skin = "normal";
 			itemMng.fnCommandPrepare = this.FnSpecialCommandPrepare;
 			itemMng.fnItemRowInitAfter = this.FnSpecialItemRowInitAfter;
+			itemMng.fnItemRowRemakedAfter = null;
 			itemMng.fnDetailPrepare = new UiItemManageBox.FnDetailPrepare(this.fnHoverItemRow);
 			itemMng.fnWholeRowsPrepare = null;
 			itemMng.fnGradeFocusChange = null;
-			itemMng.fnDescAddition = new UiItemManageBox.FnDescAddition(this.fnDescAddition);
+			itemMng.fnDescAddition = new UiItemManageBox.FnDescAddition(UiGMCItem.fnDescAddition);
 			itemMng.manager_auto_run_on_select_row = false;
 			itemMng.DefaultTargetInventory = null;
 			itemMng.topright_desc_width = 0f;
@@ -388,35 +397,50 @@ namespace nel.gm
 			}
 		}
 
-		private string fnDescAddition(NelItem Itm, UiItemManageBox.DESC_ROW desc_row, string def_string, int grade, ItemStorage.ObtainInfo Obt, int _default_count)
+		public static string fnDescAddition(NelItem Itm, UiItemManageBox.DESC_ROW desc_row, string def_string, int grade, ItemStorage.ObtainInfo Obt, int _default_count)
 		{
-			if (desc_row == UiItemManageBox.DESC_ROW.NAME && base.M2D.canAccesableToHouseInventory())
+			NelM2DBase nelM2DBase = M2DBase.Instance as NelM2DBase;
+			if (desc_row == UiItemManageBox.DESC_ROW.NAME && nelM2DBase.canAccesableToHouseInventory())
 			{
-				def_string = def_string + "  <font size=\"12\">" + this.getInventoryCountString(Itm, -1, 3) + "</font>";
+				def_string = def_string + "  <font size=\"12\">" + UiGMCItem.getInventoryCountString(Itm, -1, 3) + "</font>";
 			}
 			return def_string;
 		}
 
-		private ItemStorage getRightInventory()
+		public static string getInventoryCountString(NelItem Itm, int grade, int using_iv_bits = 3)
 		{
-			return this.StReelSpliced ?? this.IMNG.getHouseInventory();
+			string text;
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				UiGMCItem.getInventoryCountString(stb, Itm, grade, using_iv_bits);
+				text = stb.ToString();
+			}
+			return text;
 		}
 
-		private string getInventoryCountString(NelItem Itm, int grade, int using_iv_bits = 3)
+		public static STB getInventoryCountString(STB Stb, NelItem Itm, int grade, int using_iv_bits = 3)
 		{
-			string[] array = new string[(using_iv_bits >= 3) ? 2 : 1];
-			int num = 0;
-			for (int i = 0; i < 2; i++)
+			NelM2DBase nelM2DBase = M2DBase.Instance as NelM2DBase;
+			STB stb2;
+			using (STB stb = TX.PopBld(null, 0))
 			{
-				if ((using_iv_bits & (1 << i)) != 0)
+				for (int i = 0; i < 2; i++)
 				{
-					ItemStorage itemStorage = ((i == 0) ? this.IMNG.getInventory() : this.getRightInventory());
-					string text = ((i == 0) ? "IconNoel0" : "house_inventory");
-					int reduceable = itemStorage.getReduceable(Itm, grade);
-					array[num++] = "<img mesh=\"" + text + "\" width=\"22\" height=\"24\" />x" + reduceable.ToString();
+					if ((using_iv_bits & (1 << i)) != 0)
+					{
+						if (stb.Length > 0)
+						{
+							stb.Add('/');
+						}
+						ItemStorage itemStorage = ((i == 0) ? nelM2DBase.IMNG.getInventory() : nelM2DBase.IMNG.getHouseInventory());
+						string text = ((i == 0) ? "IconNoel0" : "house_inventory");
+						int reduceable = itemStorage.getReduceable(Itm, grade);
+						stb.Add("<img mesh=\"", text, "\" width=\"22\" height=\"24\" />x").Add(reduceable);
+					}
 				}
+				stb2 = Stb.AddTxA("inventory_count", false).TxRpl(stb);
 			}
-			return TX.GetA("inventory_count", TX.join<string>("/", array, 0, -1));
+			return stb2;
 		}
 
 		private bool fnItemTabChanged(BtnContainerRadio<aBtn> _B, int pre_value, int cur_value)
@@ -459,7 +483,7 @@ namespace nel.gm
 			}
 			if (this.istate == UiGameMenu.STATE.ITEMMOVE)
 			{
-				if (!this.runItemMove(fcnt))
+				if (this.IMvCon == null || !this.IMvCon.runItemMove(fcnt))
 				{
 					this.quitItemMove();
 				}
@@ -489,10 +513,7 @@ namespace nel.gm
 			}
 			if (this.isEdittingReelList())
 			{
-				if (this.RTabBar != null && !this.BxCmd.isActive() && this.RTabBar.runLRInput(-2))
-				{
-					return GMC_RES.CONTINUE;
-				}
+				this.RTabBar.lr_input = true;
 				if (!this.runEditReelList())
 				{
 					return GMC_RES.BACK_CATEGORY;
@@ -505,24 +526,26 @@ namespace nel.gm
 				{
 					flag3 = base.M2D.canAccesableToHouseInventory() || this.ItemMng.Inventory != this.IMNG.getInventory();
 				}
+				flag3 = flag3 && !this.ItemMng.isUsingState();
 				if (this.istate == UiGameMenu.STATE._USEITEMSEL)
 				{
 					if (!this.runEditUSel(null))
 					{
 						this.BxCmd.deactivate();
 					}
+					else
+					{
+						flag3 = false;
+					}
 				}
 				else
 				{
-					if (this.RTabBar != null && flag3 && !this.ItemMng.isUsingState() && this.RTabBar.runLRInput(-2))
-					{
-						return GMC_RES.CONTINUE;
-					}
 					if (this.ItemMng.Inventory == this.IMNG.getInventory())
 					{
 						aBtnItemRow aBtnItemRow = (this.ItemMng.isUsingState() ? this.ItemMng.getUsingRowBtn() : this.ItemMng.getSelectingRowBtn());
 						if (aBtnItemRow != null && aBtnItemRow.getItemData().useable && IN.isItmU(1) && this.runEditUSel(aBtnItemRow))
 						{
+							this.RTabBar.lr_input = false;
 							return GMC_RES.CONTINUE;
 						}
 					}
@@ -551,6 +574,7 @@ namespace nel.gm
 						this.quitWLinkAttachmentChoose();
 					}
 				}
+				this.RTabBar.lr_input = flag3;
 			}
 			if (!this.ItemMng.quit_whole_ui)
 			{
@@ -666,13 +690,13 @@ namespace nel.gm
 						{
 							if (num != 881576750U)
 							{
-								goto IL_0744;
+								goto IL_0759;
 							}
 							if (!(s == "lunchtime"))
 							{
-								goto IL_0744;
+								goto IL_0759;
 							}
-							if (EnemySummoner.isActiveBorder())
+							if (EnemySummoner.isActiveBorder() && !UiLunchTimeBase.isUseable(itemData))
 							{
 								this.ItemMng.errorMessageToDesc(TX.Get("Alert_cannot_eat_in_battle", ""));
 								return;
@@ -689,22 +713,22 @@ namespace nel.gm
 							this.BxR.hide();
 							this.BxDesc.hide();
 							this.GM.FlgStatusHide.Add("ITEM");
-							goto IL_0744;
+							goto IL_0759;
 						}
 						else
 						{
 							if (!(s == "move"))
 							{
-								goto IL_0744;
+								goto IL_0759;
 							}
 							if (this.IMNG.canSwitchItemMove())
 							{
 								this.ItemMng.changeStateToSelect();
 								this.initItemMove();
-								goto IL_0744;
+								goto IL_0759;
 							}
 							SND.Ui.play("locked", false);
-							goto IL_0744;
+							goto IL_0759;
 						}
 					}
 					else if (num != 1291299852U)
@@ -713,38 +737,38 @@ namespace nel.gm
 						{
 							if (num != 1773637334U)
 							{
-								goto IL_0744;
+								goto IL_0759;
 							}
 							if (!(s == "respawn_useless"))
 							{
-								goto IL_0744;
+								goto IL_0759;
 							}
-							goto IL_06B6;
+							goto IL_06CB;
 						}
 						else if (!(s == "reel_open_once"))
 						{
-							goto IL_0744;
+							goto IL_0759;
 						}
 					}
 					else
 					{
 						if (!(s == "pack_in_box"))
 						{
-							goto IL_0744;
+							goto IL_0759;
 						}
 						text = this.IMNG.createWlinkPack(NelItem.LunchBox, this.ItemMng.Inventory, BRow.getItemRow(), this.ItemMng.get_grade_cursor());
 						if (text == null)
 						{
 							SND.Ui.play("pack_in_lunch_box", false);
 							this.ItemMng.changeStateToSelect();
-							goto IL_0744;
+							goto IL_0759;
 						}
 						if (text == "empty")
 						{
 							text = TX.Get("Alert_no_lunchbox", "");
-							goto IL_0744;
+							goto IL_0759;
 						}
-						goto IL_0744;
+						goto IL_0759;
 					}
 				}
 				else if (num <= 2816628215U)
@@ -755,33 +779,33 @@ namespace nel.gm
 						{
 							if (num != 2816628215U)
 							{
-								goto IL_0744;
+								goto IL_0759;
 							}
 							if (!(s == "takeout_food"))
 							{
-								goto IL_0744;
+								goto IL_0759;
 							}
 							text = this.IMNG.removeWLink(this.ItemMng.Inventory, BRow.getItemRow());
 							if (text == null)
 							{
 								SND.Ui.play("reset_var", false);
 								this.ItemMng.changeStateToSelect();
-								goto IL_0744;
+								goto IL_0759;
 							}
-							goto IL_0744;
+							goto IL_0759;
 						}
 						else
 						{
 							if (!(s == "respawn"))
 							{
-								goto IL_0744;
+								goto IL_0759;
 							}
-							goto IL_06B6;
+							goto IL_06CB;
 						}
 					}
 					else if (!(s == "reel_open_all"))
 					{
-						goto IL_0744;
+						goto IL_0759;
 					}
 				}
 				else if (num != 3058141622U)
@@ -790,21 +814,21 @@ namespace nel.gm
 					{
 						if (num != 3998009336U)
 						{
-							goto IL_0744;
+							goto IL_0759;
 						}
 						if (!(s == "inventory_expand"))
 						{
-							goto IL_0744;
+							goto IL_0759;
 						}
 						if (this.ItemMng.Inventory != this.IMNG.getInventory())
 						{
 							this.ItemMng.errorMessageToDesc(TX.Get("Alert_cannot_inventory_target_different", ""));
-							goto IL_0744;
+							goto IL_0759;
 						}
 						if (!this.IMNG.increaseInenvoryCapacity((int)itemData.value, 24))
 						{
 							this.ItemMng.errorMessageToDesc(TX.Get("Alert_cannot_inventory_enlarge", ""));
-							goto IL_0744;
+							goto IL_0759;
 						}
 						UIPicture.Instance.useItem(itemData, "inventory_expand");
 						this.ItemMng.fineTopRightCounter();
@@ -812,29 +836,29 @@ namespace nel.gm
 						{
 							this.ItemMng.changeStateToSelect();
 							this.ItemMng.Inventory.fineRows(false);
-							goto IL_0744;
+							goto IL_0759;
 						}
-						goto IL_0744;
+						goto IL_0759;
 					}
 					else
 					{
 						if (!(s == "pack_lunch"))
 						{
-							goto IL_0744;
+							goto IL_0759;
 						}
 						this.ItemMng.changeStateToSelect();
 						this.initWLinkAttachmentChoose(itemData, -1);
-						goto IL_0744;
+						goto IL_0759;
 					}
 				}
 				else
 				{
 					if (!(s == "itemsel"))
 					{
-						goto IL_0744;
+						goto IL_0759;
 					}
 					this.runEditUSel(this.ItemMng.getUsingRowBtn());
-					goto IL_0744;
+					goto IL_0759;
 				}
 				if (EnemySummoner.isActiveBorder())
 				{
@@ -844,7 +868,7 @@ namespace nel.gm
 				ReelManager reelManager = this.IMNG.getReelManager();
 				reelManager.clearItemReelCache();
 				reelManager.destructGob();
-				this.AItemReelSource = new List<NelItemEntry>(1);
+				List<NelItemEntry> list = base.M2D.IMNG.clearItemReelProgressMem(false);
 				Dictionary<NelItem, ItemStorage.ObtainInfo> wholeInfoDictionary = this.IMNG.getInventory().getWholeInfoDictionary();
 				bool flag = false;
 				foreach (KeyValuePair<NelItem, ItemStorage.ObtainInfo> keyValuePair in wholeInfoDictionary)
@@ -861,7 +885,7 @@ namespace nel.gm
 								while (--num3 >= 0)
 								{
 									reelManager.assignCurrentItemReel(ir, false);
-									this.AItemReelSource.Add(new NelItemEntry(keyValuePair.Key, 1, (byte)num2));
+									list.Add(new NelItemEntry(keyValuePair.Key, 1, (byte)num2));
 									if (s == "reel_open_once")
 									{
 										flag = true;
@@ -875,13 +899,13 @@ namespace nel.gm
 				}
 				if (!reelManager.hasItemReelCache())
 				{
-					this.AItemReelSource = null;
+					base.M2D.IMNG.clearItemReelProgressMem(true);
 					return;
 				}
 				this.quitUiReel(false);
 				this.UiReel = reelManager.initUiState(ReelManager.MSTATE.PREPARE, null, true);
 				this.UiReel.create_strage = true;
-				this.UiReel.fnItemReelProgressing = new ReelManager.FnItemReelProgressing(this.fnReelProcess);
+				base.M2D.IMNG.initItemReelUI(this.UiReel);
 				this.UiReel.prepareMBoxDrawer();
 				IN.setZ(this.BxDesc.transform, 0f);
 				this.BxCmd.deactivate();
@@ -889,8 +913,8 @@ namespace nel.gm
 				this.BxDesc.deactivate();
 				this.BxR.hide();
 				this.GM.FlgStatusHide.Add("ITEM");
-				goto IL_0744;
-				IL_06B6:
+				goto IL_0759;
+				IL_06CB:
 				if (base.M2D.GameOver != null && base.M2D.GameOver.isScapecatEnabled())
 				{
 					int grade_cursor = this.ItemMng.get_grade_cursor();
@@ -904,7 +928,7 @@ namespace nel.gm
 					SND.Ui.play("locked", false);
 				}
 			}
-			IL_0744:
+			IL_0759:
 			if (text != null)
 			{
 				this.ItemMng.errorMessageToDesc(text);
@@ -997,7 +1021,19 @@ namespace nel.gm
 			{
 				this.BxCmd.activate();
 			}
-			this.BxCmd.setValueTo("wlink_p", TX.GetA("Item_prompt_pack_lunch", NelItemEntry.getLocalizedNameS(this.AttachSrc, 1, grade, 0, 2, false)));
+			FillBlock fillBlock = this.BxCmd.Get("wlink_p", false) as FillBlock;
+			if (fillBlock != null)
+			{
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					using (STB stb2 = TX.PopBld(null, 0))
+					{
+						NelItemEntry.getLocalizedNameS(stb2, this.AttachSrc, 1, grade, 0, 2, false);
+						stb.AddTxA("Item_prompt_pack_lunch", false).TxRpl(stb2);
+						fillBlock.Txt(stb);
+					}
+				}
+			}
 			this.initMngForWLinkAttachmentChoose(true);
 			this.selectFirstAppearLine();
 			this.BxR.Focus();
@@ -1012,7 +1048,7 @@ namespace nel.gm
 				aBtnItemRow itemRowBtnByIndex = this.ItemMng.Inventory.getItemRowBtnByIndex(i);
 				if (!itemRowBtnByIndex.isLocked())
 				{
-					itemRowBtnByIndex.Select(false);
+					itemRowBtnByIndex.Select(true);
 					return;
 				}
 			}
@@ -1111,7 +1147,7 @@ namespace nel.gm
 				aBtnItemRow selectingRowBtn = this.ItemMng.getSelectingRowBtn();
 				if (selectingRowBtn != null)
 				{
-					selectingRowBtn.Select(false);
+					selectingRowBtn.Select(true);
 					selectingRowBtn.SetChecked(false, true);
 				}
 				this.BxR.Focus();
@@ -1119,17 +1155,6 @@ namespace nel.gm
 				return false;
 			}
 			this.BxCmd.Focus();
-			return true;
-		}
-
-		private bool fnReelProcess(ReelManager.ItemReelContainer _Reel)
-		{
-			if (this.AItemReelSource != null && this.AItemReelSource.Count > 0)
-			{
-				NelItemEntry nelItemEntry = this.AItemReelSource[0];
-				this.IMNG.reduceItem(nelItemEntry.Data, nelItemEntry.count, (int)nelItemEntry.grade);
-				this.AItemReelSource.RemoveAt(0);
-			}
 			return true;
 		}
 
@@ -1201,8 +1226,8 @@ namespace nel.gm
 			List<ReelExecuter> reelVector = this.IMNG.getReelManager().getReelVector();
 			int num = X.NmI(B.title, 0, false, false);
 			ReelExecuter.ETYPE etype = reelVector[num].getEType();
-			string[] array = ReelManager.OAreel_content[(int)etype];
-			(tab.Get("list", false) as BtnContainerRunner).BCon.RemakeT<aBtnNel>(array, "reel_pict");
+			string[] aeffect = ReelManager.OAreel_content[(int)etype].Aeffect;
+			(tab.Get("list", false) as BtnContainerRunner).BCon.RemakeT<aBtnNel>(aeffect, "reel_pict");
 			return true;
 		}
 
@@ -1250,7 +1275,7 @@ namespace nel.gm
 			this.BxCmd.posSetDA(position.x * 64f + 350f, position.y * 64f, 0, 50f, true);
 			BtnContainerRunner btnContainerRunner2 = this.BxCmd.Get("reel_discard", false) as BtnContainerRunner;
 			btnContainerRunner2.setValue("-1");
-			btnContainerRunner2.Get("&&Cancel").Select(false);
+			btnContainerRunner2.Get("&&Cancel").Select(true);
 			this.BxR.hide();
 			this.BxCmd.Focus();
 			return true;
@@ -1285,7 +1310,7 @@ namespace nel.gm
 				this.BtnSelReel = null;
 				if (bcon.Length > 0)
 				{
-					bcon.Get(X.MMX(0, num, bcon.Length - 1)).Select(false);
+					bcon.Get(X.MMX(0, num, bcon.Length - 1)).Select(true);
 				}
 			}
 			this.BxR.bind();
@@ -1300,7 +1325,7 @@ namespace nel.gm
 			BtnContainer<aBtn> bcon = (this.BxR.getTab("status_area").Get("list", false) as BtnContainerRunner).BCon;
 			if (bcon.Length > 0)
 			{
-				bcon.Get(0).Select(false);
+				bcon.Get(0).Select(true);
 			}
 		}
 
@@ -1324,18 +1349,6 @@ namespace nel.gm
 			return false;
 		}
 
-		private void getIMTab(out UiBoxDesigner BxMain, out UiBoxDesigner BxHouse)
-		{
-			if (this.GM.postype == UiGameMenu.POSTYPE.ITEMMOVE_L)
-			{
-				BxMain = this.BxR;
-				BxHouse = this.BxItmv;
-				return;
-			}
-			BxMain = this.BxItmv;
-			BxHouse = this.BxR;
-		}
-
 		internal void initItemMove()
 		{
 			SND.Ui.play("editor_open", false);
@@ -1343,6 +1356,11 @@ namespace nel.gm
 			if (UiGMCItem.item_tab > UiGMCItem.ITEM_CTG.HOUSE)
 			{
 				this.RTabBar.setValue(0, true);
+			}
+			if (this.IMvCon == null)
+			{
+				this.IMvCon = new UiItemMove();
+				this.IMvCon.fnUsingSliderDesc = new UiItemMove.FnUsingSliderDesc(this.fnItemMoveSliderDesc);
 			}
 			UiGameMenu.POSTYPE postype = ((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? UiGameMenu.POSTYPE.ITEMMOVE_L : UiGameMenu.POSTYPE.ITEMMOVE_R);
 			this.BxCmd.deactivate();
@@ -1352,79 +1370,27 @@ namespace nel.gm
 			this.GM.need_cmd_remake = true;
 			this.GM.setPosType(postype);
 			this.GM.right_last_top_row_height = (this.GM.right_last_btm_row_height = 0f);
-			float num = -base.bounds_wh + this.desc_item_w_mv / 2f - 20f;
 			this.istate = UiGameMenu.STATE.ITEMMOVE;
-			this.BxDesc.Clear();
-			this.BxDesc.activate();
-			this.BxDesc.position(num, this.GM.BXR_Y_TRANSLATED, -1000f, -1000f, false);
-			this.BxDesc.WH(this.desc_item_w_mv, base.bounds_h);
-			float num2 = (base.bounds_w - this.desc_item_w_mv + 20f + 290f) * 0.5f;
 			this.BxItmv.activate();
+			this.IMvCon.stencil_ref = base.bxr_stencil_default;
+			this.IMvCon.M2D = base.M2D;
 			UiBoxDesigner uiBoxDesigner;
 			UiBoxDesigner uiBoxDesigner2;
-			this.getIMTab(out uiBoxDesigner, out uiBoxDesigner2);
-			this.ItemMng.quitDesigner(false, true);
-			this.ItemMngMv.quitDesigner(false, true);
-			this.Itm_lock_move_to_abs_near_by_switchng = null;
-			this.t_itm_lock_abs = -1f;
-			this.RTabBar = null;
-			this.AnotherRow = null;
-			for (int i = 0; i < 2; i++)
+			if (this.GM.postype == UiGameMenu.POSTYPE.ITEMMOVE_L)
 			{
-				UiBoxDesigner uiBoxDesigner3 = ((i == 0) ? uiBoxDesigner : uiBoxDesigner2);
-				ItemStorage itemStorage = ((i == 0) ? base.M2D.IMNG.getInventory() : this.getRightInventory());
-				uiBoxDesigner3.position(num + this.desc_item_w_mv * 0.5f + (float)(10 * (i + 1)) + num2 * (0.5f + (float)i), this.GM.BXR_Y_TRANSLATED, -1000f, -1000f, false);
-				uiBoxDesigner3.WH(num2, base.bounds_h);
-				uiBoxDesigner3.Clear();
-				uiBoxDesigner3.margin_in_lr = 28f;
-				uiBoxDesigner3.box_stencil_ref_mask = -1;
-				uiBoxDesigner3.item_margin_x_px = 14f;
-				uiBoxDesigner3.item_margin_y_px = 18f;
-				uiBoxDesigner3.alignx = ALIGN.LEFT;
-				uiBoxDesigner3.use_scroll = false;
-				uiBoxDesigner3.item_margin_x_px = 0f;
-				uiBoxDesigner3.item_margin_y_px = 0f;
-				uiBoxDesigner3.init();
-				DsnDataP dsnDataP = NelDsn.PT(16, true);
-				dsnDataP.name = "KD";
-				dsnDataP.swidth = uiBoxDesigner3.use_w;
-				uiBoxDesigner3.addP(dsnDataP, false);
-				uiBoxDesigner3.Br();
-				Designer designer = uiBoxDesigner3.addTab("status_area", uiBoxDesigner3.use_w, uiBoxDesigner3.use_h - 2f, uiBoxDesigner3.use_w, uiBoxDesigner3.use_h - 2f, false);
-				designer.Smallest();
-				designer.margin_in_tb = 6f;
-				uiBoxDesigner3.endTab(false);
-				UiItemManageBoxSlider uiItemManageBoxSlider = ((i == 0) ? this.ItemMng : this.ItemMngMv);
-				uiItemManageBoxSlider.Pr = null;
-				uiItemManageBoxSlider.fnRunUsePost = null;
-				uiItemManageBoxSlider.fnCommandKeysPrepare = null;
-				uiItemManageBoxSlider.fnCommandBtnExecuted = null;
-				uiItemManageBoxSlider.fnDescAddition = new UiItemManageBox.FnDescAddition(this.fnDescAddition);
-				uiItemManageBoxSlider.fnCommandPrepare = new UiItemManageBox.FnCommandPrepare(this.fnItemMoveCommandPrepare);
-				uiItemManageBoxSlider.fnDetailPrepare = null;
-				uiItemManageBoxSlider.fnGradeFocusChange = new UiItemManageBox.FnGradeFocusChange(this.fnItemMoveGradeFocusChange);
-				uiItemManageBoxSlider.manager_auto_run_on_select_row = false;
-				uiItemManageBoxSlider.item_row_skin = "normal";
-				uiItemManageBoxSlider.cmd_w = 390f;
-				uiItemManageBoxSlider.slice_height = 20f;
-				uiItemManageBoxSlider.effect_confusion = base.effect_confusion;
-				uiItemManageBoxSlider.title_text_content = "";
-				uiItemManageBoxSlider.stencil_ref = base.bxr_stencil_default;
-				uiItemManageBoxSlider.ParentBoxDesigner = uiBoxDesigner3;
-				uiItemManageBoxSlider.do_not_remake_desc_box = true;
-				uiItemManageBoxSlider.APoolEvacuated = this.APoolEvacuated;
-				uiItemManageBoxSlider.initDesigner(itemStorage, uiBoxDesigner3.getTab("status_area"), this.BxDesc, this.BxCmd, false, true, false);
-				if (this.APoolEvacuated == null)
-				{
-					this.APoolEvacuated = uiItemManageBoxSlider.APoolEvacuated;
-				}
-				uiItemManageBoxSlider.DefaultTargetInventory = ((i == 0) ? this.getRightInventory() : base.M2D.IMNG.getInventory());
+				uiBoxDesigner = this.BxR;
+				uiBoxDesigner2 = this.BxItmv;
 			}
-			this.fineItemMoverBoxPos();
-			this.ItemMng.fnDetailPrepare = new UiItemManageBox.FnDetailPrepare(this.fnItemMoveDetailPrepareL);
-			this.ItemMngMv.fnDetailPrepare = new UiItemManageBox.FnDetailPrepare(this.fnItemMoveDetailPrepareR);
-			this.t_itm_lock_abs = 0f;
-			this.fineItemMoveFocusTab(true);
+			else
+			{
+				uiBoxDesigner = this.BxItmv;
+				uiBoxDesigner2 = this.BxR;
+			}
+			this.RTabBar = null;
+			this.IMvCon.APoolEvacuated = this.APoolEvacuated;
+			this.IMvCon.effect_confusion = base.effect_confusion;
+			this.IMvCon.createItemMoveBox(0f, this.GM.BXR_Y_TRANSLATED, uiBoxDesigner, uiBoxDesigner2, base.M2D.IMNG.getInventory(), base.M2D.IMNG.getHouseInventory(), this.ItemMng, this.ItemMngMv, this.BxDesc, this.BxCmd);
+			this.fineItemMoverBoxPosSlide();
 			Flagger flgUiEffectDisable = UIBase.FlgUiEffectDisable;
 			if (flgUiEffectDisable == null)
 			{
@@ -1435,13 +1401,21 @@ namespace nel.gm
 
 		private void quitItemMove()
 		{
+			if (this.IMvCon == null)
+			{
+				return;
+			}
+			this.IMvCon.quitItemMove();
+			if (this.IMvCon.cmd_recreated)
+			{
+				this.GM.need_cmd_remake = true;
+			}
+			UiGMCItem.item_tab = (this.IMvCon.current0 ? UiGMCItem.ITEM_CTG.MAIN : UiGMCItem.ITEM_CTG.HOUSE);
 			this.releaseEvac();
-			base.M2D.IMNG.getInventory().fineRows(false);
-			base.M2D.IMNG.getHouseInventory().fineRows(false);
 			if (UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.HOUSE == (this.GM.postype == UiGameMenu.POSTYPE.ITEMMOVE_L))
 			{
 				this.BxR.getBox().tradeBoxPosition(this.BxItmv.getBox(), true);
-				this.fineItemMoverBoxPos();
+				this.fineItemMoverBoxPosSlide();
 			}
 			this.BxItmv.deactivate();
 			this.BxCmd.deactivate();
@@ -1458,458 +1432,16 @@ namespace nel.gm
 			this.BxR.Focus();
 		}
 
-		private void fineItemMoverBoxPos()
+		public void fineItemMoverBoxPosSlide()
 		{
 			this.BxItmv.posSetA(this.BxItmv.getBox().get_deperture_x(), this.BxItmv.getBox().get_deperture_y() - IN.h - 120f, -1000f, -1000f, true);
 		}
 
-		private bool fnItemMoveCommandPrepare(UiItemManageBox IMng, UiBoxDesigner BxCmd, aBtnItemRow BRow)
+		private void fnItemMoveSliderDesc(ItemStorage Inv, STB Stb, NelItem Itm, int grade)
 		{
-			UiBoxDesigner uiBoxDesigner;
-			UiBoxDesigner uiBoxDesigner2;
-			this.getIMTab(out uiBoxDesigner, out uiBoxDesigner2);
-			if (UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN != (IMng.Inventory == base.M2D.IMNG.getInventory()))
-			{
-				return false;
-			}
-			this.ItemMng.manager_auto_run_on_select_row = (this.ItemMngMv.manager_auto_run_on_select_row = false);
-			this.BxItmv.Get("KD", false).setValue(" ");
-			this.BxR.Get("KD", false).setValue(" ");
-			this.ItemMng.can_handle = false;
-			this.ItemMngMv.can_handle = false;
-			aBtnMeterNel aBtnMeterNel = null;
-			this.GM.need_cmd_remake = true;
-			UiItemManageBoxSlider uiItemManageBoxSlider;
-			if (UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN)
-			{
-				uiItemManageBoxSlider = this.ItemMng;
-				uiBoxDesigner2.hide();
-			}
-			else
-			{
-				uiItemManageBoxSlider = this.ItemMngMv;
-				BxCmd.bind();
-			}
-			bool flag = UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.HOUSE;
-			BxCmd.WHanim(390f, 150f, true, true);
-			BxCmd.margin_in_lr = 26f;
-			BxCmd.margin_in_tb = 38f;
-			BxCmd.item_margin_x_px = 0f;
-			BxCmd.item_margin_y_px = 12f;
-			BxCmd.alignx = ALIGN.CENTER;
-			BxCmd.init();
-			if (this.SliderMde == null)
-			{
-				this.SliderMde = new UiItemManageBoxSlider.DsnDataSliderIMB(null, null)
-				{
-					name = "move_count",
-					fnDescConvert = new FnDescConvert(this.fnItemMoveSliderDesc),
-					lr_reverse = flag,
-					fnChanged = delegate(aBtnMeter _B, float pre_value, float cur_value)
-					{
-						UiItemManageBoxSlider uiItemManageBoxSlider2 = ((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? this.ItemMng : this.ItemMngMv);
-						if (uiItemManageBoxSlider2.fnChangeSlider(_B as aBtnMeterNel, pre_value, cur_value, this.SliderMde))
-						{
-							this.Itm_lock_move_to_abs_near_by_switchng = uiItemManageBoxSlider2.UsingTarget ?? uiItemManageBoxSlider2.SelectingTarget;
-							this.t_itm_lock_abs = this.MAXT_ITM_LOCK_ABS;
-							return true;
-						}
-						return false;
-					},
-					use_wheel = true
-				};
-			}
-			bool flag2 = base.reassignEvacuated(ref this.EvcItemMoveCmd, BxCmd);
-			if (flag2)
-			{
-				BxCmd.activate();
-				aBtnMeterNel = BxCmd.Get("move_count", false) as aBtnMeterNel;
-				if (aBtnMeterNel != null)
-				{
-					aBtnMeterNel.getCtSetter().lr_reverse = flag;
-					uiItemManageBoxSlider.fineMeter(aBtnMeterNel, this.SliderMde);
-					uiItemManageBoxSlider.assignSliderDsn(aBtnMeterNel, this.SliderMde);
-				}
-				else
-				{
-					flag2 = false;
-				}
-			}
-			if (!flag2)
-			{
-				BxCmd.Clear();
-				BxCmd.alignx = ALIGN.CENTER;
-				float use_w = BxCmd.use_w;
-				aBtnMeterNel = uiItemManageBoxSlider.createSlider(this.SliderMde, 1f);
-				BxCmd.Br();
-				DsnDataP dsnDataP = NelDsn.PT(18, true);
-				dsnDataP.name = "error_fb";
-				BxCmd.addP(dsnDataP, false);
-				BxCmd.Br();
-				aBtn aBtn = BxCmd.addButton(new DsnDataButton
-				{
-					name = "Cancel",
-					title = "Cancel",
-					skin_title = "&&Submit",
-					h = 24f,
-					w = use_w - 30f,
-					fnClick = (aBtn B) => ((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? this.ItemMng : this.ItemMngMv).fnClickItemCmd(B),
-					skin = "row_center"
-				});
-				aBtn.setNaviT(aBtnMeterNel, true, true);
-				aBtn.setNaviB(aBtnMeterNel, true, true);
-			}
-			ItemStorage defaultTargetInventory = uiItemManageBoxSlider.DefaultTargetInventory;
-			string text = "";
-			FillBlock fillBlock = BxCmd.Get("error_fb", false) as FillBlock;
-			if (fillBlock != null)
-			{
-				NelItem itemData = BRow.getItemData();
-				if (defaultTargetInventory.getItemCapacity(itemData, false, false) == 0)
-				{
-					if (!defaultTargetInventory.infinit_stockable && defaultTargetInventory.row_max <= defaultTargetInventory.getVisibleRowCount())
-					{
-						text = TX.Get("cannot_take_need_enough_room", "");
-					}
-					else if (!defaultTargetInventory.water_stockable && itemData.is_water)
-					{
-						text = TX.GetA("cannot_take_need_container_item", NelItem.Bottle.getLocalizedName(0, null));
-					}
-					else
-					{
-						text = TX.Get("cannot_take_other_reason", "");
-					}
-				}
-				if (text == "")
-				{
-					fillBlock.text_content = "";
-				}
-				else
-				{
-					using (STB stb = TX.PopBld(null, 0))
-					{
-						fillBlock.Txt(stb.Add(NEL.error_tag, text, NEL.error_tag_close));
-					}
-				}
-			}
-			aBtnMeterNel.Select(false);
-			return true;
-		}
-
-		private void fnItemMoveGradeFocusChange(NelItem Itm, ItemStorage.ObtainInfo Obt, int grade)
-		{
-			if (grade < 0)
-			{
-				if (!this.EvcItemMoveCmd.valid)
-				{
-					this.EvcItemMoveCmd = new Designer.EvacuateContainer(this.BxCmd, false);
-				}
-				UiBoxDesigner uiBoxDesigner;
-				UiBoxDesigner uiBoxDesigner2;
-				this.getIMTab(out uiBoxDesigner, out uiBoxDesigner2);
-				this.ItemMng.can_handle = true;
-				this.ItemMngMv.can_handle = true;
-				if (UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN)
-				{
-					UiItemManageBoxSlider itemMng = this.ItemMng;
-					uiBoxDesigner2.bind();
-				}
-				else
-				{
-					UiItemManageBoxSlider itemMngMv = this.ItemMngMv;
-					uiBoxDesigner.bind();
-				}
-				this.fineItemMoveFocusTab(false);
-				if (Itm.isEmptyLunchBox())
-				{
-					this.ItemMng.Inventory.fineRows(false);
-				}
-			}
-		}
-
-		private void fineItemMoveFocusTab(bool fine_desc = false)
-		{
-			UiBoxDesigner uiBoxDesigner;
-			UiBoxDesigner uiBoxDesigner2;
-			this.getIMTab(out uiBoxDesigner, out uiBoxDesigner2);
-			if (UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN && this.ItemMng.Inventory.getVisibleRowCount() == 0)
-			{
-				UiGMCItem.item_tab = UiGMCItem.ITEM_CTG.HOUSE;
-			}
-			if (UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.HOUSE && this.ItemMngMv.Inventory.getVisibleRowCount() == 0)
-			{
-				UiGMCItem.item_tab = UiGMCItem.ITEM_CTG.MAIN;
-			}
-			aBtnItemRow aBtnItemRow;
-			if (UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN)
-			{
-				uiBoxDesigner.Focus();
-				uiBoxDesigner2.setValueTo("KD", "<key rtab/>" + ((this.StReelSpliced != null) ? TX.Get("Inventory_reel_content", "") : TX.Get("Inventory_house", "")));
-				uiBoxDesigner.setValueTo("KD", TX.GetA("KD_itemmove_whole", TX.Get("Item_Tab_house", "")));
-				aBtnItemRow = this.ItemMngMv.Inventory.SelectedRow;
-				this.ItemMngMv.blurDescTarget(false);
-				this.ItemMng.manager_auto_run_on_select_row = false;
-				aBtnItemRow aBtnItemRow2 = this.ItemMng.Inventory.SelectedRow;
-				if (aBtnItemRow2 != null)
-				{
-					aBtnItemRow2.Select(false);
-				}
-				this.ItemMngMv.manager_auto_run_on_select_row = true;
-				if (aBtnItemRow2 != null && fine_desc)
-				{
-					this.ItemMng.blurDescTarget(true);
-				}
-			}
-			else
-			{
-				uiBoxDesigner2.Focus();
-				uiBoxDesigner.setValueTo("KD", "<key ltab/>" + TX.Get("Inventory_noel", ""));
-				uiBoxDesigner2.setValueTo("KD", TX.GetA("KD_itemmove_whole", TX.Get("Item_Tab_main", "")));
-				aBtnItemRow = this.ItemMng.Inventory.SelectedRow;
-				this.ItemMng.blurDescTarget(false);
-				this.ItemMngMv.manager_auto_run_on_select_row = false;
-				aBtnItemRow aBtnItemRow2 = this.ItemMngMv.Inventory.SelectedRow;
-				if (aBtnItemRow2 != null)
-				{
-					aBtnItemRow2.Select(false);
-				}
-				this.ItemMng.manager_auto_run_on_select_row = true;
-				if (aBtnItemRow2 != null && fine_desc)
-				{
-					this.ItemMngMv.blurDescTarget(true);
-				}
-			}
-			this.AnotherRow = aBtnItemRow;
-		}
-
-		private void fnItemMoveHoverRow(NelItem Itm, ItemStorage.ObtainInfo Obt)
-		{
-		}
-
-		private void fnItemMoveDetailPrepareL(NelItem Itm, ItemStorage.ObtainInfo Obt, ItemStorage.IRow IR)
-		{
-			if (this.Itm_lock_move_to_abs_near_by_switchng != Itm && this.MAXT_ITM_LOCK_ABS - this.t_itm_lock_abs > 4f)
-			{
-				this.Itm_lock_move_to_abs_near_by_switchng = null;
-			}
-			if (this.t_itm_lock_abs >= 0f)
-			{
-				this.fnItemMoveDetailPrepare(UiGMCItem.ITEM_CTG.MAIN);
-			}
-		}
-
-		private void fnItemMoveDetailPrepareR(NelItem Itm, ItemStorage.ObtainInfo Obt, ItemStorage.IRow IR)
-		{
-			if (this.Itm_lock_move_to_abs_near_by_switchng != Itm && this.MAXT_ITM_LOCK_ABS - this.t_itm_lock_abs > 4f)
-			{
-				this.Itm_lock_move_to_abs_near_by_switchng = null;
-			}
-			if (this.t_itm_lock_abs >= 0f)
-			{
-				this.fnItemMoveDetailPrepare(UiGMCItem.ITEM_CTG.HOUSE);
-			}
-		}
-
-		private void fnItemMoveDetailPrepare(UiGMCItem.ITEM_CTG side)
-		{
-			this.AnotherRow = null;
-			if (UiGMCItem.item_tab != side)
-			{
-				UiGMCItem.item_tab = side;
-				SND.Ui.play("tool_hand_init", false);
-				this.fineItemMoveFocusTab(false);
-			}
-		}
-
-		private string fnItemMoveSliderDesc(string def)
-		{
-			UiItemManageBoxSlider uiItemManageBoxSlider;
-			if (UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN)
-			{
-				uiItemManageBoxSlider = this.ItemMng;
-			}
-			else
-			{
-				uiItemManageBoxSlider = this.ItemMngMv;
-			}
-			NelItem usingTarget = uiItemManageBoxSlider.UsingTarget;
-			if (usingTarget == null)
-			{
-				return def;
-			}
-			int grade_cursor = uiItemManageBoxSlider.get_grade_cursor();
-			return this.getInventoryCountString(usingTarget, grade_cursor, 1) + " <img mesh=\"arrow_nel_5\" width=\"32\" height=\"18\" /> " + this.getInventoryCountString(usingTarget, grade_cursor, 2);
-		}
-
-		private bool runItemMove(float fcnt)
-		{
-			UiItemManageBoxSlider uiItemManageBoxSlider;
-			if (UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN)
-			{
-				uiItemManageBoxSlider = this.ItemMng;
-			}
-			else
-			{
-				uiItemManageBoxSlider = this.ItemMngMv;
-			}
-			uiItemManageBoxSlider.runEditItem();
-			if (!uiItemManageBoxSlider.isUsingState())
-			{
-				if (this.t_itm_lock_abs > 0f)
-				{
-					this.t_itm_lock_abs = X.Mx(0f, this.t_itm_lock_abs - fcnt);
-				}
-				if (IN.isCancel())
-				{
-					if (this.StReelSpliced != null)
-					{
-						if (UiGMCItem.item_tab != UiGMCItem.ITEM_CTG.MAIN)
-						{
-							UiGMCItem.item_tab = UiGMCItem.ITEM_CTG.MAIN;
-							this.fineItemMoveFocusTab(false);
-						}
-						if (base.M2D.IMNG.combineToInventory(this.StReelSpliced, base.M2D.IMNG.getHouseInventory(), false, null, false))
-						{
-							base.M2D.reel_content_send_to_house_inventory = true;
-						}
-						this.StReelSpliced = null;
-					}
-					return false;
-				}
-				if (IN.isUiAddPD())
-				{
-					aBtnItemRow selectedRow = uiItemManageBoxSlider.Inventory.SelectedRow;
-					if (selectedRow != null && !selectedRow.is_fake_row)
-					{
-						ItemStorage inventory = ((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? this.ItemMngMv : this.ItemMng).Inventory;
-						ItemStorage inventory2 = uiItemManageBoxSlider.Inventory;
-						int visibleRowCount = inventory.getVisibleRowCount();
-						NelItem itemData = selectedRow.getItemData();
-						int num = X.Mn(inventory2.getReduceable(itemData, -1), X.Mn(selectedRow.getItemRow().total, inventory.getItemStockable(itemData)));
-						ItemStorage.ObtainInfo itemInfo = selectedRow.getItemInfo();
-						uiItemManageBoxSlider.animation_immediate_flag = true;
-						bool flag = true;
-						for (int i = 0; i < num; i++)
-						{
-							int num2 = ((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? itemInfo.min_grade : itemInfo.enough_grade);
-							if (!this.IMNG.isHoldingItemByPR(itemData, num2) && inventory.Add(itemData, 1, num2, true, true) > 0)
-							{
-								inventory2.Reduce(itemData, 1, num2, true);
-								flag = true;
-								this.Itm_lock_move_to_abs_near_by_switchng = itemData;
-								this.t_itm_lock_abs = this.MAXT_ITM_LOCK_ABS;
-							}
-						}
-						if (flag)
-						{
-							inventory.fineSpecificRow(itemData);
-							SND.Ui.play((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? "tool_selrect" : "tool_sellasso", false);
-						}
-						else
-						{
-							CURS.limitVib((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? AIM.R : AIM.L);
-						}
-						bool flag2;
-						if (itemData.isWLinkUser(out flag2) && inventory == this.IMNG.getInventory() && visibleRowCount == inventory.getVisibleRowCount())
-						{
-							inventory.fineRows(false);
-						}
-					}
-				}
-				if (!IN.isUiSortPD())
-				{
-					if (IN.isLTabPD() || IN.isRTabPD())
-					{
-						bool flag3 = false;
-						if (this.AnotherRow != null && !this.AnotherRow.destructed)
-						{
-							UiGMCItem.ITEM_CTG item_CTG = UiGMCItem.item_tab;
-							this.AnotherRow.Select(false);
-							if (item_CTG != UiGMCItem.item_tab)
-							{
-								flag3 = true;
-							}
-						}
-						if (!flag3)
-						{
-							UiItemManageBoxSlider uiItemManageBoxSlider2 = ((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? this.ItemMngMv : this.ItemMng);
-							UiBoxDesigner uiBoxDesigner;
-							UiBoxDesigner uiBoxDesigner2;
-							this.getIMTab(out uiBoxDesigner, out uiBoxDesigner2);
-							Vector2 vector = ((uiItemManageBoxSlider.Inventory.SelectedRow == null) ? ((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? uiBoxDesigner : uiBoxDesigner2).transform.position : uiItemManageBoxSlider.Inventory.SelectedRow.transform.position);
-							vector.x = ((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? uiBoxDesigner2 : uiBoxDesigner).transform.position.x;
-							if (this.Itm_lock_move_to_abs_near_by_switchng != null)
-							{
-								if (this.t_itm_lock_abs > 0f && uiItemManageBoxSlider2.Inventory.SelectedRow != null)
-								{
-									uiItemManageBoxSlider2.Inventory.SelectedRow.Select(false);
-									this.t_itm_lock_abs = this.MAXT_ITM_LOCK_ABS;
-								}
-								else
-								{
-									this.Itm_lock_move_to_abs_near_by_switchng = null;
-								}
-							}
-							if (this.Itm_lock_move_to_abs_near_by_switchng == null)
-							{
-								this.t_itm_lock_abs = 0f;
-								aBtnItemRow absNearBtn = uiItemManageBoxSlider2.Inventory.getAbsNearBtn(vector);
-								if (absNearBtn != null)
-								{
-									absNearBtn.Select(false);
-									flag3 = true;
-								}
-							}
-						}
-						if (!flag3)
-						{
-							SND.Ui.play("toggle_button_limit", false);
-							CURS.limitVib(AIM.R);
-						}
-					}
-					else if (IN.isUiShiftO())
-					{
-						UiItemManageBoxSlider uiItemManageBoxSlider3 = ((UiGMCItem.item_tab == UiGMCItem.ITEM_CTG.MAIN) ? this.ItemMngMv : this.ItemMng);
-						NelItem nelItem = null;
-						if (uiItemManageBoxSlider.getSelectingRowBtn() != null && !uiItemManageBoxSlider.isUsingState())
-						{
-							nelItem = uiItemManageBoxSlider.getSelectingRowBtn().getItemData();
-						}
-						using (BList<aBtnItemRow> blist = uiItemManageBoxSlider3.Inventory.PopGetItemRowBtnsFor(nelItem))
-						{
-							if (this.AnotherRow == null || !this.AnotherRow.isChecked())
-							{
-								if (blist == null || blist.Count == 0)
-								{
-									this.AnotherRow = null;
-									if (IN.isUiShiftPD())
-									{
-										SND.Ui.play("toggle_button_limit", false);
-										CURS.limitVib(AIM.R);
-									}
-								}
-								else
-								{
-									this.AnotherRow = blist[0];
-									uiItemManageBoxSlider3.Inventory.select_row_key = this.AnotherRow.getItemData().key;
-									uiItemManageBoxSlider3.Inventory.SelectedRow = this.AnotherRow;
-									if (IN.isUiShiftPD())
-									{
-										SND.Ui.play("toggle_button_open", false);
-									}
-									uiItemManageBoxSlider3.Inventory.RowReveal(blist[0].transform, false);
-									blist[0].pushedAnimSimulate();
-									if (blist.Count > 1)
-									{
-										uiItemManageBoxSlider3.Inventory.RowReveal(blist[blist.Count - 1].transform, false);
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			return true;
+			UiGMCItem.getInventoryCountString(Stb, Itm, grade, 1);
+			Stb.Add(" ", "<img mesh=\"arrow_nel_5\" width=\"32\" height=\"18\" />", " ");
+			UiGMCItem.getInventoryCountString(Stb, Itm, grade, 2);
 		}
 
 		public bool isEdittingReelList()
@@ -1927,12 +1459,12 @@ namespace nel.gm
 			{
 				if (blist.Count > 0)
 				{
-					blist[0].Select(false);
+					blist[0].Select(true);
 				}
 			}
 		}
 
-		private float desc_item_w
+		public static float desc_item_w
 		{
 			get
 			{
@@ -1940,7 +1472,7 @@ namespace nel.gm
 			}
 		}
 
-		private float desc_item_w_mv
+		public static float desc_item_w_mv
 		{
 			get
 			{
@@ -1972,15 +1504,11 @@ namespace nel.gm
 
 		private UiReelManager UiReel;
 
-		private List<NelItemEntry> AItemReelSource;
-
 		private ItemStorage StReelSpliced;
 
 		private Designer TabR;
 
 		private UiBoxDesigner BxCmd;
-
-		private Designer.EvacuateContainer EvcItemMoveCmd;
 
 		private UiGameMenu.STATE istate;
 
@@ -1996,15 +1524,7 @@ namespace nel.gm
 
 		private aBtn BtnSelReel;
 
-		private aBtnItemRow AnotherRow;
-
-		private NelItem Itm_lock_move_to_abs_near_by_switchng;
-
-		private float t_itm_lock_abs;
-
-		private float MAXT_ITM_LOCK_ABS = 120f;
-
-		private UiItemManageBoxSlider.DsnDataSliderIMB SliderMde;
+		private UiItemMove IMvCon;
 
 		internal enum ITEM_CTG
 		{

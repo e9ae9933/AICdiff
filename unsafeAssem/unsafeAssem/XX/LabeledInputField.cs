@@ -274,7 +274,7 @@ namespace XX
 			}
 			if (this.focused > 0)
 			{
-				if (!this.isPushed() && IN.isMousePushDown())
+				if (!this.isPushed() && IN.isMousePushDown(1))
 				{
 					this.Blur();
 				}
@@ -336,7 +336,7 @@ namespace XX
 			{
 				return;
 			}
-			base.Select(false);
+			base.Select(true);
 			this.ExecuteOnSubmitKey();
 			if (this.focused == 2)
 			{

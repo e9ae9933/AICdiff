@@ -42,6 +42,20 @@ namespace m2d
 			base.initAction(normal_map);
 		}
 
+		public override void closeAction(bool normal_map)
+		{
+			if (!normal_map)
+			{
+				return;
+			}
+			base.closeAction(normal_map);
+			if (normal_map && !base.activated && this.Meta != null && this.Meta.auto_declare && this.Lay.LpFakeReveal != this && this.df_state == M2LpFakeReveal.DF_STATE.NEED_SHOW)
+			{
+				this.df_state = M2LpFakeReveal.DF_STATE.SHOWN;
+				this.Lay.addActiveRemoveKeyToAll("FAKEWALL", false, false);
+			}
+		}
+
 		protected override bool nearCheck(M2Mover Mv)
 		{
 			return (!this.Meta.auto_declare && base.activated) || base.nearCheck(Mv);
@@ -78,11 +92,14 @@ namespace m2d
 				{
 					return;
 				}
-				this.Mp.getEffectForChip().setE("fake_layer_dissolve", 0f, this.T_FADE, 1f, this.Lay.index, 0);
-				this.Meta.is_decrared = false;
 				if (this.df_state == M2LpFakeReveal.DF_STATE.HIDDEN || this.df_state == M2LpFakeReveal.DF_STATE.HIDDEN_FINALIZED)
 				{
 					this.df_state = M2LpFakeReveal.DF_STATE.NEED_SHOW;
+				}
+				this.Meta.is_decrared = false;
+				if (this.Lay.LpFakeReveal == this)
+				{
+					this.Mp.getEffectForChip().setE("fake_layer_dissolve", 0f, this.T_FADE, 1f, this.Lay.index, 0);
 				}
 			}
 			base.quitEnter(Mv);

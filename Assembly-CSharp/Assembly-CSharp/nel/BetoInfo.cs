@@ -41,7 +41,7 @@ namespace nel
 			return this;
 		}
 
-		public void readBinaryFrom(ByteArray Ba, bool read_jumprate, bool read_bloodreplace)
+		public void readBinaryFrom(ByteReader Ba, bool read_jumprate, bool read_bloodreplace)
 		{
 			this.fill_id = Ba.readInt();
 			this.thread = Ba.readInt();
@@ -58,8 +58,8 @@ namespace nel
 			this.Col2 = C32.d2c(Ba.readUInt());
 			this.level = Ba.readFloat();
 			this.scale = Ba.readFloat();
-			this.level = global::XX.X.MMX(0f, this.level, 4f);
-			this.scale = global::XX.X.MMX(0f, this.scale, 4f);
+			this.level = X.MMX(0f, this.level, 4f);
+			this.scale = X.MMX(0f, this.scale, 4f);
 			if (read_jumprate)
 			{
 				this.jumprate = Ba.readFloat();
@@ -218,7 +218,13 @@ namespace nel
 
 		public static BetoInfo FREEZE = new BetoInfo(0f, C32.d2c(uint.MaxValue), C32.d2c(uint.MaxValue), 0f, BetoInfo.TYPE.FROZEN, 1f, 0, 0.2f);
 
+		public static BetoInfo STONE_WHOLE = new BetoInfo(0f, C32.d2c(4288716960U), C32.d2c(4278190080U), 0f, BetoInfo.TYPE.STONE_WHOLE, 1f, 0, 0.2f);
+
+		public static BetoInfo WEB_TRAPPED = new BetoInfo(0f, C32.d2c(uint.MaxValue), C32.d2c(4287335047U), 75f, BetoInfo.TYPE.WEB_TRAPPED, 1.8f, 0, 0.78f);
+
 		public static BetoInfo Vore = new BetoInfo(30f, C32.d2c(3405774847U), C32.d2c(4284119659U), 50f, BetoInfo.TYPE.LIQUID, 0.6f, 0, 0.7f);
+
+		public const uint stonecol = 4288716960U;
 
 		public enum TYPE : byte
 		{
@@ -227,6 +233,8 @@ namespace nel
 			STAIN,
 			CUTTED,
 			FROZEN,
+			STONE_WHOLE,
+			WEB_TRAPPED,
 			_MAX
 		}
 	}

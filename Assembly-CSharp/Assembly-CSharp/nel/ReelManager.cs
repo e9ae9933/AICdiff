@@ -15,7 +15,8 @@ namespace nel
 		public ReelManager(ReelManager Src = null)
 		{
 			this.AStackIR = new List<ReelManager.ItemReelContainer>(1);
-			this.AReel = new List<ReelExecuter>(4);
+			this.AEf = new List<ReelExecuter>(4);
+			this.Aef_stack = new List<string>(8);
 			this.newGame();
 			ReelManager.initReelScript();
 			if (Src != null)
@@ -44,19 +45,19 @@ namespace nel
 
 		public void destructExecuterReels(bool clear_array_content = true)
 		{
-			for (int i = this.AReel.Count - 1; i >= 0; i--)
+			for (int i = this.AEf.Count - 1; i >= 0; i--)
 			{
-				this.AReel[i].destruct();
+				this.AEf[i].destruct();
 			}
 			if (clear_array_content)
 			{
-				this.AReel.Clear();
+				this.AEf.Clear();
 			}
 		}
 
 		public void newGame()
 		{
-			this.clearReels(false, true);
+			this.clearReels(false, true, true);
 			this.AStackIR.Clear();
 		}
 
@@ -74,52 +75,56 @@ namespace nel
 			}
 			SupplyManager.clearDate();
 			CsvReaderA csvReaderA = new CsvReaderA(resource, false);
-			ReelManager.OAreel_content = new NIDic<int, string[]>("reel_content");
-			List<string> list = new List<string>(16);
+			ReelManager.OAreel_content = new NIDic<int, ReelManager.EFReel>("reel_content");
 			XorsMaker xorsMaker = new XorsMaker(4085363881U, false);
-			int num = -1;
-			while (csvReaderA.read())
+			using (BList<string> blist = ListBuffer<string>.Pop(0))
 			{
-				ReelExecuter.EFFECT effect;
-				if (csvReaderA.cmd == "/*" || csvReaderA.cmd == "/*___")
+				int num = 0;
+				int num2 = -1;
+				while (csvReaderA.read())
 				{
-					if (num != -1)
+					ReelExecuter.EFFECT effect;
+					if (csvReaderA.cmd == "/*" || csvReaderA.cmd == "/*___")
 					{
-						ReelManager.OAreel_content[num] = list.ToArray();
+						if (num2 != -1)
+						{
+							ReelManager.OAreel_content[num2] = new ReelManager.EFReel(blist, num);
+						}
+						blist.Clear();
+						num = 0;
+						string index = csvReaderA.getIndex((csvReaderA.cmd == "/*") ? 2 : 1);
+						ReelExecuter.ETYPE etype;
+						if (!FEnum<ReelExecuter.ETYPE>.TryParse(index, out etype, true))
+						{
+							csvReaderA.tError("不明なETYPE: " + index);
+						}
+						num2 = (int)etype;
 					}
-					list.Clear();
-					string index = csvReaderA.getIndex((csvReaderA.cmd == "/*") ? 2 : 1);
-					ReelExecuter.ETYPE etype;
-					if (!FEnum<ReelExecuter.ETYPE>.TryParse(index, out etype, true))
+					else if (!(csvReaderA.cmd == "%RARE") && FEnum<ReelExecuter.EFFECT>.TryParse(csvReaderA.last_input, out effect, true))
 					{
-						csvReaderA.tError("不明なETYPE: " + index);
+						blist.Add(effect.ToString().ToUpper());
 					}
-					num = (int)etype;
 				}
-				else if (FEnum<ReelExecuter.EFFECT>.TryParse(csvReaderA.last_input, out effect, true))
+				if (num2 != -1)
 				{
-					list.Add(effect.ToString().ToUpper());
+					ReelManager.OAreel_content[num2] = new ReelManager.EFReel(blist, num);
 				}
 			}
-			if (num != -1)
-			{
-				ReelManager.OAreel_content[num] = list.ToArray();
-			}
-			ReelManager.OItemR = new NDic<ReelManager.ItemReelContainer>("Reel_ItemR", 12);
-			ReelManager.OColor = new NDic<ReelManager.ItemReelColor>("Reel_Color", 16);
+			ReelManager.OItemR = new NDic<ReelManager.ItemReelContainer>("Reel_ItemR", 12, 0);
+			ReelManager.OColor = new NDic<ReelManager.ItemReelColor>("Reel_Color", 16, 0);
 			ReelManager.AIRBuf = new List<ReelManager.ItemReelContainer>(3);
 			ReelManager.ItemReelColor itemReelColor = (ReelManager.OColor["_"] = new ReelManager.ItemReelColor(4294440951U, 4287926159U, 4283391212U));
-			List<ReelManager.ItemReelContainer> list2 = new List<ReelManager.ItemReelContainer>(8);
-			List<NelItemEntry> list3 = new List<NelItemEntry>(8);
+			List<ReelManager.ItemReelContainer> list = new List<ReelManager.ItemReelContainer>(8);
+			List<NelItemEntry> list2 = new List<NelItemEntry>(8);
 			csvReaderA.parseText(TX.getResource("Data/itemreel", ".csv", false));
-			int num2 = 60000;
+			int num3 = 60000;
 			while (csvReaderA.read())
 			{
 				if (TX.isStart(csvReaderA.cmd, '#'))
 				{
 					if (csvReaderA.cmd == "#COLOR")
 					{
-						ReelManager.ItemReelColor itemReelColor2 = (ReelManager.OColor[csvReaderA._1] = new ReelManager.ItemReelColor(global::XX.X.NmUI(csvReaderA._2, 4294440951U, true, true), global::XX.X.NmUI(csvReaderA._3, 4287926159U, true, true), global::XX.X.NmUI(csvReaderA._4, 4283391212U, true, true)));
+						ReelManager.ItemReelColor itemReelColor2 = (ReelManager.OColor[csvReaderA._1] = new ReelManager.ItemReelColor(X.NmUI(csvReaderA._2, 4294440951U, true, true), X.NmUI(csvReaderA._3, 4287926159U, true, true), X.NmUI(csvReaderA._4, 4283391212U, true, true)));
 						if (csvReaderA._1 == "demon")
 						{
 						}
@@ -128,32 +133,25 @@ namespace nel
 				else if (csvReaderA.cmd == "/*" || csvReaderA.cmd == "/*___")
 				{
 					string[] array = csvReaderA.getIndex((csvReaderA.cmd == "/*") ? 2 : 1).Split(new char[] { '|' });
-					list2.Clear();
+					list.Clear();
 					for (int i = array.Length - 1; i >= 0; i--)
 					{
 						string text = array[i];
 						if (!TX.noe(text))
 						{
-							ReelManager.ItemReelContainer itemReelContainer = global::XX.X.Get<string, ReelManager.ItemReelContainer>(ReelManager.OItemR, text);
+							ReelManager.ItemReelContainer itemReelContainer = X.Get<string, ReelManager.ItemReelContainer>(ReelManager.OItemR, text);
 							if (itemReelContainer != null)
 							{
-								list2.Add(itemReelContainer);
+								list.Add(itemReelContainer);
 							}
 							else
 							{
-								list2.Add(ReelManager.OItemR[text] = new ReelManager.ItemReelContainer(text, itemReelColor));
+								list.Add(ReelManager.OItemR[text] = (itemReelContainer = new ReelManager.ItemReelContainer(text, itemReelColor, null)));
+								TX tx = TX.getTX("_ItemReel_name_" + text, true, true, TX.getDefaultFamily());
+								itemReelContainer.useableItem = tx != null;
 								for (int j = 0; j < 2; j++)
 								{
-									string text2 = ((j == 0) ? "itemreelC_" : "itemreelG_") + text;
-									NelItem.CreateItemEntry(text2, new NelItem(text2, 0, 5, 1)
-									{
-										category = (NelItem.CATEG)2097281U,
-										FnGetName = new FnGetItemDetail(NelItem.fnGetNameItemReel),
-										FnGetDesc = new FnGetItemDetail(NelItem.fnGetDescItemReel),
-										FnGetDetail = new FnGetItemDetail(NelItem.fnGetDetailItemReel),
-										FnGetColor = new FnGetItemColor(NelItem.fnGetColorItemReel),
-										stock = 1
-									}, num2++, true);
+									ReelManager.CreateReelItemEntry(((j == 0) ? "itemreelC_" : "itemreelG_") + text, num3++);
 								}
 							}
 						}
@@ -163,60 +161,60 @@ namespace nel
 				{
 					if (csvReaderA.cmd == "%COLOR")
 					{
-						ReelManager.ItemReelColor itemReelColor3 = global::XX.X.Get<string, ReelManager.ItemReelColor>(ReelManager.OColor, csvReaderA._1);
+						ReelManager.ItemReelColor itemReelColor3 = X.Get<string, ReelManager.ItemReelColor>(ReelManager.OColor, csvReaderA._1);
 						if (itemReelColor3 == null)
 						{
 							csvReaderA.tError("不明なカラーセット: " + csvReaderA._1);
 						}
 						else
 						{
-							for (int k = list2.Count - 1; k >= 0; k--)
+							for (int k = list.Count - 1; k >= 0; k--)
 							{
-								list2[k].ColSet = itemReelColor3;
+								list[k].ColSet = itemReelColor3;
 							}
 						}
 					}
 					else if (csvReaderA.cmd == "%RARE")
 					{
-						for (int l = list2.Count - 1; l >= 0; l--)
+						for (int l = list.Count - 1; l >= 0; l--)
 						{
-							list2[l].rarelity = (byte)csvReaderA.Int(1, 0);
+							list[l].rarelity = (byte)csvReaderA.Int(1, 0);
 						}
 					}
 					else if (csvReaderA.cmd == "%SHUFFLE")
 					{
-						for (int m = list2.Count - 1; m >= 0; m--)
+						for (int m = list.Count - 1; m >= 0; m--)
 						{
-							list2[m].shuffle(xorsMaker);
+							list[m].shuffle(xorsMaker);
 						}
 					}
 					else if (csvReaderA.cmd == "%CLONE")
 					{
-						ReelManager.ItemReelContainer itemReelContainer2 = global::XX.X.Get<string, ReelManager.ItemReelContainer>(ReelManager.OItemR, csvReaderA._1);
+						ReelManager.ItemReelContainer itemReelContainer2 = X.Get<string, ReelManager.ItemReelContainer>(ReelManager.OItemR, csvReaderA._1);
 						if (itemReelContainer2 == null)
 						{
 							csvReaderA.tError("不明なSrc IR: " + csvReaderA._1);
 						}
 						else
 						{
-							for (int n = list2.Count - 1; n >= 0; n--)
+							for (int n = list.Count - 1; n >= 0; n--)
 							{
-								list2[n].copyFrom(itemReelContainer2);
+								list[n].copyFrom(itemReelContainer2);
 							}
 						}
 					}
 					else if (csvReaderA.cmd == "%GRADE")
 					{
-						for (int num3 = list2.Count - 1; num3 >= 0; num3--)
+						for (int num4 = list.Count - 1; num4 >= 0; num4--)
 						{
-							list2[num3].addGrade(csvReaderA.Int(1, 0));
+							list[num4].addGrade(csvReaderA.Int(1, 0));
 						}
 					}
 					else if (csvReaderA.cmd == "%COUNT")
 					{
-						for (int num4 = list2.Count - 1; num4 >= 0; num4--)
+						for (int num5 = list.Count - 1; num5 >= 0; num5--)
 						{
-							list2[num4].addCount(csvReaderA.Int(1, 0));
+							list[num5].addCount(csvReaderA.Int(1, 0));
 						}
 					}
 				}
@@ -225,49 +223,49 @@ namespace nel
 					NelItem byId = NelItem.GetById(csvReaderA.cmd, false);
 					if (byId != null)
 					{
-						list3.Clear();
-						int num5 = csvReaderA.clength - 1;
-						for (int num6 = 0; num6 < num5; num6++)
+						list2.Clear();
+						int num6 = csvReaderA.clength - 1;
+						for (int num7 = 0; num7 < num6; num7++)
 						{
-							string index2 = csvReaderA.getIndex(num6 + 1);
-							int num7 = -1000;
+							string index2 = csvReaderA.getIndex(num7 + 1);
+							int num8 = -1000;
 							byte b;
 							if (REG.match(index2, ReelManager.RegComma))
 							{
-								NelItemEntry nelItemEntry = list3[num6 - index2.Length];
-								num7 = nelItemEntry.count;
+								NelItemEntry nelItemEntry = list2[num7 - index2.Length];
+								num8 = nelItemEntry.count;
 								b = nelItemEntry.grade;
 							}
 							else
 							{
-								int num8 = index2.IndexOf("g");
-								if (num8 >= 0)
+								int num9 = index2.IndexOf("g");
+								if (num9 >= 0)
 								{
-									string text3 = TX.slice(index2, 0, num8);
-									if (REG.match(text3, ReelManager.RegComma))
+									string text2 = TX.slice(index2, 0, num9);
+									if (REG.match(text2, ReelManager.RegComma))
 									{
-										num7 = list3[num6 - text3.Length].count;
+										num8 = list2[num7 - text2.Length].count;
 									}
 									else
 									{
-										num7 = global::XX.X.NmI(text3, num7, false, false);
+										num8 = X.NmI(text2, num8, false, false);
 									}
-									text3 = TX.slice(index2, num8 + 1);
-									if (REG.match(text3, ReelManager.RegComma))
+									text2 = TX.slice(index2, num9 + 1);
+									if (REG.match(text2, ReelManager.RegComma))
 									{
-										b = list3[num6 - text3.Length].grade;
+										b = list2[num7 - text2.Length].grade;
 									}
 									else
 									{
-										b = (byte)global::XX.X.NmI(text3, 0, false, false);
+										b = (byte)X.NmI(text2, 0, false, false);
 									}
 								}
 								else
 								{
-									num7 = global::XX.X.NmI(index2, num7, false, false);
-									if (num6 == 0)
+									num8 = X.NmI(index2, num8, false, false);
+									if (num7 == 0)
 									{
-										ReelManager.ItemReelContainer itemReelContainer3 = list2[list2.Count - 1];
+										ReelManager.ItemReelContainer itemReelContainer3 = list[list.Count - 1];
 										if (itemReelContainer3.Count > 0)
 										{
 											b = itemReelContainer3[itemReelContainer3.Count - 1].grade;
@@ -279,26 +277,26 @@ namespace nel
 									}
 									else
 									{
-										b = list3[num6 - 1].grade;
+										b = list2[num7 - 1].grade;
 									}
 								}
 							}
-							if (num7 == -1000)
+							if (num8 == -1000)
 							{
-								global::XX.X.dl("不明な書式: " + index2, null, false, false);
+								X.dl("不明な書式: " + index2, null, false, false);
 							}
 							else
 							{
-								if (num7 < 0)
+								if (num8 < 0)
 								{
-									num7 = -num7 * byId.stock;
+									num8 = -num8 * byId.stock;
 								}
-								list3.Add(new NelItemEntry(byId, num7, b));
+								list2.Add(new NelItemEntry(byId, num8, b));
 							}
 						}
-						for (int num9 = list2.Count - 1; num9 >= 0; num9--)
+						for (int num10 = list.Count - 1; num10 >= 0; num10--)
 						{
-							list2[num9].AddRange(list3);
+							list[num10].AddRange(list2);
 						}
 					}
 				}
@@ -308,10 +306,23 @@ namespace nel
 			ReelManager.OAreel_content.scriptFinalize();
 		}
 
+		public static NelItem CreateReelItemEntry(string itemkey, int id)
+		{
+			return NelItem.CreateItemEntry(itemkey, new NelItem(itemkey, 0, 5, 1)
+			{
+				category = (NelItem.CATEG)2097281U,
+				FnGetName = NelItem.fnGetNameItemReel,
+				FnGetDesc = NelItem.fnGetDescItemReel,
+				FnGetDetail = NelItem.fnGetDetailItemReel,
+				FnGetColor = new FnGetItemColor(NelItem.fnGetColorItemReel),
+				stock = 1
+			}, id, true);
+		}
+
 		public void obtain(ReelExecuter.ETYPE type)
 		{
 			ReelExecuter reelExecuter = new ReelExecuter(this, type);
-			this.AReel.Add(reelExecuter);
+			this.AEf.Add(reelExecuter);
 			if (this.Ui != null)
 			{
 				this.Ui.obtain(reelExecuter);
@@ -320,10 +331,10 @@ namespace nel
 
 		public void obtainReels(ReelManager Src)
 		{
-			this.AReel.AddRange(Src.AReel);
+			this.AEf.AddRange(Src.AEf);
 		}
 
-		public void clearReels(bool only_executer = false, bool remove_gob = true)
+		public void clearReels(bool only_executer = false, bool remove_gob = true, bool flush_obtainable = true)
 		{
 			if (only_executer)
 			{
@@ -336,103 +347,116 @@ namespace nel
 			}
 			this.destructExecuterReels(true);
 			this.AStackIR.Clear();
-			this.Aobtainable_reel = null;
-			this.flushObtainableReel();
+			this.Aef_stack.Clear();
+			if (flush_obtainable)
+			{
+				this.flushObtainableReel();
+			}
 		}
 
 		public void flushObtainableReel()
 		{
-			this.Aobtainable_reel = new List<string>(7);
-			List<string> list = new List<string>(6);
-			list.Add("GRADE1");
-			list.Add("COUNT_ADD1");
-			if (global::XX.X.XORSP() < 0.5f)
+			this.Aef_stack.Clear();
+			using (BList<string> blist = ListBuffer<string>.Pop(6))
 			{
-				list.Add((global::XX.X.XORSP() < 0.5f) ? "GRADE2" : "COUNT_ADD2");
+				blist.Add("GRADE1");
+				blist.Add("COUNT_ADD1");
+				if (X.XORSP() < 0.5f)
+				{
+					blist.Add((X.XORSP() < 0.5f) ? "GRADE2" : "COUNT_ADD2");
+				}
+				else
+				{
+					blist.Add((X.XORSP() < 0.5f) ? "ADD_MONEY" : "COUNT_ADD1");
+				}
+				X.shuffle<string>(blist, -1, null);
+				this.Aef_stack.AddRange(blist);
+				this.Aef_stack.Add("COUNT_MUL1");
+				this.addObtainableReelAfter(0);
 			}
-			else
-			{
-				list.Add((global::XX.X.XORSP() < 0.5f) ? "ADD_MONEY" : "COUNT_ADD1");
-			}
-			global::XX.X.shuffle<string>(list, -1, null);
-			this.Aobtainable_reel.AddRange(list);
-			this.Aobtainable_reel.Add("COUNT_MUL1");
-			this.addObtainableReelAfter(list, 0);
 		}
 
-		public void addObtainableReelAfter(List<string> Buf = null, int superiour = 0)
+		public void addObtainableReelAfter(int superiour = 0)
 		{
-			Buf = Buf ?? new List<string>(6);
-			Buf.Clear();
-			if (superiour >= 1)
+			using (BList<string> blist = ListBuffer<string>.Pop(6))
 			{
-				Buf.Add((global::XX.X.XORSP() < 0.5f) ? "RANDOM" : "ADD_MONEY");
-			}
-			else
-			{
-				Buf.Add("RANDOM");
-				Buf.Add("ADD_MONEY");
-				Buf.Add((global::XX.X.XORSP() < 0.3f) ? "GRADE1" : "COUNT_ADD1");
-			}
-			if (global::XX.X.XORSP() < 0.8f)
-			{
-				Buf.Add((global::XX.X.XORSP() < 0.3f) ? "GRADE2" : "COUNT_ADD2");
-			}
-			else
-			{
-				Buf.Add((global::XX.X.XORSP() < 0.3f) ? ((superiour >= 2) ? "RANDOM" : "GRADE1") : "COUNT_ADD1");
-			}
-			if (superiour >= 1)
-			{
-				Buf.Add((global::XX.X.XORSP() < 0.4f) ? "GRADE3" : "COUNT_ADD3");
-				if (superiour >= 2)
+				blist.Clear();
+				if (superiour >= 1)
 				{
-					Buf.Add((global::XX.X.XORSP() < 0.3f) ? "GRADE3" : "COUNT_ADD3");
-					Buf.Add((global::XX.X.XORSP() < 0.3f) ? "COUNT_MUL1" : "COUNT_ADD3");
+					blist.Add((X.XORSP() < 0.5f) ? "RANDOM" : "ADD_MONEY");
 				}
-			}
-			global::XX.X.shuffle<string>(Buf, -1, null);
-			for (int i = 0; i < 3; i++)
-			{
-				this.Aobtainable_reel.Add(Buf[i]);
+				else
+				{
+					blist.Add("RANDOM");
+					blist.Add("ADD_MONEY");
+					blist.Add((X.XORSP() < 0.3f) ? "GRADE1" : "COUNT_ADD1");
+				}
+				if (X.XORSP() < 0.8f)
+				{
+					blist.Add((X.XORSP() < 0.3f) ? "GRADE2" : "COUNT_ADD2");
+				}
+				else
+				{
+					blist.Add((X.XORSP() < 0.3f) ? ((superiour >= 2) ? "RANDOM" : "GRADE1") : "COUNT_ADD1");
+				}
+				if (superiour >= 1)
+				{
+					blist.Add((X.XORSP() < 0.4f) ? "GRADE3" : "COUNT_ADD3");
+					if (superiour >= 2)
+					{
+						blist.Add((X.XORSP() < 0.3f) ? "GRADE3" : "COUNT_ADD3");
+						blist.Add((X.XORSP() < 0.3f) ? "COUNT_MUL1" : "COUNT_ADD3");
+					}
+				}
+				X.shuffle<string>(blist, -1, null);
+				for (int i = 0; i < 3; i++)
+				{
+					this.Aef_stack.Add(blist[i]);
+				}
 			}
 		}
 
 		public void obtainProgress(int reel_obtained)
 		{
-			if (this.Aobtainable_reel == null)
+			if (this.Aef_stack.Count == 0)
 			{
-				this.flushObtainableReel();
+				this.addObtainableReelAfter((reel_obtained >= 15) ? 2 : ((reel_obtained >= 7) ? 1 : 0));
 			}
-			if (this.Aobtainable_reel.Count == 0)
-			{
-				this.addObtainableReelAfter(null, (reel_obtained >= 15) ? 2 : ((reel_obtained >= 7) ? 1 : 0));
-			}
-			string text = this.Aobtainable_reel[0];
-			this.Aobtainable_reel.RemoveAt(0);
+			string text = this.Aef_stack[0];
+			this.Aef_stack.RemoveAt(0);
 			ReelExecuter.ETYPE etype;
 			if (FEnum<ReelExecuter.ETYPE>.TryParse(text, out etype, true))
 			{
 				this.obtain(etype);
 				return;
 			}
-			global::XX.X.de("不明なETYPE:" + text, null);
+			X.de("不明なETYPE:" + text, null);
+		}
+
+		public void overwriteEfReel(List<ReelExecuter.ETYPE> Atype)
+		{
+			this.destructExecuterReels(true);
+			int count = Atype.Count;
+			for (int i = 0; i < count; i++)
+			{
+				this.obtain(Atype[i]);
+			}
 		}
 
 		public void writeBinaryTo(ByteArray Ba)
 		{
-			int num = this.AReel.Count;
+			int num = this.AEf.Count;
 			Ba.writeUShort((ushort)num);
 			for (int i = 0; i < num; i++)
 			{
-				Ba.writeByte((int)this.AReel[i].getEType());
+				Ba.writeByte((int)this.AEf[i].getEType());
 			}
-			num = ((this.Aobtainable_reel != null) ? this.Aobtainable_reel.Count : 0);
+			num = this.Aef_stack.Count;
 			Ba.writeUShort((ushort)num);
 			for (int j = 0; j < num; j++)
 			{
 				ReelExecuter.ETYPE etype;
-				if (FEnum<ReelExecuter.ETYPE>.TryParse(this.Aobtainable_reel[j], out etype, true))
+				if (FEnum<ReelExecuter.ETYPE>.TryParse(this.Aef_stack[j], out etype, true))
 				{
 					Ba.writeByte((int)etype);
 				}
@@ -443,20 +467,15 @@ namespace nel
 			}
 		}
 
-		public void readBinaryFrom(ByteArray Ba, int vers)
+		public void readBinaryFrom(ByteReader Ba, int vers = 9)
 		{
-			this.destructGob();
+			this.destructExecuterReels(true);
+			this.Aef_stack.Clear();
 			int num = (int)Ba.readUShort();
-			this.AReel.Clear();
-			if (this.Aobtainable_reel == null)
-			{
-				this.Aobtainable_reel = new List<string>(7);
-			}
-			this.Aobtainable_reel.Clear();
 			for (int i = 0; i < num; i++)
 			{
 				ReelExecuter.ETYPE etype = (ReelExecuter.ETYPE)Ba.readByte();
-				if (global::XX.X.BTW(1f, (float)etype, 11f))
+				if (X.BTW(1f, (float)etype, 11f))
 				{
 					this.obtain(etype);
 				}
@@ -467,9 +486,9 @@ namespace nel
 				for (int j = 0; j < num; j++)
 				{
 					ReelExecuter.ETYPE etype2 = (ReelExecuter.ETYPE)Ba.readByte();
-					if (global::XX.X.BTW(1f, (float)etype2, 11f))
+					if (X.BTW(1f, (float)etype2, 11f))
 					{
-						this.Aobtainable_reel.Add(etype2.ToString());
+						this.Aef_stack.Add(etype2.ToString());
 					}
 				}
 			}
@@ -536,12 +555,31 @@ namespace nel
 			return this;
 		}
 
+		public ReelManager assignCurrentItemReel(List<ReelManager.ItemReelContainer> AIR, bool initui = true, bool touch_obtain = false)
+		{
+			int count = AIR.Count;
+			for (int i = 0; i < count; i++)
+			{
+				ReelManager.ItemReelContainer itemReelContainer = AIR[i];
+				if (touch_obtain)
+				{
+					itemReelContainer.touchObtainCountAll();
+				}
+				this.AStackIR.Add(itemReelContainer);
+			}
+			if (this.Ui != null && initui && !this.Ui.isRotatingState())
+			{
+				this.initUiState(ReelManager.MSTATE.OPENING, this.Ui.transform.parent, false);
+			}
+			return this;
+		}
+
 		public ReelManager assignCurrentItemReel(string key, bool initui = true)
 		{
-			ReelManager.ItemReelContainer ir = ReelManager.GetIR(key, false);
+			ReelManager.ItemReelContainer ir = ReelManager.GetIR(key, false, false);
 			if (ir == null)
 			{
-				global::XX.X.de("assignCurrentItemReel:: アイテムリール取得失敗:" + key, null);
+				X.de("assignCurrentItemReel:: アイテムリール取得失敗:" + key, null);
 				return this;
 			}
 			return this.assignCurrentItemReel(ir, initui);
@@ -568,20 +606,44 @@ namespace nel
 			return false;
 		}
 
-		public static ReelManager.ItemReelContainer GetIR(string key, bool no_error = false)
+		public static ReelManager.ItemReelContainer GetIR(string key, bool no_error = false, bool calc_other_reel_class = false)
 		{
 			ReelManager.initReelScript();
-			ReelManager.ItemReelContainer itemReelContainer = global::XX.X.Get<string, ReelManager.ItemReelContainer>(ReelManager.OItemR, key);
-			if (itemReelContainer == null && !no_error)
+			ReelManager.ItemReelContainer itemReelContainer = X.Get<string, ReelManager.ItemReelContainer>(ReelManager.OItemR, key);
+			if (itemReelContainer == null)
 			{
-				global::XX.X.de("不明なItemReelContainer: " + key, null);
+				if (calc_other_reel_class)
+				{
+					itemReelContainer = GuildManager.GetIR(key);
+				}
+				if (itemReelContainer == null && !no_error)
+				{
+					X.de("不明なItemReelContainer: " + key, null);
+				}
 			}
 			return itemReelContainer;
 		}
 
 		public static ReelManager.ItemReelContainer GetIR(NelItem Itm)
 		{
-			return global::XX.X.Get<string, ReelManager.ItemReelContainer>(ReelManager.OItemR, TX.slice(Itm.key, "itemreelC_".Length));
+			return X.Get<string, ReelManager.ItemReelContainer>(ReelManager.OItemR, TX.slice(Itm.key, "itemreelC_".Length));
+		}
+
+		public static ReelManager.ItemReelContainer GetIR(NelItem Itm, bool no_error, bool calc_other_reel_class = false)
+		{
+			return ReelManager.GetIR(TX.slice(Itm.key, "itemreelC_".Length), no_error, calc_other_reel_class);
+		}
+
+		public static ReelManager.ItemReelColor GetNearColor(NelItem Itm)
+		{
+			foreach (KeyValuePair<string, ReelManager.ItemReelContainer> keyValuePair in ReelManager.OItemR)
+			{
+				if (keyValuePair.Value.isin(Itm) >= 0)
+				{
+					return keyValuePair.Value.ColSet;
+				}
+			}
+			return null;
 		}
 
 		public static ReelManager.ItemReelContainer ReplaceToLowerGrade(ReelManager.ItemReelContainer Src)
@@ -602,7 +664,7 @@ namespace nel
 			{
 				return ReelManager.AIRBuf[0];
 			}
-			return ReelManager.AIRBuf[global::XX.X.xors(ReelManager.AIRBuf.Count - 1) + 1];
+			return ReelManager.AIRBuf[X.xors(ReelManager.AIRBuf.Count - 1) + 1];
 		}
 
 		public ReelManager.ItemReelContainer getCurrentItemReel()
@@ -676,6 +738,16 @@ namespace nel
 			if (APublishedEntry != null)
 			{
 				this.digestObtainedMoney();
+				int num = (int)COOK.CurAchive.Get(ACHIVE.MENT.treasure_max_obtain);
+				int num2 = (int)COOK.CurAchive.Get(ACHIVE.MENT.treasure_total_obtain);
+				for (int i = APublishedEntry.Length - 1; i >= 0; i--)
+				{
+					NelItemEntry nelItemEntry = APublishedEntry[i];
+					num = X.Mx(num, nelItemEntry.count);
+					num2 += nelItemEntry.count;
+				}
+				COOK.CurAchive.Set(ACHIVE.MENT.treasure_max_obtain, num);
+				COOK.CurAchive.Set(ACHIVE.MENT.treasure_total_obtain, num2);
 				if (this.DropLp != null)
 				{
 					if (this.DropLp is M2LpItemSupplier)
@@ -685,10 +757,10 @@ namespace nel
 					else
 					{
 						NelM2DBase nelM2DBase = this.DropLp.Mp.M2D as NelM2DBase;
-						for (int i = APublishedEntry.Length - 1; i >= 0; i--)
+						for (int j = APublishedEntry.Length - 1; j >= 0; j--)
 						{
-							NelItemEntry nelItemEntry = APublishedEntry[i];
-							nelM2DBase.IMNG.dropManual(nelItemEntry.Data, nelItemEntry.count, (int)nelItemEntry.grade, this.DropLp.mapfocx, this.DropLp.mapfocy, 0f, 0f, null, false, NelItemManager.TYPE.ABSORB);
+							NelItemEntry nelItemEntry2 = APublishedEntry[j];
+							nelM2DBase.IMNG.dropManual(nelItemEntry2.Data, nelItemEntry2.count, (int)nelItemEntry2.grade, this.DropLp.mapfocx, this.DropLp.mapfocy, 0f, 0f, null, false, NelItemManager.TYPE.ABSORB);
 						}
 					}
 				}
@@ -699,16 +771,16 @@ namespace nel
 					if (nelM2DBase2 != null)
 					{
 						bool flag2 = nelM2DBase2.canAccesableToHouseInventory();
-						for (int j = APublishedEntry.Length - 1; j >= 0; j--)
+						for (int k = APublishedEntry.Length - 1; k >= 0; k--)
 						{
-							NelItemEntry nelItemEntry2 = APublishedEntry[j];
-							int num = (flag2 ? nelM2DBase2.IMNG.getHouseInventory() : nelM2DBase2.IMNG.getInventory()).Add(nelItemEntry2.Data, nelItemEntry2.count, (int)nelItemEntry2.grade, true, true);
-							if (num > 0)
+							NelItemEntry nelItemEntry3 = APublishedEntry[k];
+							int num3 = (flag2 ? nelM2DBase2.IMNG.getHouseInventory() : nelM2DBase2.IMNG.getInventory()).Add(nelItemEntry3.Data, nelItemEntry3.count, (int)nelItemEntry3.grade, true, true);
+							if (num3 > 0)
 							{
-								nelItemEntry2.Data.addObtainCount(num);
+								nelM2DBase2.IMNG.addObtainCount(nelItemEntry3.Data, num3, (int)nelItemEntry3.grade);
 								if (!flag2)
 								{
-									UILog.Instance.AddGetItem(nelM2DBase2.IMNG, nelItemEntry2.Data, num, (int)nelItemEntry2.grade);
+									UILog.Instance.AddGetItem(nelM2DBase2.IMNG, nelItemEntry3.Data, num3, (int)nelItemEntry3.grade);
 								}
 								flag = true;
 							}
@@ -725,7 +797,7 @@ namespace nel
 
 		public List<ReelExecuter> getReelVector()
 		{
-			return this.AReel;
+			return this.AEf;
 		}
 
 		public List<ReelManager.ItemReelContainer> getItemReelCacheVector()
@@ -771,26 +843,26 @@ namespace nel
 					alignx = ALIGN.LEFT,
 					aligny = ALIGNY.BOTTOM,
 					sheight = Ds.use_h,
-					text = TX.Get("_ItemReel_name_" + itemReelContainer.key, "") + ((i < num - 1) ? splitter : "")
+					text = TX.ReplaceTX(itemReelContainer.tx_key, false) + ((i < num - 1) ? splitter : "")
 				}, false);
 				MTR.DrReelBox.setFillImageBlock(fillImageBlock, new MeshDrawer.FnGeneralDraw(itemReelContainer.fnGeneralDraw));
 				fillImageBlock.getMeshDrawer().activation_key = itemReelContainer.key;
 			}
 		}
 
-		private readonly List<ReelExecuter> AReel;
-
 		private UiReelManager Ui;
 
 		private static DateTime LoadDate;
 
-		public static NIDic<int, string[]> OAreel_content;
+		public static NIDic<int, ReelManager.EFReel> OAreel_content;
 
 		private static NDic<ReelManager.ItemReelContainer> OItemR;
 
 		private static NDic<ReelManager.ItemReelColor> OColor;
 
-		private List<string> Aobtainable_reel;
+		private readonly List<ReelExecuter> AEf;
+
+		private readonly List<string> Aef_stack;
 
 		public const int stencil_ref = 225;
 
@@ -816,13 +888,15 @@ namespace nel
 				}
 			}
 
-			public ItemReelContainer(string _key, ReelManager.ItemReelColor _ColSet)
+			public ItemReelContainer(string _key, ReelManager.ItemReelColor _ColSet, string _tx_key = null)
 			{
 				this.key = _key;
-				this.tx_key = "_ItemReel_name_" + this.key;
+				this.item_gkey = "itemreelG_" + this.key;
+				this.item_ckey = "itemreelC_" + this.key;
+				this.tx_key = _tx_key ?? ("&&_ItemReel_name_" + this.key);
 				if (REG.match(this.key, REG.RegSuffixNumberOnly))
 				{
-					this.rarelity = (byte)global::XX.X.NmI(REG.R1, 0, false, false);
+					this.rarelity = (byte)X.NmI(REG.R1, 0, false, false);
 				}
 				this.AContent = new List<NelItemEntry>();
 				this.ColSet = _ColSet;
@@ -835,11 +909,35 @@ namespace nel
 				return this;
 			}
 
+			public string getLocalizedName(M2LabelPoint LpSupplier)
+			{
+				string localizedName = this.GReelItem.getLocalizedName(0);
+				if (TX.noe(localizedName))
+				{
+					NelM2DBase nelM2DBase = LpSupplier.Mp.M2D as NelM2DBase;
+					string text = nelM2DBase.getMapTitle(LpSupplier.Mp);
+					if (TX.noe(text))
+					{
+						WholeMapItem wholeFor = nelM2DBase.WM.GetWholeFor(LpSupplier.Mp, false);
+						if (wholeFor != null)
+						{
+							text = wholeFor.localized_name;
+						}
+					}
+					if (TX.noe(text))
+					{
+						text = "---";
+					}
+					return TX.GetA("Catalog_pickup_current_reel_spot", text);
+				}
+				return localizedName;
+			}
+
 			public void addGrade(int _add)
 			{
 				for (int i = this.AContent.Count - 1; i >= 0; i--)
 				{
-					this.AContent[i].grade = (byte)global::XX.X.MMX(0, (int)this.AContent[i].grade + _add, 4);
+					this.AContent[i].grade = (byte)X.MMX(0, (int)this.AContent[i].grade + _add, 4);
 				}
 			}
 
@@ -847,7 +945,7 @@ namespace nel
 			{
 				for (int i = this.AContent.Count - 1; i >= 0; i--)
 				{
-					this.AContent[i].count = global::XX.X.Mx(0, this.AContent[i].count + _add);
+					this.AContent[i].count = X.Mx(0, this.AContent[i].count + _add);
 				}
 			}
 
@@ -871,7 +969,7 @@ namespace nel
 			{
 				get
 				{
-					return NelItem.GetById("itemreelG_" + this.key, false);
+					return NelItem.GetById(this.item_gkey, false);
 				}
 			}
 
@@ -879,7 +977,7 @@ namespace nel
 			{
 				get
 				{
-					return NelItem.GetById("itemreelC_" + this.key, false);
+					return NelItem.GetById(this.item_ckey, false);
 				}
 			}
 
@@ -888,9 +986,14 @@ namespace nel
 				this.AContent.AddRange(collection);
 			}
 
+			public void Add(NelItemEntry IE)
+			{
+				this.AContent.Add(IE);
+			}
+
 			public void shuffle(XorsMaker Xors)
 			{
-				global::XX.X.shuffle<NelItemEntry>(this.AContent, -1, Xors);
+				X.shuffle<NelItemEntry>(this.AContent, -1, Xors);
 			}
 
 			public void touchObtainCountAll()
@@ -906,24 +1009,18 @@ namespace nel
 				return this.AContent.ToArray();
 			}
 
-			public string listupItems(string splitter, bool show_storage_count = false)
+			public void listupItemsTo(STB Stb, string splitter, bool show_storage_count = false)
 			{
 				int count = this.AContent.Count;
-				string text;
-				using (STB stb = TX.PopBld(null, 0))
+				NelItemManager imng = (M2DBase.Instance as NelM2DBase).IMNG;
+				for (int i = 0; i < count; i++)
 				{
-					NelItemManager imng = (M2DBase.Instance as NelM2DBase).IMNG;
-					for (int i = 0; i < count; i++)
+					if (i > 0)
 					{
-						if (i > 0)
-						{
-							stb.Add(splitter);
-						}
-						this.getOneRowDetail(stb, i, splitter, imng, show_storage_count);
+						Stb.Add(splitter);
 					}
-					text = stb.ToString();
+					this.getOneRowDetail(Stb, i, splitter, imng, show_storage_count);
 				}
-				return text;
 			}
 
 			public STB getOneRowDetail(STB Stb, int i, string splitter, NelItemManager IMNG, bool show_storage_count = false)
@@ -933,7 +1030,7 @@ namespace nel
 					return Stb;
 				}
 				NelItemEntry nelItemEntry = this.AContent[i];
-				Stb.Add(nelItemEntry.getLocalizedName(0, 2, false));
+				nelItemEntry.getLocalizedName(Stb, 0, 2, false);
 				if (show_storage_count)
 				{
 					Stb.Add(splitter).Add("\u3000 - <font size=\"14\">");
@@ -980,14 +1077,6 @@ namespace nel
 				return true;
 			}
 
-			public bool useableItem
-			{
-				get
-				{
-					return TX.getTX(this.tx_key, true, true, TX.getDefaultFamily()) != null;
-				}
-			}
-
 			public NelItem IndividualItem
 			{
 				get
@@ -1024,6 +1113,10 @@ namespace nel
 
 			public readonly string key;
 
+			public readonly string item_gkey;
+
+			public readonly string item_ckey;
+
 			public readonly string tx_key;
 
 			private readonly List<NelItemEntry> AContent;
@@ -1031,6 +1124,10 @@ namespace nel
 			public ReelManager.ItemReelColor ColSet;
 
 			public byte rarelity;
+
+			public bool not_appear_fieldguide;
+
+			public bool useableItem;
 		}
 
 		public sealed class ItemReelDrop
@@ -1040,10 +1137,24 @@ namespace nel
 				this.IR = _IR;
 				if (_grade_add < 0)
 				{
-					this.grade_add = global::XX.X.xors() % 2U > 0U;
+					this.grade_add = X.xors() % 2U > 0U;
 					return;
 				}
 				this.grade_add = _grade_add != 0;
+			}
+
+			public void fineQuestTargetItem(QuestTracker QUEST)
+			{
+				this.quest_target_item = false;
+				int count = this.IR.Count;
+				for (int i = 0; i < count; i++)
+				{
+					if (QUEST.isQuestTargetItem(this.IR[i].Data, 0))
+					{
+						this.quest_target_item = true;
+						return;
+					}
+				}
 			}
 
 			public string key
@@ -1067,6 +1178,8 @@ namespace nel
 			public bool grade_add;
 
 			public int grade;
+
+			public bool quest_target_item;
 		}
 
 		public sealed class ItemReelColor
@@ -1108,6 +1221,19 @@ namespace nel
 			public List<ReelManager.ItemReelContainer> AIR_useable;
 
 			public List<ReelManager.ItemReelContainer> AIR_supplier;
+		}
+
+		public class EFReel
+		{
+			public EFReel(List<string> As, int _rarelity = 0)
+			{
+				this.Aeffect = As.ToArray();
+				this.rarelity = _rarelity;
+			}
+
+			public int rarelity;
+
+			public readonly string[] Aeffect;
 		}
 
 		public enum MSTATE

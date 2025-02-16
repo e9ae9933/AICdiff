@@ -83,7 +83,7 @@ namespace nel
 					bool flag6 = IN.isL();
 					bool flag7 = IN.isR();
 					bool flag8 = IN.isSubmit();
-					if (IN.isMousePushDown())
+					if (IN.isMousePushDown(1))
 					{
 						Vector2 vector = IN.getMousePos(null) * 64f;
 						if (vector.x < -IN.wh * 0.8f)

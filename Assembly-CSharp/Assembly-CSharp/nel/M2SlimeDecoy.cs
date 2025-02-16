@@ -21,7 +21,7 @@ namespace nel
 				this.Lig.follow_speed = 1f;
 				this.Lig.Col.Set(2859760228U);
 				this.Lig.radius = 45f;
-				this.Mp.addLight(this.Lig);
+				this.Mp.addLight(this.Lig, -1);
 			}
 			this.TeCon.RegisterCol(this.Dr, false);
 		}

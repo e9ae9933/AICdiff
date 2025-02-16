@@ -14,7 +14,7 @@ namespace nel
 			{
 				return;
 			}
-			UiAlchemyWorkBench.ORecipe = new BDic<string, RecipeManager.Recipe>(2);
+			UiAlchemyWorkBench.ORecipe = new BDic<string, RCP.Recipe>(2);
 			UiAlchemyWorkBench.ORecipeRow = new BDic<UiAlchemyWorkBench.WKB_KIND, List<UiAlchemyWorkBench.WorkBenchRow>>(2);
 			UiAlchemyWorkBench.Omax = new BDic<UiAlchemyWorkBench.WKB_KIND, int>(2);
 			UiAlchemyWorkBench.CInfoDef = new UiCraftBase.AutoCreationInfo(0, UiCraftBase.AF_COST.LOW_COST, UiCraftBase.AF_KIND.ENOUGH, UiCraftBase.AF_QUANTITY.MINIMUM);
@@ -22,7 +22,7 @@ namespace nel
 			for (int i = 0; i < 2; i++)
 			{
 				wkb_KIND = (UiAlchemyWorkBench.WKB_KIND)i;
-				RecipeManager.Recipe recipe = new RecipeManager.Recipe(wkb_KIND.ToString(), RecipeManager.RP_CATEG.ALCHEMY_WORKBENCH);
+				RCP.Recipe recipe = new RCP.Recipe(wkb_KIND.ToString(), RCP.RP_CATEG.ALCHEMY_WORKBENCH);
 				UiAlchemyWorkBench.Omax[wkb_KIND] = 0;
 				recipe.Completion = NelItem.GetById("workbench_" + recipe.key.ToLower(), false);
 				recipe.CInfo = new UiCraftBase.AutoCreationInfo(UiAlchemyWorkBench.CInfoDef);
@@ -37,7 +37,7 @@ namespace nel
 				if (csvReaderA.cmd == "/*" || csvReaderA.cmd == "/*___")
 				{
 					string index = csvReaderA.getIndex((csvReaderA.cmd == "/*") ? 2 : 1);
-					RecipeManager.Recipe recipe2 = X.Get<string, RecipeManager.Recipe>(UiAlchemyWorkBench.ORecipe, index.ToUpper());
+					RCP.Recipe recipe2 = X.Get<string, RCP.Recipe>(UiAlchemyWorkBench.ORecipe, index.ToUpper());
 					efParticleFuncCalc = null;
 					if (recipe2 == null)
 					{
@@ -59,11 +59,11 @@ namespace nel
 					}
 					else
 					{
-						RecipeManager.Recipe recipe3;
+						RCP.Recipe recipe3;
 						NelItem nelItem;
-						RecipeManager.RPI_CATEG rpi_CATEG;
+						RCP.RPI_CATEG rpi_CATEG;
 						NelItem.CATEG categ;
-						if (!RecipeManager.getIngredientTarget(csvReaderA, out recipe3, out nelItem, out rpi_CATEG, out categ))
+						if (!RCP.getIngredientTarget(csvReaderA, out recipe3, out nelItem, out rpi_CATEG, out categ))
 						{
 							break;
 						}
@@ -74,11 +74,11 @@ namespace nel
 			}
 		}
 
-		public static List<RecipeManager.RecipeDescription> listupDefinitionRecipe(ref List<RecipeManager.RecipeDescription> A, NelItem Itm, bool only_useableItem = false)
+		public static List<RCP.RecipeDescription> listupDefinitionRecipe(ref List<RCP.RecipeDescription> A, NelItem Itm, bool only_useableItem = false)
 		{
-			foreach (KeyValuePair<string, RecipeManager.Recipe> keyValuePair in UiAlchemyWorkBench.ORecipe)
+			foreach (KeyValuePair<string, RCP.Recipe> keyValuePair in UiAlchemyWorkBench.ORecipe)
 			{
-				RecipeManager.Recipe value = keyValuePair.Value;
+				RCP.Recipe value = keyValuePair.Value;
 				int count = value.AIng.Count;
 				for (int i = 0; i < count; i++)
 				{
@@ -86,9 +86,9 @@ namespace nel
 					{
 						if (A == null)
 						{
-							A = new List<RecipeManager.RecipeDescription>(1);
+							A = new List<RCP.RecipeDescription>(1);
 						}
-						A.Add(new RecipeManager.RecipeDescription(value, value.Completion, null));
+						A.Add(new RCP.RecipeDescription(value, value.Completion, null));
 						break;
 					}
 				}
@@ -126,7 +126,7 @@ namespace nel
 			for (int i = 0; i < 2; i++)
 			{
 				UiAlchemyWorkBench.WKB_KIND wkb_KIND = (UiAlchemyWorkBench.WKB_KIND)i;
-				RecipeManager.Recipe recipe = UiAlchemyWorkBench.ORecipe[wkb_KIND.ToString()];
+				RCP.Recipe recipe = UiAlchemyWorkBench.ORecipe[wkb_KIND.ToString()];
 				if (St != null)
 				{
 					St.Add(recipe.Completion, 1, 0, true, true);
@@ -135,7 +135,7 @@ namespace nel
 			}
 		}
 
-		public static UiAlchemyWorkBench.WKB_KIND initializeRcp(RecipeManager.Recipe Rcp)
+		public static UiAlchemyWorkBench.WKB_KIND initializeRcp(RCP.Recipe Rcp)
 		{
 			UiAlchemyWorkBench.WKB_KIND kind = UiAlchemyWorkBench.getKind(Rcp);
 			List<UiAlchemyWorkBench.WorkBenchRow> list = X.Get<UiAlchemyWorkBench.WKB_KIND, List<UiAlchemyWorkBench.WorkBenchRow>>(UiAlchemyWorkBench.ORecipeRow, kind);
@@ -150,7 +150,7 @@ namespace nel
 					int num3 = 0;
 					for (int i = 0; i < count; i++)
 					{
-						RecipeManager.RecipeIngredient recipeIngredient = list[i].createRow(num3, num);
+						RCP.RecipeIngredient recipeIngredient = list[i].createRow(num3, num);
 						if (recipeIngredient != null)
 						{
 							Rcp.AIng.Add(recipeIngredient);
@@ -196,7 +196,7 @@ namespace nel
 		{
 			if (row == UiItemManageBox.DESC_ROW.DETAIL)
 			{
-				RecipeManager.Recipe recipeS = UiAlchemyWorkBench.getRecipeS(Itm);
+				RCP.Recipe recipeS = UiAlchemyWorkBench.getRecipeS(Itm);
 				if (recipeS != null)
 				{
 					if (recipeS.AIng.Count == 0)
@@ -214,7 +214,7 @@ namespace nel
 				}
 				if (row == UiItemManageBox.DESC_ROW.ROW_COUNT)
 				{
-					RecipeManager.Recipe recipeS2 = UiAlchemyWorkBench.getRecipeS(Itm);
+					RCP.Recipe recipeS2 = UiAlchemyWorkBench.getRecipeS(Itm);
 					if (recipeS2 != null)
 					{
 						UiAlchemyWorkBench.WKB_KIND kind = UiAlchemyWorkBench.getKind(recipeS2);
@@ -248,7 +248,7 @@ namespace nel
 			base.prepareRecipeIngredient(AAPre);
 		}
 
-		public static void prepareRecipeIngredientS(RecipeManager.Recipe TargetRcp, UiCraftBase _this, List<List<UiCraftBase.IngEntryRow>> AAPre = null)
+		public static void prepareRecipeIngredientS(RCP.Recipe TargetRcp, UiCraftBase _this, List<List<UiCraftBase.IngEntryRow>> AAPre = null)
 		{
 			if (UiAlchemyWorkBench.initializeRcp(TargetRcp) == UiAlchemyWorkBench.WKB_KIND.CAPACITY)
 			{
@@ -324,24 +324,24 @@ namespace nel
 			return TX.GetA(text, a);
 		}
 
-		protected override string getCompletionDetail()
+		protected override void getCompletionDetail(STB Stb)
 		{
 			UiAlchemyWorkBench.WKB_KIND kind = UiAlchemyWorkBench.getKind(this.TargetRcp);
 			int num;
 			int currentCount = UiAlchemyWorkBench.getCurrentCount(kind, out num);
-			string text = UiAlchemyWorkBench.getCurrentCountTx(kind, currentCount, num, false);
+			Stb.Add(UiAlchemyWorkBench.getCurrentCountTx(kind, currentCount, num, false));
 			if (this.TargetRcp.AIng.Count > 0)
 			{
 				if (this.recipe_creatable)
 				{
-					text = TX.add(text, UiAlchemyWorkBench.getCurrentCountTx(kind, currentCount + 1, num, true), "\n\n");
+					Stb.Append(UiAlchemyWorkBench.getCurrentCountTx(kind, currentCount + 1, num, true), "\n\n");
+					return;
 				}
 			}
 			else
 			{
-				text = TX.add(text, TX.Get("workbench_limit_reached", ""), "\n\n");
+				Stb.Append(TX.Get("workbench_limit_reached", ""), "\n\n");
 			}
-			return text;
 		}
 
 		protected override int addCompletionToStorage(int add_rest)
@@ -378,29 +378,29 @@ namespace nel
 			}
 		}
 
-		public override RecipeManager.Recipe getRecipe(string key)
+		public override RCP.Recipe getRecipe(string key)
 		{
 			return UiAlchemyWorkBench.getRecipeS(key);
 		}
 
-		public static RecipeManager.Recipe getRecipeS(string key)
+		public static RCP.Recipe getRecipeS(string key)
 		{
-			return X.Get<string, RecipeManager.Recipe>(UiAlchemyWorkBench.ORecipe, key);
+			return X.Get<string, RCP.Recipe>(UiAlchemyWorkBench.ORecipe, key);
 		}
 
-		public override RecipeManager.Recipe getRecipe(NelItem Itm)
+		public override RCP.Recipe getRecipe(NelItem Itm)
 		{
 			return UiAlchemyWorkBench.getRecipeS(Itm);
 		}
 
-		public static RecipeManager.Recipe getRecipeS(NelItem Itm)
+		public static RCP.Recipe getRecipeS(NelItem Itm)
 		{
 			UiAlchemyWorkBench.initReadScript();
 			if (!TX.isStart(Itm.key, "workbench_", 0))
 			{
 				return null;
 			}
-			return X.Get<string, RecipeManager.Recipe>(UiAlchemyWorkBench.ORecipe, TX.slice(Itm.key, "workbench_".Length).ToUpper());
+			return X.Get<string, RCP.Recipe>(UiAlchemyWorkBench.ORecipe, TX.slice(Itm.key, "workbench_".Length).ToUpper());
 		}
 
 		private static UiAlchemyWorkBench.WKB_KIND getKind(NelItem Itm)
@@ -413,7 +413,7 @@ namespace nel
 			return UiAlchemyWorkBench.WKB_KIND.CAPACITY;
 		}
 
-		private static UiAlchemyWorkBench.WKB_KIND getKind(RecipeManager.Recipe Rcp)
+		private static UiAlchemyWorkBench.WKB_KIND getKind(RCP.Recipe Rcp)
 		{
 			UiAlchemyWorkBench.WKB_KIND wkb_KIND;
 			if (FEnum<UiAlchemyWorkBench.WKB_KIND>.TryParse(Rcp.key, out wkb_KIND, true))
@@ -429,7 +429,7 @@ namespace nel
 
 		private static UiCraftBase.AutoCreationInfo CInfoDef;
 
-		private static BDic<string, RecipeManager.Recipe> ORecipe;
+		private static BDic<string, RCP.Recipe> ORecipe;
 
 		private static BDic<UiAlchemyWorkBench.WKB_KIND, List<UiAlchemyWorkBench.WorkBenchRow>> ORecipeRow;
 
@@ -448,7 +448,7 @@ namespace nel
 
 		private class WorkBenchRow
 		{
-			public WorkBenchRow(NelItem _Target, RecipeManager.Recipe _TargetRecipe, RecipeManager.RPI_CATEG _target_category, NelItem.CATEG _target_ni_category, EfParticleFuncCalc _CFn, EfParticleFuncCalc _CGradeFn)
+			public WorkBenchRow(NelItem _Target, RCP.Recipe _TargetRecipe, RCP.RPI_CATEG _target_category, NelItem.CATEG _target_ni_category, EfParticleFuncCalc _CFn, EfParticleFuncCalc _CGradeFn)
 			{
 				this.Target = _Target;
 				this.TargetRecipe = _TargetRecipe;
@@ -458,21 +458,21 @@ namespace nel
 				this.GradeFn = _CGradeFn;
 			}
 
-			public RecipeManager.RecipeIngredient createRow(int index, float count)
+			public RCP.RecipeIngredient createRow(int index, float count)
 			{
-				int num = (int)(this.CFn.Get(null, count) + 0.0001f);
+				int num = (int)(this.CFn.Get(-1f, count, false) + 0.0001f);
 				if (num <= 0)
 				{
 					return null;
 				}
-				return new RecipeManager.RecipeIngredient(this.Target, this.TargetRecipe, this.target_category, this.target_ni_category, 1f, num, num, (this.GradeFn == null) ? 0 : ((int)X.MMX(0f, this.GradeFn.Get(null, count), 4f)), index, -2, false);
+				return new RCP.RecipeIngredient(this.Target, this.TargetRecipe, this.target_category, this.target_ni_category, 1f, num, num, (this.GradeFn == null) ? 0 : ((int)X.MMX(0f, this.GradeFn.Get(-1f, count, false), 4f)), index, -2, false);
 			}
 
 			public readonly NelItem Target;
 
-			public readonly RecipeManager.Recipe TargetRecipe;
+			public readonly RCP.Recipe TargetRecipe;
 
-			public readonly RecipeManager.RPI_CATEG target_category;
+			public readonly RCP.RPI_CATEG target_category;
 
 			public readonly NelItem.CATEG target_ni_category;
 

@@ -14,8 +14,17 @@ namespace XX.mobpxl
 			this.Msp = new MobSkltPosition("-Base", null);
 			this.AParts = new List<SkltParts>(parts_max);
 			this.AImgSorted = new List<SkltImage>(10);
-			this.OACCBase = new BDic<string, MobPCCContainer.ACC>();
+			this.OOAccPlt = new BDic<string, SkltPalette>();
+			this.OOAccPlt["_"] = new SkltPalette("_", 0);
 			this.ASq = new List<SkltSequence>(2);
+		}
+
+		internal SkltPalette OACCBase
+		{
+			get
+			{
+				return this.OOAccPlt["_"];
+			}
 		}
 
 		internal MobSklt(string _name, PxlFrame _DefSkltFrame = null)
@@ -41,7 +50,7 @@ namespace XX.mobpxl
 			}
 		}
 
-		internal bool readFromBytes(MobGenerator Gen, ByteArray Ba, int vers = 10)
+		internal bool readFromBytes(MobGenerator Gen, ByteArray Ba, int vers = 13)
 		{
 			SkltImageSrc skltImageSrc = null;
 			this.need_sort_image = true;
@@ -74,7 +83,7 @@ namespace XX.mobpxl
 					skltParts.ptype = text;
 					for (int j = 0; j < num2; j++)
 					{
-						SkltImage skltImage = SkltImage.readFromBytes(Gen, skltParts, Ba, null, true, vers);
+						SkltImage skltImage = SkltImage.readFromBytes(Gen, skltParts, Ba, null, vers < 11, vers);
 						if (skltImage != null)
 						{
 							skltParts.AImage.Add(skltImage);
@@ -86,7 +95,19 @@ namespace XX.mobpxl
 					}
 				}
 			}
-			MobPCCContainer.readFromBytes(Ba, ref this.OACCBase, Gen.getBaseCharacter());
+			if (vers < 11)
+			{
+				MobPCCContainer.readFromBytes(Ba, this, "_", Gen.getBaseCharacter(), false);
+			}
+			else
+			{
+				int num4 = Ba.readByte();
+				for (int k = 0; k < num4; k++)
+				{
+					string text2 = Ba.readPascalString("utf-8", false);
+					MobPCCContainer.readFromBytes(Ba, this, text2, Gen.getBaseCharacter(), false);
+				}
+			}
 			bool flag = false;
 			if (skltImageSrc != null)
 			{
@@ -105,23 +126,23 @@ namespace XX.mobpxl
 				{
 					MobSkltPosition.readFromBytes(Ba, this.Msp);
 				}
-				for (int k = 0; k < num; k++)
+				for (int l = 0; l < num; l++)
 				{
-					SkltParts.readFromBytesJoint(this, Ba, (PARTS_TYPE)k, true);
+					SkltParts.readFromBytesJoint(this, Ba, (PARTS_TYPE)l, true);
 				}
 			}
 			else
 			{
-				for (int l = 0; l < num; l++)
+				for (int m = 0; m < num; m++)
 				{
-					for (int m = 0; m < 2; m++)
+					for (int n = 0; n < 2; n++)
 					{
-						SkltParts.readFromBytesJoint(this, Ba, (PARTS_TYPE)l, m == 0);
+						SkltParts.readFromBytesJoint(this, Ba, (PARTS_TYPE)m, n == 0);
 					}
 				}
 			}
-			int num4 = Ba.readByte();
-			for (int n = 0; n < num4; n++)
+			int num5 = Ba.readByte();
+			for (int num6 = 0; num6 < num5; num6++)
 			{
 				SkltSequence sequence = Gen.getSequence(Ba.readPascalString("utf-8", false));
 				if (sequence != null)
@@ -139,6 +160,26 @@ namespace XX.mobpxl
 			else
 			{
 				this.Size.Set(0f, 0f, 80f, 200f);
+			}
+			if (vers >= 12)
+			{
+				int num7 = Ba.readByte();
+				if (num7 > 0)
+				{
+					if (this.OColVari == null)
+					{
+						this.OColVari = new BDic<string, SkltColVari>(num7);
+					}
+					for (int num8 = 0; num8 < num7; num8++)
+					{
+						string text3 = Ba.readPascalString("utf-8", false);
+						SkltColVari skltColVari = SkltColVari.readFromBytes(Ba, text3, Gen.getBaseCharacter(), vers);
+						if (skltColVari != null)
+						{
+							this.OColVari[text3] = skltColVari;
+						}
+					}
+				}
 			}
 			return flag;
 		}
@@ -281,51 +322,14 @@ namespace XX.mobpxl
 			}
 		}
 
-		internal void clearTextureAtlas()
+		public Vector2 calcPositionP2A(PARTS_TYPE _parts, Vector2 Src)
 		{
-			int count = this.AParts.Count;
-			for (int i = 0; i < count; i++)
-			{
-				SkltParts skltParts = this.AParts[i];
-				if (skltParts != null)
-				{
-					int count2 = skltParts.AImage.Count;
-					for (int j = 0; j < count2; j++)
-					{
-						skltParts.AImage[j].clearTextureAtlas();
-					}
-				}
-			}
-			this.atlas_created = false;
+			SkltParts skltParts = this.AParts[(int)_parts];
+			MobSkltPosition jointBase = skltParts.getJointBase();
+			return MobSkltPosition.calcPositionP2A(Src, skltParts.PartsSize, jointBase);
 		}
 
-		internal void createAtlas(RectAtlasTexture CalcAtlas)
-		{
-			if (this.atlas_created)
-			{
-				return;
-			}
-			int count = this.AParts.Count;
-			for (int i = 0; i < count; i++)
-			{
-				SkltParts skltParts = this.AParts[i];
-				if (skltParts != null)
-				{
-					int count2 = skltParts.AImage.Count;
-					for (int j = 0; j < count2; j++)
-					{
-						SkltImage skltImage = skltParts.AImage[j];
-						if (!skltImage.atlas_created)
-						{
-							skltImage.createAtlas(CalcAtlas);
-						}
-					}
-				}
-			}
-			this.atlas_created = true;
-		}
-
-		internal void createPccAppliedMesh(MobGenerator Gen, MeshDrawer Md, SkltImage Ignore_Image = null)
+		internal void createPccAppliedMesh(MobGenerator Gen, SkltRenderTicket Tkt, MeshDrawer Md, SkltImage Ignore_Image = null)
 		{
 			int count = this.AParts.Count;
 			for (int i = 0; i < count; i++)
@@ -339,11 +343,25 @@ namespace XX.mobpxl
 						SkltImage skltImage = skltParts.AImage[j];
 						if (skltImage != Ignore_Image)
 						{
-							skltImage.createPccAppliedMesh(Gen, Md, true);
+							skltImage.createPccAppliedMesh(Gen, Tkt, Md, true);
 						}
 					}
 				}
 			}
+		}
+
+		internal SkltPalette getPalette(string palette_key, bool no_make = false)
+		{
+			SkltPalette skltPalette;
+			if (this.OOAccPlt.TryGetValue(palette_key, out skltPalette))
+			{
+				return skltPalette;
+			}
+			if (!no_make || palette_key == "_")
+			{
+				skltPalette = (this.OOAccPlt[palette_key] = new SkltPalette(palette_key, 0));
+			}
+			return skltPalette;
 		}
 
 		internal void addAnimSequence(SkltSequence Sq, int index = -1)
@@ -375,6 +393,31 @@ namespace XX.mobpxl
 			return null;
 		}
 
+		public SkltSequence prepareAnimType(string type, MobGenerator MOBG, string anim_source)
+		{
+			SkltSequence animByType = this.getAnimByType(type);
+			if (animByType != null)
+			{
+				return animByType;
+			}
+			SkltSequence skltSequence;
+			if (MOBG.getWholeAnimSequence().TryGetValue(anim_source, out skltSequence))
+			{
+				if (!(skltSequence.type != type))
+				{
+					this.ASq.Add(skltSequence);
+					skltSequence.referred++;
+					return skltSequence;
+				}
+				X.de(string.Concat(new string[] { "Sq ", anim_source, " はtype ", type, " ではありません" }), null);
+			}
+			else
+			{
+				X.de("Sq " + anim_source + " が見つかりません", null);
+			}
+			return null;
+		}
+
 		public Vector2 getBasePosFor(MobSkltPosition.IPosSyncable POI)
 		{
 			if (POI is SkltParts)
@@ -391,6 +434,41 @@ namespace XX.mobpxl
 		public MobSkltPosition getBaseMspFor(MobSkltPosition.IPosSyncable POI)
 		{
 			return POI.getMsp();
+		}
+
+		internal BDic<string, SkltColVari> getColVariWholeObject()
+		{
+			return this.OColVari;
+		}
+
+		internal SkltColVari GetColVari(string name, bool no_make = true)
+		{
+			if (TX.noe(name))
+			{
+				return null;
+			}
+			if (this.OColVari == null)
+			{
+				if (!no_make)
+				{
+					this.OColVari = new BDic<string, SkltColVari>(1);
+					return this.OColVari[name] = new SkltColVari(name);
+				}
+				return null;
+			}
+			else
+			{
+				SkltColVari skltColVari;
+				if (this.OColVari.TryGetValue(name, out skltColVari))
+				{
+					return skltColVari;
+				}
+				if (!no_make)
+				{
+					return this.OColVari[name] = new SkltColVari(name);
+				}
+				return null;
+			}
 		}
 
 		public override string ToString()
@@ -451,12 +529,14 @@ namespace XX.mobpxl
 
 		internal readonly List<SkltSequence> ASq;
 
-		internal BDic<string, MobPCCContainer.ACC> OACCBase;
+		internal BDic<string, SkltPalette> OOAccPlt;
+
+		private BDic<string, SkltColVari> OColVari;
 
 		private bool need_sort_image_ = true;
 
 		public PxlFrame DefSkltFrame;
 
-		public bool atlas_created;
+		public const string PLT_BASE_KEY = "_";
 	}
 }

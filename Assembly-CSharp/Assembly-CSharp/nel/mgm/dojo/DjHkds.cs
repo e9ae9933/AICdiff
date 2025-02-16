@@ -11,7 +11,7 @@ namespace nel.mgm.dojo
 	{
 		public DjHkds(DjGM _GM)
 		{
-			this.Epo_hk_appear = new EfParticleOnce("dojo_hk_appear", EFCON_TYPE.UI);
+			this.Epo_hk_appear = new EfParticleOnce("dojo_hk_appear", EFCON_TYPE.FIXED);
 			this.GM = _GM;
 			this.OPosData = new BDic<DjHkds.POS, DjHkds.PosData>(12);
 			this.TxTitle = IN.CreateGob(this.GM.DJ.Gob, "-hkds_title").AddComponent<TextRenderer>();
@@ -174,80 +174,84 @@ namespace nel.mgm.dojo
 					string cmd = this.CR.cmd;
 					if (cmd != null)
 					{
-						if (!(cmd == "count"))
+						uint num = <PrivateImplementationDetails>.ComputeStringHash(cmd);
+						if (num <= 1012374921U)
 						{
-							if (cmd == "min_diff")
+							if (num != 498989871U)
+							{
+								if (num != 967958004U)
+								{
+									if (num == 1012374921U)
+									{
+										if (cmd == "max_diff")
+										{
+											djHkdsGenerator.max_diff = this.CR.Nm(1, djHkdsGenerator.max_diff);
+											continue;
+										}
+									}
+								}
+								else if (cmd == "count")
+								{
+									djHkdsGenerator.count = this.CR.Int(1, 0);
+									if (djHkdsGenerator.count <= 0)
+									{
+										djHkdsGenerator.count = 8 + djHkdsGenerator.count;
+										continue;
+									}
+									continue;
+								}
+							}
+							else if (cmd == "min_diff")
 							{
 								djHkdsGenerator.min_diff = this.CR.Nm(1, djHkdsGenerator.min_diff);
 								continue;
 							}
-							if (cmd == "max_diff")
+						}
+						else if (num <= 2565374185U)
+						{
+							if (num != 1450621046U)
 							{
-								djHkdsGenerator.max_diff = this.CR.Nm(1, djHkdsGenerator.max_diff);
-								continue;
-							}
-							if (cmd == "POS")
-							{
-								float num = this.CR.Nm(1, 1f);
-								for (int i = 2; i < this.CR.clength; i++)
+								if (num == 2565374185U)
 								{
-									DjHkds.POS pos;
-									if (FEnum<DjHkds.POS>.TryParse(this.CR.getIndex(i), out pos, true))
+									if (cmd == "POS")
 									{
-										DjHkds.PosData posData;
-										if (this.OPosData.TryGetValue(pos, out posData))
+										float num2 = this.CR.Nm(1, 1f);
+										for (int i = 2; i < this.CR.clength; i++)
 										{
-											djHkdsGenerator.addPos(pos, num);
+											DjHkds.POS pos;
+											if (FEnum<DjHkds.POS>.TryParse(this.CR.getIndex(i), out pos, true))
+											{
+												DjHkds.PosData posData;
+												if (this.OPosData.TryGetValue(pos, out posData))
+												{
+													djHkdsGenerator.addPos(pos, num2);
+												}
+												else
+												{
+													this.CR.tError("Fn 未定義POS:" + pos.ToString());
+												}
+											}
+											else
+											{
+												this.CR.tError("不明なPOS:" + this.CR.getIndex(i));
+											}
 										}
-										else
-										{
-											this.CR.tError("Fn 未定義POS:" + pos.ToString());
-										}
-									}
-									else
-									{
-										this.CR.tError("不明なPOS:" + this.CR.getIndex(i));
+										continue;
 									}
 								}
-								continue;
 							}
-							if (cmd == "FADE")
+							else if (cmd == "STYLE")
 							{
-								float num = this.CR.Nm(1, 1f);
+								float num2 = this.CR.Nm(1, 1f);
 								for (int j = 2; j < this.CR.clength; j++)
 								{
-									DjHkds.FADE fade;
-									if (FEnum<DjHkds.FADE>.TryParse(this.CR.getIndex(j), out fade, true))
-									{
-										DjHkds.FadeData fadeData;
-										if (this.OFadeData.TryGetValue(fade, out fadeData))
-										{
-											djHkdsGenerator.addFade(fade, num);
-										}
-										else
-										{
-											this.CR.tError("Fn 未定義FADE:" + fade.ToString());
-										}
-									}
-									else
-									{
-										this.CR.tError("不明なFADE:" + this.CR.getIndex(j));
-									}
-								}
-								continue;
-							}
-							if (cmd == "STYLE")
-							{
-								float num = this.CR.Nm(1, 1f);
-								for (int k = 2; k < this.CR.clength; k++)
-								{
 									DjHkds.STYLE style;
-									if (FEnum<DjHkds.STYLE>.TryParse(this.CR.getIndex(k), out style, true))
+									if (FEnum<DjHkds.STYLE>.TryParse(this.CR.getIndex(j), out style, true))
 									{
 										DjHkds.StyleData styleData;
 										if (this.OStyleData.TryGetValue(style, out styleData))
 										{
-											djHkdsGenerator.addStyle(style, num);
+											djHkdsGenerator.addStyle(style, num2);
 										}
 										else
 										{
@@ -256,20 +260,46 @@ namespace nel.mgm.dojo
 									}
 									else
 									{
-										this.CR.tError("不明なSTYLE:" + this.CR.getIndex(k));
+										this.CR.tError("不明なSTYLE:" + this.CR.getIndex(j));
 									}
 								}
 								continue;
 							}
 						}
-						else
+						else if (num != 2731417303U)
 						{
-							djHkdsGenerator.count = this.CR.Int(1, 0);
-							if (djHkdsGenerator.count <= 0)
+							if (num == 4015962131U)
 							{
-								djHkdsGenerator.count = 8 + djHkdsGenerator.count;
-								continue;
+								if (cmd == "FADE")
+								{
+									float num2 = this.CR.Nm(1, 1f);
+									for (int k = 2; k < this.CR.clength; k++)
+									{
+										DjHkds.FADE fade;
+										if (FEnum<DjHkds.FADE>.TryParse(this.CR.getIndex(k), out fade, true))
+										{
+											DjHkds.FadeData fadeData;
+											if (this.OFadeData.TryGetValue(fade, out fadeData))
+											{
+												djHkdsGenerator.addFade(fade, num2);
+											}
+											else
+											{
+												this.CR.tError("Fn 未定義FADE:" + fade.ToString());
+											}
+										}
+										else
+										{
+											this.CR.tError("不明なFADE:" + this.CR.getIndex(k));
+										}
+									}
+									continue;
+								}
 							}
+						}
+						else if (cmd == "term")
+						{
+							djHkdsGenerator.skill_term = this.CR.slice_join(1, " ", "");
 							continue;
 						}
 					}

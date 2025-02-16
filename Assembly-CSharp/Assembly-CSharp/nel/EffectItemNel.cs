@@ -65,6 +65,7 @@ namespace nel
 			EfParticle.assignType("BIGBOMB", EffectItemNel.fnPtcInitOnlyColor, new FnPtcDraw(EffectItemNel.fnPtcDrawBigBomb));
 			EfParticle.assignType("ENEMYTARGETTING", EffectItemNel.fnPtcInitOnlyColor, new FnPtcDraw(EffectItemNel.fnPtcDrawEnemyTargetting));
 			EfParticle.assignType("SPERMSHOT", EffectItemNel.fnPtcInitOnlyColor, new FnPtcDraw(EffectItemNel.fnPtcDrawSpermShot));
+			EfParticle.assignType("CYLINDER_GRD", EffectItemNel.fnPtcInitOnlyColor, new FnPtcDraw(EffectItemNel.fnPtcDrawCylinderGrd));
 			EfParticleManager.reloadParticleCsv(false);
 			AttackGhostDrawer.AddGhostEfFunc("magicslice", new AttackGhostDrawer.FnAgdEfDraw(EffectItemNel.fnAgdDraw_magicslice));
 			AttackGhostDrawer.AddGhostEfFunc("bossslice", new AttackGhostDrawer.FnAgdEfDraw(EffectItemNel.fnAgdDraw_bossslice));
@@ -377,6 +378,16 @@ namespace nel
 			return true;
 		}
 
+		public static bool fnPtcDrawCylinderGrd(EffectItem E, EfParticle EP, uint ran)
+		{
+			EP.GetMesh(E, null, true);
+			MeshDrawer md = EfParticle.Md;
+			md.Col = md.ColGrd.Set(EP.getColor(true, true)).C;
+			md.ColGrd.mulA(0f);
+			md.Line(EfParticle.cx, EfParticle.cy, EfParticle.cx + EfParticle._zm * X.Cos(EfParticle._agR), EfParticle.cy + EfParticle._zm * X.Sin(EfParticle._agR), EfParticle._thick, false, 0f, 1f);
+			return true;
+		}
+
 		public static bool fnPtcDrawBigBomb(EffectItem E, EfParticle EP, uint ran)
 		{
 			EP.GetMesh(E, MTRX.IconWhite, MTRX.MIicon);
@@ -543,7 +554,7 @@ namespace nel
 		private static Vector2 getCaneSwingMove(int i)
 		{
 			float num = 1f;
-			if (i < 3 && (EnhancerManager.enhancer_bits & EnhancerManager.EH.long_reach) != (EnhancerManager.EH)0U)
+			if (i < 3 && (ENHA.enhancer_bits & ENHA.EH.long_reach) != (ENHA.EH)0U)
 			{
 				num = X.NI(3.45f, 1f, X.ZPOW((float)i, 3f));
 			}
@@ -631,6 +642,16 @@ namespace nel
 
 		public static bool fnRunDraw_mp_crack(EffectItem E)
 		{
+			return EffectItemNel.efDrawCrack(E, uint.MaxValue, 100f);
+		}
+
+		public static bool fnRunDraw_stone_crack(EffectItem E)
+		{
+			return EffectItemNel.efDrawCrack(E, 4280295456U, 34f);
+		}
+
+		public static bool efDrawCrack(EffectItem E, uint col = 4294967295U, float jump_height0 = 100f)
+		{
 			int particleCount = E.EF.getParticleCount(E, (int)E.x);
 			float num = 1f / (float)particleCount;
 			float num2 = num * 0.5f;
@@ -652,7 +673,7 @@ namespace nel
 			Vector3 posMainTransform = cam.PosMainTransform;
 			mesh.base_x = posMainTransform.x;
 			mesh.base_y = posMainTransform.y;
-			mesh.Col = mesh.ColGrd.White().setA1(1f - X.ZLINE(E.af - (float)E.time - num9, num9)).C;
+			mesh.Col = mesh.ColGrd.Set(col).setA1(1f - X.ZLINE(E.af - (float)E.time - num9, num9)).C;
 			mesh.ColGrd.setA(0f);
 			for (int i = 0; i < particleCount; i++)
 			{
@@ -684,13 +705,14 @@ namespace nel
 				num11 *= scaleRev;
 				float num13 = 80f + X.RAN(ran, 2547) * 190f * scaleRev;
 				float num14 = num13 * num8;
-				float num15 = X.NI(50, 100, X.RAN(ran, 2884)) / 100f * num13;
-				ElecDrawer elecDrawer = MTRX.Elec.BallRadius(0.1f * scaleRev, -1000f).DivideWidth(X.NI(50, 70, X.RAN(ran, 1512)) * X.NI(scaleRev, 1f, 0.5f)).Thick(X.NI(6, 10, X.RAN(ran, 2689)), 0f)
+				float num15 = X.NI(jump_height0 * 0.5f, jump_height0, X.RAN(ran, 2884)) * 0.01f * num13;
+				ElecDrawer elecDrawer = MTRX.Elec.BallRadius(0.1f * scaleRev, -1000f).DivideWidth(X.NI(50, 70, X.RAN(ran, 1512)) * X.NI(scaleRev, 1f, 0.5f)).Thick(X.NI(6, 10, X.RAN(ran, 2689)), -1000f)
 					.JumpHeight(num15, X.NI(0.3f, 0.77f, X.RAN(ran, 2342)) * num15)
 					.Ran(ran)
 					.JumpRatio(0.6f);
-				float num16 = X.GAR(num12, num11, 0f, 0f) + X.NI(-0.1f, 0.1f, X.RAN(ran, 703)) * 6.2831855f;
+				float num16 = X.GAR2(num12, num11, 0f, 0f) + X.NI(-0.1f, 0.1f, X.RAN(ran, 703)) * 6.2831855f;
 				elecDrawer.finePos(num12, num11, num12 + num14 * X.Cos(num16), num11 + num14 * 7f / 9f * X.Sin(num16));
+				elecDrawer.t = 0f;
 				elecDrawer.draw(mesh, 1f, true);
 				num2 += num;
 			}
@@ -926,6 +948,130 @@ namespace nel
 						float num9 = -num8 * 0.5f + 3f * X.RAN(ran2, 2163) * (float)X.MPF(X.RAN(ran2, 3199) < 0.5f);
 						float num10 = 3f * X.RAN(ran2, 1432) * (float)X.MPF(X.RAN(ran2, 1082) < 0.5f);
 						chrNelS.DrawScaleStringTo(meshImg, stb, num9, num10, 5f, 5f, ALIGN.LEFT, ALIGNY.MIDDLE, false, 0f, 0f, null);
+					}
+				}
+			}
+			return true;
+		}
+
+		public static bool fnRunDraw_summon_activate_smnc(EffectItem E)
+		{
+			if (E.af >= (float)E.time)
+			{
+				return false;
+			}
+			PxlPose poseByName = MTRX.PxlIcon.getPoseByName("_anim_smnc_activate");
+			if (poseByName == null)
+			{
+				return false;
+			}
+			int num = X.IntC(IN.w / 112f);
+			int num2 = X.IntC(IN.h / 112f);
+			int num3 = num / 2;
+			int num4 = num2 / 2;
+			int num5 = num3 - 2;
+			MeshDrawer meshImg = E.GetMeshImg("summoner", MTRX.MIicon, BLEND.ADD, false);
+			MeshDrawer mesh = E.GetMesh("summoner", uint.MaxValue, BLEND.ADD, false);
+			Vector3 posMainTransform = M2DBase.Instance.Cam.PosMainTransform;
+			meshImg.base_x = (mesh.base_x = posMainTransform.x);
+			meshImg.base_y = (mesh.base_y = posMainTransform.y);
+			uint num6 = 4280675839U;
+			mesh.Col = (meshImg.Col = C32.d2c(num6));
+			PxlSequence sequence = poseByName.getSequence(1);
+			PxlSequence sequence2 = poseByName.getSequence(0);
+			for (int i = 0; i < num2; i++)
+			{
+				float num7 = 112f * (float)(-(float)num4 + i);
+				bool flag = X.Abs(i - num4) <= 0;
+				for (int j = 0; j < num; j++)
+				{
+					if (flag && j == num5)
+					{
+						j += 5;
+					}
+					int num8 = X.Mn(j + i, num - 1 - j + (num - 1 - i));
+					float num9 = 112f * (float)(-(float)num3 + j);
+					uint ran = X.GETRAN2((int)((ulong)E.index + (ulong)((long)j) + (ulong)((long)(17 * i))), (int)((E.index & 15U) + (uint)(i * 3) + (uint)(j * 2)));
+					float num10 = X.RAN(ran, 2447) * 15f + (float)num8 * 0.5f;
+					float num11 = E.af - num10;
+					if (num11 >= 0f)
+					{
+						meshImg.Identity();
+						meshImg.TranslateP(num9 + 0.5f * X.COSI(E.af + X.RAN(ran, 1237) * 200f, X.NI(140, 250, X.RAN(ran, 2810))), num7 + 0.5f * X.COSI(E.af + X.RAN(ran, 1363) * 200f, X.NI(140, 250, X.RAN(ran, 1922))), false);
+						float num12 = (float)E.time - (X.RAN(ran, 2715) * 15f + 20f);
+						if (E.af >= num12)
+						{
+							float num13 = X.ZLINE(E.af - num12, 20f);
+							if (num13 <= 0f)
+							{
+								goto IL_0338;
+							}
+							meshImg.Scale(1f, 1f - num13, true);
+							if (num13 < 0.11f || num13 >= 0.25f)
+							{
+								meshImg.initForImg(MTRX.IconWhite, 0);
+								meshImg.Rect(0f, 0f, 72f, 72f, false);
+								goto IL_0338;
+							}
+						}
+						PxlFrame frame = sequence.getFrame(X.Mn((int)num11 / 2, sequence.countFrames() - 1));
+						meshImg.RotaPF(0f, 0f, 6f, 6f, 0f, frame, false, false, false, uint.MaxValue, false, 0);
+					}
+					IL_0338:;
+				}
+			}
+			float num14 = E.af - 25f;
+			if (num14 >= 0f)
+			{
+				BMListChars chrNelS = MTR.ChrNelS;
+				float num15 = 22.4f;
+				int num16 = 25;
+				int num17 = num16 / 2;
+				int num18 = 5;
+				int num19 = num18 / 2;
+				float num20 = 560f;
+				if (num14 < 50f)
+				{
+					for (int k = 0; k < num18; k++)
+					{
+						float num21 = (float)(-(float)num19 + k) * num15;
+						for (int l = 0; l < num16; l++)
+						{
+							uint ran2 = X.GETRAN2((int)((ulong)E.index + (ulong)((long)l) + (ulong)((long)(13 * k))), (int)((E.index & 15U) + (uint)(k * 2) + (uint)(l * 3)));
+							float num22 = (float)(-(float)num17 + l) * num15;
+							float num23 = num14 - 8f - X.RAN(ran2, 2375) * 28f;
+							mesh.Identity();
+							mesh.TranslateP(num22, num21, false);
+							if (num23 < -4f)
+							{
+								mesh.Rect(0f, 0f, num15, num15, false);
+							}
+							else if (num23 < 0f)
+							{
+								mesh.Box(0f, 0f, num15, num15, 1f, false);
+							}
+						}
+					}
+				}
+				else
+				{
+					meshImg.Col = (mesh.Col = meshImg.ColGrd.Set(num6).mulA(X.ZLINE((float)E.time - E.af, 50f)).C);
+				}
+				meshImg.Identity();
+				mesh.Identity();
+				float num24 = -num20 * 0.46f;
+				PxlFrame frame2 = sequence2.getFrame(X.ANM((int)num14, sequence2.countFrames(), 6f));
+				meshImg.RotaPF(num24, 0f, 4f, 4f, 0f, frame2, false, false, false, uint.MaxValue, false, 0);
+				using (STB stb = TX.PopBld(null, 0))
+				{
+					stb.Add("HOLOGRAPHY ACTIVATED");
+					stb.Length = (int)X.MMX(0f, num14 / 3f - 3f, (float)stb.Length);
+					float num25 = num24 + 48f - 10f;
+					float num26 = chrNelS.DrawScaleStringTo(meshImg, stb, num25, 0f, 4f, 4f, ALIGN.LEFT, ALIGNY.MIDDLE, false, 0f, 0f, null);
+					if (X.ANM((int)num14, 2, 10f) == 0)
+					{
+						num25 += num26 + 16f;
+						mesh.Rect(num25, 0f, 24f, 32f, false);
 					}
 				}
 			}
@@ -2027,13 +2173,13 @@ namespace nel
 				if (Dro.af_ground < 5f)
 				{
 					X.ZSIN(Dro.af_ground + 3f, 8f);
-					meshDrawer = Ef.GetMesh("", MTRX.MIicon.getMtr(BLEND.SUB, -1), true);
+					meshDrawer = Ef.GetMesh("", MTRX.MIicon.getMtr(BLEND.SUB, -1), false);
 					meshDrawer.initForImg(MTRX.EffCircle128, 0);
 					meshDrawer.Col = EffectItem.Col1.C;
 					meshDrawer.Rect(0f, 0f, num * X.NIXP(3.3f, 4.8f) * 2f, num * X.NIXP(0.8f, 0.002f), false);
 				}
 				meshDrawer = null;
-				if (Dro.z < 0f && EnemySummoner.ActiveScript != null && EnemySummoner.ActiveScript.enemy_count >= 3f)
+				if (Dro.z < 0f && EnemySummoner.ActiveScript != null && EnemySummoner.ActivePlayer.enemy_count >= 3f)
 				{
 					return Dro.af_ground < 5f;
 				}
@@ -2051,7 +2197,7 @@ namespace nel
 					{
 						if (meshDrawer == null)
 						{
-							meshDrawer = Ef.GetMesh("", MTRX.getMtr(BLEND.SUB, -1), true);
+							meshDrawer = Ef.GetMesh("", MTRX.getMtr(BLEND.SUB, -1), false);
 						}
 						float num5 = X.NI(18, 33, X.RAN(ran2, 2461));
 						DripDrawer dripDrawer = MTRX.Drip.Set(num5, X.NI(0.7f, 1.2f, X.RAN(ran2, 433)));

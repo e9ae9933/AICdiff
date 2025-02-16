@@ -12,7 +12,8 @@ namespace XX.mobpxl
 	{
 		public MobPCCContainer()
 		{
-			this.OACC = new BDic<string, MobPCCContainer.ACC>();
+			this.OACC = new SkltPalette("_temporary", 0);
+			this.OACCColVari = new SkltPalette("_temporary_colvari", 0);
 			if (MobPCCContainer.Pcc_dir == null)
 			{
 				MobPCCContainer.Pcc_dir = Path.Combine(Application.streamingAssetsPath, "mobpcc");
@@ -25,10 +26,12 @@ namespace XX.mobpxl
 		public MobPCCContainer Clear()
 		{
 			this.OACC.Clear();
+			this.OACCColVari.Clear();
+			this.base_colvari_overwrite = 2;
 			return this;
 		}
 
-		internal MobPCCContainer MergeOACC(BDic<string, MobPCCContainer.ACC> _OAcc)
+		internal MobPCCContainer MergeOACC(SkltPalette _OAcc)
 		{
 			if (_OAcc != null)
 			{
@@ -43,16 +46,12 @@ namespace XX.mobpxl
 			return this;
 		}
 
-		internal BDic<string, MobPCCContainer.ACC> getWholePCCObject()
-		{
-			return this.OACC;
-		}
-
 		public PxlCharacter Init(string _name, PxlCharacter Chr)
 		{
 			this.name = _name;
 			this.chr_name = Chr.title;
 			this.Gen = null;
+			this.TargetColVariPlt = null;
 			this.ATexture0.Clear();
 			this.ATextureP.Clear();
 			this.AddChr(Chr);
@@ -65,6 +64,7 @@ namespace XX.mobpxl
 			this.ATextureP.Clear();
 			this.ATextureP.Add(TxPArts);
 			this.Gen = _Gen;
+			this.TargetColVariPlt = null;
 		}
 
 		public PxlCharacter AddChr(PxlCharacter Chr)
@@ -119,6 +119,16 @@ namespace XX.mobpxl
 			return null;
 		}
 
+		public int getDataCount(string parts_key)
+		{
+			MobPCCContainer.ACC acc;
+			if (this.OACC.TryGetValue(parts_key, out acc))
+			{
+				return acc.data_count;
+			}
+			return 0;
+		}
+
 		private void initApplyEffect(int index, Texture Tx0, out Texture TxP, out RenderTexture Dest, out RenderTexture TxBuffer, out MeshDrawer MdForPc)
 		{
 			TxP = this.ATextureP[index];
@@ -154,7 +164,7 @@ namespace XX.mobpxl
 				}
 				Tx0 = texture;
 			}
-			BLIT.JustPaste(Tx0, Dest);
+			BLIT.JustPaste(Tx0, Dest, false);
 			GL.PopMatrix();
 		}
 
@@ -162,7 +172,7 @@ namespace XX.mobpxl
 		{
 			if (Dest == MobPCCContainer.TxBuffer)
 			{
-				BLIT.JustPaste(Dest, TxBuffer);
+				BLIT.JustPaste(Dest, TxBuffer, false);
 				Dest = TxBuffer;
 			}
 		}
@@ -189,6 +199,38 @@ namespace XX.mobpxl
 			return this;
 		}
 
+		internal void initColVari(SkltImage Img, string palette_key)
+		{
+			this.OACCColVari.Clear();
+			this.TargetColVariPlt = null;
+			if (this.Gen != null && this.Gen.CurColVari != null && Img != null)
+			{
+				SkltColVari.SkltPaletteC skltPaletteC = this.Gen.CurColVari.Get(Img, true);
+				palette_key = ((skltPaletteC != null) ? skltPaletteC.key : Img.palette_key);
+				if (palette_key != "_")
+				{
+					if (Img.pcc_sync_base && (skltPaletteC == null || !skltPaletteC.overwrite_basic_color))
+					{
+						this.OACCColVari.mergeBasePalette(this.Gen.CurColVari.Get("_", true));
+					}
+					if (this.base_colvari_overwrite == 2)
+					{
+						SkltColVari.SkltPaletteC skltPaletteC2 = this.Gen.CurColVari.Get("_", false);
+						this.base_colvari_overwrite = (skltPaletteC2.overwrite_basic_color ? 1 : 0);
+					}
+				}
+				else if (this.base_colvari_overwrite == 2)
+				{
+					this.base_colvari_overwrite = ((skltPaletteC != null && skltPaletteC.overwrite_basic_color) ? 1 : 0);
+				}
+				this.TargetColVariPlt = skltPaletteC;
+				if (skltPaletteC != null)
+				{
+					X.objMerge<string, MobPCCContainer.ACC>(this.OACCColVari, skltPaletteC, false);
+				}
+			}
+		}
+
 		public void applyEffectWhole(string skip_name = null)
 		{
 			int count = this.ATextureP.Count;
@@ -205,11 +247,25 @@ namespace XX.mobpxl
 			RenderTexture renderTexture2;
 			MeshDrawer meshDrawer;
 			this.initApplyEffect(index, null, out texture, out renderTexture, out renderTexture2, out meshDrawer);
-			foreach (KeyValuePair<string, MobPCCContainer.ACC> keyValuePair in this.OACC)
+			if (this.TargetColVariPlt == null || !this.TargetColVariPlt.overwrite_basic_color)
 			{
-				if (!(keyValuePair.Key == skip_name))
+				foreach (KeyValuePair<string, MobPCCContainer.ACC> keyValuePair in this.OACC)
 				{
-					this.applyEffect(keyValuePair.Value, texture, ref renderTexture, ref renderTexture2, meshDrawer);
+					if (!(keyValuePair.Key == skip_name) && (this.base_colvari_overwrite != 1 || !MobGenerator.is_base_oacc_parts(keyValuePair.Key)))
+					{
+						this.applyEffect(keyValuePair.Value, texture, ref renderTexture, ref renderTexture2, meshDrawer);
+					}
+				}
+			}
+			SkltPalette oacccolVari = this.OACCColVari;
+			if (oacccolVari != null)
+			{
+				foreach (KeyValuePair<string, MobPCCContainer.ACC> keyValuePair2 in oacccolVari)
+				{
+					if (!(keyValuePair2.Key == skip_name))
+					{
+						this.applyEffect(keyValuePair2.Value, texture, ref renderTexture, ref renderTexture2, meshDrawer);
+					}
 				}
 			}
 			this.endApplyEffect(ref renderTexture, renderTexture2);
@@ -221,55 +277,47 @@ namespace XX.mobpxl
 			return this.ATxApplied[index];
 		}
 
-		public void readFromBytes(ByteArray Ba, PxlCharacter Pcr)
+		public void readFromBytesFromFile(ByteArray Ba, SkltImage CurImage, PxlCharacter Pcr)
 		{
 			this.Clear();
 			Ba.readByte();
 			this.name = Ba.readString("utf-8", false);
 			this.chr_name = Ba.readString("utf-8", false);
 			Ba.readByte();
-			MobPCCContainer.readFromBytes(Ba, ref this.OACC, Pcr);
+			this.OACC = MobPCCContainer.readFromBytes(Ba, CurImage.Con.pSklt, CurImage.palette_key, Pcr, false);
 		}
 
-		internal static void readFromBytes(ByteArray Ba, ref BDic<string, MobPCCContainer.ACC> OACC, PxlCharacter Pcr)
+		internal static SkltPalette readFromBytes(ByteArray Ba, MobSklt Sklt, string palette_key, PxlCharacter Pcr, bool load_palette_temporary = false)
 		{
-			bool flag = false;
-			if (OACC != null)
+			SkltPalette skltPalette;
+			if (load_palette_temporary)
 			{
-				OACC.Clear();
-				flag = true;
+				skltPalette = new SkltPalette(palette_key, 0);
+			}
+			else
+			{
+				skltPalette = Sklt.getPalette(palette_key, true);
+				if (skltPalette != null)
+				{
+					skltPalette.Clear();
+				}
 			}
 			int num = Ba.readByte();
 			if (num == 0)
 			{
-				return;
+				return null;
 			}
-			if (OACC == null)
+			if (skltPalette == null)
 			{
-				OACC = new BDic<string, MobPCCContainer.ACC>(num);
+				skltPalette = Sklt.getPalette(palette_key, false);
 			}
-			for (int i = 0; i < num; i++)
-			{
-				string text = Ba.readPascalString("utf-8", false);
-				MobPCCContainer.ACC acc = MobPCCContainer.ACC.readFromBytesACC(Ba, flag ? X.Get<string, MobPCCContainer.ACC>(OACC, text) : null);
-				if (acc != null)
-				{
-					if (acc.PI == null && Pcr != null)
-					{
-						int partsInfoIndex = Pcr.getPartsInfoIndex(text, false);
-						if (partsInfoIndex < 0)
-						{
-							goto IL_0086;
-						}
-						acc.PI = Pcr.APartsInfo[partsInfoIndex];
-					}
-					OACC[text] = acc;
-				}
-				IL_0086:;
-			}
+			skltPalette.readFromBytes(Ba, num, Pcr);
+			return skltPalette;
 		}
 
-		private BDic<string, MobPCCContainer.ACC> OACC;
+		private SkltPalette OACC;
+
+		private SkltPalette OACCColVari;
 
 		public string chr_name = "_";
 
@@ -293,6 +341,10 @@ namespace XX.mobpxl
 
 		private MobGenerator Gen;
 
+		private SkltColVari.SkltPaletteC TargetColVariPlt;
+
+		private byte base_colvari_overwrite = 2;
+
 		internal class ACC
 		{
 			public ACC(PxlPartsInfo _PI, int capacity = 1)
@@ -306,6 +358,14 @@ namespace XX.mobpxl
 				get
 				{
 					return this.A.Count == 0;
+				}
+			}
+
+			public int data_count
+			{
+				get
+				{
+					return this.A.Count;
 				}
 			}
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using evt;
 using m2d;
@@ -238,8 +239,23 @@ namespace nel
 			this.repositConfirmer(true);
 		}
 
+		public void reservePersonForNest(string hkds_id, NelMSG Src)
+		{
+			this.id = hkds_id;
+			this.localized_talker_name_ = Src.localized_talker_name_;
+			this.fineCapContent();
+			if (this.t < 0f)
+			{
+				this.t = -30f;
+			}
+		}
+
 		public NelMSG initDrawer(string _id, bool force = false)
 		{
+			if (_id == null)
+			{
+				return this;
+			}
 			if (this.id != _id)
 			{
 				force = true;
@@ -253,6 +269,7 @@ namespace nel
 			if (force)
 			{
 				this.t = (this.t_hkds = (this.t_talker = (this.t_move = 0f)));
+				this.Tx.container_TS = 1f;
 				this.x = (this.depx = 0f);
 				this.sx = 0;
 				this.depy = 20f;
@@ -273,10 +290,47 @@ namespace nel
 				this.behind_flag = false;
 				this.use_valotile = this.Con.use_valotile;
 				this.Con.AddActive(this);
+				if (this.Tx.hasReservedContent())
+				{
+					this.TxCap.alpha = 1f;
+					this.Tx.alpha = 1f;
+				}
 				this.ran_t0 = IN.totalframe;
 				base.gameObject.SetActive(true);
+				if (this.nest_shuffle > 0 && this.Tx.hasReservedContent())
+				{
+					this.t_move = 19f;
+					this.t_hkds = this.t_hkds_maxt * 0.75f;
+					this.t_talker = 31f;
+				}
+				else
+				{
+					this.nest_shuffle = -1;
+					this.t_nest_shuffle = -1f;
+				}
 			}
 			return this;
+		}
+
+		public void initNestShuffle(int _nest_shuffle, float _t_nest_shuffle)
+		{
+			if (_nest_shuffle < 0)
+			{
+				this.nest_shuffle = -1;
+				this.t_nest_shuffle = -1f;
+				return;
+			}
+			this.nest_shuffle = (short)_nest_shuffle;
+			this.t_nest_shuffle = _t_nest_shuffle;
+			if (this.Tx.hasReservedContent() && this.nest_shuffle > 0)
+			{
+				this.Tx.showImmediate(true, false);
+			}
+			if (this.t < 0f)
+			{
+				this.t = -30f;
+				base.gameObject.SetActive(false);
+			}
 		}
 
 		public void initPerson(string _person_key, EvPerson _P)
@@ -310,6 +364,10 @@ namespace nel
 
 		public void readInfo(NelMSGContainer.HkdsInfo Info)
 		{
+			if (Info == null)
+			{
+				return;
+			}
 			Info.used = true;
 			this.ReservedInfo = Info;
 		}
@@ -415,7 +473,7 @@ namespace nel
 			{
 				if (M2DBase.Instance != null)
 				{
-					(M2DBase.Instance as NelM2DBase).remEnemyDarkTexture(this.EvilMessageMtr);
+					(M2DBase.Instance as NelM2DBase).ENMTR.remove(this.EvilMessageMtr);
 				}
 				IN.DestroyOne(this.EvilMessageMtr);
 				this.EvilMessageMtr = null;
@@ -460,12 +518,19 @@ namespace nel
 			}
 			this.depx = _depx;
 			this.depy = _depy;
-			if (this.t <= 1f)
+			if (this.nest_shuffle > 0 && this.t_nest_shuffle >= 0f)
 			{
-				this.x = this.depx * 0.5f;
-				this.y = (start_yfix ? 1f : 0.5f) * this.depy;
+				this.t_move = ((this.t_move < 0f) ? 0f : X.Mn(this.t_move, 20f));
 			}
-			this.t_move = 0f;
+			else
+			{
+				if (this.t <= 1f)
+				{
+					this.x = this.depx * 0.5f;
+					this.y = (start_yfix ? 1f : 0.5f) * this.depy;
+				}
+				this.t_move = 0f;
+			}
 			this.sx = (int)this.x;
 			this.sy = (int)this.y;
 			this.reposit(true);
@@ -528,12 +593,19 @@ namespace nel
 				this.Con.need_reposit_flag = true;
 				this.depx = zero.x;
 				this.depy = zero.y;
+				if (this.nest_shuffle > 0 && this.t_nest_shuffle >= 0f)
+				{
+					this.t_move = ((this.t_move < 0f) ? 0f : X.Mn(this.t_move, 20f));
+				}
+				else
+				{
+					this.t_move = 0f;
+				}
 				if (this.t <= 0f)
 				{
 					this.x = (float)((int)zero.z);
 					this.y = (float)((int)zero.w);
 				}
-				this.t_move = 0f;
 				this.sx = (int)this.x;
 				this.sy = (int)this.y;
 				this.reposit(true);
@@ -593,7 +665,7 @@ namespace nel
 			{
 				this.fkds_agR = -1.5707964f;
 			}
-			float num = 0f;
+			float num;
 			if (this.t_move < 0f)
 			{
 				num = X.ZSIN(-this.t_move, 30f);
@@ -602,9 +674,13 @@ namespace nel
 			{
 				num = 1f - X.ZSIN2(this.t_move, 20f);
 			}
-			else if (!force)
+			else
 			{
-				return;
+				if (!force)
+				{
+					return;
+				}
+				num = (float)((this.t_move >= 0f) ? 0 : 1);
 			}
 			this.x = X.NI(this.depx, (float)this.sx, num);
 			this.y = X.NI(this.depy, (float)this.sy, num);
@@ -647,7 +723,7 @@ namespace nel
 				{
 				case NelMSG.HKDSTYPE.NORMAL:
 					this.t_hkds_maxt = 20f;
-					goto IL_02BA;
+					goto IL_02BF;
 				case NelMSG.HKDSTYPE.DEVICE:
 					this.t_hkds_maxt = 5f;
 					this.topcolor = 4283782485U;
@@ -661,7 +737,7 @@ namespace nel
 					}
 					this.initStencilRef(this.DeviceMessageMtr, false);
 					material = this.DeviceMessageMtr;
-					goto IL_02BA;
+					goto IL_02BF;
 				case NelMSG.HKDSTYPE.EVIL:
 					this.t_hkds_maxt = 20f;
 					this.topcolor = 4283650899U;
@@ -676,12 +752,12 @@ namespace nel
 							this.EvilMessageMtr = MTRX.newMtr(MTR.ShaderEnemyDark);
 							this.EvilMessageMtr.mainTexture = MTRX.MIicon.Tx;
 						}
-						(M2DBase.Instance as NelM2DBase).addEnemyDarkTexture(this.EvilMessageMtr);
+						(M2DBase.Instance as NelM2DBase).ENMTR.assign(this.EvilMessageMtr);
 						this.initStencilRef(this.EvilMessageMtr, true);
 						material = this.EvilMessageMtr;
-						goto IL_02BA;
+						goto IL_02BF;
 					}
-					goto IL_02BA;
+					goto IL_02BF;
 				case NelMSG.HKDSTYPE.BOOK:
 					this.t_hkds_maxt = 80f;
 					this.nodrawtail |= NelMSG.NODRAW.TAIL_FROM_TYPE;
@@ -689,20 +765,20 @@ namespace nel
 					if (this.Bk == null)
 					{
 						this.initBookDrawer();
-						goto IL_02BA;
+						goto IL_02BF;
 					}
 					this.Bk.activate();
 					this.progressNextParagraphBook();
 					this.Bk.MAXT_OPEN = 30f;
-					goto IL_02BA;
+					goto IL_02BF;
 				case NelMSG.HKDSTYPE.ONELINE:
 					this.t_hkds_maxt = 20f;
 					this.topcolor = 4282531647U;
 					this.bottomcolor = 3426893631U;
-					goto IL_02BA;
+					goto IL_02BF;
 				}
 				this.t_hkds_maxt = 40f;
-				IL_02BA:
+				IL_02BF:
 				if (this.Md.getMaterial() != material)
 				{
 					this.Md.setMaterial(material, false);
@@ -718,7 +794,10 @@ namespace nel
 				bool special_hktype = this.special_hktype;
 				this.bounds_type = _btype;
 				this.mesh_create_level = 0f;
-				this.t_hkds = X.Mn(this.t_hkds_maxt - 8f, this.t_hkds);
+				if (this.t_hkds > 0f)
+				{
+					this.t_hkds = X.Mx(0f, X.Mn(this.t_hkds_maxt - 8f, this.t_hkds));
+				}
 				this.t_talker = X.Mn(this.t_talker, 31f);
 				bool flag = !this.GobMdC.activeSelf;
 				this.nodrawtail &= (NelMSG.NODRAW)186;
@@ -812,56 +891,79 @@ namespace nel
 			bool flag;
 			using (BList<string> blist = ListBuffer<string>.Pop(0))
 			{
-				if (!NelMSGResource.getContent(label, blist, false, false))
+				if (!NelMSGResource.getContent(label, blist, false, false, false))
 				{
 					flag = false;
 				}
 				else
 				{
-					if (this.ReservedInfo != null)
-					{
-						this.readInfoInner();
-					}
-					this.all_char_shown = false;
-					this.always_focus_color = false;
-					if (set_hkds_def && this.t <= 2f)
-					{
-						this.setHkdsTypeToDefault(true);
-					}
-					this.Tx.reserveText(blist, (int)this.t, merge_flag);
-					this.maxt_auto_progress = -1f;
-					this.t_auto_progress = -1f;
-					this.auto_hide_time = 0f;
-					this.Tx.alpha = 1f;
-					if (this.Bk == null)
-					{
-						if (TX.noe(this.localized_talker_name_))
-						{
-							this.localized_talker_name_ = ((P != null) ? P.localized_name : TX.Get("Talker_Mob", ""));
-						}
-						if (!this.TxCap.textIs(this.localized_talker_name_))
-						{
-							this.TxCap.letter_spacing = 1.05f;
-							this.TxCap.text_content = this.localized_talker_name_;
-							if (this.TxCap.get_swidth_px() >= this.rect_w - 190f)
-							{
-								this.TxCap.letter_spacing = 0.9f;
-							}
-						}
-						this.TxCap.alpha = 1f;
-						this.TxCap.Col(C32.d2c(this.talker_text_color));
-						this.hkds_fine_agr_t = 5f;
-					}
-					flag = true;
+					flag = this.makeMessage(blist, P, set_hkds_def, merge_flag);
 				}
 			}
 			return flag;
 		}
 
-		public bool run(float fcnt, bool skipping)
+		public bool makeMessage(List<string> Amsg, EvPerson P, bool set_hkds_def = true, bool merge_flag = false)
 		{
+			if (this.ReservedInfo != null)
+			{
+				this.readInfoInner();
+			}
+			this.t_nest_shuffle = -1f;
+			this.nest_shuffle = -1;
+			this.all_char_shown = false;
+			this.always_focus_color = false;
+			if (set_hkds_def && this.t <= 2f)
+			{
+				this.setHkdsTypeToDefault(true);
+			}
+			this.Tx.reserveText(Amsg, (int)this.t, merge_flag);
+			this.maxt_auto_progress = -1f;
+			this.t_auto_progress = -1f;
+			this.auto_hide_time = 0f;
+			this.Tx.alpha = 1f;
+			if (this.Bk == null)
+			{
+				if (TX.noe(this.localized_talker_name_))
+				{
+					this.localized_talker_name_ = ((P != null) ? P.localized_name : TX.Get("Talker_Mob", ""));
+				}
+				this.fineCapContent();
+				this.hkds_fine_agr_t = 5f;
+			}
+			return true;
+		}
+
+		public void replaceTxInjection(List<string> A)
+		{
+			this.Tx.replaceTxInjection(A);
+		}
+
+		private void fineCapContent()
+		{
+			if (!this.TxCap.textIs(this.localized_talker_name_))
+			{
+				this.TxCap.letter_spacing = 1.05f;
+				this.TxCap.text_content = this.localized_talker_name_;
+				if (this.TxCap.get_swidth_px() >= this.rect_w - 190f)
+				{
+					this.TxCap.letter_spacing = 0.9f;
+				}
+			}
 			if (this.t >= 0f)
 			{
+				this.TxCap.alpha = 1f;
+			}
+			this.need_fine_color = true;
+			this.TxCap.Col(C32.d2c(this.talker_text_color));
+		}
+
+		public bool run(float fcnt, bool skipping)
+		{
+			bool flag = true;
+			if (this.t >= 0f)
+			{
+				fcnt *= this.Tx.container_TS;
 				if (this.ReservedInfo != null)
 				{
 					this.readInfoInner();
@@ -903,15 +1005,29 @@ namespace nel
 					}
 					this.hideMsg(false);
 				}
+				if (this.t_nest_shuffle > 0f && this.all_char_shown)
+				{
+					this.t_nest_shuffle = X.Mx(this.t_nest_shuffle - fcnt * (float)(skipping ? 3 : 1), 0f);
+					if (this.t_nest_shuffle == 0f && !this.Con.progressNestShuffle(this, this.id, this.P))
+					{
+					}
+				}
 			}
 			else
 			{
-				if (this.t <= ((this.Bk != null) ? (-18f) : (-30f)))
+				if (this.t_nest_shuffle >= 0f && this.Tx.hasReservedContent())
 				{
-					this.releaseDrawer(true);
-					return false;
+					flag = false;
 				}
-				this.t -= fcnt;
+				else
+				{
+					if (this.t <= ((this.Bk != null) ? (-18f) : (-30f)))
+					{
+						this.releaseDrawer(true);
+						return false;
+					}
+					this.t -= fcnt;
+				}
 				this.need_fine_color = true;
 				if (this.t_front >= 0f)
 				{
@@ -955,7 +1071,7 @@ namespace nel
 			{
 				this.fineHkdsDepertAngle();
 			}
-			bool flag = false;
+			bool flag2 = false;
 			if (this.hkds_fine_agr_t > 0f && this.draw_hkds_tail)
 			{
 				if (this.FollowTo == null)
@@ -988,7 +1104,7 @@ namespace nel
 								this.fkds_agR = X.MULWALKANGLER(this.fkds_agR, num, (this.t <= 25f) ? 0.4f : 0.084f);
 							}
 							this.hkds_fine_agr_t = 5f;
-							flag = true;
+							flag2 = true;
 						}
 						else
 						{
@@ -1012,7 +1128,7 @@ namespace nel
 			}
 			if (this.t_hkds >= 0f)
 			{
-				if (this.t_hkds <= this.t_hkds_maxt + 2f || flag)
+				if (this.t_hkds <= this.t_hkds_maxt + 2f || flag2)
 				{
 					this.need_fine_mesh = true;
 				}
@@ -1085,7 +1201,10 @@ namespace nel
 			{
 				this.Bk.run(fcnt);
 			}
-			this.Tx.run(this.Con.TS, skipping);
+			if (flag)
+			{
+				this.Tx.run(this.Con.TS, skipping);
+			}
 			return true;
 		}
 
@@ -1384,35 +1503,41 @@ namespace nel
 
 		private void fineColorMesh(float fine_mesh_lv)
 		{
-			if (this.Bk == null)
+			if (this.Bk != null)
 			{
-				float num = ((this.t >= 0f) ? (0.5f + 0.5f * X.ZLINE(this.t, 20f)) : (1f - X.ZLINE(-this.t, 20f)));
-				float num2 = ((this.t_front >= 0f) ? X.ZLINE(this.t_front, 30f) : (1f - X.ZLINE(-this.t_front, 30f)));
-				this.Ma.setColAll(this.Md.ColGrd.Set(this.topcolor).blend(this.bottomcolor, 1f - num2).mulA(num)
+				Color32[] colorArray = this.Md.getColorArray();
+				byte b = (byte)(190f * fine_mesh_lv);
+				int num = 48;
+				if (colorArray.Length <= num)
+				{
+					return;
+				}
+				colorArray[0].a = b;
+				for (int i = 1; i <= num; i += 2)
+				{
+					colorArray[i].a = b;
+				}
+				this.Tx.alpha = ((this.t >= 0f) ? 1f : fine_mesh_lv);
+				this.Md.updateForMeshRenderer(true);
+				return;
+			}
+			else
+			{
+				float num2 = ((this.t >= 0f) ? (0.5f + 0.5f * X.ZLINE(this.t, 20f)) : (1f - X.ZLINE(-this.t, 20f)));
+				float num3 = ((this.t_front >= 0f) ? X.ZLINE(this.t_front, 30f) : (1f - X.ZLINE(-this.t_front, 30f)));
+				this.Ma.setColAll(this.Md.ColGrd.Set(this.topcolor).blend(this.bottomcolor, 1f - num3).mulA(num2)
 					.C, false);
 				this.Md.updateForMeshRenderer(true);
-				this.MaC.setColAll(C32.MulA(this.TalkerBaseColor, num), false);
+				this.MaC.setColAll(C32.MulA(this.TalkerBaseColor, num2), false);
 				this.MdC.updateForMeshRenderer(true);
 				if (this.t < 0f)
 				{
-					this.Tx.alpha = (this.TxCap.alpha = num);
+					this.Tx.alpha = (this.TxCap.alpha = num2);
+					return;
 				}
+				this.Tx.alpha = (this.TxCap.alpha = 1f);
 				return;
 			}
-			Color32[] colorArray = this.Md.getColorArray();
-			byte b = (byte)(190f * fine_mesh_lv);
-			int num3 = 48;
-			if (colorArray.Length <= num3)
-			{
-				return;
-			}
-			colorArray[0].a = b;
-			for (int i = 1; i <= num3; i += 2)
-			{
-				colorArray[i].a = b;
-			}
-			this.Tx.alpha = ((this.t >= 0f) ? 1f : fine_mesh_lv);
-			this.Md.updateForMeshRenderer(true);
 		}
 
 		public Color32 TalkerBaseColor
@@ -1478,7 +1603,7 @@ namespace nel
 			this.Tx.DELAY_CONTINUE = 14;
 			this.Tx.BorderCol(0U);
 			this.Tx.StencilRef(num);
-			Object.Destroy(this.GobBook);
+			global::UnityEngine.Object.Destroy(this.GobBook);
 			this.Bk.destruct();
 			this.Bk = null;
 		}
@@ -1504,6 +1629,16 @@ namespace nel
 			{
 				Stb.Insert(0, prefixForTalker);
 			}
+		}
+
+		public string popReservedContent()
+		{
+			return this.Tx.popReservedContent(1);
+		}
+
+		private int countReserved()
+		{
+			return this.Tx.getReservedCountMax();
 		}
 
 		public EMOT default_emot
@@ -1574,9 +1709,9 @@ namespace nel
 			}
 		}
 
-		public void executeRestMsgCmd()
+		public void executeRestMsgCmd(int count = 0)
 		{
-			this.Con.executeRestMsgCmd(this);
+			this.Con.executeRestMsgCmd(this, count);
 		}
 
 		public void fineHkdsDepertAngle()
@@ -1595,8 +1730,32 @@ namespace nel
 				this.all_char_shown = false;
 				return true;
 			}
-			this.Con.executeRestMsgCmd(this);
-			return false;
+			if (this.t_nest_shuffle > 0f)
+			{
+				if (this.t_nest_shuffle > 0f)
+				{
+					this.t_nest_shuffle = X.Mn(this.t_nest_shuffle, 0.01f);
+				}
+				return true;
+			}
+			return (this.t_nest_shuffle == 0f && this.Con.progressNestShuffle(this, this.id, this.P)) || (this.nest_shuffle >= 0 && this.Con.progressgNestShuffleFinal(this, this.id));
+		}
+
+		public void quitNestShuffle(bool is_front_msg)
+		{
+			this.t_nest_shuffle = -1f;
+			if (is_front_msg && this.isActive())
+			{
+				this.Confirmer.init(this, base.transform, true);
+			}
+		}
+
+		public bool has_nest_shuffle_buffer
+		{
+			get
+			{
+				return this.t_nest_shuffle >= 0f;
+			}
 		}
 
 		public void progressReserved()
@@ -1609,6 +1768,11 @@ namespace nel
 			}
 		}
 
+		public bool hasReservedContent()
+		{
+			return this.Tx.hasReservedContent();
+		}
+
 		public bool isCompletelyHidden()
 		{
 			return !base.gameObject.activeSelf;
@@ -1617,6 +1781,11 @@ namespace nel
 		public bool isSame(string _id)
 		{
 			return this.id == _id;
+		}
+
+		public bool isSamePerson(NelMSG Src)
+		{
+			return this.id == Src.id;
 		}
 
 		public bool isSame(IHkdsFollowable Dc)
@@ -1652,6 +1821,18 @@ namespace nel
 		public bool isFront()
 		{
 			return this.t_front >= 0f;
+		}
+
+		public float shown_level
+		{
+			get
+			{
+				if (this.t < 0f)
+				{
+					return -1f;
+				}
+				return X.Mn(this.t, 20f);
+			}
 		}
 
 		public TalkDrawer DrawerPersonFollowing
@@ -1703,9 +1884,27 @@ namespace nel
 			return this.Tx.getReservedProgress();
 		}
 
+		public float container_TS
+		{
+			get
+			{
+				return this.Tx.container_TS;
+			}
+			set
+			{
+				this.Tx.container_TS = value;
+			}
+		}
+
+		public void releaseReserved()
+		{
+			this.Tx.releaseReserved();
+		}
+
 		public void hideMsg(bool immediate = false)
 		{
 			this.t = X.Mn(this.t, immediate ? (-28f) : (-1f));
+			this.t_nest_shuffle = -1f;
 			this.ReservedInfo = null;
 			this.all_char_shown = false;
 			if (this.Bk != null)
@@ -1731,6 +1930,18 @@ namespace nel
 		public bool isActive()
 		{
 			return this.t >= 0f;
+		}
+
+		public override string ToString()
+		{
+			return string.Concat(new string[]
+			{
+				"MSG ",
+				this.id,
+				" (",
+				this.Tx.text_content,
+				")"
+			});
 		}
 
 		public bool isAllCharsShown()
@@ -1814,7 +2025,7 @@ namespace nel
 
 		private NelMSG.HKDSTYPE next_hkds_type = NelMSG.HKDSTYPE._MAX;
 
-		private float t;
+		private float t = -30f;
 
 		private float t_hkds;
 
@@ -1888,6 +2099,8 @@ namespace nel
 
 		private float t_hkds_maxt = 20f;
 
+		private float t_nest_shuffle;
+
 		public byte fix_first_pos_to_follow;
 
 		private const int BOOK_BEHIND_KAKU = 24;
@@ -1901,6 +2114,8 @@ namespace nel
 		private const float Z_MD = 0.001f;
 
 		public int person_index;
+
+		public short nest_shuffle = -1;
 
 		private float fkds_agR;
 

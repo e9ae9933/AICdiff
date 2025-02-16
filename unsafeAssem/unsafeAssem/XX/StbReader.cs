@@ -30,6 +30,18 @@ namespace XX
 			return this.cur_line;
 		}
 
+		public bool readCorrectlyNoEmpty(out int lcs, out int lce, bool comment_clip = true)
+		{
+			while (this.readCorrectly(out lcs, out lce, comment_clip))
+			{
+				if (lcs < lce)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public bool readCorrectly(out int lcs, out int lce, bool comment_clip = true)
 		{
 			int length = this.source.Length;
@@ -84,6 +96,37 @@ namespace XX
 				base.TrimSpace(lcs, out lcs, out lce, -1);
 			}
 			return true;
+		}
+
+		public virtual bool tNote(string t, bool is_error = false)
+		{
+			if (t == null)
+			{
+				return true;
+			}
+			X.dl(t, null, is_error, false);
+			using (TX.PopBld(null, 0))
+			{
+				X.dl(" - @" + this.cur_line.ToString() + ": " + this.ToString(), null, is_error, false);
+			}
+			return true;
+		}
+
+		public bool tNote_false(string t, bool is_error = false)
+		{
+			this.tNote(t, is_error);
+			return false;
+		}
+
+		public bool tError(string t)
+		{
+			return this.tNote(t, true);
+		}
+
+		public bool tError_false(string t)
+		{
+			this.tNote(t, true);
+			return false;
 		}
 
 		private string source;

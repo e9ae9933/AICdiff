@@ -35,7 +35,7 @@ namespace nel.gm
 			{
 				return true;
 			}
-			EnhancerManager.UiPrepareTbArea(Ds, is_top, (EnhancerManager.Enhancer Eh) => this.GM.isEditState(this));
+			ENHA.UiPrepareTbArea(Ds, is_top, (ENHA.Enhancer Eh) => this.GM.isEditState(this));
 			return true;
 		}
 
@@ -69,7 +69,7 @@ namespace nel.gm
 
 		internal override GMC_RES runEdit(float fcnt, bool handle)
 		{
-			EnhancerManager.runEnhancerUi(this.IMng);
+			ENHA.runEnhancerUi(this.IMng);
 			if (!this.IMng.runEditItem())
 			{
 				return GMC_RES.BACK_CATEGORY;
@@ -87,11 +87,11 @@ namespace nel.gm
 			this.IMng.Pr = null;
 			this.IMng.fnDetailPrepare = new UiItemManageBox.FnDetailPrepare(this.showEnhancerDesc);
 			this.IMng.fnCommandPrepare = new UiItemManageBox.FnCommandPrepare(this.attachEnhancer);
-			this.IMng.fnDescAddition = new UiItemManageBox.FnDescAddition(EnhancerManager.fnDescAddition);
+			this.IMng.fnDescAddition = new UiItemManageBox.FnDescAddition(ENHA.fnDescAddition);
 			this.IMng.item_row_skin = "enhancer";
 			this.IMng.slice_height = 10f;
 			this.IMng.row_height = 48f;
-			this.IMng.fnItemRowInitAfter = new UiItemManageBox.FnItemRowInitAfter(EnhancerManager.fnItemRowCreate);
+			this.IMng.fnItemRowInitAfter = new UiItemManageBox.FnItemRowInitAfter(ENHA.fnItemRowCreate);
 			this.IMng.effect_confusion = base.effect_confusion;
 			this.IMng.title_text_content = "";
 			this.IMng.stencil_ref = base.bxr_stencil_default;
@@ -100,7 +100,7 @@ namespace nel.gm
 
 		public void showEnhancerDesc(NelItem Itm, ItemStorage.ObtainInfo Obt, ItemStorage.IRow IR)
 		{
-			EnhancerManager.showEnhancerDesc(Itm, Obt, this.BtmTab.GetDesigner(0));
+			ENHA.showEnhancerDesc(Itm, Obt, this.BtmTab.GetDesigner(0));
 		}
 
 		public bool attachEnhancer(UiItemManageBox IMng, UiBoxDesigner BxCmd, aBtnItemRow BRow)
@@ -108,7 +108,7 @@ namespace nel.gm
 			NelItem itemData = BRow.getItemData();
 			ItemStorage.ObtainInfo itemInfo = BRow.getItemInfo();
 			aBtnItemRow selectedRow = IMng.Inventory.SelectedRow;
-			return !(selectedRow == null) && itemInfo != null && EnhancerManager.attachEnhancer(itemData, itemInfo, this.BtmTab.GetDesigner(0), this.TopTab.GetDesigner(0), base.M2D.IMNG.getInventoryEnhancer(), selectedRow);
+			return !(selectedRow == null) && itemInfo != null && ENHA.attachEnhancer(itemData, itemInfo, this.BtmTab.GetDesigner(0), this.TopTab.GetDesigner(0), base.M2D.IMNG.getInventoryEnhancer(), selectedRow);
 		}
 
 		private aBtnMagSel MagSel;

@@ -118,7 +118,7 @@ namespace nel
 			{
 				if (ReelMBoxDrawer.PtcKira == null)
 				{
-					ReelMBoxDrawer.PtcKira = new EfParticleOnce("reel_mbox_kira", EFCON_TYPE.UI);
+					ReelMBoxDrawer.PtcKira = new EfParticleOnce("reel_mbox_kira", EFCON_TYPE.FIXED);
 				}
 				ReelMBoxDrawer.PtcKira.drawTo(this.MdAdd, Md.base_x * 64f, Md.base_y * 64f, 0f, (int)(this.IR.ColSet.top & 16777215U), this.af, 120f);
 				this.Ui.redraw_mdadd = true;

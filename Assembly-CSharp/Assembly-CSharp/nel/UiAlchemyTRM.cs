@@ -21,6 +21,7 @@ namespace nel
 		{
 			this.cartbtn_icon = "pict_aloma";
 			base.Awake();
+			this.add_achivement = false;
 			EV.getVariableContainer().define("_result", "-1", true);
 			EV.getVariableContainer().define("_reward", "0", true);
 			UiAlchemyTRM.CInfoDef = new UiCraftBase.AutoCreationInfo(0, UiCraftBase.AF_COST.LOW_COST, UiCraftBase.AF_KIND.ENOUGH, UiCraftBase.AF_QUANTITY.MINIMUM)
@@ -138,7 +139,7 @@ namespace nel
 			}
 			if (row == UiItemManageBox.DESC_ROW.DETAIL)
 			{
-				RecipeManager.Recipe recipeS = UiAlchemyTRM.getRecipeS(Itm);
+				RCP.Recipe recipeS = UiAlchemyTRM.getRecipeS(Itm);
 				if (recipeS != null)
 				{
 					def_string = def_string + "\n ----- \n" + recipeS.listupIngredients("\n", true, true);
@@ -152,7 +153,7 @@ namespace nel
 			return null;
 		}
 
-		protected override void prepareRecipe(RecipeManager.Recipe Rcp, NelItem Itm, List<List<UiCraftBase.IngEntryRow>> AAPre = null)
+		protected override void prepareRecipe(RCP.Recipe Rcp, NelItem Itm, List<List<UiCraftBase.IngEntryRow>> AAPre = null)
 		{
 			TRMManager.TRMItem trmFromItem = UiAlchemyTRM.GetTrmFromItem(Itm.key);
 			if (trmFromItem != null)
@@ -224,8 +225,8 @@ namespace nel
 						list.Add(new List<UiCraftBase.IngEntryRow>());
 					}
 					List<UiCraftBase.IngEntryRow> list2 = list[i];
-					RecipeManager.RecipeIngredient recipeIngredient = this.TargetRcp.AIng[i];
-					if (recipeIngredient.target_category != (RecipeManager.RPI_CATEG)0 && (recipeIngredient.target_category & this.TargetTrm.RcmHerb.RecipeInfo.categ) != (RecipeManager.RPI_CATEG)0)
+					RCP.RecipeIngredient recipeIngredient = this.TargetRcp.AIng[i];
+					if (recipeIngredient.target_category != (RCP.RPI_CATEG)0 && (recipeIngredient.target_category & this.TargetTrm.RcmHerb.RecipeInfo.categ) != (RCP.RPI_CATEG)0)
 					{
 						list2.Clear();
 						int num = this.TargetTrm.rcm_count;
@@ -253,7 +254,7 @@ namespace nel
 			}
 			using (BList<aBtnItemRow> blist = this.ItemMng.Inventory.PopGetItemRowBtnsFor(byId))
 			{
-				blist[0].Select(false);
+				blist[0].Select(true);
 			}
 		}
 
@@ -334,7 +335,7 @@ namespace nel
 			UiCraftBase.AutoCreationInfo currentSort = UiCraftBase.AutoCreationInfo.CurrentSort;
 			if (this.TargetTrm != null && currentSort.kind == UiCraftBase.AF_KIND.NONE)
 			{
-				if (UiCraftBase.AutoCreationInfo.CurrentIng.target_category != (RecipeManager.RPI_CATEG)0 && (UiCraftBase.AutoCreationInfo.CurrentIng.target_category & this.TargetTrm.RcmHerb.RecipeInfo.categ) != (RecipeManager.RPI_CATEG)0)
+				if (UiCraftBase.AutoCreationInfo.CurrentIng.target_category != (RCP.RPI_CATEG)0 && (UiCraftBase.AutoCreationInfo.CurrentIng.target_category & this.TargetTrm.RcmHerb.RecipeInfo.categ) != (RCP.RPI_CATEG)0)
 				{
 					float num = 0f;
 					float num2 = 0f;
@@ -400,51 +401,16 @@ namespace nel
 			return base.fnSortAutoCreationItemRow(Ra, Rb);
 		}
 
-		protected override FillImageBlock createCmdFIB(float __h)
-		{
-			FillImageBlock fillImageBlock = (this.FiBCompGraph = this.BxCmd.addImg(new DsnDataImg
-			{
-				name = "cmd_l",
-				FnDrawInFIB = new FillImageBlock.FnDrawInFIB(this.fnDrawCmdImage),
-				swidth = 8f,
-				sheight = __h
-			}));
-			float num;
-			float num2;
-			this.getComplCirclePos(fillImageBlock, out num, out num2);
-			UiBoxDesigner bxCmd = this.BxCmd;
-			int num3 = 5;
-			float num4 = 1f / (float)num3 * 6.2831855f;
-			num2 += 4f;
-			for (int i = 0; i < num3; i++)
-			{
-				TextRenderer textRenderer = IN.CreateGob(fillImageBlock.gameObject, "-Txgraph" + i.ToString()).AddComponent<TextRenderer>();
-				float num5 = 1.5707964f - num4 * (float)i;
-				bxCmd.addGameObject(textRenderer.gameObject, "tx_power_name_" + i.ToString(), 0f, false);
-				IN.PosP(textRenderer.transform, num + num2 * X.Cos(num5), num2 * X.Sin(num5), -0.3f);
-				textRenderer.alignx = ((i == 0) ? ALIGN.CENTER : ((i <= 2) ? ALIGN.LEFT : ALIGN.RIGHT));
-				textRenderer.aligny = ((i == 0) ? ALIGNY.BOTTOM : ALIGNY.MIDDLE);
-				textRenderer.size = 14f;
-				textRenderer.BorderColor = C32.d2c(4283780170U);
-				textRenderer.TextColor = C32.d2c(uint.MaxValue);
-				TextRenderer textRenderer2 = textRenderer;
-				string text = "aloma_power_";
-				TRMManager.HerbPow herbPow = (TRMManager.HerbPow)i;
-				textRenderer2.text_content = TX.Get(text + herbPow.ToString(), "");
-			}
-			return fillImageBlock;
-		}
-
-		protected override string fineCompletionDetail(bool set_field = false)
+		protected override void fineCompletionDetail(STB Stb, bool set_field = false)
 		{
 			if (this.FiBCompGraph != null)
 			{
 				this.FiBCompGraph.redraw_flag = true;
 			}
-			return base.fineCompletionDetail(set_field);
+			base.fineCompletionDetail(Stb, set_field);
 		}
 
-		protected override string getCompletionDetail()
+		protected override void getCompletionDetail(STB Stb)
 		{
 			for (int i = 0; i < 5; i++)
 			{
@@ -497,23 +463,12 @@ namespace nel
 					}
 				}
 			}
-			string text = this.getSccessRatioString();
+			this.getSccessRatioStb(Stb);
 			if (this.TargetTrm != null)
 			{
-				text = text + "\n" + this.TargetTrm.icon_watched_a + ((!this.TargetTrm.watched_a) ? this.TargetTrm.reward_string_a : TX.Get("TrmUi_selector_already_watched", ""));
-				text = text + "\n" + this.TargetTrm.icon_watched_b + ((!this.TargetTrm.watched_b) ? this.TargetTrm.reward_string_b : TX.Get("TrmUi_selector_already_watched", ""));
+				Stb.Add("\n", this.TargetTrm.icon_watched_a, (!this.TargetTrm.watched_a) ? this.TargetTrm.reward_string_a : TX.Get("TrmUi_selector_already_watched", ""));
+				Stb.Add("\n", this.TargetTrm.icon_watched_b, (!this.TargetTrm.watched_b) ? this.TargetTrm.reward_string_b : TX.Get("TrmUi_selector_already_watched", ""));
 			}
-			return text;
-		}
-
-		private string getSccessRatioString()
-		{
-			string text;
-			using (STB sccessRatioStb = this.getSccessRatioStb(TX.PopBld(null, 0)))
-			{
-				text = sccessRatioStb.ToString();
-			}
-			return text;
 		}
 
 		private STB getSccessRatioStb(STB Stb)
@@ -656,7 +611,14 @@ namespace nel
 		{
 			this.creation_complete_fib_height = 90f;
 			BtnContainer<aBtn> btnContainer = base.initCreationComplete(created, add_rest);
-			btnContainer.Get(0).setSkinTitle(TX.GetA("alchemy_btn_go_to_play", this.getSccessRatioString()));
+			using (STB stb = TX.PopBld(null, 0))
+			{
+				using (STB stb2 = TX.PopBld(null, 0))
+				{
+					this.getSccessRatioStb(stb2);
+					(btnContainer.Get(0).get_Skin() as ButtonSkinRow).setTitleTextS(stb.AddTxA("alchemy_btn_go_to_play", false).TxRpl(stb2));
+				}
+			}
 			return btnContainer;
 		}
 
@@ -693,6 +655,41 @@ namespace nel
 			return "&&alchemy_btn_cancel_trm";
 		}
 
+		protected override FillImageBlock createCmdFIB(float __h)
+		{
+			FillImageBlock fillImageBlock = (this.FiBCompGraph = this.BxCmd.addImg(new DsnDataImg
+			{
+				name = "cmd_l",
+				FnDrawInFIB = new FillImageBlock.FnDrawInFIB(this.fnDrawCmdImage),
+				swidth = 8f,
+				sheight = __h
+			}));
+			float num;
+			float num2;
+			this.getComplCirclePos(fillImageBlock, out num, out num2);
+			UiBoxDesigner bxCmd = this.BxCmd;
+			int num3 = 5;
+			float num4 = 1f / (float)num3 * 6.2831855f;
+			num2 += 4f;
+			for (int i = 0; i < num3; i++)
+			{
+				TextRenderer textRenderer = IN.CreateGob(fillImageBlock.gameObject, "-Txgraph" + i.ToString()).AddComponent<TextRenderer>();
+				float num5 = 1.5707964f - num4 * (float)i;
+				bxCmd.addGameObject(textRenderer.gameObject, "tx_power_name_" + i.ToString(), 0f, false);
+				IN.PosP(textRenderer.transform, num + num2 * X.Cos(num5), num2 * X.Sin(num5), -0.3f);
+				textRenderer.alignx = ((i == 0) ? ALIGN.CENTER : ((i <= 2) ? ALIGN.LEFT : ALIGN.RIGHT));
+				textRenderer.aligny = ((i == 0) ? ALIGNY.BOTTOM : ALIGNY.MIDDLE);
+				textRenderer.size = 14f;
+				textRenderer.BorderColor = C32.d2c(4283780170U);
+				textRenderer.TextColor = C32.d2c(uint.MaxValue);
+				TextRenderer textRenderer2 = textRenderer;
+				string text = "aloma_power_";
+				TRMManager.HerbPow herbPow = (TRMManager.HerbPow)i;
+				textRenderer2.text_content = TX.Get(text + herbPow.ToString(), "");
+			}
+			return fillImageBlock;
+		}
+
 		protected override bool initLunch()
 		{
 			if (this.t_ssc >= 0f)
@@ -713,11 +710,11 @@ namespace nel
 				textRenderer.html_mode = true;
 				textRenderer.BorderColor = C32.d2c(4278190080U);
 				textRenderer.TextColor = C32.d2c(uint.MaxValue);
-				this.EfpSscCharge = new EfParticleOnce("alchemy_trm_ssc_charge", EFCON_TYPE.UI);
-				this.EfpSscAftCircle = new EfParticleOnce("alchemy_trm_ssc_aft_circle", EFCON_TYPE.UI);
-				this.EfpSscSuccess = new EfParticleOnce("alchemy_trm_ssc_aft_success", EFCON_TYPE.UI);
+				this.EfpSscCharge = new EfParticleOnce("alchemy_trm_ssc_charge", EFCON_TYPE.FIXED);
+				this.EfpSscAftCircle = new EfParticleOnce("alchemy_trm_ssc_aft_circle", EFCON_TYPE.FIXED);
+				this.EfpSscSuccess = new EfParticleOnce("alchemy_trm_ssc_aft_success", EFCON_TYPE.FIXED);
 				this.EfpSscAftCircle.not_mesh_image_replace = true;
-				this.EfpSscFailure = new EfParticleOnce("alchemy_trm_ssc_aft_failure", EFCON_TYPE.UI);
+				this.EfpSscFailure = new EfParticleOnce("alchemy_trm_ssc_aft_failure", EFCON_TYPE.FIXED);
 			}
 			this.TxKDSsc.gameObject.SetActive(true);
 			this.TxKDSsc.alpha = 1f;
@@ -761,7 +758,7 @@ namespace nel
 				this.BxManual.gameObject.SetActive(true);
 				this.BxManual.activate();
 				this.BConManual.setValue("-1");
-				this.BConManual.Get(0).Select(false);
+				this.BConManual.Get(0).Select(true);
 				this.TxKDSsc.text_content = TX.Get("TrmUi_unlocked_all", "");
 				this.CartBtn.maxt_pos = 12;
 			}
@@ -848,7 +845,7 @@ namespace nel
 					aBtn aBtn = btnContainerRunner.Get("&&alchemy_btn_eat_in");
 					if (aBtn != null)
 					{
-						aBtn.Select(false);
+						aBtn.Select(true);
 						aBtn.SetChecked(false, true);
 						return;
 					}
@@ -1252,12 +1249,12 @@ namespace nel
 			}
 		}
 
-		public override RecipeManager.Recipe getRecipe(string key)
+		public override RCP.Recipe getRecipe(string key)
 		{
 			return UiAlchemyTRM.getRecipeS(key);
 		}
 
-		public static RecipeManager.Recipe getRecipeS(string key)
+		public static RCP.Recipe getRecipeS(string key)
 		{
 			TRMManager.TRMItem trmFromItem = UiAlchemyTRM.GetTrmFromItem(key);
 			if (trmFromItem != null)
@@ -1276,12 +1273,12 @@ namespace nel
 			return null;
 		}
 
-		public override RecipeManager.Recipe getRecipe(NelItem Itm)
+		public override RCP.Recipe getRecipe(NelItem Itm)
 		{
 			return UiAlchemyTRM.getRecipeS(Itm);
 		}
 
-		public static RecipeManager.Recipe getRecipeS(NelItem Itm)
+		public static RCP.Recipe getRecipeS(NelItem Itm)
 		{
 			return UiAlchemyTRM.getRecipeS(Itm.key);
 		}

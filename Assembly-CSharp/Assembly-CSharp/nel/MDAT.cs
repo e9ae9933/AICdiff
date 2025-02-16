@@ -36,7 +36,7 @@ namespace nel
 
 		public static bool canApplySplitMpDamage(NelAttackInfoBase Atk, PR Pr)
 		{
-			return !Pr.isPuzzleManagingMp() && (Pr.Skill.hasMagic() || Pr.isAbsorbState() || Pr.isTrappedState() || Pr.Ser.hasBit(21928560704UL));
+			return !Pr.isPuzzleManagingMp() && (Pr.Skill.hasMagic() || Pr.isAbsorbState() || Pr.isTrappedState() || Pr.Ser.hasBit(176547383360UL));
 		}
 
 		public static int getMpDamageValue(NelAttackInfoBase Atk, PR Pr, float val)
@@ -45,7 +45,7 @@ namespace nel
 			if (Pr.Skill.hasMagic() || Pr.magic_chanting)
 			{
 				num *= Pr.Ser.chantMpSplitRate();
-				num *= Pr.lost_mp_in_chanting_ratio;
+				num *= Pr.DMG.lost_mp_in_chanting_ratio;
 			}
 			return X.IntC((Pr.is_alive ? X.NI(0.5f, 1f, Pr.mp_ratio) : 1f) * val * num);
 		}
@@ -109,18 +109,22 @@ namespace nel
 			return 0f;
 		}
 
-		public static float calcBurstFaintedRatio(PR Pr, MagicSelector.KindData MK, float execute_count)
+		public static float calcBurstFaintedRatio(PR Pr, MagicSelector.KindData MK, float execute_count, float burst_consume_ratio)
 		{
 			if (MK == null)
 			{
 				return 0f;
 			}
-			int reduce_mp = MK.reduce_mp;
-			float num = X.ZSIN((float)reduce_mp - Pr.get_mp(), (float)reduce_mp * 0.75f);
-			num = num * ((execute_count == 0f) ? 0.125f : 1f) + execute_count * 0.333f;
-			int num2 = Pr.Ser.getLevel(SER.OVERRUN_TIRED) + 1;
-			float num3 = X.NIL(0f, 0.8f, (float)num2, 5f);
-			return num + num3 * X.saturate(num);
+			if (burst_consume_ratio == 0f)
+			{
+				return 0f;
+			}
+			float num = (float)MK.reduce_mp * burst_consume_ratio;
+			float num2 = X.ZSIN(num - Pr.get_mp(), num * 0.75f);
+			num2 = num2 * ((execute_count == 0f) ? 0.125f : 1f) + execute_count * 0.333f;
+			int num3 = Pr.Ser.getLevel(SER.OVERRUN_TIRED) + 1;
+			float num4 = X.NIL(0f, 0.8f, (float)num3, 5f);
+			return num2 + num4 * X.saturate(num2);
 		}
 
 		public static float progressBurstExecuteCount(float t)
@@ -212,6 +216,8 @@ namespace nel
 					break;
 				case MAPDMG.FIRE:
 					nelAttackInfo.CopyFrom(MDAT.AtkCandleTouch);
+					nelAttackInfo.ndmg = NDMG.MAPDAMAGE_THUNDER;
+					nelAttackInfo.shield_break_ratio = -0.01f;
 					break;
 				case MAPDMG.LAVA:
 					nelAttackInfo.attr = MGATTR.FIRE;
@@ -266,35 +272,81 @@ namespace nel
 			{
 				if (kind <= MGKIND.ITEMBOMB_NORMAL)
 				{
-					if (kind == MGKIND.BASIC_BEAM)
+					if (kind <= MGKIND.WEB_SHOT)
 					{
-						goto IL_0DF4;
+						switch (kind)
+						{
+						case MGKIND.CANDLE_SHOT:
+							mgc.initFunc(Mg);
+							Mg.Atk0 = MDAT.AtkCandleTouch;
+							goto IL_130E;
+						case MGKIND.ICE_SHOT:
+						{
+							mgc.initFunc(Mg);
+							Mg.Atk0 = MDAT.AtkIceShot;
+							NelAttackInfo nelAttackInfo = (Mg.Atk1 = mgc.makeAtk());
+							nelAttackInfo.CopyFrom(Mg.Atk0);
+							nelAttackInfo.burst_center = 1f;
+							nelAttackInfo.nodamage_time = 40;
+							nelAttackInfo.ndmg = NDMG.NATTR;
+							goto IL_130E;
+						}
+						case MGKIND.CEILDROP:
+							mgc.initFunc(Mg);
+							goto IL_130E;
+						default:
+						{
+							if (kind != MGKIND.WEB_SHOT)
+							{
+								goto IL_12C6;
+							}
+							mgc.initFunc(Mg);
+							NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+							nelAttackInfo.hpdmg0 = 2;
+							nelAttackInfo.huttobi_ratio = -1000f;
+							nelAttackInfo.burst_vx = 0f;
+							nelAttackInfo.burst_vy = 0f;
+							nelAttackInfo.nodamage_time = 35;
+							nelAttackInfo.knockback_len = 0f;
+							nelAttackInfo.split_mpdmg = 2;
+							nelAttackInfo.attr = MGATTR.SPERMA;
+							nelAttackInfo.SerDmg = EnemyAttr.SerDmgSlimy;
+							nelAttackInfo.Beto = EnemyAttr.BetoSlimy;
+							nelAttackInfo.ndmg = NDMG.NATTR;
+							goto IL_130E;
+						}
+						}
 					}
-					switch (kind)
+					else
 					{
-					case MGKIND.CANDLE_SHOT:
-						mgc.initFunc(Mg);
-						Mg.Atk0 = MDAT.AtkCandleTouch;
-						goto IL_0FB8;
-					case MGKIND.ICE_SHOT:
-						mgc.initFunc(Mg);
-						goto IL_0FB8;
-					case MGKIND.CEILDROP:
-						mgc.initFunc(Mg);
-						goto IL_0FB8;
-					default:
+						if (kind == MGKIND.THUNDERBALL_SHOT)
+						{
+							mgc.initFunc(Mg);
+							NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+							nelAttackInfo.hpdmg0 = 8;
+							nelAttackInfo.huttobi_ratio = -1000f;
+							nelAttackInfo.burst_vx = 0.3f;
+							nelAttackInfo.burst_vy = 0f;
+							nelAttackInfo.nodamage_time = 25;
+							nelAttackInfo.knockback_len = 0f;
+							nelAttackInfo.split_mpdmg = 1;
+							nelAttackInfo.attr = MGATTR.THUNDER;
+							nelAttackInfo.SerDmg = EnemyAttr.SerDmgThunder;
+							nelAttackInfo.Beto = EnemyAttr.BetoThunder;
+							nelAttackInfo.ndmg = NDMG.NATTR;
+							goto IL_130E;
+						}
 						if (kind != MGKIND.ITEMBOMB_NORMAL)
 						{
-							goto IL_0F70;
+							goto IL_12C6;
 						}
-						break;
 					}
 				}
 				else if (kind <= MGKIND.ITEMBOMB_MAGIC)
 				{
 					if (kind != MGKIND.ITEMBOMB_LIGHT && kind != MGKIND.ITEMBOMB_MAGIC)
 					{
-						goto IL_0F70;
+						goto IL_12C6;
 					}
 				}
 				else
@@ -304,357 +356,385 @@ namespace nel
 						Mg.hittype |= MGHIT.IMMEDIATE;
 						Mg.hittype &= (MGHIT)(-8193);
 						Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runEfWormPublish(Mg, fcnt));
-						goto IL_0FB8;
+						goto IL_130E;
 					}
 					if (kind != MGKIND.EF_WHOLEMAP)
 					{
-						goto IL_0F70;
+						goto IL_12C6;
 					}
 					Mg.hittype |= MGHIT.IMMEDIATE;
 					Mg.hittype &= (MGHIT)(-8193);
-					goto IL_0FB8;
+					goto IL_130E;
 				}
 				Mg.hittype |= MGHIT.IMMEDIATE;
 				Mg.hittype &= (MGHIT)(-8193);
-				NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+				NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
 				mgc.Notf.GetForCaster(Mg, MGKIND.ITEMBOMB_NORMAL);
 				mgc.initFunc(Mg);
 				Mg.changeRay(mgc.makeRay(Mg, 0f, true, false));
-				goto IL_0FB8;
+				goto IL_130E;
 			}
-			if (kind <= MGKIND.PR_BURST)
+			if (kind <= MGKIND.TACKLE)
 			{
-				switch (kind)
+				if (kind <= MGKIND.PR_SMASH)
 				{
-				case MGKIND.WHITEARROW:
-				{
-					Mg.hittype |= MGHIT.CHANTED;
-					Mg.explode_pos_c = true;
-					NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-					nelAttackInfo2.hpdmg0 = 60;
-					nelAttackInfo2.huttobi_ratio = 1.35f;
-					nelAttackInfo2.split_mpdmg = 2;
-					nelAttackInfo2.attack_max0 = 1;
-					nelAttackInfo2 = (Mg.Atk1 = mgc.makeAtk());
-					nelAttackInfo2.hpdmg0 = 88;
-					nelAttackInfo2.huttobi_ratio = 1.35f;
-					nelAttackInfo2.split_mpdmg = 14;
-					nelAttackInfo2.attack_max0 = 1;
-					Mg.padvib_enable = true;
-					MagicSelector.initMagic(Mg);
-					nelAttackInfo2 = (Mg.Atk2 = mgc.makeAtk());
-					nelAttackInfo2.hpdmg0 = 15;
-					nelAttackInfo2.huttobi_ratio = 2.25f;
-					nelAttackInfo2.burst_center = -0.1f;
-					nelAttackInfo2.split_mpdmg = 35;
-					nelAttackInfo2.attack_max0 = 1;
-					mgc.Notf.GetForCaster(Mg);
-					if ((Mg.hittype & MGHIT.IMMEDIATE) > (MGHIT)0)
-					{
-						mgc.initFunc(Mg);
-						Mg.casttime = 0f;
-						goto IL_0FB8;
-					}
-					Mg.phase = -7;
-					goto IL_0FB8;
-				}
-				case MGKIND.FIREBALL:
-				{
-					Mg.hittype |= MGHIT.CHANTED;
-					NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-					nelAttackInfo2.hpdmg0 = 64;
-					nelAttackInfo2.huttobi_ratio = 2f;
-					nelAttackInfo2.burst_center = -0.4f;
-					nelAttackInfo2.damage_randomize_min = 0.65f;
-					nelAttackInfo2.split_mpdmg = 2;
-					nelAttackInfo2 = (Mg.Atk1 = mgc.makeAtk());
-					nelAttackInfo2.hpdmg0 = 70;
-					nelAttackInfo2.split_mpdmg = 2;
-					nelAttackInfo2.centerblur_damage_ratio = 0.8f;
-					nelAttackInfo2.burst_center = -0.25f;
-					nelAttackInfo2.damage_randomize_min = 0.35f;
-					nelAttackInfo2.attack_max0 = 5;
-					nelAttackInfo2.pr_myself_fire = true;
-					Mg.padvib_enable = true;
-					MagicSelector.initMagic(Mg);
-					mgc.Notf.GetForCaster(Mg);
-					if ((Mg.hittype & MGHIT.IMMEDIATE) > (MGHIT)0)
-					{
-						mgc.initFunc(Mg);
-						Mg.casttime = 0f;
-						goto IL_0FB8;
-					}
-					Mg.phase = -42;
-					goto IL_0FB8;
-				}
-				case MGKIND.DROPBOMB:
-				{
-					Mg.hittype |= MGHIT.CHANTED;
-					NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-					nelAttackInfo2.hpdmg0 = 15;
-					nelAttackInfo2.huttobi_ratio = 2.45f;
-					nelAttackInfo2.burst_vy = -0.12f;
-					nelAttackInfo2.split_mpdmg = 17;
-					nelAttackInfo2.attack_max0 = 3;
-					nelAttackInfo2.attr = MGATTR.BOMB;
-					nelAttackInfo2.SerDmg = mgc.makeSDmg().Add(SER.EATEN, 50f);
-					MagicSelector.initMagic(Mg);
-					Mg.explode_pos_c = true;
-					mgc.Notf.GetForCaster(Mg);
-					if ((Mg.hittype & MGHIT.IMMEDIATE) > (MGHIT)0)
-					{
-						mgc.initFunc(Mg);
-						Mg.sz = 2f;
-						Mg.casttime = 0f;
-						goto IL_0FB8;
-					}
-					Mg.phase = -(int)Mg.Mn._0.maxt;
-					goto IL_0FB8;
-				}
-				case MGKIND.THUNDERBOLT:
-				{
-					Mg.hittype |= MGHIT.CHANTED;
-					NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-					nelAttackInfo2.hpdmg0 = 35;
-					nelAttackInfo2.huttobi_ratio = 0f;
-					nelAttackInfo2.burst_vx = 0.15f;
-					nelAttackInfo2.burst_vy = 0f;
-					nelAttackInfo2.split_mpdmg = 2;
-					nelAttackInfo2.attr = MGATTR.THUNDER;
-					nelAttackInfo2.SerDmg = mgc.makeSDmg().Add(SER.PARALYSIS, 40f);
-					nelAttackInfo2.pee_apply100 = 15f;
-					nelAttackInfo2 = (Mg.Atk1 = mgc.makeAtk());
-					nelAttackInfo2.hpdmg0 = 70;
-					nelAttackInfo2.huttobi_ratio = 2f;
-					nelAttackInfo2.burst_vx = 0.17f;
-					nelAttackInfo2.burst_vy = -0.11f;
-					nelAttackInfo2.split_mpdmg = 14;
-					nelAttackInfo2.damage_randomize_min = 0.5f;
-					nelAttackInfo2.attr = MGATTR.THUNDER;
-					nelAttackInfo2.SerDmg = mgc.makeSDmg().Add(SER.PARALYSIS, 40f);
-					nelAttackInfo2.pee_apply100 = 30f;
-					nelAttackInfo2.Torn(0.04f, 0.14f);
-					MagicSelector.initMagic(Mg);
-					mgc.Notf.GetForCaster(Mg);
-					if ((Mg.hittype & MGHIT.IMMEDIATE) > (MGHIT)0)
-					{
-						mgc.initFunc(Mg);
-						Mg.casttime = 0f;
-						goto IL_0FB8;
-					}
-					goto IL_0FB8;
-				}
-				case MGKIND.POWERBOMB:
-				{
-					Mg.hittype |= MGHIT.CHANTED;
-					NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-					nelAttackInfo2.hpdmg0 = 20;
-					nelAttackInfo2.huttobi_ratio = 1.45f;
-					nelAttackInfo2.burst_center = 1f;
-					nelAttackInfo2.burst_vx = 0.04f;
-					nelAttackInfo2.burst_vy = -0.02f;
-					nelAttackInfo2.split_mpdmg = 0;
-					nelAttackInfo2.attack_max0 = 20;
-					nelAttackInfo2.attr = MGATTR.BOMB;
-					nelAttackInfo2.SerDmg = mgc.makeSDmg().Add(SER.EATEN, 9f);
-					MagicSelector.initMagic(Mg);
-					Mg.explode_pos_c = true;
-					mgc.Notf.GetForCaster(Mg);
-					if ((Mg.hittype & MGHIT.IMMEDIATE) > (MGHIT)0)
-					{
-						mgc.initFunc(Mg);
-						Mg.casttime = 0f;
-						goto IL_0FB8;
-					}
-					Mg.phase = -(int)Mg.Mn._0.maxt;
-					goto IL_0FB8;
-				}
-				default:
 					switch (kind)
 					{
-					case MGKIND.PR_PUNCH:
-					case MGKIND.PR_SHOTGUN:
-					case MGKIND.PR_COMET:
-					case MGKIND.PR_DASHPUNCH:
-					case MGKIND.PR_SHIELD_COUNTER:
+					case MGKIND.WHITEARROW:
 					{
-						float num = (float)X.MPF(CAim._XD(Mg.Caster.getAimForCaster(), 1) >= 0);
-						Mg.sx = X.Abs(0.75f) * num;
-						Mg.sy = 0.55f;
-						Mg.sz = 0.45f;
-						NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-						nelAttackInfo2.hpdmg0 = 7;
-						nelAttackInfo2.split_mpdmg = X.IntR(X.NIXP(0.5f, 1f) * 18f);
-						nelAttackInfo2.attr = MGATTR.NORMAL;
-						nelAttackInfo2.burst_vx = 0f;
-						nelAttackInfo2.burst_vy = 0f;
-						nelAttackInfo2.attack_max0 = 1;
-						nelAttackInfo2.hit_ptcst_name = "pr_cane_hit";
-						nelAttackInfo2.fnHitEffectPre = delegate(AttackInfo Atk, IM2RayHitAble Hit)
+						Mg.hittype |= MGHIT.CHANTED;
+						Mg.explode_pos_c = true;
+						NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+						nelAttackInfo.hpdmg0 = 60;
+						nelAttackInfo.huttobi_ratio = 1.35f;
+						nelAttackInfo.split_mpdmg = 2;
+						nelAttackInfo.attack_max0 = 1;
+						nelAttackInfo = (Mg.Atk1 = mgc.makeAtk());
+						nelAttackInfo.hpdmg0 = 88;
+						nelAttackInfo.huttobi_ratio = 1.35f;
+						nelAttackInfo.split_mpdmg = 14;
+						nelAttackInfo.attack_max0 = 1;
+						Mg.padvib_enable = true;
+						MagicSelector.initMagic(Mg);
+						nelAttackInfo = (Mg.Atk2 = mgc.makeAtk());
+						nelAttackInfo.hpdmg0 = 15;
+						nelAttackInfo.huttobi_ratio = 2.25f;
+						nelAttackInfo.burst_center = -0.1f;
+						nelAttackInfo.split_mpdmg = 35;
+						nelAttackInfo.attack_max0 = 1;
+						mgc.Notf.GetForCaster(Mg);
+						if ((Mg.hittype & MGHIT.IMMEDIATE) > (MGHIT)0)
 						{
-							NelAttackInfo nelAttackInfo3 = Atk as NelAttackInfo;
-							if (nelAttackInfo3.Caster != null)
-							{
-								PTCThreadRunner.PreVar("ax", (double)CAim._XD(nelAttackInfo3.Caster.getAimForCaster(), 1));
-							}
-						};
-						nelAttackInfo2.knockback_len = Mg.sz + Mg.sy + 0.45f;
-						Mg.hittype |= MGHIT.NORMAL_ATTACK;
-						Mg.mp_crystalize = 0f;
-						Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
-						init_aimpos_to_d = false;
-						Mg.changeRay(mgc.makeRay(Mg, 0f, (Mg.hittype & MGHIT.EN) == (MGHIT)0, true));
-						Mg.Ray.HitLock(-1f, null);
-						if (Mg.kind == MGKIND.PR_DASHPUNCH)
-						{
-							Mg.sx = X.Abs(2.92f) * num;
-							Mg.sz = 0.66f;
-							Mg.sy = 0.16f;
-							nelAttackInfo2.knockback_len = 0.8f;
-							nelAttackInfo2.burst_vx = num * 0.3f;
-							nelAttackInfo2.burst_vy = -0.04f;
-							nelAttackInfo2.attack_max0 = 3;
-							nelAttackInfo2.split_mpdmg = 9;
-							Mg.phase = 1;
+							mgc.initFunc(Mg);
+							Mg.casttime = 0f;
+							goto IL_130E;
 						}
-						if (Mg.kind == MGKIND.PR_SHOTGUN)
+						Mg.phase = -7;
+						goto IL_130E;
+					}
+					case MGKIND.FIREBALL:
+					{
+						Mg.hittype |= MGHIT.CHANTED;
+						NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+						nelAttackInfo.hpdmg0 = 64;
+						nelAttackInfo.huttobi_ratio = 2f;
+						nelAttackInfo.burst_center = -0.4f;
+						nelAttackInfo.damage_randomize_min = 0.65f;
+						nelAttackInfo.split_mpdmg = 2;
+						nelAttackInfo = (Mg.Atk1 = mgc.makeAtk());
+						nelAttackInfo.hpdmg0 = 70;
+						nelAttackInfo.split_mpdmg = 2;
+						nelAttackInfo.centerblur_damage_ratio = 0.8f;
+						nelAttackInfo.burst_center = -0.25f;
+						nelAttackInfo.damage_randomize_min = 0.35f;
+						nelAttackInfo.attack_max0 = 5;
+						nelAttackInfo.pr_myself_fire = true;
+						Mg.padvib_enable = true;
+						MagicSelector.initMagic(Mg);
+						Mg.Atk1.tired_time_to_super_armor = X.NI(30f, 45f, 0.5f);
+						mgc.Notf.GetForCaster(Mg);
+						if ((Mg.hittype & MGHIT.IMMEDIATE) > (MGHIT)0)
 						{
-							Mg.sy -= 0.125f;
-							Mg.sz += 0.125f;
-							Mg.hittype |= MGHIT.CHANTED;
+							mgc.initFunc(Mg);
+							Mg.casttime = 0f;
 						}
-						if (Mg.kind == MGKIND.PR_COMET)
+						else
 						{
-							nelAttackInfo2.knockback_len = 0f;
-							nelAttackInfo2.attack_max0 = -1;
-							nelAttackInfo2.hit_ptcst_name = "pr_comet_hit";
-							nelAttackInfo2.burst_vy = -0.13f;
-							nelAttackInfo2.split_mpdmg = 2;
-							Mg.sx = 0f;
-							Mg.sy = 0.9f;
-							Mg.sz = 0.5f;
-							Mg.phase = 1;
-							goto IL_0FB8;
+							Mg.phase = -42;
 						}
-						goto IL_0FB8;
+						Mg.mana_absorb_replace = true;
+						goto IL_130E;
 					}
-					case MGKIND.PR_SLIDING:
+					case MGKIND.DROPBOMB:
 					{
-						float num2 = (float)X.MPF(CAim._XD(Mg.Caster.getAimForCaster(), 1) >= 0);
-						M2Mover m2Mover = Mg.Caster as M2Mover;
-						Mg.sx = X.Abs(0.75f) * num2;
-						Mg.sy = ((m2Mover != null) ? m2Mover.get_sizey() : 0.25f);
-						Mg.sz = 0.35f;
-						NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-						nelAttackInfo2.hpdmg0 = 0;
-						nelAttackInfo2.attr = MGATTR.NORMAL;
-						nelAttackInfo2.burst_vx = 0f;
-						nelAttackInfo2.burst_vy = 0f;
-						nelAttackInfo2.attack_max0 = -1;
-						nelAttackInfo2.hit_ptcst_name = "pr_sliding_hit";
-						nelAttackInfo2.knockback_len = 0.2f;
-						Mg.hittype |= MGHIT.NORMAL_ATTACK;
-						Mg.changeRay(mgc.makeRay(Mg, 0f, (Mg.hittype & MGHIT.EN) == (MGHIT)0, false));
-						Mg.Ray.HitLock(-1f, null);
-						Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
-						init_aimpos_to_d = false;
-						goto IL_0FB8;
-					}
-					case MGKIND.PR_WHEEL:
-					{
-						Mg.sx = 0f;
-						Mg.sy = 0f;
-						Mg.sz = 1.9f;
-						NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-						nelAttackInfo2.hpdmg0 = 3;
-						nelAttackInfo2.split_mpdmg = 2;
-						nelAttackInfo2.attr = MGATTR.NORMAL;
-						nelAttackInfo2.burst_vx = 0.18f;
-						nelAttackInfo2.burst_vy = 0.08f;
-						nelAttackInfo2.attack_max0 = 1;
-						nelAttackInfo2.hit_ptcst_name = "pr_wheel_hit";
-						nelAttackInfo2.fnHitEffectPre = delegate(AttackInfo Atk, IM2RayHitAble Hit)
+						Mg.hittype |= MGHIT.CHANTED;
+						NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+						nelAttackInfo.hpdmg0 = 15;
+						nelAttackInfo.huttobi_ratio = 2.45f;
+						nelAttackInfo.burst_vy = -0.12f;
+						nelAttackInfo.split_mpdmg = 17;
+						nelAttackInfo.attack_max0 = 3;
+						nelAttackInfo.attr = MGATTR.BOMB;
+						nelAttackInfo.SerDmg = mgc.makeSDmg().Add(SER.EATEN, 50f);
+						MagicSelector.initMagic(Mg);
+						Mg.explode_pos_c = true;
+						mgc.Notf.GetForCaster(Mg);
+						if ((Mg.hittype & MGHIT.IMMEDIATE) > (MGHIT)0)
 						{
-							NelAttackInfo nelAttackInfo4 = Atk as NelAttackInfo;
-							if (nelAttackInfo4.Caster != null)
-							{
-								PTCThreadRunner.PreVar("ax", (double)CAim._XD(nelAttackInfo4.Caster.getAimForCaster(), 1));
-							}
-						};
-						nelAttackInfo2.knockback_len = 0f;
-						Mg.hittype |= MGHIT.NORMAL_ATTACK;
-						Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
-						init_aimpos_to_d = false;
-						Mg.changeRay(mgc.makeRay(Mg, 0f, true, false));
-						Mg.Ray.HitLock(5f, null);
-						Mg.phase = 1;
-						Mg.mp_crystalize = 0f;
-						goto IL_0FB8;
+							mgc.initFunc(Mg);
+							Mg.sz = 2f;
+							Mg.casttime = 0f;
+						}
+						else
+						{
+							Mg.phase = -(int)Mg.Mn._0.maxt;
+						}
+						Mg.mana_absorb_replace = true;
+						goto IL_130E;
 					}
-					case MGKIND.PR_SHIELD_BUSH:
+					case MGKIND.THUNDERBOLT:
 					{
-						Mg.sx = 0f;
-						Mg.sy = 0f;
-						Mg.sz = -2.8f;
-						NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-						nelAttackInfo2.hpdmg0 = 3;
-						nelAttackInfo2.split_mpdmg = 0;
-						nelAttackInfo2.attr = MGATTR.NORMAL;
-						nelAttackInfo2.burst_vx = 0.13f;
-						nelAttackInfo2.burst_vy = -0.12f;
-						nelAttackInfo2.attack_max0 = -1;
-						nelAttackInfo2.knockback_len = 0f;
-						Mg.hittype |= MGHIT.NORMAL_ATTACK;
-						Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
-						init_aimpos_to_d = false;
-						Mg.changeRay(mgc.makeRay(Mg, 0f, false, false));
-						Mg.Ray.HitLock(-1f, null);
-						Mg.phase = 1;
-						Mg.mp_crystalize = 0f;
-						goto IL_0FB8;
+						Mg.hittype |= MGHIT.CHANTED;
+						NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+						nelAttackInfo.hpdmg0 = 35;
+						nelAttackInfo.huttobi_ratio = 0f;
+						nelAttackInfo.burst_vx = 0.15f;
+						nelAttackInfo.burst_vy = 0f;
+						nelAttackInfo.split_mpdmg = 2;
+						nelAttackInfo.attr = MGATTR.THUNDER;
+						nelAttackInfo.SerDmg = mgc.makeSDmg().Add(SER.PARALYSIS, 40f);
+						nelAttackInfo.pee_apply100 = 15f;
+						nelAttackInfo = (Mg.Atk1 = mgc.makeAtk());
+						nelAttackInfo.hpdmg0 = 70;
+						nelAttackInfo.huttobi_ratio = 2f;
+						nelAttackInfo.burst_vx = 0.17f;
+						nelAttackInfo.burst_vy = -0.11f;
+						nelAttackInfo.split_mpdmg = 14;
+						nelAttackInfo.damage_randomize_min = 0.5f;
+						nelAttackInfo.attr = MGATTR.THUNDER;
+						nelAttackInfo.SerDmg = mgc.makeSDmg().Add(SER.PARALYSIS, 40f);
+						nelAttackInfo.pee_apply100 = 30f;
+						nelAttackInfo.Torn(0.04f, 0.14f);
+						MagicSelector.initMagic(Mg);
+						mgc.Notf.GetForCaster(Mg);
+						if ((Mg.hittype & MGHIT.IMMEDIATE) > (MGHIT)0)
+						{
+							mgc.initFunc(Mg);
+							Mg.casttime = 0f;
+						}
+						Mg.mana_absorb_replace = true;
+						goto IL_130E;
 					}
-					case MGKIND.PR_SHIELD_LARIAT:
+					case MGKIND.POWERBOMB:
 					{
-						float num3 = (float)X.MPF(CAim._XD(Mg.Caster.getAimForCaster(), 1) >= 0);
-						Mg.sx = 1.1f * num3;
-						Mg.sy = -0.5f;
-						Mg.dx = 1f * num3;
-						Mg.sz = -1.6f;
-						NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-						nelAttackInfo2.hpdmg0 = 2;
-						nelAttackInfo2.split_mpdmg = 0;
-						nelAttackInfo2.attr = MGATTR.NORMAL;
-						nelAttackInfo2.burst_vx = 0.16f;
-						nelAttackInfo2.burst_vy = -0.07f;
-						nelAttackInfo2.attack_max0 = -1;
-						nelAttackInfo2.knockback_len = 0f;
-						nelAttackInfo2.hit_ptcst_name = "hit_shield_atk";
-						Mg.hittype |= MGHIT.NORMAL_ATTACK;
-						Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
-						init_aimpos_to_d = false;
-						Mg.changeRay(mgc.makeRay(Mg, 0f, false, false));
-						Mg.Ray.HitLock(-1f, null);
-						Mg.phase = 1;
-						Mg.mp_crystalize = 0f;
-						goto IL_0FB8;
+						Mg.hittype |= MGHIT.CHANTED;
+						NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+						nelAttackInfo.hpdmg0 = 20;
+						nelAttackInfo.huttobi_ratio = 1.45f;
+						nelAttackInfo.burst_center = 1f;
+						nelAttackInfo.burst_vx = 0.04f;
+						nelAttackInfo.burst_vy = -0.02f;
+						nelAttackInfo.split_mpdmg = 0;
+						nelAttackInfo.attack_max0 = 20;
+						nelAttackInfo.attr = MGATTR.BOMB;
+						nelAttackInfo.SerDmg = mgc.makeSDmg().Add(SER.EATEN, 9f);
+						MagicSelector.initMagic(Mg);
+						Mg.explode_pos_c = true;
+						mgc.Notf.GetForCaster(Mg);
+						if ((Mg.hittype & MGHIT.IMMEDIATE) > (MGHIT)0)
+						{
+							mgc.initFunc(Mg);
+							Mg.casttime = 0f;
+						}
+						else
+						{
+							Mg.phase = -(int)Mg.Mn._0.maxt;
+						}
+						Mg.mana_absorb_replace = true;
+						goto IL_130E;
 					}
 					default:
-					{
-						if (kind != MGKIND.PR_BURST)
+						switch (kind)
 						{
-							goto IL_0F70;
+						case MGKIND.PR_PUNCH:
+						case MGKIND.PR_SHOTGUN:
+						case MGKIND.PR_COMET:
+						case MGKIND.PR_DASHPUNCH:
+						case MGKIND.PR_SHIELD_COUNTER:
+						case MGKIND.PR_SMASH:
+						{
+							float num = (float)X.MPF(CAim._XD(Mg.Caster.getAimForCaster(), 1) >= 0);
+							Mg.sx = X.Abs(0.75f) * num;
+							Mg.sy = 0.55f;
+							Mg.sz = 0.45f;
+							NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+							nelAttackInfo.hpdmg0 = 7;
+							nelAttackInfo.split_mpdmg = X.IntR(X.NIXP(0.5f, 1f) * 18f);
+							nelAttackInfo.attr = MGATTR.NORMAL;
+							nelAttackInfo.burst_vx = 0f;
+							nelAttackInfo.burst_vy = 0f;
+							nelAttackInfo.attack_max0 = 1;
+							nelAttackInfo.hit_ptcst_name = "pr_cane_hit";
+							nelAttackInfo.fnHitEffectPre = delegate(AttackInfo Atk, IM2RayHitAble Hit)
+							{
+								NelAttackInfo nelAttackInfo3 = Atk as NelAttackInfo;
+								if (nelAttackInfo3.Caster != null)
+								{
+									PTCThreadRunner.PreVar("ax", (double)CAim._XD(nelAttackInfo3.Caster.getAimForCaster(), 1));
+								}
+							};
+							nelAttackInfo.knockback_len = Mg.sz + Mg.sy + 0.45f;
+							Mg.hittype |= MGHIT.NORMAL_ATTACK;
+							Mg.mp_crystalize = 0f;
+							Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
+							init_aimpos_to_d = false;
+							Mg.changeRay(mgc.makeRay(Mg, 0f, (Mg.hittype & MGHIT.EN) == (MGHIT)0, true));
+							Mg.Ray.HitLock(-1f, null);
+							if (Mg.kind == MGKIND.PR_DASHPUNCH)
+							{
+								Mg.sx = X.Abs(2.92f) * num;
+								Mg.sz = 0.66f;
+								Mg.sy = 0.16f;
+								nelAttackInfo.knockback_len = 0.8f;
+								nelAttackInfo.burst_vx = num * 0.3f;
+								nelAttackInfo.burst_vy = -0.04f;
+								nelAttackInfo.attack_max0 = 3;
+								nelAttackInfo.split_mpdmg = 9;
+								Mg.phase = 1;
+							}
+							if (Mg.kind == MGKIND.PR_SMASH)
+							{
+								Mg.sx = X.Abs(0.58f) * num;
+								Mg.sz = 0.6f;
+								Mg.sy = -0.16f;
+								nelAttackInfo.knockback_len = 2.2f;
+								nelAttackInfo.burst_vx = num * 0.9f;
+								nelAttackInfo.burst_vy = -0.15f;
+								nelAttackInfo.attack_max0 = 1;
+								nelAttackInfo.split_mpdmg = 12;
+								Mg.Ray.hit_target_max = 1;
+							}
+							if (Mg.kind == MGKIND.PR_SHOTGUN)
+							{
+								Mg.sy -= 0.125f;
+								Mg.sz += 0.125f;
+								Mg.hittype |= MGHIT.CHANTED;
+							}
+							if (Mg.kind == MGKIND.PR_COMET)
+							{
+								nelAttackInfo.knockback_len = 0f;
+								nelAttackInfo.attack_max0 = -1;
+								nelAttackInfo.hit_ptcst_name = "pr_comet_hit";
+								nelAttackInfo.burst_vy = -0.13f;
+								nelAttackInfo.split_mpdmg = 2;
+								Mg.sx = 0f;
+								Mg.sy = 0.9f;
+								Mg.sz = 0.5f;
+								Mg.phase = 1;
+								goto IL_130E;
+							}
+							goto IL_130E;
 						}
-						NelAttackInfo nelAttackInfo2 = (Mg.Atk0 = mgc.makeAtk());
-						nelAttackInfo2.hpdmg0 = 20;
-						nelAttackInfo2.split_mpdmg = 5;
-						nelAttackInfo2.ignore_nodamage_time = true;
-						nelAttackInfo2.burst_center = 0.5f;
-						nelAttackInfo2.attr = MGATTR.NORMAL;
-						nelAttackInfo2.burst_vx = 1.4f;
-						nelAttackInfo2.burst_vy = -0.8f;
-						nelAttackInfo2.attack_max0 = -1;
-						nelAttackInfo2.huttobi_ratio = 5f;
-						nelAttackInfo2.ndmg = NDMG.GRAB_PENETRATE;
+						case MGKIND.PR_SLIDING:
+						{
+							float num2 = (float)X.MPF(CAim._XD(Mg.Caster.getAimForCaster(), 1) >= 0);
+							M2Mover m2Mover = Mg.Caster as M2Mover;
+							Mg.sx = X.Abs(0.75f) * num2;
+							Mg.sy = ((m2Mover != null) ? m2Mover.get_sizey() : 0.25f);
+							Mg.sz = 0.35f;
+							NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+							nelAttackInfo.hpdmg0 = 0;
+							nelAttackInfo.attr = MGATTR.NORMAL;
+							nelAttackInfo.burst_vx = 0f;
+							nelAttackInfo.burst_vy = 0f;
+							nelAttackInfo.attack_max0 = -1;
+							nelAttackInfo.hit_ptcst_name = "pr_sliding_hit";
+							nelAttackInfo.knockback_len = 0.2f;
+							Mg.hittype |= MGHIT.NORMAL_ATTACK;
+							Mg.changeRay(mgc.makeRay(Mg, 0f, (Mg.hittype & MGHIT.EN) == (MGHIT)0, false));
+							Mg.Ray.HitLock(-1f, null);
+							Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
+							init_aimpos_to_d = false;
+							goto IL_130E;
+						}
+						case MGKIND.PR_WHEEL:
+						{
+							Mg.sx = 0f;
+							Mg.sy = 0f;
+							Mg.sz = 1.9f;
+							NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+							nelAttackInfo.hpdmg0 = 3;
+							nelAttackInfo.split_mpdmg = 2;
+							nelAttackInfo.attr = MGATTR.NORMAL;
+							nelAttackInfo.burst_vx = 0.18f;
+							nelAttackInfo.burst_vy = 0.08f;
+							nelAttackInfo.attack_max0 = 1;
+							nelAttackInfo.hit_ptcst_name = "pr_wheel_hit";
+							nelAttackInfo.fnHitEffectPre = delegate(AttackInfo Atk, IM2RayHitAble Hit)
+							{
+								NelAttackInfo nelAttackInfo4 = Atk as NelAttackInfo;
+								if (nelAttackInfo4.Caster != null)
+								{
+									PTCThreadRunner.PreVar("ax", (double)CAim._XD(nelAttackInfo4.Caster.getAimForCaster(), 1));
+								}
+							};
+							nelAttackInfo.knockback_len = 0f;
+							Mg.hittype |= MGHIT.NORMAL_ATTACK;
+							Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
+							init_aimpos_to_d = false;
+							Mg.changeRay(mgc.makeRay(Mg, 0f, true, false));
+							Mg.Ray.HitLock(5f, null);
+							Mg.phase = 1;
+							Mg.mp_crystalize = 0f;
+							goto IL_130E;
+						}
+						case MGKIND.PR_SHIELD_BUSH:
+						{
+							Mg.sx = 0f;
+							Mg.sy = 0f;
+							Mg.sz = -2.8f;
+							NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+							nelAttackInfo.hpdmg0 = 3;
+							nelAttackInfo.split_mpdmg = 0;
+							nelAttackInfo.attr = MGATTR.NORMAL;
+							nelAttackInfo.burst_vx = 0.13f;
+							nelAttackInfo.burst_vy = -0.12f;
+							nelAttackInfo.attack_max0 = -1;
+							nelAttackInfo.knockback_len = 0f;
+							nelAttackInfo.tired_time_to_super_armor = -1000f;
+							Mg.hittype |= MGHIT.NORMAL_ATTACK;
+							Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
+							init_aimpos_to_d = false;
+							Mg.changeRay(mgc.makeRay(Mg, 0f, false, false));
+							Mg.Ray.HitLock(-1f, null);
+							Mg.phase = 1;
+							Mg.mp_crystalize = 0f;
+							goto IL_130E;
+						}
+						case MGKIND.PR_SHIELD_LARIAT:
+						{
+							float num3 = (float)X.MPF(CAim._XD(Mg.Caster.getAimForCaster(), 1) >= 0);
+							Mg.sx = 1.1f * num3;
+							Mg.sy = -0.5f;
+							Mg.dx = 1f * num3;
+							Mg.sz = -1.6f;
+							NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+							nelAttackInfo.hpdmg0 = 2;
+							nelAttackInfo.split_mpdmg = 0;
+							nelAttackInfo.attr = MGATTR.NORMAL;
+							nelAttackInfo.burst_vx = 0.16f;
+							nelAttackInfo.burst_vy = -0.07f;
+							nelAttackInfo.attack_max0 = -1;
+							nelAttackInfo.knockback_len = 0f;
+							nelAttackInfo.hit_ptcst_name = "hit_shield_atk";
+							Mg.hittype |= MGHIT.NORMAL_ATTACK;
+							Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
+							init_aimpos_to_d = false;
+							Mg.changeRay(mgc.makeRay(Mg, 0f, false, false));
+							Mg.Ray.HitLock(-1f, null);
+							Mg.phase = 1;
+							Mg.mp_crystalize = 0f;
+							goto IL_130E;
+						}
+						}
+						break;
+					}
+				}
+				else
+				{
+					if (kind == MGKIND.PR_BURST)
+					{
+						NelAttackInfo nelAttackInfo = (Mg.Atk0 = mgc.makeAtk());
+						nelAttackInfo.hpdmg0 = 20;
+						nelAttackInfo.split_mpdmg = 5;
+						nelAttackInfo.ignore_nodamage_time = true;
+						nelAttackInfo.burst_center = 0.5f;
+						nelAttackInfo.attr = MGATTR.NORMAL;
+						nelAttackInfo.burst_vx = 1.4f;
+						nelAttackInfo.burst_vy = -0.8f;
+						nelAttackInfo.attack_max0 = -1;
+						nelAttackInfo.huttobi_ratio = 5f;
+						nelAttackInfo.ndmg = NDMG.GRAB_PENETRATE;
 						Mg.hittype |= MGHIT.NORMAL_ATTACK;
 						MagicSelector.initMagic(Mg);
 						Mg.changeRay(mgc.makeRay(Mg, 2.4f, true, true));
@@ -662,21 +742,20 @@ namespace nel
 						mgc.initFunc(Mg);
 						Mg.casttime = 0f;
 						Mg.hittype |= MGHIT.CHANTED;
-						goto IL_0FB8;
+						goto IL_130E;
 					}
+					if (kind == MGKIND.TACKLE)
+					{
+						Mg.hittype |= MGHIT.NORMAL_ATTACK;
+						Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
+						init_aimpos_to_d = false;
+						Mg.mana_absorb_replace = true;
+						goto IL_130E;
 					}
-					break;
 				}
 			}
-			else
+			else if (kind <= MGKIND.GENERAL_BEAM)
 			{
-				if (kind == MGKIND.TACKLE)
-				{
-					Mg.hittype |= MGHIT.NORMAL_ATTACK;
-					Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => MagicItem.runTackle(Mg, fcnt));
-					init_aimpos_to_d = false;
-					goto IL_0FB8;
-				}
 				if (kind == MGKIND.GROUND_SHOCKWAVE)
 				{
 					Mg.hittype |= MGHIT.IMMEDIATE;
@@ -685,21 +764,50 @@ namespace nel
 					Mg.sa = 0.6f;
 					Mg.changeRay(mgc.makeRay(Mg, 0.02f, false, false));
 					mgc.initFunc(Mg);
-					goto IL_0FB8;
+					goto IL_130E;
 				}
-				if (kind != MGKIND.BASIC_SHOT)
+				if (kind == MGKIND.GENERAL_BEAM)
 				{
-					goto IL_0F70;
+					mgc.initFunc(Mg);
+					Mg.changeRay(mgc.makeRay(Mg, 0f, true, false));
+					goto IL_130E;
 				}
 			}
-			IL_0DF4:
-			Mg.initFuncNoDraw(MagicItem.FD_runOnlyMakeRay);
-			goto IL_0FB8;
-			IL_0F70:
+			else if (kind - MGKIND.NATTR_SPLASH_FIRE > 2)
+			{
+				if (kind == MGKIND.BASIC_SHOT)
+				{
+					Mg.initFuncNoDraw(MagicItem.FD_runOnlyMakeRay);
+					goto IL_130E;
+				}
+			}
+			else
+			{
+				Mg.phase = 0;
+				Mg.hittype |= MGHIT.IMMEDIATE;
+				Mg.hittype &= (MGHIT)(-8193);
+				Mg.projectile_power = -1;
+				Mg.changeRay(mgc.makeRay(Mg, 0.02f, false, false));
+				if (Mg.kind == MGKIND.NATTR_SPLASH_FIRE)
+				{
+					Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => EnemyAttr.fnRunSplashFire(Mg, fcnt));
+				}
+				if (Mg.kind == MGKIND.NATTR_SPLASH_ICE)
+				{
+					Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => EnemyAttr.fnRunSplashIce(Mg, fcnt));
+				}
+				if (Mg.kind == MGKIND.NATTR_SPLASH_THUNDER)
+				{
+					Mg.initFuncNoDraw((MagicItem Mg, float fcnt) => EnemyAttr.fnRunSplashThunder(Mg, fcnt));
+					goto IL_130E;
+				}
+				goto IL_130E;
+			}
+			IL_12C6:
 			Mg.hittype |= MGHIT.IMMEDIATE;
 			Mg.hittype &= (MGHIT)(-8193);
 			X.dl("不明な魔法タイプ: " + Mg.kind.ToString(), null, false, false);
-			IL_0FB8:
+			IL_130E:
 			if (Mg.is_chanted_magic && PUZ.IT.isPuzzleManagingMp())
 			{
 				Mg.mp_crystalize = 0f;
@@ -707,17 +815,17 @@ namespace nel
 				{
 					Mg.casttime = 20f;
 				}
-				if (Mg.reduce_mp > 0)
+				if (Mg.reduce_mp > 0f)
 				{
-					Mg.reduce_mp = (int)(64f * (float)((Mg.kind == MGKIND.PR_BURST) ? 2 : 1));
+					Mg.reduce_mp = (float)((int)(64f * (float)((Mg.kind == MGKIND.PR_BURST) ? 2 : 1)));
 				}
 			}
 		}
 
 		public static void initBurstAtkForScapeCat(MagicItem Mg)
 		{
-			Mg.reduce_mp = 0;
-			Mg.Atk0.tired_time_to_super_armor = 45f;
+			Mg.reduce_mp = 0f;
+			Mg.Atk0.tired_time_to_super_armor = 50f;
 			Mg.Atk0.hpdmg0 = 15;
 			Mg.Atk0.mpdmg0 = 0;
 			Mg.Atk0.split_mpdmg = 0;
@@ -756,7 +864,7 @@ namespace nel
 
 		public static bool initShotGun(MagicItem MgShot, MagicItem MgHold, float mp_hold, float my_mp)
 		{
-			if (MgHold.casttime <= 0f || MgHold.reduce_mp <= 0 || MgHold.Atk0 == null)
+			if (MgHold.casttime <= 0f || MgHold.reduce_mp <= 0f || MgHold.Atk0 == null)
 			{
 				return false;
 			}
@@ -769,18 +877,30 @@ namespace nel
 			{
 				num3 = kindData.shotgun_ratio;
 			}
+			float num4 = 1.5f;
+			if (MgHold.kind == MGKIND.FIREBALL)
+			{
+				num4 = 0.4f;
+			}
 			MGKIND kind = MgShot.kind;
 			if (kind != MGKIND.PR_WHEEL)
 			{
-				if (kind == MGKIND.PR_DASHPUNCH)
+				if (kind != MGKIND.PR_DASHPUNCH)
+				{
+					if (kind == MGKIND.PR_SMASH)
+					{
+						num3 *= X.NI(1f, 2f, X.ZSINV(mp_hold, MgHold.reduce_mp));
+					}
+				}
+				else
 				{
 					num3 *= 1f;
 				}
 			}
 			else
 			{
-				num = X.ZSINV(mp_hold, (float)MgHold.reduce_mp) * 0.75f;
-				num3 = num3 / 1.5f * num;
+				num = X.ZSINV(mp_hold, MgHold.reduce_mp) * 0.75f;
+				num3 = num3 / 1.5f * num * 1.25f;
 				num2 = 0.5f;
 				atk.attack_max0 = -1;
 				atk.hit_ptcst_name = "";
@@ -788,11 +908,11 @@ namespace nel
 			}
 			if (num < 0f)
 			{
-				num = X.ZPOW(mp_hold, (float)MgHold.reduce_mp);
+				num = X.ZPOW(mp_hold, MgHold.reduce_mp);
 				num3 *= num;
 				num2 = X.Mx(1f, num * 2f);
-				float num4 = 0.3f + 0.7f * num;
-				atk.Burst(1.3f * num4, -0.3f * num4);
+				float num5 = 0.3f + 0.7f * num;
+				atk.Burst(1.3f * num5, -0.3f * num5);
 				if (MgShot.kind == MGKIND.PR_PUNCH)
 				{
 					atk.split_mpdmg = X.IntR(X.NI((float)atk.split_mpdmg, 32f, num));
@@ -805,9 +925,10 @@ namespace nel
 				atk.SerDmg.Add(MgHold.Atk0.SerDmg, num2);
 			}
 			atk.attr = MgHold.Atk0.attr;
-			MgShot.reduce_mp = X.IntC(X.Mn((float)MgHold.reduce_mp * X.ZLINE(MgHold.t, MgHold.casttime), my_mp));
+			MgShot.reduce_mp = (float)X.IntC(X.Mn(MgHold.reduce_mp * X.ZLINE(MgHold.t, MgHold.casttime), my_mp));
 			MgShot.da = num;
 			MgShot.crystalize_neutral_ratio = MgHold.crystalize_neutral_ratio + (1f - MgHold.crystalize_neutral_ratio) * X.NI(0f, 0.5f, num);
+			atk.tired_time_to_super_armor = MgHold.Atk0.tired_time_to_super_armor * X.NI(0.3f, num4, num);
 			return true;
 		}
 
@@ -823,14 +944,14 @@ namespace nel
 			}
 			int num = count + 1 - 7;
 			NelAttackInfo nelAttackInfo = ((count < 7 || (!Pr.is_alive && Pr.overkill)) ? ((Pr.get_mp() <= Pr.get_maxmp() * 0.2f + 15f) ? (Pr.is_alive ? MDAT.AtkWormTrapDamage : ((X.xors() % 2U == 0U) ? MDAT.AtkWormTrapDamage : MDAT.AtkWormTrap)) : MDAT.AtkWormTrap) : null);
-			Pr.applyWormTrapDamage(nelAttackInfo, num, decline_additional_effect);
+			Pr.DMG.applyWormTrapDamage(nelAttackInfo, num, decline_additional_effect);
 			if (Pr.isPuzzleManagingMp())
 			{
 				return;
 			}
 			if (num == 0 || (num > 7 && nelAttackInfo != null))
 			{
-				Pr.applyEggPlantDamage(0.2f, PrEggManager.CATEG.WORM, true, (num == 0) ? MDAT.worm_eggplant_ratio : 0.04f);
+				Pr.EggCon.applyEggPlantDamage(0.2f, PrEggManager.CATEG.WORM, true, (num == 0) ? MDAT.worm_eggplant_ratio : 0.04f);
 			}
 		}
 
@@ -843,7 +964,7 @@ namespace nel
 			atkPressDamage._apply_knockback_current = true;
 			atkPressDamage.shuffleHpMpDmg(Mv, 1f, 1f, -1000, -1000);
 			atkPressDamage.Caster = null;
-			atkPressDamage.Beto = (CFG.sp_use_uipic_press_gimmick ? MDAT.BetoPressUiPress : MDAT.BetoPressDefault);
+			atkPressDamage.Beto = (CFGSP.use_uipic_press_gimmick ? MDAT.BetoPressUiPress : MDAT.BetoPressDefault);
 			atkPressDamage.CenterXy(Mv.x + X.Mx(0f, Mv.sizex - 0.25f) * (float)CAim._XD(aim, 1), Mv.y - X.Mx(0f, Mv.sizey - 0.25f) * (float)CAim._YD(aim, 1), 0f);
 			return atkPressDamage;
 		}
@@ -913,7 +1034,7 @@ namespace nel
 
 		public const int HP_CRACK_MAX = 5;
 
-		public const float MP_OVERUSED_REDUCE_TS = 0.06666667f;
+		public const float MP_OVERUSED_REDUCE_TS = 0.16666667f;
 
 		public const float MP_OVERUSED_ALLOC_MAX = 180f;
 
@@ -963,6 +1084,12 @@ namespace nel
 
 		public const float SPLIT_PUNCH_SHOTGUN_MAX = 32f;
 
+		public const float mg_energyball_tired_max = 45f;
+
+		public const float mg_energyball_tired_min = 30f;
+
+		public const float mg_scapecat_tired = 50f;
+
 		public const int burst_mana_absorb_lock = 200;
 
 		public const float burst_execute_reduce_fcnt = 0.0027777778f;
@@ -993,6 +1120,10 @@ namespace nel
 
 		public const float ep_max = 1000f;
 
+		public const int ep_reduce_on_orgasm_locked = 850;
+
+		public const int ep_orgasm_stack_applyable = 700;
+
 		public const float ep_thresh_musturb = 400f;
 
 		public const float ep_auto_reduce_threshold_ratio = 0.3f;
@@ -1006,6 +1137,10 @@ namespace nel
 		public const int ep_reduce_while_orgasm = 300;
 
 		public const int ep_reduce_while_orgasm_frustrated = 800;
+
+		public const float LEAD_ORGASM_REDUCE_ON_ORGASMLOCKED = 0.25f;
+
+		public const float gas_damage_lead_orgasm_multiple = 3f;
 
 		public const float ep_dsex_ratio = 3.5f;
 
@@ -1045,6 +1180,8 @@ namespace nel
 
 		public const float EH_long_reach = 1.4f;
 
+		public const float EH_long_reach_smash = 0.5f;
+
 		public const int ser_tired_time = 240;
 
 		public const float press_damage_ratio = 0.4f;
@@ -1063,17 +1200,45 @@ namespace nel
 
 		public const float ser_frozen_maxt_2 = 3200f;
 
+		public const float ser_stone_maxt_0 = 1600f;
+
+		public const float ser_stone_maxt_2 = 1800f;
+
+		public const int ser_frozen_levelcnt_2 = 3;
+
+		public const int ser_stone_levelcnt_2 = 5;
+
+		public const int ser_stone_levelcnt_3 = 20;
+
 		public const float physic_dmg_apply_in_frozen_0 = 1.5f;
 
 		public const float physic_dmg_apply_in_frozen_2 = 2.5f;
+
+		public const float physic_dmg_apply_in_stone_0 = 0.75f;
+
+		public const float physic_dmg_apply_in_stone_2 = 0.125f;
 
 		public const int physic_dmg_apply_progress_time = 240;
 
 		public const float bomb_self_explode_ratio = 0.2f;
 
-		public const int FROZEN_GACHA_PROGRESS = 120;
+		public const int FROZEN_GACHA_PROGRESS = 165;
 
 		public const int FROZEN_GACHA_PROGRESS_L2 = 180;
+
+		public const int STONE_GACHA_PROGRESS = 160;
+
+		public const int STONE_GACHA_PROGRESS_L2 = 160;
+
+		public const float gacha_ratio_in_corrupt_mist = 0.66f;
+
+		public const int ser_web_trapped_maxt = 200;
+
+		public const float WEB_TRAPPED_GACHA_TAPCOUNT = 4f;
+
+		public const float WEB_TRAPPED_GACHA_TAPCOUNT_L2 = 10f;
+
+		public const float enemy_drop_battleagain_baseratio = 0.5f;
 
 		public static readonly NelAttackInfo AtkWormTrap = new NelAttackInfo
 		{
@@ -1103,6 +1268,17 @@ namespace nel
 			EpDmg = MDAT.AtkWormTrap.EpDmg,
 			shield_break_ratio = 0f
 		};
+
+		public static readonly NelAttackInfo AtkSlipDmgBurnedPr = new NelAttackInfo
+		{
+			attr = MGATTR.FIRE,
+			ndmg = NDMG.MAPDAMAGE_LAVA,
+			hpdmg0 = 6,
+			burst_vy = -0.01f,
+			huttobi_ratio = -1000f,
+			shield_break_ratio = 0f,
+			Beto = BetoInfo.Lava.Pow(4, false)
+		}.Torn(0.03f, 0.08f);
 
 		public const int ENEMY_LAVA_HPDMG_MIN = 25;
 
@@ -1152,13 +1328,29 @@ namespace nel
 			hpdmg0 = 11,
 			burst_vx = 0.004f,
 			nodamage_time = 70,
-			shield_break_ratio = 0f,
-			ndmg = NDMG.MAPDAMAGE_THUNDER,
+			shield_success_nodamage = 25f,
+			shield_break_ratio = -0.01f,
+			ndmg = NDMG.NATTR,
 			huttobi_ratio = -100f,
 			attr = MGATTR.FIRE,
 			SerDmg = new FlagCounter<SER>(4).Add(SER.BURNED, 20f),
 			Beto = BetoInfo.Lava.Pow(15, false)
 		}.Torn(0.03f, 0.08f);
+
+		public static readonly NelAttackInfo AtkIceShot = new NelAttackInfo
+		{
+			hpdmg0 = 15,
+			split_mpdmg = 1,
+			burst_vx = 0.024f,
+			knockback_len = 0.6f,
+			huttobi_ratio = -1000f,
+			attr = MGATTR.ICE,
+			shield_break_ratio = -4f,
+			parryable = true,
+			nodamage_time = 0,
+			ndmg = NDMG.NATTR,
+			SerDmg = new FlagCounter<SER>(1).Add(SER.FROZEN, 35f)
+		}.Torn(0.002f, 0.003f);
 
 		public const int candle_touch_hitlock_t = 40;
 

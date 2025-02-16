@@ -10,7 +10,7 @@ namespace nel
 	public class EnemyAnimatorMultiMech : EnemyAnimator
 	{
 		public EnemyAnimatorMultiMech(NelEnemy _Mv)
-			: base(_Mv, (EnemyAnimator Anm, PxlFrame F) => new EnemyFrameDataBasic(Anm, F), null)
+			: base(_Mv, (EnemyAnimator Anm, PxlFrame F) => new EnemyFrameDataBasic(Anm, F), null, true)
 		{
 			this.normalrender_header = null;
 			this.AMdCur = new List<MeshDrawer>(4);
@@ -125,11 +125,11 @@ namespace nel
 			return meshDrawer;
 		}
 
-		protected override bool FnEnRenderBaseInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool paste_mesh)
+		protected override bool FnEnRenderBaseInner(Camera Cam, M2RenderTicket Tk, bool need_redraw, ref int draw_id, out MeshDrawer MdOut, ref bool color_one_overwrite)
 		{
 			if (draw_id <= 1)
 			{
-				return base.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref paste_mesh);
+				return base.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite);
 			}
 			draw_id -= 2;
 			if (draw_id < this.AMdCur.Count)
@@ -139,7 +139,7 @@ namespace nel
 				return true;
 			}
 			draw_id += -this.AMdCur.Count + 3;
-			return base.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref paste_mesh);
+			return base.FnEnRenderBaseInner(Cam, Tk, need_redraw, ref draw_id, out MdOut, ref color_one_overwrite);
 		}
 
 		public override bool is_normal_render(PxlLayer L)
@@ -156,14 +156,6 @@ namespace nel
 				}
 			}
 			return false;
-		}
-
-		public override bool is_evil
-		{
-			get
-			{
-				return true;
-			}
 		}
 
 		private List<MeshDrawer> AMdCur;

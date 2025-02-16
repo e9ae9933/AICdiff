@@ -54,7 +54,6 @@ namespace nel
 				this.TxB.initNelMsg(this);
 				this.TxB.bold = true;
 				this.TxT = IN.CreateGob(base.gameObject, "-Tx").AddComponent<TextRenderer>();
-				this.TxT.TargetFont = TX.getTitleFont();
 				this.TxT.alignx = ALIGN.RIGHT;
 				this.TxT.aligny = ALIGNY.MIDDLE;
 				this.TxT.size = 26f;
@@ -66,6 +65,8 @@ namespace nel
 				this.use_valotile = this.M2D.use_valotile;
 				this.M2D.addValotAddition(this);
 			}
+			this.TxB.TargetFont = TX.getDefaultFont();
+			this.TxT.TargetFont = TX.getTitleFont();
 			string text = M2MapTitle.get_tx_key(Mp);
 			if (text != null)
 			{
@@ -237,7 +238,7 @@ namespace nel
 		{
 		}
 
-		public void executeRestMsgCmd()
+		public void executeRestMsgCmd(int count)
 		{
 		}
 
@@ -289,6 +290,11 @@ namespace nel
 
 		public void FixTextContent(STB Stb)
 		{
+		}
+
+		public override string ToString()
+		{
+			return "M2MapTitle";
 		}
 
 		public bool use_valotile

@@ -57,8 +57,17 @@ namespace nel
 			return this;
 		}
 
+		public void deactivate()
+		{
+			this.af = -1f;
+		}
+
 		public bool run(float fcnt)
 		{
+			if (this.af < 0f)
+			{
+				return false;
+			}
 			try
 			{
 				bool flag = true;
@@ -88,7 +97,7 @@ namespace nel
 							}
 							if (!this.immediate_collect)
 							{
-								this.mana_hit &= (MANA_HIT)(-57);
+								this.mana_hit &= ~(MANA_HIT.FALL | MANA_HIT.FALL_PR | MANA_HIT.FALL_EN);
 							}
 							else
 							{
@@ -111,17 +120,17 @@ namespace nel
 				{
 					if (this.immediate_collect && this.Target == null)
 					{
-						this.mana_hit &= (MANA_HIT)(-1801);
+						this.mana_hit &= ~(MANA_HIT.FALL | MANA_HIT.TARGET_PR | MANA_HIT.TARGET_EN | MANA_HIT.IMMEDIATE_COLLECTABLE);
 					}
 					if (this.Target != null)
 					{
 						if (this.TargetM.destructed || (this.TargetM.get_mp() >= this.TargetM.get_maxmp() && !this.immediate_collect) || (!this.TargetM.is_alive && !this.TargetM.overkill))
 						{
 							this.Con.fineRecheckTarget(10f);
-							this.mana_hit &= (MANA_HIT)(-129);
+							this.mana_hit &= ~MANA_HIT.NO_FARE_HIT;
 							this.Target = null;
 							this.TargetM = null;
-							this.mana_hit &= (MANA_HIT)(-1849);
+							this.mana_hit &= ~(MANA_HIT.FALL | MANA_HIT.FALL_PR | MANA_HIT.FALL_EN | MANA_HIT.TARGET_PR | MANA_HIT.TARGET_EN | MANA_HIT.IMMEDIATE_COLLECTABLE);
 							this.faf = -1f;
 						}
 						else if (this.faf < 0f)
@@ -167,7 +176,7 @@ namespace nel
 						this.destruct();
 						return false;
 					}
-					if (!this.Target.canGetMana(this, false) && (this.mana_hit & MANA_HIT.EN) != MANA_HIT.NOUSE && (this.mana_hit & MANA_HIT.NO_FARE\uFF3FHIT) == MANA_HIT.NOUSE && this.af % 4f == (float)(this.index % 4))
+					if (!this.Target.canGetMana(this, false) && (this.mana_hit & MANA_HIT.EN) != MANA_HIT.NOUSE && (this.mana_hit & MANA_HIT.NO_FARE_HIT) == MANA_HIT.NOUSE && this.af % 4f == (float)(this.index % 4))
 					{
 						int mover_count = this.Mp.mover_count;
 						for (int i = 0; i < mover_count; i++)
@@ -177,24 +186,32 @@ namespace nel
 							{
 								this.Target = nelM2Attacker;
 								this.TargetM = nelM2Attacker as M2Attackable;
-								this.mana_hit |= MANA_HIT.NO_FARE\uFF3FHIT;
+								this.mana_hit |= MANA_HIT.NO_FARE_HIT;
 								break;
 							}
 						}
 					}
 				}
-				int num3 = (((this.mana_hit & MANA_HIT.FROM_GAGE_SPLIT) != MANA_HIT.NOUSE) ? 300 : (((this.mana_hit & MANA_HIT.PR) == MANA_HIT.NOUSE && this.Con.can_collect_en_mana_immediately == 1) ? 30 : 300));
-				if (this.af >= (float)num3 && this.Target == null)
+				if (!this.falling)
 				{
-					if ((this.mana_hit & MANA_HIT.ALL) == MANA_HIT.ALL || (this.mana_hit & MANA_HIT.ALL) == MANA_HIT.NOUSE || (this.mana_hit & (MANA_HIT)10244) != MANA_HIT.NOUSE)
+					float num3 = (((this.mana_hit & MANA_HIT.FROM_GAGE_SPLIT) != MANA_HIT.NOUSE) ? 300f : (((this.mana_hit & MANA_HIT.PR) == MANA_HIT.NOUSE && this.Con.can_collect_en_mana_immediately) ? (this.start_float_t + 60f) : 300f));
+					if (this.af >= num3 && this.Target == null)
 					{
-						this.destruct();
-						return false;
+						if ((this.mana_hit & MANA_HIT.ALL) == MANA_HIT.ALL || this.from_enemy_supplier || this.from_absorb_supplier || (this.mana_hit & MANA_HIT.ALL) == MANA_HIT.NOUSE || (this.mana_hit & (MANA_HIT.FROM_DAMAGE_SPLIT | MANA_HIT.FROM_GAGE_SPLIT | MANA_HIT.FROM_SUPPLIER)) != MANA_HIT.NOUSE)
+						{
+							this.destruct();
+							return false;
+						}
+						if ((this.mana_hit & MANA_HIT.ALL) == MANA_HIT.EN && !this.Con.can_collect_en_mana_immediately && DIFF.enemy_mana_auto_disappear(this.index))
+						{
+							this.destruct();
+							return false;
+						}
+						this.mana_hit |= MANA_HIT.ALL;
+						this.mana_hit &= ~(MANA_HIT.FALL | MANA_HIT.FALL_PR | MANA_HIT.FALL_EN | MANA_HIT.NO_FARE_HIT);
+						this.af = this.start_float_t + 10f;
+						this.Con.fineRecheckTarget(10f);
 					}
-					this.mana_hit |= MANA_HIT.ALL;
-					this.mana_hit &= (MANA_HIT)(-185);
-					this.af = this.start_float_t + 10f;
-					this.Con.fineRecheckTarget(10f);
 				}
 				if (flag)
 				{
@@ -211,6 +228,10 @@ namespace nel
 
 		public void draw(MeshDrawer MdS, MeshDrawer MdA, MeshDrawer MdStroke, float fcnt)
 		{
+			if (this.af < 0f)
+			{
+				return;
+			}
 			C32 c = EffectItem.Col1.Set(3432935825U);
 			MdS.Col = c.C;
 			if ((this.mana_hit & MANA_HIT.FALL) != MANA_HIT.NOUSE && (this.mana_hit & MANA_HIT.CRYSTAL) == MANA_HIT.NOUSE)
@@ -222,7 +243,7 @@ namespace nel
 				MdS.ColGrd.Set(MdS.Col).setA1(0f);
 				float num2 = X.ZSIN(this.af - 20f, 40f);
 				MdA.initForImg(MTRX.EffCircle128, 0);
-				MdA.Col = c.Set(MTR.col_pr_mana).blend(MTR.col_en_mana, ((this.mana_hit & (MANA_HIT)34) == MANA_HIT.NOUSE) ? (1f - num2) : num2).C;
+				MdA.Col = c.Set(MTR.col_pr_mana).blend(MTR.col_en_mana, ((this.mana_hit & (MANA_HIT.EN | MANA_HIT.FALL_EN)) == MANA_HIT.NOUSE) ? (1f - num2) : num2).C;
 				MdA.Rect(0f, 0f, num * 2f, num * 2f, false);
 				MdA.initForImg(MTRX.EffBlurCircle245, 0);
 				float num3 = num * 2f + 8f;
@@ -298,7 +319,7 @@ namespace nel
 			this.desire = desire / 9f;
 			this.Target = Targ;
 			this.TargetM = Targ as M2Attackable;
-			this.mana_hit &= (MANA_HIT)(-769);
+			this.mana_hit &= ~(MANA_HIT.TARGET_PR | MANA_HIT.TARGET_EN);
 			if (Targ is PR)
 			{
 				this.mana_hit |= MANA_HIT.TARGET_PR;
@@ -313,7 +334,7 @@ namespace nel
 		public void transformManaHitType(MANA_HIT _mana_hit)
 		{
 			this.mana_hit = _mana_hit | (this.mana_hit & MANA_HIT.FALL);
-			this.mana_hit &= (MANA_HIT)(-769);
+			this.mana_hit &= ~(MANA_HIT.TARGET_PR | MANA_HIT.TARGET_EN);
 			this.af = X.Mn(this.start_float_t + 10f, this.af);
 			this.Target = null;
 			this.TargetM = null;
@@ -376,7 +397,15 @@ namespace nel
 		{
 			get
 			{
-				return (this.mana_hit & MANA_HIT.FROM_DAMAGE_SPLIT) > MANA_HIT.NOUSE && this.en_hit && !this.pr_hit;
+				return this.en_hit && !this.pr_hit;
+			}
+		}
+
+		public bool falling
+		{
+			get
+			{
+				return (this.mana_hit & MANA_HIT.FALL) > MANA_HIT.NOUSE;
 			}
 		}
 
@@ -412,6 +441,14 @@ namespace nel
 			}
 		}
 
+		public bool from_absorb_supplier
+		{
+			get
+			{
+				return (this.mana_hit & MANA_HIT.FROM_ABSORB_SPLIT) > MANA_HIT.NOUSE && this.en_hit && !this.pr_hit;
+			}
+		}
+
 		public bool only_effect
 		{
 			get
@@ -431,7 +468,7 @@ namespace nel
 		public void destruct()
 		{
 			this.Target = null;
-			this.mana_hit &= (MANA_HIT)(-129);
+			this.mana_hit &= ~MANA_HIT.NO_FARE_HIT;
 			this.TargetM = null;
 			this.TargetM = null;
 			this.af = -1f;

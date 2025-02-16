@@ -29,11 +29,14 @@ namespace nel
 			this.OHoldFD[MGKIND.WHITEARROW] = new MgWhiteArrow();
 			this.OHoldFD[MGKIND.GROUND_SHOCKWAVE] = new MgNGroundShockwave();
 			this.OHoldFD[MGKIND.CANDLE_SHOT] = new MgNCandleShot();
+			this.OHoldFD[MGKIND.WEB_SHOT] = new MgNWebShot();
 			this.OHoldFD[MGKIND.ICE_SHOT] = new MgNIceShot();
+			this.OHoldFD[MGKIND.THUNDERBALL_SHOT] = new MgNThunderBallShot();
 			this.OHoldFD[MGKIND.ITEMBOMB_NORMAL] = new MgItemBombNormal();
 			this.OHoldFD[MGKIND.ITEMBOMB_LIGHT] = new MgItemBombFlashBang();
 			this.OHoldFD[MGKIND.ITEMBOMB_MAGIC] = new MgItemBombMagic();
 			this.OHoldFD[MGKIND.CEILDROP] = new MgNCeilDrop();
+			this.OHoldFD[MGKIND.GENERAL_BEAM] = new MgNGeneralBeam();
 			this.Notf = new MagicNotifiearData(this.OHoldFD);
 		}
 
@@ -227,7 +230,7 @@ namespace nel
 			if (Atk.pr_myself_fire)
 			{
 				flag = true;
-				Ray.hittype |= (HITTYPE)17;
+				Ray.hittype |= HITTYPE.PR | HITTYPE.BERSERK_MYSELF;
 			}
 			Ray.Atk = Atk;
 			HITTYPE hittype2 = Ray.Cast(true, null, true);
@@ -291,10 +294,14 @@ namespace nel
 							{
 								if (!flag2)
 								{
-									goto IL_046B;
+									goto IL_049D;
 								}
 								nelM2Attacker = hit as NelEnemy;
 								m2Attackable2 = hit as NelEnemy;
+								if (m2Attackable2.destructed)
+								{
+									goto IL_049D;
+								}
 								hittype2 |= HITTYPE.EN;
 								hittype3 = HITTYPE.HITTED_EN;
 							}
@@ -302,10 +309,14 @@ namespace nel
 							{
 								if (!flag2)
 								{
-									goto IL_046B;
+									goto IL_049D;
 								}
 								nelM2Attacker = hit as PR;
 								m2Attackable2 = hit as PR;
+								if (m2Attackable2.destructed)
+								{
+									goto IL_049D;
+								}
 								hittype2 |= HITTYPE.PR;
 								hittype3 = HITTYPE.HITTED_PR;
 								if (flag)
@@ -313,7 +324,7 @@ namespace nel
 									Atk.HitXy(Mg.sx, Mg.sy, false);
 									if ((nelM2Attacker as PR).applyMySelfFire(Mg, Ray, Atk) < 0)
 									{
-										goto IL_046B;
+										goto IL_049D;
 									}
 								}
 							}
@@ -326,61 +337,64 @@ namespace nel
 							}
 							Atk._hitlock_ignore = false;
 							bool flag3 = false;
-							if (nelM2Attacker != null)
+							if (!Ray.check_hitlock_manual || !Ray.checkHitLock(hitted.Hit))
 							{
-								if (Atk.burst_center != 0f)
+								if (nelM2Attacker != null)
 								{
-									float num4 = this.Mp.GAR(Atk.center_x, Atk.center_y, m2Attackable2.x, m2Attackable2.y);
-									float num5 = X.Cos(num4);
-									float num6 = -X.Sin(num4) * num * num2;
-									Atk._burst_huttobi_thresh = X.Mn(0f, num6);
-									float num7;
-									if (Atk.burst_center < 0f)
+									if (Atk.burst_center != 0f)
 									{
-										num7 = burst_vx * X.ZLINE(1f - num2);
+										float num4 = this.Mp.GAR(Atk.center_x, Atk.center_y, m2Attackable2.x, m2Attackable2.y);
+										float num5 = X.Cos(num4);
+										float num6 = -X.Sin(num4) * num * num2;
+										Atk._burst_huttobi_thresh = X.Mn(0f, num6);
+										float num7;
+										if (Atk.burst_center < 0f)
+										{
+											num7 = burst_vx * X.ZLINE(1f - num2);
+										}
+										else
+										{
+											num7 = X.Abs(burst_vx) * (float)X.MPF(num5 > 0f) * X.ZLINE(1f - num2);
+										}
+										Atk.Burst(num7 + num5 * num * num2, burst_vy * X.ZLINE(1f - num2) + num6);
 									}
-									else
+									if (Atk.ignore_nodamage_time)
 									{
-										num7 = X.Abs(burst_vx) * (float)X.MPF(num5 > 0f) * X.ZLINE(1f - num2);
+										(nelM2Attacker as M2Attackable).penetrateNoDamageTime(Atk.ndmg, -1);
 									}
-									Atk.Burst(num7 + num5 * num * num2, burst_vy * X.ZLINE(1f - num2) + num6);
+									if (nelM2Attacker.applyDamage(Atk, false) > 0)
+									{
+										hittype2 |= hittype3;
+										flag3 = true;
+									}
+									if (Atk._apply_knockback_current && Atk.knockback_len > 0f && m2Attackable != null)
+									{
+										M2Attackable m2Attackable3 = nelM2Attacker as M2Attackable;
+										m2Attackable.addKnockBack(m2Attackable3, Atk, (float)((Ray.difx == 0f) ? X.MPF(m2Attackable.x < m2Attackable3.x) : X.MPF(Ray.difx > 0f)));
+									}
+									if (Atk.reduceAttackCount())
+									{
+										flag2 = false;
+									}
 								}
-								if (Atk.ignore_nodamage_time)
-								{
-									(nelM2Attacker as M2Attackable).penetrateNoDamageTime(Atk.ndmg, -1);
-								}
-								if (nelM2Attacker.applyDamage(Atk, false) > 0)
+								else if (hit.applyHpDamage(Atk.hpdmg0, false, Atk) > 0)
 								{
 									hittype2 |= hittype3;
 									flag3 = true;
 								}
-								if (Atk._apply_knockback_current && Atk.knockback_len > 0f && m2Attackable != null)
+								if (!Atk._hitlock_ignore)
 								{
-									M2Attackable m2Attackable3 = nelM2Attacker as M2Attackable;
-									m2Attackable.addKnockBack(m2Attackable3, Atk, (float)((Ray.difx == 0f) ? X.MPF(m2Attackable.x < m2Attackable3.x) : X.MPF(Ray.difx > 0f)));
+									Ray.setHitLock(hit);
 								}
-								if (Atk.reduceAttackCount())
+								if (Atk.fnHitEffectAfter != null)
 								{
-									flag2 = false;
+									Atk.fnHitEffectAfter(Atk, hitted.Hit, flag3 ? hittype3 : HITTYPE.NONE);
 								}
-							}
-							else if (hit.applyHpDamage(Atk.hpdmg0, false, Atk) > 0)
-							{
-								hittype2 |= hittype3;
-								flag3 = true;
-							}
-							if (!Atk._hitlock_ignore)
-							{
-								Ray.setHitLock(hit);
-							}
-							if (Atk.fnHitEffectAfter != null)
-							{
-								Atk.fnHitEffectAfter(Atk, hitted.Hit, flag3 ? hittype3 : HITTYPE.NONE);
 							}
 						}
 					}
 				}
-				IL_046B:
+				IL_049D:
 				num3++;
 			}
 			Atk.split_mpdmg = split_mpdmg;
